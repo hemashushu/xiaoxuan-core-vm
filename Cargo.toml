@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    # "crates/ast",
+    # "crates/disassembly",
+    "crates/binary",
+    "crates/runtime",
+    # "crates/native-wasi",
+    # "crates/debugger",
+    # "crates/launcher",
+    # "crates/tools",
+    "crates/ancsr",
+]
