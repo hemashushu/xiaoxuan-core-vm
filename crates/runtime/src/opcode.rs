@@ -11,14 +11,20 @@
 // - the vm data types:
 //   i8, i16, i32, i64, f32, f64
 
+// note
+// i8: data section index
+// i8: data type
+// i16: module index, function type index, data index, local variable index, block level/index
+// i32: function index, dynamic function index, c function index, syscall number, env call number
+
 // XiaoXuan VM instructions are not fixed-length code.
 //
 // - instructions without parameters are 16 bits width
-// - instructions with one parameter, such as `local_get`, `i32_load`, `i32_shl`, `ecall` is 32 bits width
+// - instructions with one parameter, such as `local_get`, `i32_load`, `i32_shl` are 32 bits width
 //   16 bits opcode + 16 bits parameter
-// - instructions with one parameter, such as `call`, `ccall` and `addr_function` is 64 bits width
+// - instructions with one parameter, such as `call`, `ccall` and `addr_function` are 64 bits width
 //   16 bits opcode + 16 bits padding + 32 bits parameter
-// - instructions with two parameters, such as `block_nez`, `break`, `recur` is 64 bits width
+// - instructions with two parameters, such as `block_nez`, `break`, `recur` are 64 bits width
 //   16 bits opcode + 16 bits parameter 1 + 32 bits parameter 2
 // - instructions `i32_imm`, i64_imm_high` and `i64_imm_low` are 64 bits width,
 //   16 bits opcode + 16 bits padding + 32 bits immediate number
@@ -543,8 +549,11 @@ pub enum Opcode {
     call = 0x1100,          // call function                    (param func_index:int32)
     dcall,                  // closure/dynamic function call
 
-    ecall,                  // environment call                 (param env_func_num:int16)
-    scall,                  // syscall                          (param sys_call_num:int16)
+    ecall,                  // environment call                 (param env_func_num:int32)
+
+    scall,                  // syscall                          (param sys_call_num:int32)
+                            // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+
     ccall,                  // external C function call         (param c_func_index:int32)
 
     // the cfcall operand "cfunc_item_addr" is a vm struct:

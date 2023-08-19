@@ -5,3 +5,5 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 pub mod data_index_file;
+pub mod func_index_file;
+pub mod module_list_file;

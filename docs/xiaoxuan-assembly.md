@@ -79,20 +79,7 @@ import thread local data/variables or functions from external modules.
 )
 ```
 
-## multiple assembly source file
-
-```clojure
-(module
-    (submodule "./path/to/source_file_one.ancs")
-    (submodule "./path/to/source_file_two.ancs")
-)
-```
-
-note:
-
-multiple assembly source files will be compiled and combined into one (binary) bytecode file.
-
-## type
+## function type
 
 ```clojure
 (module
