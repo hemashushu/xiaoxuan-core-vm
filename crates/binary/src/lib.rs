@@ -4,7 +4,5 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-pub mod general_sections;
-pub mod info_sections;
-pub mod index_sections;
 pub mod module_image;
+pub mod index_map;

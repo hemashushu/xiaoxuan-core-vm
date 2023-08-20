@@ -6,13 +6,13 @@
 
 // "func index section" binary layout
 //
-//              |--------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                               |
-//              | offset item 0 | offset item 1 | offset item N | ...                |
-// offset 0 --> | index item field 0 | index item field 1 | index item field N | ... |
-// offset 1 --> | index item field 0 | index item field 1 | index item field N | ... |
-//              | ...                                                                |
-//              |--------------------------------------------------------------------|
+//              |---------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)              |
+//              | offset 0 | offset 1 | offset N | ...              |
+// offset 0 --> | func idx 0 | tar mod idx 0 | tar func idx 0 | ... | <-- item 0
+// offset 1 --> | func idx 1 | tar mod idx 1 | tar func idx 1 | ... | <-- item 1
+//              | ...                                               |
+//              |---------------------------------------------------|
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -37,7 +37,7 @@ pub struct FuncIndexItem {
     pub target_func_index: u32,   // target func index
 }
 
-pub fn read_section(section_data: &[u8]) -> FuncIndexSection {
+pub fn load_section(section_data: &[u8]) -> FuncIndexSection {
     let ptr = section_data.as_ptr();
     let item_count = unsafe { std::ptr::read(ptr as *const u32) };
 
@@ -48,15 +48,15 @@ pub fn read_section(section_data: &[u8]) -> FuncIndexSection {
     // 4 bytes `item_count` + 4 bytes padding.
     let offsets_data = &section_data[8..(8 + total_length)];
 
-    let offsets = read_offsets(offsets_data, item_count);
+    let offsets = load_offsets(offsets_data, item_count);
 
     let items_data = &section_data[(8 + total_length)..];
-    let items = read_index_items(items_data, item_count);
+    let items = load_index_items(items_data, item_count);
 
     FuncIndexSection { offsets, items }
 }
 
-pub fn write_section(
+pub fn save_section(
     section: &FuncIndexSection,
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -68,19 +68,19 @@ pub fn write_section(
     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
     writer.write_all(&[0u8; 4])?; // 4 bytes padding
 
-    write_offsets(offsets, writer)?;
-    write_index_items(items, writer)?;
+    save_offsets(offsets, writer)?;
+    save_index_items(items, writer)?;
 
     Ok(())
 }
 
-pub fn read_offsets(offsets_data: &[u8], item_count: u32) -> &[FuncIndexOffset] {
+pub fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[FuncIndexOffset] {
     let offsets_ptr = offsets_data.as_ptr() as *const FuncIndexOffset;
     let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
     unsafe { &*offsets_slice }
 }
 
-pub fn write_offsets(
+pub fn save_offsets(
     offsets: &[FuncIndexOffset],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -94,13 +94,13 @@ pub fn write_offsets(
     Ok(())
 }
 
-pub fn read_index_items(items_data: &[u8], item_count: u32) -> &[FuncIndexItem] {
+pub fn load_index_items(items_data: &[u8], item_count: u32) -> &[FuncIndexItem] {
     let items_ptr = items_data.as_ptr() as *const FuncIndexItem;
     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
     unsafe { &*items_slice }
 }
 
-pub fn write_index_items(
+pub fn save_index_items(
     items: &[FuncIndexItem],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -116,12 +116,12 @@ pub fn write_index_items(
 
 #[cfg(test)]
 mod tests {
-    use crate::index_sections::func_index_section::{
-        read_section, write_section, FuncIndexItem, FuncIndexOffset, FuncIndexSection,
+    use crate::index_map::func_index_section::{
+        load_section, save_section, FuncIndexItem, FuncIndexOffset, FuncIndexSection,
     };
 
     #[test]
-    fn test_read_section() {
+    fn test_load_section() {
         let section_data = vec![
             3u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
@@ -144,7 +144,7 @@ mod tests {
             31, 0, 0, 0, // target func index
         ];
 
-        let section = read_section(&section_data);
+        let section = load_section(&section_data);
 
         let offsets = section.offsets;
 
@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_write_section() {
+    fn test_save_section() {
         let mut offsets: Vec<FuncIndexOffset> = Vec::new();
 
         offsets.push(FuncIndexOffset {
@@ -236,7 +236,7 @@ mod tests {
         };
 
         let mut section_data: Vec<u8> = Vec::new();
-        write_section(&section, &mut section_data).unwrap();
+        save_section(&section, &mut section_data).unwrap();
 
         assert_eq!(
             section_data,

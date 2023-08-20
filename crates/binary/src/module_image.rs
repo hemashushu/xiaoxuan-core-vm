@@ -29,7 +29,7 @@
 // - function type section
 // - function section
 //
-// the following sections are not needed during the runtime, they are generally used for debuging
+// the following sections are not required during the runtime, they are generally used for debuging
 //
 // - import data section
 // - import function section
@@ -37,8 +37,8 @@
 // - export function section
 // - import external C function section
 //
-// because once all modules are loaded, all imports and exports will be resolved and presisted in
-// 3 _index_ section, these sections speeds up the next program loading:
+// because once all modules (source file) are compiled, all imports and exports will be resolved
+// and presisted in a _index map_ file, these sections speeds up the next program loading:
 //
 // - module index section
 // - data index section (optional)
@@ -49,10 +49,8 @@
 // - external function index (optional)
 // - library list (optional)
 
-use crate::index_sections::{
-    data_index_section::DataIndexSection, func_index_section::FuncIndexSection,
-    module_index_section::ModuleIndexSection,
-};
+pub mod type_section;
+pub mod import_data_section;
 
 // the "module image file" binary layout:
 //
@@ -63,14 +61,14 @@ use crate::index_sections::{
 // | ...                                                          |
 // |--------------------------------------------------------------|
 
-const MAGIC_NUMBER: [u8; 8] = [b'a', b'n', b'c', b's', b'm', b'o', b'd', 0];
+const MAGIC_NUMBER: [u8; 8] = [b'a', b'n', b'c', b's', b'm', b'o', b'd', 0]; // "ancsmod\0"
 const VERSION: u32 = 1;
 
-pub struct ModuleImage<'a> {
-    pub module_index_section: ModuleIndexSection<'a>,
-    pub data_index_section: Option<DataIndexSection<'a>>,
-    pub func_index_section: FuncIndexSection<'a>,
-}
+// pub struct ModuleImage<'a> {
+    // pub module_index_section: ModuleIndexSection<'a>,
+    // pub data_index_section: Option<DataIndexSection<'a>>,
+    // pub func_index_section: FuncIndexSection<'a>,
+// }
 
 struct SectionHeader {
     id: u32,

@@ -6,13 +6,13 @@
 
 // "data index section" binary layout
 //
-//              |--------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                               |
-//              | offset item 0 | offset item 1 | offset item N | ...                |
-// offset 0 --> | index item field 0 | index item field 1 | index item field N | ... |
-// offset 1 --> | index item field 0 | index item field 1 | index item field N | ... |
-//              | ...                                                                |
-//              |--------------------------------------------------------------------|
+//              |--------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                         |
+//              | offset 0 | offset 1 | offset N | ...                         |
+// offset 0 --> | data idx 0 | tar mod idx 0 | tar data sec 0 | tar data idx 0 | <-- item 0
+// offset 1 --> | data idx 1 | tar mod idx 1 | tar data sec 1 | tar data idx 1 | <-- item 1
+//              | ...                                                          |
+//              |--------------------------------------------------------------|
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -41,7 +41,7 @@ pub struct DataIndexItem {
     pub target_data_index: u16,   // target data item index (in a specified section)
 }
 
-pub fn read_section(section_data: &[u8]) -> DataIndexSection {
+pub fn load_section(section_data: &[u8]) -> DataIndexSection {
     let ptr = section_data.as_ptr();
     let item_count = unsafe { std::ptr::read(ptr as *const u32) };
 
@@ -68,15 +68,15 @@ pub fn read_section(section_data: &[u8]) -> DataIndexSection {
     //     } as *const DataIndexOffset;
     // ```
 
-    let offsets = read_offsets(offsets_data, item_count);
+    let offsets = load_offsets(offsets_data, item_count);
 
     let items_data = &section_data[(8 + total_length)..];
-    let items = read_index_items(items_data, item_count);
+    let items = load_index_items(items_data, item_count);
 
     DataIndexSection { offsets, items }
 }
 
-pub fn write_section(
+pub fn save_section(
     section: &DataIndexSection,
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -88,20 +88,20 @@ pub fn write_section(
     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
     writer.write_all(&[0u8; 4])?; // 4 bytes padding
 
-    write_offsets(offsets, writer)?;
-    write_index_items(items, writer)?;
+    save_offsets(offsets, writer)?;
+    save_index_items(items, writer)?;
 
     Ok(())
 }
 
-fn read_offsets(offsets_data: &[u8], item_count: u32) -> &[DataIndexOffset] {
+fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[DataIndexOffset] {
     let offsets_ptr = offsets_data.as_ptr() as *const DataIndexOffset;
     // https://doc.rust-lang.org/std/ptr/fn.slice_from_raw_parts.html
     let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
     unsafe { &*offsets_slice }
 }
 
-fn write_offsets(
+fn save_offsets(
     offsets: &[DataIndexOffset],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -112,16 +112,33 @@ fn write_offsets(
     let ptr = offsets.as_ptr() as *const u8;
     let slice = slice_from_raw_parts(ptr, total_length);
     writer.write_all(unsafe { &*slice })?;
+
+    // an example of writing a slice to Vec<u8>
+    //
+    // ```rust
+    //     let record_length = size_of::<SOME_STRUCT>();
+    //     let total_length = item_count * record_length;
+    //
+    //     let mut buf: Vec<u8> = Vec::with_capacity(total_length);
+    //     let dst = buf.as_mut_ptr() as *mut u8;
+    //     let src = items.as_ptr() as *const u8;
+    //
+    //     unsafe {
+    //         std::ptr::copy(src, dst, total_length);
+    //         items_buf.set_len(total_length);
+    //     }
+    // ```
+
     Ok(())
 }
 
-fn read_index_items(items_data: &[u8], item_count: u32) -> &[DataIndexItem] {
+fn load_index_items(items_data: &[u8], item_count: u32) -> &[DataIndexItem] {
     let items_ptr = items_data.as_ptr() as *const DataIndexItem;
     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
     unsafe { &*items_slice }
 }
 
-fn write_index_items(
+fn save_index_items(
     items: &[DataIndexItem],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
@@ -137,12 +154,12 @@ fn write_index_items(
 
 #[cfg(test)]
 mod tests {
-    use crate::index_sections::data_index_section::{
-        read_section, write_section, DataIndexItem, DataIndexOffset, DataIndexSection,
+    use crate::index_map::data_index_section::{
+        load_section, save_section, DataIndexItem, DataIndexOffset, DataIndexSection,
     };
 
     #[test]
-    fn test_read_section() {
+    fn test_load_section() {
         let section_data = vec![
             3u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
@@ -171,7 +188,7 @@ mod tests {
             37, 0, // target data index
         ];
 
-        let section = read_section(&section_data);
+        let section = load_section(&section_data);
 
         let offsets = section.offsets;
 
@@ -233,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn test_write_section() {
+    fn test_save_section() {
         let mut offsets: Vec<DataIndexOffset> = Vec::new();
 
         offsets.push(DataIndexOffset {
@@ -268,7 +285,7 @@ mod tests {
         };
 
         let mut section_data: Vec<u8> = Vec::new();
-        write_section(&section, &mut section_data).unwrap();
+        save_section(&section, &mut section_data).unwrap();
 
         assert_eq!(
             section_data,
