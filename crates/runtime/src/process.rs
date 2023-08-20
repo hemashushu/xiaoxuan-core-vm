@@ -101,6 +101,8 @@ pub struct Proccess {
     // the position of the current executing instruction (a.k.a. IP)
     pub current_instruction_position: usize,
 
+    // the XiaoXuan VM load multiple modules for a application, thus the
+    // "complete IP" consists of the module index and the instruction position.
     pub current_module_index: usize,
 
     // pub current_function_index: usize,
