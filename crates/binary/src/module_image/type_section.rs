@@ -9,14 +9,16 @@
 //                    |---------------------------------------------------------------------------------------|
 //                    | item count (u32) | (4 bytes padding)                                                  |
 //         item 0 --> | param len 0 (u32) | param offset 0 (u32) | result len 0 (u32) | result offset 0 (u32) |
-//         item 1 --> | param len 1 (u32) | param offset 1 (u32) | result len 1 (u32) | result offset 1 (u32) |
+//         item 1 --> | param len 1       | param offset 1       | result len 1       | result offset 1       |
 //                    | ...                                                                                   |
 // param offset 0 --> | param list 0                             | result type list 0                         | <-- result offset 0
 // param offset 1 --> | param list 1                             | result type list 1                         | <-- result offset 1
 //                    | ...                                                                                   |
 //                    |---------------------------------------------------------------------------------------|
 
-use std::{mem::size_of, ptr::slice_from_raw_parts, result, slice};
+use std::ptr::slice_from_raw_parts;
+
+use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 #[derive(Debug, PartialEq)]
 pub struct TypeSection<'a> {
@@ -52,57 +54,59 @@ pub struct TypeEntry<'a> {
 }
 
 pub fn load_section(section_data: &[u8]) -> TypeSection {
-    let ptr = section_data.as_ptr();
-    let item_count = unsafe { std::ptr::read(ptr as *const u32) };
+    //     let ptr = section_data.as_ptr();
+    //     let item_count = unsafe { std::ptr::read(ptr as *const u32) };
+    //
+    //     let one_record_length = size_of::<TypeItem>();
+    //     let total_length = one_record_length * item_count as usize;
+    //
+    //     // 8 bytes is the length of header,
+    //     // 4 bytes `item_count` + 4 bytes padding.
+    //     let items_data = &section_data[8..(8 + total_length)];
+    //     let items = load_type_items(items_data, item_count);
+    //
+    //     let types_data = &section_data[(8 + total_length)..];
 
-    let one_record_length = size_of::<TypeItem>();
-    let total_length = one_record_length * item_count as usize;
-
-    // 8 bytes is the length of header,
-    // 4 bytes `item_count` + 4 bytes padding.
-    let items_data = &section_data[8..(8 + total_length)];
-    let items = load_type_items(items_data, item_count);
-
-    let types_data = &section_data[(8 + total_length)..];
-
+    let (items, types_data) = load_section_with_table_and_data_area::<TypeItem>(section_data);
     TypeSection { items, types_data }
 }
 
 pub fn save_section(section: &TypeSection, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    let items = section.items;
-    let types_data = section.types_data;
-
-    // write header
-    let item_count = items.len();
-    writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
-    writer.write_all(&[0u8; 4])?; // 4 bytes padding
-
-    save_type_items(items, writer)?;
-    writer.write_all(types_data)?;
-
-    Ok(())
+    //     let items = section.items;
+    //     let types_data = section.types_data;
+    //
+    //     // write header
+    //     let item_count = items.len();
+    //     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
+    //     writer.write_all(&[0u8; 4])?; // 4 bytes padding
+    //
+    //     save_type_items(items, writer)?;
+    //     writer.write_all(types_data)?;
+    //
+    //     Ok(())
+    save_section_with_table_and_data_area(section.items, section.types_data, writer)
 }
 
-fn load_type_items(items_data: &[u8], item_count: u32) -> &[TypeItem] {
-    let items_ptr = items_data.as_ptr() as *const TypeItem;
-    let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
-    unsafe { &*items_slice }
-}
-
-fn save_type_items(
-    index_items: &[TypeItem],
-    writer: &mut dyn std::io::Write,
-) -> std::io::Result<()> {
-    let item_count = index_items.len();
-    let record_length = size_of::<TypeItem>();
-    let total_length = record_length * item_count;
-
-    let ptr = index_items.as_ptr() as *const u8;
-    let slice = slice_from_raw_parts(ptr, total_length);
-    writer.write_all(unsafe { &*slice })?;
-
-    Ok(())
-}
+// fn load_type_items(items_data: &[u8], item_count: u32) -> &[TypeItem] {
+//     let items_ptr = items_data.as_ptr() as *const TypeItem;
+//     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
+//     unsafe { &*items_slice }
+// }
+//
+// fn save_type_items(
+//     index_items: &[TypeItem],
+//     writer: &mut dyn std::io::Write,
+// ) -> std::io::Result<()> {
+//     let item_count = index_items.len();
+//     let record_length = size_of::<TypeItem>();
+//     let total_length = record_length * item_count;
+//
+//     let ptr = index_items.as_ptr() as *const u8;
+//     let slice = slice_from_raw_parts(ptr, total_length);
+//     writer.write_all(unsafe { &*slice })?;
+//
+//     Ok(())
+// }
 
 pub fn get_entry<'a>(section: &'a TypeSection<'a>, idx: u16) -> Box<TypeEntry<'a>> {
     let items = section.items;

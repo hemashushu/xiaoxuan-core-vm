@@ -49,8 +49,8 @@
 // - external function index (optional)
 // - library list (optional)
 
+pub mod func_section;
 pub mod type_section;
-pub mod import_data_section;
 
 // the "module image file" binary layout:
 //
@@ -65,9 +65,9 @@ const MAGIC_NUMBER: [u8; 8] = [b'a', b'n', b'c', b's', b'm', b'o', b'd', 0]; // 
 const VERSION: u32 = 1;
 
 // pub struct ModuleImage<'a> {
-    // pub module_index_section: ModuleIndexSection<'a>,
-    // pub data_index_section: Option<DataIndexSection<'a>>,
-    // pub func_index_section: FuncIndexSection<'a>,
+// pub module_index_section: ModuleIndexSection<'a>,
+// pub data_index_section: Option<DataIndexSection<'a>>,
+// pub func_index_section: FuncIndexSection<'a>,
 // }
 
 struct SectionHeader {

@@ -14,7 +14,7 @@
 //              | ...                                               |
 //              |---------------------------------------------------|
 
-use std::{mem::size_of, ptr::slice_from_raw_parts};
+use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
@@ -38,20 +38,22 @@ pub struct FuncIndexItem {
 }
 
 pub fn load_section(section_data: &[u8]) -> FuncIndexSection {
-    let ptr = section_data.as_ptr();
-    let item_count = unsafe { std::ptr::read(ptr as *const u32) };
-
-    let one_record_length = size_of::<FuncIndexOffset>();
-    let total_length = one_record_length * item_count as usize;
-
-    // 8 bytes is the length of header,
-    // 4 bytes `item_count` + 4 bytes padding.
-    let offsets_data = &section_data[8..(8 + total_length)];
-
-    let offsets = load_offsets(offsets_data, item_count);
-
-    let items_data = &section_data[(8 + total_length)..];
-    let items = load_index_items(items_data, item_count);
+    //     let ptr = section_data.as_ptr();
+    //     let item_count = unsafe { std::ptr::read(ptr as *const u32) };
+    //
+    //     let one_record_length = size_of::<FuncIndexOffset>();
+    //     let total_length = one_record_length * item_count as usize;
+    //
+    //     // 8 bytes is the length of header,
+    //     // 4 bytes `item_count` + 4 bytes padding.
+    //     let offsets_data = &section_data[8..(8 + total_length)];
+    //
+    //     let offsets = load_offsets(offsets_data, item_count);
+    //
+    //     let items_data = &section_data[(8 + total_length)..];
+    //     let items = load_index_items(items_data, item_count);
+    let (offsets, items) =
+        load_section_with_two_tables::<FuncIndexOffset, FuncIndexItem>(section_data);
 
     FuncIndexSection { offsets, items }
 }
@@ -60,59 +62,60 @@ pub fn save_section(
     section: &FuncIndexSection,
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
-    let offsets = section.offsets;
-    let items = section.items;
-
-    // write header
-    let item_count = items.len();
-    writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
-    writer.write_all(&[0u8; 4])?; // 4 bytes padding
-
-    save_offsets(offsets, writer)?;
-    save_index_items(items, writer)?;
-
-    Ok(())
+    //     let offsets = section.offsets;
+    //     let items = section.items;
+    //
+    //     // write header
+    //     let item_count = items.len();
+    //     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
+    //     writer.write_all(&[0u8; 4])?; // 4 bytes padding
+    //
+    //     save_offsets(offsets, writer)?;
+    //     save_index_items(items, writer)?;
+    //
+    //     Ok(())
+    save_section_with_two_tables(section.offsets, section.items, writer)
 }
 
-pub fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[FuncIndexOffset] {
-    let offsets_ptr = offsets_data.as_ptr() as *const FuncIndexOffset;
-    let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
-    unsafe { &*offsets_slice }
-}
-
-pub fn save_offsets(
-    offsets: &[FuncIndexOffset],
-    writer: &mut dyn std::io::Write,
-) -> std::io::Result<()> {
-    let item_count = offsets.len();
-    let record_length = size_of::<FuncIndexOffset>();
-    let total_length = record_length * item_count;
-
-    let ptr = offsets.as_ptr() as *const u8;
-    let slice = slice_from_raw_parts(ptr, total_length);
-    writer.write_all(unsafe { &*slice })?;
-    Ok(())
-}
-
-pub fn load_index_items(items_data: &[u8], item_count: u32) -> &[FuncIndexItem] {
-    let items_ptr = items_data.as_ptr() as *const FuncIndexItem;
-    let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
-    unsafe { &*items_slice }
-}
-
-pub fn save_index_items(
-    items: &[FuncIndexItem],
-    writer: &mut dyn std::io::Write,
-) -> std::io::Result<()> {
-    let item_count = items.len();
-    let record_length = size_of::<FuncIndexItem>();
-    let total_length = record_length * item_count;
-
-    let ptr = items.as_ptr() as *const u8;
-    let slice = slice_from_raw_parts(ptr, total_length);
-    writer.write_all(unsafe { &*slice })?;
-    Ok(())
-}
+// pub fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[FuncIndexOffset] {
+//     let offsets_ptr = offsets_data.as_ptr() as *const FuncIndexOffset;
+//     let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
+//     unsafe { &*offsets_slice }
+// }
+//
+// pub fn save_offsets(
+//     offsets: &[FuncIndexOffset],
+//     writer: &mut dyn std::io::Write,
+// ) -> std::io::Result<()> {
+//     let item_count = offsets.len();
+//     let record_length = size_of::<FuncIndexOffset>();
+//     let total_length = record_length * item_count;
+//
+//     let ptr = offsets.as_ptr() as *const u8;
+//     let slice = slice_from_raw_parts(ptr, total_length);
+//     writer.write_all(unsafe { &*slice })?;
+//     Ok(())
+// }
+//
+// pub fn load_index_items(items_data: &[u8], item_count: u32) -> &[FuncIndexItem] {
+//     let items_ptr = items_data.as_ptr() as *const FuncIndexItem;
+//     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
+//     unsafe { &*items_slice }
+// }
+//
+// pub fn save_index_items(
+//     items: &[FuncIndexItem],
+//     writer: &mut dyn std::io::Write,
+// ) -> std::io::Result<()> {
+//     let item_count = items.len();
+//     let record_length = size_of::<FuncIndexItem>();
+//     let total_length = record_length * item_count;
+//
+//     let ptr = items.as_ptr() as *const u8;
+//     let slice = slice_from_raw_parts(ptr, total_length);
+//     writer.write_all(unsafe { &*slice })?;
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {
