@@ -6,22 +6,46 @@
 
 // "data index section" binary layout
 //
-//              |------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                             |
-//              | offset 0 | offset 1 | offset N | ...                             |
-// offset 0 --> | data idx 0 | tar mod idx 0 | tar data section 0 | tar data idx 0 | <-- item 0
-// offset 1 --> | data idx 1 | tar mod idx 1 | tar data section 1 | tar data idx 1 | <-- item 1
-//              | ...                                                              |
-//              |------------------------------------------------------------------|
+// |-----------------------------------------------------------------------------------------------|
+// | item count (u32) | (4 bytes padding)                                                          |
+// |-----------------------------------------------------------------------------------------------|
+// | offset 0 (u32) | count 0 (u32)                                                                | <-- table 0
+// | offset 1       | count 1                                                                      |
+// | ...                                                                                           |
+// |-----------------------------------------------------------------------------------------------|
+//
+// |-----------------------------------------------------------------------------------------------------------|
+// | data idx 0 (u16) | tar mod idx 0 (u16) | tar data section type 0 (u8) | pad 1 byte | tar data idx 0 (u16) | <-- table 1
+// | data idx 1       | tar mod idx 1       | tar data section type 1      | pad 1 byte | tar data idx 1       |
+// | ...                                                                                                       |
+// |-----------------------------------------------------------------------------------------------------------|
+
+use ancvm_types::{DataSectionType, SectionEntry, SectionId};
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 #[derive(Debug, PartialEq)]
 pub struct DataIndexSection<'a> {
-    offsets: &'a [DataIndexOffset],
-    items: &'a [DataIndexItem],
+    pub offsets: &'a [DataIndexOffset],
+    pub items: &'a [DataIndexItem],
 }
 
+// one index offset item per module.
+// for example, consider the following items:
+//
+// module 0 ----- index item 0
+//            |-- index item 1
+//            |-- index item 2
+//
+// module 1 ----- index item 3
+//            |-- index item 4
+//
+// since there are 2 modules, so there will be
+// 2 index offset items as the following:
+//
+// index offset 0 = {offset:0, count:3}
+// index offset 1 = {offset:3, count:2}
+//
 // use the C style struct memory layout
 // see also:
 // https://doc.rust-lang.org/reference/type-layout.html#reprc-structs
@@ -37,173 +61,90 @@ pub struct DataIndexOffset {
 pub struct DataIndexItem {
     pub data_index: u16,          // data item index (in a specified module)
     pub target_module_index: u16, // target module index
-    pub target_data_section: u8,  // target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
-    pub target_data_index: u16,   // target data item index (in a specified section)
+    pub target_data_section_type: DataSectionType, // target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
+    _padding0: u8,
+    pub target_data_index: u16, // target data item index (in a specified section)
 }
 
-pub fn load_section(section_data: &[u8]) -> DataIndexSection {
-    let (offsets, items) =
-        load_section_with_two_tables::<DataIndexOffset, DataIndexItem>(section_data);
+impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
+    fn load(section_data: &'a [u8]) -> Self {
+        let (offsets, items) =
+            load_section_with_two_tables::<DataIndexOffset, DataIndexItem>(section_data);
+        DataIndexSection { offsets, items }
+    }
 
-    //     let ptr = section_data.as_ptr();
-    //     let item_count = unsafe { std::ptr::read(ptr as *const u32) } as usize;
-    //
-    //     // there is a "safe" way to read a number from pointer, e.g.
-    //     //
-    //     // ```rust
-    //     //     let mut buf = [0u8; 4];
-    //     //     let data = &binary[0..4];
-    //     //     buf.clone_from_slice(data);
-    //     //     let module_count =  u32::from_le_bytes(buf);
-    //     // ```
-    //
-    //     let one_record_length_in_bytes = size_of::<DataIndexOffset>();
-    //     let total_length_in_bytes = one_record_length_in_bytes * item_count;
-    //
-    //     // 8 bytes is the length of header,
-    //     // 4 bytes `item_count` + 4 bytes padding.
-    //     let offsets_data = &section_data[8..(8 + total_length_in_bytes)];
-    //
-    //     // there is another method to get the `offsets_data`, e.g.
-    //     // ```rust
-    //     //     let ptr_items = unsafe {
-    //     //         ptr.offset(8)
-    //     //     } as *const DataIndexOffset;
-    //     // ```
-    //
-    //     let offsets = load_items(offsets_data, item_count); // load_offsets(offsets_data, item_count);
-    //
-    //     let items_data = &section_data[(8 + total_length_in_bytes)..];
-    //     let items = load_items(items_data, item_count); // load_index_items(items_data, item_count);
+    fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        save_section_with_two_tables(self.offsets, self.items, writer)
+    }
 
-    DataIndexSection { offsets, items }
+    fn id(&'a self) -> SectionId {
+        SectionId::DataIndex
+    }
 }
 
-pub fn save_section(
-    section: &DataIndexSection,
-    writer: &mut dyn std::io::Write,
-) -> std::io::Result<()> {
-    //     let offsets = section.offsets;
-    //     let items = section.items;
-    //
-    //     // write header
-    //     let item_count = items.len();
-    //     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
-    //     writer.write_all(&[0u8; 4])?; // 4 bytes padding
-    //
-    //     save_items(offsets, writer)?;
-    //     save_items(items, writer)?;
-    //     // save_offsets(offsets, writer)?;
-    //     // save_index_items(items, writer)?;
-    //
-    //     Ok(())
-    save_section_with_two_tables(section.offsets, section.items, writer)
+impl DataIndexItem {
+    pub fn new(
+        data_index: u16,
+        target_module_index: u16,
+        target_data_section_type: DataSectionType,
+        target_data_index: u16,
+    ) -> Self {
+        Self {
+            data_index,
+            target_module_index,
+            target_data_section_type,
+            _padding0: 0,
+            target_data_index,
+        }
+    }
 }
-
-// fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[DataIndexOffset] {
-//     let offsets_ptr = offsets_data.as_ptr() as *const DataIndexOffset;
-//     // https://doc.rust-lang.org/std/ptr/fn.slice_from_raw_parts.html
-//     let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
-//     unsafe { &*offsets_slice }
-// }
-
-// fn save_offsets(
-//     offsets: &[DataIndexOffset],
-//     writer: &mut dyn std::io::Write,
-// ) -> std::io::Result<()> {
-//     let item_count = offsets.len();
-//     let record_length = size_of::<DataIndexOffset>();
-//     let total_length = record_length * item_count;
-//
-//     let ptr = offsets.as_ptr() as *const u8;
-//     let slice = slice_from_raw_parts(ptr, total_length);
-//     writer.write_all(unsafe { &*slice })?;
-//
-//     // an example of writing a slice to Vec<u8>
-//     //
-//     // ```rust
-//     //     let record_length = size_of::<SOME_STRUCT>();
-//     //     let total_length = item_count * record_length;
-//     //
-//     //     let mut buf: Vec<u8> = Vec::with_capacity(total_length);
-//     //     let dst = buf.as_mut_ptr() as *mut u8;
-//     //     let src = items.as_ptr() as *const u8;
-//     //
-//     //     unsafe {
-//     //         std::ptr::copy(src, dst, total_length);
-//     //         items_buf.set_len(total_length);
-//     //     }
-//     // ```
-//
-//     Ok(())
-// }
-
-// fn load_index_items(items_data: &[u8], item_count: u32) -> &[DataIndexItem] {
-//     let items_ptr = items_data.as_ptr() as *const DataIndexItem;
-//     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
-//     unsafe { &*items_slice }
-// }
-
-// fn save_index_items(
-//     items: &[DataIndexItem],
-//     writer: &mut dyn std::io::Write,
-// ) -> std::io::Result<()> {
-//     let item_count = items.len();
-//     let record_length = size_of::<DataIndexItem>();
-//     let total_length = record_length * item_count;
-//
-//     let ptr = items.as_ptr() as *const u8;
-//     let slice = slice_from_raw_parts(ptr, total_length);
-//     writer.write_all(unsafe { &*slice })?;
-//     Ok(())
-// }
 
 #[cfg(test)]
 mod tests {
-    use crate::index_map::data_index_section::{
-        load_section, save_section, DataIndexItem, DataIndexOffset, DataIndexSection,
-    };
+    use ancvm_types::{DataSectionType, SectionEntry};
+
+    use crate::index_map::data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection};
 
     #[test]
     fn test_load_section() {
         let section_data = vec![
-            3u8, 0, 0, 0, // item count (little endian)
+            2u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
             //
-            2, 0, 0, 0, // offset 0 (offset 0)
+            2, 0, 0, 0, // offset 0 (item 0)
             3, 0, 0, 0, // count 0
-            5, 0, 0, 0, // offset 1 (offset 1)
+            5, 0, 0, 0, // offset 1 (item 1)
             7, 0, 0, 0, // count 1
-            11, 0, 0, 0, // offset 2 (offset 2)
-            13, 0, 0, 0, // count 2
             //
-            2, 0, // data index (item 0)
-            3, 0, // target module index
-            5, // target data section
-            0, // 1 byte padding
-            7, 0, // target data index
-            11, 0, // data index (item 1)
-            13, 0,  // target module index
-            17, // target data section
-            0,  // 1 byte padding
-            19, 0, // target data index
-            23, 0, // data index (item 2)
-            29, 0,  // target module index
-            31, // target data section
-            0,  // 1 byte padding
-            37, 0, // target data index
+            2, 0, // data index, item 0 (little endian)
+            3, 0, // t module index
+            0, // t data section type
+            0, // padding
+            5, 0, // t data idx
+            //
+            7, 0, // data index, item 1 (little endian)
+            11, 0, // t module index
+            1, // t data section type
+            0, // padding
+            13, 0, // t data idx
+            //
+            17, 0, // data index, item 2 (little endian)
+            11, 0, // t module index
+            1, // t data section type
+            0, // padding
+            19, 0, // t data idx
         ];
 
-        let section = load_section(&section_data);
+        let section = DataIndexSection::load(&section_data);
 
         let offsets = section.offsets;
 
-        assert_eq!(offsets.len(), 3);
+        assert_eq!(offsets.len(), 2);
         assert_eq!(
             offsets[0],
             DataIndexOffset {
                 offset: 2,
-                count: 3
+                count: 3,
             }
         );
         assert_eq!(
@@ -211,13 +152,6 @@ mod tests {
             DataIndexOffset {
                 offset: 5,
                 count: 7
-            }
-        );
-        assert_eq!(
-            offsets[2],
-            DataIndexOffset {
-                offset: 11,
-                count: 13
             }
         );
 
@@ -229,28 +163,31 @@ mod tests {
             DataIndexItem {
                 data_index: 2,
                 target_module_index: 3,
-                target_data_section: 5,
-                target_data_index: 7,
+                target_data_section_type: DataSectionType::ReadOnly,
+                _padding0: 0,
+                target_data_index: 5,
             }
         );
 
         assert_eq!(
             items[1],
             DataIndexItem {
-                data_index: 11,
-                target_module_index: 13,
-                target_data_section: 17,
-                target_data_index: 19,
+                data_index: 7,
+                target_module_index: 11,
+                target_data_section_type: DataSectionType::ReadWrite,
+                _padding0: 0,
+                target_data_index: 13,
             }
         );
 
         assert_eq!(
             items[2],
             DataIndexItem {
-                data_index: 23,
-                target_module_index: 29,
-                target_data_section: 31,
-                target_data_index: 37,
+                data_index: 17,
+                target_module_index: 11,
+                target_data_section_type: DataSectionType::ReadWrite,
+                _padding0: 0,
+                target_data_index: 19,
             }
         );
     }
@@ -260,13 +197,13 @@ mod tests {
         let mut offsets: Vec<DataIndexOffset> = Vec::new();
 
         offsets.push(DataIndexOffset {
-            offset: 0x2,
-            count: 0x3,
+            offset: 2,
+            count: 3,
         });
 
         offsets.push(DataIndexOffset {
-            offset: 0x5,
-            count: 0x7,
+            offset: 5,
+            count: 7,
         });
 
         let mut items: Vec<DataIndexItem> = Vec::new();
@@ -274,15 +211,25 @@ mod tests {
         items.push(DataIndexItem {
             data_index: 2,
             target_module_index: 3,
-            target_data_section: 5,
-            target_data_index: 7,
+            target_data_section_type: DataSectionType::ReadOnly,
+            _padding0: 0,
+            target_data_index: 5,
+        });
+
+        items.push(DataIndexItem {
+            data_index: 7,
+            target_module_index: 11,
+            target_data_section_type: DataSectionType::ReadWrite,
+            _padding0: 0,
+            target_data_index: 13,
         });
 
         items.push(DataIndexItem {
             data_index: 17,
-            target_module_index: 19,
-            target_data_section: 23,
-            target_data_index: 29,
+            target_module_index: 11,
+            target_data_section_type: DataSectionType::ReadWrite,
+            _padding0: 0,
+            target_data_index: 19,
         });
 
         let section = DataIndexSection {
@@ -291,7 +238,7 @@ mod tests {
         };
 
         let mut section_data: Vec<u8> = Vec::new();
-        save_section(&section, &mut section_data).unwrap();
+        section.save(&mut section_data).unwrap();
 
         assert_eq!(
             section_data,
@@ -304,14 +251,23 @@ mod tests {
                 5, 0, 0, 0, // offset 1 (item 1)
                 7, 0, 0, 0, // count 1
                 //
-                2, 0, // item 0 (little endian)
-                3, 0, //
-                5, 0, //
-                7, 0, //
-                17, 0, // item 1
-                19, 0, //
-                23, 0, //
-                29, 0, //
+                2, 0, // data index, item 0 (little endian)
+                3, 0, // t module index
+                0, // t data section type
+                0, // padding
+                5, 0, // t data idx
+                //
+                7, 0, // data index, item 1 (little endian)
+                11, 0, // t module index
+                1, // t data section type
+                0, // padding
+                13, 0, // t data idx
+                //
+                17, 0, // data index, item 2 (little endian)
+                11, 0, // t module index
+                1, // t data section type
+                0, // padding
+                19, 0, // t data idx
             ]
         );
     }

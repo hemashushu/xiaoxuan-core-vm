@@ -12,9 +12,8 @@
 //   i8, i16, i32, i64, f32, f64
 
 // note
-// i8: data section index
-// i8: data type
-// i16: module index, function type index, data index, local variable index, block level/index
+// i8: data type, data section type, module type
+// i16: module index, function type index, data index, local variable index, block level/index, section id
 // i32: function index, dynamic function index, c function index, syscall number, env call number
 
 // XiaoXuan VM instructions are not fixed-length code.
@@ -217,6 +216,41 @@ pub enum Opcode {
     i32_div_u,
     i32_rem_s, // calculate the remainder
     i32_rem_u,
+
+    // remainder vs modulus
+    // --------------------
+    // The remainder (%) operator returns the remainder left over when one operand is
+    // divided by a second operand. It always takes the sign of the dividend.
+    // For the operation n % d, n is called the dividend and d is called the divisor.
+    //
+    // (13 % 5) = 3
+    // (-13 % 5) = -3
+    // (4 % 2) = 0
+    // (-4 % 2) = -0
+    //
+    // ref: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder
+    //
+    // Example of Modulus:
+    //
+    // 5 % 3 = 2 [here divisible is 5 which is positively signed so the remainder will also be
+    // positively signed and the divisor is also positively signed. As both remainder and divisor
+    // are of same sign the result will be same as remainder]
+    //
+    // -5 % 3 = 1 [here divisible is -5 which is negatively signed so the remainder will also be
+    // negatively signed and the divisor is positively signed. As both remainder and divisor are
+    // of opposite sign the result will be sum of remainder and divisor -2 + 3 = 1]
+    //
+    // 5 % -3 = -1 [here divisible is 5 which is positively signed so the remainder will also
+    // be positively signed and the divisor is negatively signed. As both remainder and divisor
+    // are of opposite sign the result will be sum of remainder and divisor 2 + -3 = -1]
+    //
+    // -5 % -3 = -2 [here divisible is -5 which is negatively signed so the remainder will also
+    // be negatively signed and the divisor is also negatively signed. As both remainder and
+    // divisor are of same sign the result will be same as remainder]
+    //
+    // ref: https://stackoverflow.com/questions/13683563/whats-the-difference-between-mod-and-remainder
+    // ref: https://en.wikipedia.org/wiki/Euclidean_division
+    // ref: https://en.wikipedia.org/wiki/Modulo
 
     // instruction `i32_add` example:
     //

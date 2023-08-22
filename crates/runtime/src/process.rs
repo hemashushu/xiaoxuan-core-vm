@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use crate::types::Operand;
+use ancvm_types::Operand;
 
 pub struct Proccess {
     // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,

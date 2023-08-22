@@ -6,13 +6,28 @@
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
-/// load a section that contains an outline table and a detail table.
+const DATA_ALIGN_BYTES: usize = 4;
+
+/// load a section that contains two tables.
 ///
-/// note that both tables must have the same number of entries.
+/// ```text
+/// |----------------------------------------------|
+/// | table 0 item count (u32) | padding (4 bytes) |
+/// |----------------------------------------------|
+/// | table 0 record 0                             | <-- record length must be a multiple of 0x4
+/// | table 0 record 1                             |
+/// | ...                                          |
+/// |----------------------------------------------|
+/// | table 1 record 0                             | <-- record length must be a multiple of 0x4
+/// | table 1 record 1                             |
+/// |----------------------------------------------|
+/// ```
 ///
+/// note that the items count of table 1 is calculated by:
+/// (table 1 data length) / (one record length)
 pub fn load_section_with_two_tables<T0, T1>(section_data: &[u8]) -> (&[T0], &[T1]) {
     let ptr = section_data.as_ptr();
-    let item_count = unsafe { std::ptr::read(ptr as *const u32) } as usize;
+    let item_count0 = unsafe { std::ptr::read(ptr as *const u32) } as usize;
 
     // there is a "safe" way to read a number from pointer, e.g.
     //
@@ -23,13 +38,13 @@ pub fn load_section_with_two_tables<T0, T1>(section_data: &[u8]) -> (&[T0], &[T1
     //     let module_count =  u32::from_le_bytes(buf);
     // ```
 
-    let one_record_length_in_bytes = size_of::<T1>();
-    let total_length_in_bytes = one_record_length_in_bytes * item_count;
+    let one_record_length_in_bytes0 = size_of::<T0>();
+    let total_length_in_bytes0 = one_record_length_in_bytes0 * item_count0;
 
     // 8 bytes is the length of header, i.e.
     // 4 bytes `item_count` + 4 bytes padding.
-    let items0_data = &section_data[8..(8 + total_length_in_bytes)];
-    let items1_data = &section_data[(8 + total_length_in_bytes)..];
+    let items0_data = &section_data[8..(8 + total_length_in_bytes0)];
+    let items1_data = &section_data[(8 + total_length_in_bytes0)..];
 
     // there is another method to get the `items_data`, e.g.
     // ```rust
@@ -38,24 +53,36 @@ pub fn load_section_with_two_tables<T0, T1>(section_data: &[u8]) -> (&[T0], &[T1
     //     } as *const DataIndexOffset;
     // ```
 
-    let items0 = load_items::<T0>(items0_data, item_count);
-    let items1 = load_items::<T1>(items1_data, item_count);
+    let one_record_length_in_bytes1 = size_of::<T1>();
+    let item_count1 = items1_data.len() / one_record_length_in_bytes1;
+    let items0 = load_items::<T0>(items0_data, item_count0);
+    let items1 = load_items::<T1>(items1_data, item_count1);
 
     (items0, items1)
 }
 
-/// load a section that contains an outline table and a detail table.
+/// save a section that contains two tables.
 ///
-/// note that both tables must have the same number of entries.
-///
+/// ```text
+/// |----------------------------------------------|
+/// | table 0 item count (u32) | padding (4 bytes) |
+/// |----------------------------------------------|
+/// | table 0 record 0                             | <-- record length must be a multiple of 0x4
+/// | table 0 record 1                             |
+/// | ...                                          |
+/// |----------------------------------------------|
+/// | table 1 record 0                             | <-- record length must be a multiple of 0x4
+/// | table 1 record 1                             |
+/// |----------------------------------------------|
+/// ```
 pub fn save_section_with_two_tables<T0, T1>(
     items0: &[T0],
     items1: &[T1],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
     // write header
-    let item_count = items0.len();
-    writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
+    let item_count0 = items0.len();
+    writer.write_all(&(item_count0 as u32).to_le_bytes())?; // item count
     writer.write_all(&[0u8; 4])?; // 4 bytes padding
 
     save_items(items0, writer)?;
@@ -68,6 +95,18 @@ pub fn save_section_with_two_tables<T0, T1>(
 
 /// load a section that contains a table and a variable-length data area.
 ///
+/// ```text
+/// |--------------------------------------|
+/// | item count (u32) | padding (4 bytes) |
+/// |--------------------------------------|
+/// | record 0                             | <-- record length must be a multiple of 0x4
+/// | record 1                             |
+/// | ...                                  |
+/// |--------------------------------------|
+/// | variable length data area            | <-- data length must be a multiple of 0x4
+/// | ...                                  |
+/// |--------------------------------------|
+/// ```
 pub fn load_section_with_table_and_data_area<T>(section_data: &[u8]) -> (&[T], &[u8]) {
     let ptr = section_data.as_ptr();
     let item_count = unsafe { std::ptr::read(ptr as *const u32) } as usize;
@@ -78,16 +117,30 @@ pub fn load_section_with_table_and_data_area<T>(section_data: &[u8]) -> (&[T], &
     // 8 bytes is the length of header,
     // 4 bytes `item_count` + 4 bytes padding.
     let items_data = &section_data[8..(8 + total_length_in_bytes)];
-    let other_data = &section_data[(8 + total_length_in_bytes)..];
+    let additional_data = &section_data[(8 + total_length_in_bytes)..];
 
     let items = load_items::<T>(items_data, item_count);
 
-    (items, other_data)
+    (items, additional_data)
 }
 
+/// save a section that contains a table and a variable-length data area.
+///
+/// ```text
+/// |--------------------------------------|
+/// | item count (u32) | padding (4 bytes) |
+/// |--------------------------------------|
+/// | record 0                             | <-- record length must be a multiple of 0x4
+/// | record 1                             |
+/// | ...                                  |
+/// |--------------------------------------|
+/// | variable length data area            | <-- data length must be a multiple of 0x4
+/// | ...                                  |     if the length is not 4x, byte '\0' will
+/// |--------------------------------------|     be appended automatically by this function.
+/// ```
 pub fn save_section_with_table_and_data_area<T>(
     items: &[T],
-    other_data: &[u8],
+    additional_data: &[u8],
     writer: &mut dyn std::io::Write,
 ) -> std::io::Result<()> {
     // write header
@@ -96,19 +149,35 @@ pub fn save_section_with_table_and_data_area<T>(
     writer.write_all(&[0u8; 4])?; // 4 bytes padding
 
     save_items::<T>(items, writer)?;
-    writer.write_all(other_data)?;
+    writer.write_all(additional_data)?;
+
+    let remainder =  additional_data.len() % DATA_ALIGN_BYTES; // remainder
+
+    if remainder != 0 {
+        let padding = DATA_ALIGN_BYTES - remainder;
+        for _ in 0..padding {
+            writer.write(b"\0")?;
+        }
+    }
+
+
+
 
     Ok(())
 }
 
-fn load_items<T>(items_data: &[u8], item_count: usize) -> &[T] {
+/// load a table
+/// note that record length must be a multiple of 0x4
+pub fn load_items<T>(items_data: &[u8], item_count: usize) -> &[T] {
     let items_ptr = items_data.as_ptr() as *const T;
     // https://doc.rust-lang.org/std/ptr/fn.slice_from_raw_parts.html
     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count);
     unsafe { &*items_slice }
 }
 
-fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+/// save a table
+/// note that record length must be a multiple of 0x4
+pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     let item_count = items.len();
     let one_record_length_in_bytes = size_of::<T>();
     let total_length_in_bytes = one_record_length_in_bytes * item_count;

@@ -6,22 +6,45 @@
 
 // "func index section" binary layout
 //
-//              |---------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)              |
-//              | offset 0 | offset 1 | offset N | ...              |
-// offset 0 --> | func idx 0 | tar mod idx 0 | tar func idx 0 | ... | <-- item 0
-// offset 1 --> | func idx 1 | tar mod idx 1 | tar func idx 1 | ... | <-- item 1
-//              | ...                                               |
-//              |---------------------------------------------------|
+// |---------------------------------------------------------------|
+// | item count (u32) | (4 bytes padding)                          |
+// |---------------------------------------------------------------|
+// | offset 0 (u32) | count 0 (u32)                                | <-- table 0
+// | offset 1       | count 1                                      |
+// | ...                                                           |
+// |---------------------------------------------------------------|
+//
+// |---------------------------------------------------------------------------------|
+// | func idx 0 (u32) | tar mod idx 0 (u16) | padding 2 bytes | tar func idx 0 (u32) | <-- table 1
+// | func idx 1       | tar mod idx 1       | padding 2 bytes | tar func idx 1       |
+// | ...                                                                             |
+// |---------------------------------------------------------------------------------|
+
+use ancvm_types::{SectionEntry, SectionId};
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
-    offsets: &'a [FuncIndexOffset],
-    items: &'a [FuncIndexItem],
+    pub offsets: &'a [FuncIndexOffset],
+    pub items: &'a [FuncIndexItem],
 }
 
+// one index offset item per module.
+// for example, consider the following items:
+//
+// module 0 ----- index item 0
+//            |-- index item 1
+//            |-- index item 2
+//
+// module 1 ----- index item 3
+//            |-- index item 4
+//
+// since there are 2 modules, so there will be
+// 2 index offset items as the following:
+//
+// index offset 0 = {offset:0, count:3}
+// index offset 1 = {offset:3, count:2}
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexOffset {
@@ -32,145 +55,90 @@ pub struct FuncIndexOffset {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexItem {
-    pub func_index: u16,          // data item index (in a specified module)
+    pub func_index: u32,          // data item index (in a specified module)
     pub target_module_index: u16, // target module index
-    pub target_func_index: u32,   // target func index
+    _padding0: u16,
+    pub target_func_index: u32, // target func index
 }
 
-pub fn load_section(section_data: &[u8]) -> FuncIndexSection {
-    //     let ptr = section_data.as_ptr();
-    //     let item_count = unsafe { std::ptr::read(ptr as *const u32) };
-    //
-    //     let one_record_length = size_of::<FuncIndexOffset>();
-    //     let total_length = one_record_length * item_count as usize;
-    //
-    //     // 8 bytes is the length of header,
-    //     // 4 bytes `item_count` + 4 bytes padding.
-    //     let offsets_data = &section_data[8..(8 + total_length)];
-    //
-    //     let offsets = load_offsets(offsets_data, item_count);
-    //
-    //     let items_data = &section_data[(8 + total_length)..];
-    //     let items = load_index_items(items_data, item_count);
-    let (offsets, items) =
-        load_section_with_two_tables::<FuncIndexOffset, FuncIndexItem>(section_data);
+impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
+    fn load(section_data: &'a [u8]) -> Self {
+        let (offsets, items) =
+            load_section_with_two_tables::<FuncIndexOffset, FuncIndexItem>(section_data);
 
-    FuncIndexSection { offsets, items }
+        FuncIndexSection { offsets, items }
+    }
+
+    fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        save_section_with_two_tables(self.offsets, self.items, writer)
+    }
+
+    fn id(&'a self) -> SectionId {
+        SectionId::FuncIndex
+    }
 }
 
-pub fn save_section(
-    section: &FuncIndexSection,
-    writer: &mut dyn std::io::Write,
-) -> std::io::Result<()> {
-    //     let offsets = section.offsets;
-    //     let items = section.items;
-    //
-    //     // write header
-    //     let item_count = items.len();
-    //     writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
-    //     writer.write_all(&[0u8; 4])?; // 4 bytes padding
-    //
-    //     save_offsets(offsets, writer)?;
-    //     save_index_items(items, writer)?;
-    //
-    //     Ok(())
-    save_section_with_two_tables(section.offsets, section.items, writer)
+impl FuncIndexItem {
+    pub fn new(func_index: u32, target_module_index: u16, target_func_index: u32) -> Self {
+        Self {
+            func_index,
+            target_module_index,
+            _padding0: 0,
+            target_func_index,
+        }
+    }
 }
-
-// pub fn load_offsets(offsets_data: &[u8], item_count: u32) -> &[FuncIndexOffset] {
-//     let offsets_ptr = offsets_data.as_ptr() as *const FuncIndexOffset;
-//     let offsets_slice = std::ptr::slice_from_raw_parts(offsets_ptr, item_count as usize);
-//     unsafe { &*offsets_slice }
-// }
-//
-// pub fn save_offsets(
-//     offsets: &[FuncIndexOffset],
-//     writer: &mut dyn std::io::Write,
-// ) -> std::io::Result<()> {
-//     let item_count = offsets.len();
-//     let record_length = size_of::<FuncIndexOffset>();
-//     let total_length = record_length * item_count;
-//
-//     let ptr = offsets.as_ptr() as *const u8;
-//     let slice = slice_from_raw_parts(ptr, total_length);
-//     writer.write_all(unsafe { &*slice })?;
-//     Ok(())
-// }
-//
-// pub fn load_index_items(items_data: &[u8], item_count: u32) -> &[FuncIndexItem] {
-//     let items_ptr = items_data.as_ptr() as *const FuncIndexItem;
-//     let items_slice = std::ptr::slice_from_raw_parts(items_ptr, item_count as usize);
-//     unsafe { &*items_slice }
-// }
-//
-// pub fn save_index_items(
-//     items: &[FuncIndexItem],
-//     writer: &mut dyn std::io::Write,
-// ) -> std::io::Result<()> {
-//     let item_count = items.len();
-//     let record_length = size_of::<FuncIndexItem>();
-//     let total_length = record_length * item_count;
-//
-//     let ptr = items.as_ptr() as *const u8;
-//     let slice = slice_from_raw_parts(ptr, total_length);
-//     writer.write_all(unsafe { &*slice })?;
-//     Ok(())
-// }
 
 #[cfg(test)]
 mod tests {
-    use crate::index_map::func_index_section::{
-        load_section, save_section, FuncIndexItem, FuncIndexOffset, FuncIndexSection,
-    };
+    use ancvm_types::SectionEntry;
+
+    use crate::index_map::func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection};
 
     #[test]
     fn test_load_section() {
         let section_data = vec![
-            3u8, 0, 0, 0, // item count (little endian)
+            2u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
             //
-            2, 0, 0, 0, // offset 0 (item 0)
-            3, 0, 0, 0, // count 0
-            5, 0, 0, 0, // offset 1 (item 1)
-            7, 0, 0, 0, // count 1
-            11, 0, 0, 0, // offset 2 (item 2)
-            13, 0, 0, 0, // count 2
+            1, 0, 0, 0, // offset 0 (item 0)
+            2, 0, 0, 0, // count 0
+            3, 0, 0, 0, // offset 1 (item 1)
+            5, 0, 0, 0, // count 1
             //
-            2, 0, // func index (item 0)
-            3, 0, // target module index
-            5, 0, 0, 0, // target func index
-            11, 0, // data index (item 1)
-            13, 0, // target module index
-            17, 0, 0, 0, // target func index
-            23, 0, // data index (item 2)
-            29, 0, // target module index
-            31, 0, 0, 0, // target func index
+            1, 0, 0, 0, // func idx 0, item 0 (little endian)
+            2, 0, // t module idx 0
+            0, 0, // padding 0
+            3, 0, 0, 0, // t func idx 0
+            //
+            5, 0, 0, 0, // func idx 1, item 1
+            7, 0, // t module idx 1
+            0, 0, // padding 1
+            11, 0, 0, 0, // t func idx 1
+            //
+            13, 0, 0, 0, // func idx 2, item 2
+            17, 0, // t module idx 2
+            0, 0, // padding 2
+            19, 0, 0, 0, // t func idx 2
         ];
 
-        let section = load_section(&section_data);
+        let section = FuncIndexSection::load(&section_data);
 
         let offsets = section.offsets;
 
-        assert_eq!(offsets.len(), 3);
+        assert_eq!(offsets.len(), 2);
         assert_eq!(
             offsets[0],
             FuncIndexOffset {
-                offset: 2,
-                count: 3
+                offset: 1,
+                count: 2,
             }
         );
         assert_eq!(
             offsets[1],
             FuncIndexOffset {
-                offset: 5,
-                count: 7
-            }
-        );
-        assert_eq!(
-            offsets[2],
-            FuncIndexOffset {
-                offset: 11,
-                count: 13
+                offset: 3,
+                count: 5,
             }
         );
 
@@ -180,27 +148,30 @@ mod tests {
         assert_eq!(
             items[0],
             FuncIndexItem {
-                func_index: 2,
-                target_module_index: 3,
-                target_func_index: 5,
+                func_index: 1,
+                target_module_index: 2,
+                _padding0: 0,
+                target_func_index: 3,
             }
         );
 
         assert_eq!(
             items[1],
             FuncIndexItem {
-                func_index: 11,
-                target_module_index: 13,
-                target_func_index: 17,
+                func_index: 5,
+                target_module_index: 7,
+                _padding0: 0,
+                target_func_index: 11,
             }
         );
 
         assert_eq!(
             items[2],
             FuncIndexItem {
-                func_index: 23,
-                target_module_index: 29,
-                target_func_index: 31,
+                func_index: 13,
+                target_module_index: 17,
+                _padding0: 0,
+                target_func_index: 19,
             }
         );
     }
@@ -210,27 +181,36 @@ mod tests {
         let mut offsets: Vec<FuncIndexOffset> = Vec::new();
 
         offsets.push(FuncIndexOffset {
-            offset: 0x2,
-            count: 0x3,
+            offset: 1,
+            count: 2,
         });
 
         offsets.push(FuncIndexOffset {
-            offset: 0x5,
-            count: 0x7,
+            offset: 3,
+            count: 5,
         });
 
         let mut items: Vec<FuncIndexItem> = Vec::new();
 
         items.push(FuncIndexItem {
-            func_index: 2,
-            target_module_index: 3,
-            target_func_index: 5,
+            func_index: 1,
+            target_module_index: 2,
+            _padding0: 0,
+            target_func_index: 3,
         });
 
         items.push(FuncIndexItem {
-            func_index: 17,
-            target_module_index: 19,
-            target_func_index: 23,
+            func_index: 5,
+            target_module_index: 7,
+            _padding0: 0,
+            target_func_index: 11,
+        });
+
+        items.push(FuncIndexItem {
+            func_index: 13,
+            target_module_index: 17,
+            _padding0: 0,
+            target_func_index: 19,
         });
 
         let section = FuncIndexSection {
@@ -239,7 +219,7 @@ mod tests {
         };
 
         let mut section_data: Vec<u8> = Vec::new();
-        save_section(&section, &mut section_data).unwrap();
+        section.save(&mut section_data).unwrap();
 
         assert_eq!(
             section_data,
@@ -247,17 +227,25 @@ mod tests {
                 2u8, 0, 0, 0, // item count (little endian)
                 0, 0, 0, 0, // 4 bytes padding
                 //
-                2, 0, 0, 0, // offset 0 (item 0)
-                3, 0, 0, 0, // count 0
-                5, 0, 0, 0, // offset 1 (item 1)
-                7, 0, 0, 0, // count 1
+                1, 0, 0, 0, // offset 0 (item 0)
+                2, 0, 0, 0, // count 0
+                3, 0, 0, 0, // offset 1 (item 1)
+                5, 0, 0, 0, // count 1
                 //
-                2, 0, // item 0 (little endian)
-                3, 0, //
-                5, 0, 0, 0, //
-                17, 0, // item 1
-                19, 0, //
-                23, 0, 0, 0, //
+                1, 0, 0, 0, // func idx 0, item 0 (little endian)
+                2, 0, // t module idx 0
+                0, 0, // padding 0
+                3, 0, 0, 0, // t func idx 0
+                //
+                5, 0, 0, 0, // func idx 1, item 1
+                7, 0, // t module idx 1
+                0, 0, // padding 1
+                11, 0, 0, 0, // t func idx 1
+                //
+                13, 0, 0, 0, // func idx 2, item 2
+                17, 0, // t module idx 2
+                0, 0, // padding 2
+                19, 0, 0, 0, // t func idx 2
             ]
         );
     }
