@@ -38,7 +38,8 @@
 // - import external C function section
 //
 // because once all modules (source file) have been compiled, all imports and exports are resolved
-// and stored in an _index map_ file, these sections speed up the next time the program loading:
+// and stored in the following sections, these sections speed up the next time the program loading:
+// note that only the application main module contains these sections.
 //
 // - module index section
 // - data index section (optional)
@@ -49,18 +50,24 @@
 // - external function index (optional)
 // - library list (optional)
 
+pub mod data_index_section;
+pub mod data_section;
+pub mod func_index_section;
+pub mod func_section;
+pub mod module_index_section;
+pub mod type_section;
+
 use ancvm_types::{SectionEntry, SectionId};
 
 use crate::{
+    module_image::data_index_section::DataIndexSection,
+    module_image::func_index_section::FuncIndexSection,
+    module_image::func_section::FuncSection,
+    module_image::module_index_section::ModuleIndexSection,
     module_image::type_section::TypeSection,
     utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
     BinaryError,
 };
-
-use self::func_section::FuncSection;
-
-pub mod func_section;
-pub mod type_section;
 
 // the "module image file" binary layout:
 //
@@ -164,10 +171,29 @@ impl<'a> ModuleImage<'a> {
         let entry: Box<dyn SectionEntry + 'a> = match item.id {
             SectionId::Type => Box::new(TypeSection::load(section_data)),
             SectionId::Func => Box::new(FuncSection::load(section_data)),
-            _ => todo!(),
+            SectionId::ModuleIndex => Box::new(ModuleIndexSection::load(section_data)),
+            SectionId::DataIndex => Box::new(DataIndexSection::load(section_data)),
+            SectionId::FuncIndex => Box::new(FuncIndexSection::load(section_data)),
+            _ => unreachable!("Unknown module section."),
         };
 
         entry
+    }
+
+    pub fn get_section_entry_by_id(&'a self, section_id: SectionId) -> Box<dyn SectionEntry + 'a> {
+        let section_data = self.items.iter().find_map(|e| {
+            if e.id == section_id {
+                Some((e.offset, e.length))
+            } else {
+                None
+            }
+        });
+
+        // match section_id {
+        //     SectionId::Type => {
+        todo!()
+        //     }
+        // }
     }
 
     pub fn convert_from_entries(
@@ -210,14 +236,25 @@ impl<'a> ModuleImage<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{DataType, FuncEntry, SectionEntry, TypeEntry};
+    use ancvm_types::{
+        DataSectionType, DataType, FuncEntry, ModuleIndexEntry, ModuleShareType, SectionEntry,
+        TypeEntry,
+    };
 
-    use crate::{downcast_section_entry, module_image::MAGIC_NUMBER};
-
-    use super::{func_section::FuncSection, type_section::TypeSection, ModuleImage};
+    use crate::{
+        module_image::{
+            data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
+            func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
+            func_section::FuncSection,
+            module_index_section::ModuleIndexSection,
+            type_section::TypeSection,
+            ModuleImage, MAGIC_NUMBER,
+        },
+        utils::downcast_section_entry,
+    };
 
     #[test]
-    fn test_convert() {
+    fn test_module_base_sections() {
         // build TypeSection instance
 
         let mut type_entries: Vec<TypeEntry> = Vec::new();
@@ -346,7 +383,7 @@ mod tests {
                 1, 2, 3, 5, 7, // code 0
                 11, 13, 17, 19, 23, 29, // code 1
                 //
-                0,  // padding
+                0, // padding
             ]
         );
 
@@ -394,6 +431,246 @@ mod tests {
                 func_type: 1,
                 code: &code1,
             }
+        );
+    }
+
+    #[test]
+    fn test_module_index_sections() {
+        // build ModuleIndexSection instance
+        let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
+        module_index_entries.push(ModuleIndexEntry {
+            module_share_type: ModuleShareType::Local,
+            name: "main",
+        });
+        module_index_entries.push(ModuleIndexEntry {
+            module_share_type: ModuleShareType::Shared,
+            name: "httpclient",
+        });
+
+        let (module_index_items, names_data) =
+            ModuleIndexSection::convert_from_entries(&module_index_entries);
+        let module_index_section = ModuleIndexSection {
+            items: &module_index_items,
+            names_data: &names_data,
+        };
+
+        // build DataIndexSection instance
+        let data_index_offset0 = DataIndexOffset {
+            count: 3,
+            offset: 0,
+        };
+
+        let data_index_item0 = DataIndexItem::new(0, 1, DataSectionType::ReadOnly, 2);
+        let data_index_item1 = DataIndexItem::new(3, 5, DataSectionType::ReadWrite, 7);
+        let data_index_item2 = DataIndexItem::new(11, 13, DataSectionType::Uninit, 17);
+
+        let data_index_section = DataIndexSection {
+            offsets: &vec![data_index_offset0],
+            items: &vec![data_index_item0, data_index_item1, data_index_item2],
+        };
+
+        // build FuncIndexSection instance
+        let func_index_offset0 = FuncIndexOffset {
+            offset: 0,
+            count: 1,
+        };
+
+        let func_index_item0 = FuncIndexItem::new(0, 1, 2);
+
+        let func_index_section = FuncIndexSection {
+            offsets: &vec![func_index_offset0],
+            items: &vec![func_index_item0],
+        };
+
+        // build IndexMap instance
+
+        let section_entries: Vec<&dyn SectionEntry> = vec![
+            &module_index_section,
+            &data_index_section,
+            &func_index_section,
+        ];
+        let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
+        let module_image = ModuleImage {
+            items: &section_items,
+            sections_data: &sections_data,
+        };
+
+        // save
+        let mut image_data: Vec<u8> = Vec::new();
+        module_image.save(&mut image_data).unwrap();
+
+        assert_eq!(&image_data[0..8], MAGIC_NUMBER);
+        assert_eq!(&image_data[8..10], &vec![0, 0]); // minor version number, little endian
+        assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
+        assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
+
+        assert_eq!(&image_data[16..20], &vec![3, 0, 0, 0]); // item count
+        assert_eq!(&image_data[20..24], &vec![0, 0, 0, 0]); // padding
+
+        // image header 24 bytes
+        let remains = &image_data[24..];
+
+        // section table length = 12 (record length) * 3
+        let (section_table_data, remains) = remains.split_at(36);
+
+        assert_eq!(
+            section_table_data,
+            &vec![
+                11u8, 0, // section id 0
+                0, 0, // padding 0
+                0, 0, 0, 0, // offset 0
+                40, 0, 0, 0, // length 0
+                //
+                12, 0, // section id 1
+                0, 0, // padding 1
+                40, 0, 0, 0, // offset 1
+                40, 0, 0, 0, // length 1
+                //
+                13, 0, // section id 2
+                0, 0, // padding 2
+                80, 0, 0, 0, // offset 2
+                28, 0, 0, 0, // length 2
+            ]
+        );
+
+        let (module_index_section_data, remains) = remains.split_at(40);
+
+        assert_eq!(
+            module_index_section_data,
+            &vec![
+                2, 0, 0, 0, // item count
+                0, 0, 0, 0, // padding
+                0, 0, 0, 0, // name offset 0
+                4, 0, // name length 0
+                0, 0, // module type 0
+                4, 0, 0, 0, // name offset 1
+                10, 0, // name length 1
+                1, 0, // module type 1
+                109, 97, 105, 110, // b"main"
+                104, 116, 116, 112, 99, 108, 105, 101, 110, 116, // b"httpclient"
+                0, 0, // padding for 4-byte alignment
+            ]
+        );
+
+        let (data_index_section_data, remains) = remains.split_at(40);
+
+        assert_eq!(
+            data_index_section_data,
+            &vec![
+                /* table 0 */
+                1, 0, 0, 0, // item count
+                0, 0, 0, 0, // padding
+                0, 0, 0, 0, // offset 0
+                3, 0, 0, 0, // count 0
+                /* table 1 */
+                0, 0, // data idx 0
+                1, 0, // target module idx 0
+                0, // target data section type 0
+                0, // padding 0
+                2, 0, // target data idx 0
+                3, 0, // data idx 1
+                5, 0, // target module idx 1
+                1, // target data section type 1
+                0, // padding 1
+                7, 0, // target data idx 1
+                11, 0, // data idx 2
+                13, 0, // target module idx 2
+                2, // target data section type 2
+                0, // padding 2
+                17, 0, // target data idx 2
+            ]
+        );
+
+        let (func_index_section_data, _) = remains.split_at(28);
+
+        assert_eq!(
+            func_index_section_data,
+            &vec![
+                /* table 0 */
+                1, 0, 0, 0, // item count
+                0, 0, 0, 0, // padding
+                0, 0, 0, 0, // offset 0
+                1, 0, 0, 0, // count 0
+                /* table 1 */
+                0, 0, 0, 0, // func idx 0
+                1, 0, // target module idx 0
+                0, 0, // padding
+                2, 0, 0, 0, // target func idx 0
+            ]
+        );
+
+        // load
+        let module_image_restore = ModuleImage::load(&image_data).unwrap();
+        assert_eq!(module_image_restore.items.len(), 3);
+
+        let module_index_section_box = module_image_restore.get_section_entry(0);
+        let module_index_section_restore =
+            downcast_section_entry::<ModuleIndexSection>(module_index_section_box.as_ref());
+
+        assert_eq!(module_index_section_restore.items.len(), 2);
+
+        assert_eq!(
+            *module_index_section_restore.get_entry(0),
+            ModuleIndexEntry {
+                module_share_type: ModuleShareType::Local,
+                name: "main",
+            }
+        );
+
+        assert_eq!(
+            *module_index_section_restore.get_entry(1),
+            ModuleIndexEntry {
+                module_share_type: ModuleShareType::Shared,
+                name: "httpclient",
+            }
+        );
+
+        let data_index_section_box = module_image_restore.get_section_entry(1);
+        let data_index_section_restore =
+            downcast_section_entry::<DataIndexSection>(data_index_section_box.as_ref());
+
+        assert_eq!(data_index_section_restore.offsets.len(), 1);
+        assert_eq!(data_index_section_restore.items.len(), 3);
+
+        assert_eq!(
+            &data_index_section_restore.offsets[0],
+            &DataIndexOffset {
+                count: 3,
+                offset: 0,
+            }
+        );
+
+        assert_eq!(
+            &data_index_section_restore.items[0],
+            &DataIndexItem::new(0, 1, DataSectionType::ReadOnly, 2)
+        );
+        assert_eq!(
+            &data_index_section_restore.items[1],
+            &DataIndexItem::new(3, 5, DataSectionType::ReadWrite, 7)
+        );
+        assert_eq!(
+            &data_index_section_restore.items[2],
+            &DataIndexItem::new(11, 13, DataSectionType::Uninit, 17)
+        );
+
+        let func_index_section_box = module_image_restore.get_section_entry(2);
+        let func_index_section_restore =
+            downcast_section_entry::<FuncIndexSection>(func_index_section_box.as_ref());
+
+        assert_eq!(func_index_section_restore.offsets.len(), 1);
+        assert_eq!(func_index_section_restore.items.len(), 1);
+
+        assert_eq!(
+            &func_index_section_restore.offsets[0],
+            &FuncIndexOffset {
+                offset: 0,
+                count: 1,
+            }
+        );
+
+        assert_eq!(
+            &func_index_section_restore.items[0],
+            &FuncIndexItem::new(0, 1, 2)
         );
     }
 }

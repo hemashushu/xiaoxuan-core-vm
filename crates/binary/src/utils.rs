@@ -6,6 +6,8 @@
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
+use ancvm_types::SectionEntry;
+
 const DATA_ALIGN_BYTES: usize = 4;
 
 /// load a section that contains two tables.
@@ -151,7 +153,7 @@ pub fn save_section_with_table_and_data_area<T>(
     save_items::<T>(items, writer)?;
     writer.write_all(additional_data)?;
 
-    let remainder =  additional_data.len() % DATA_ALIGN_BYTES; // remainder
+    let remainder = additional_data.len() % DATA_ALIGN_BYTES; // remainder
 
     if remainder != 0 {
         let padding = DATA_ALIGN_BYTES - remainder;
@@ -159,9 +161,6 @@ pub fn save_section_with_table_and_data_area<T>(
             writer.write(b"\0")?;
         }
     }
-
-
-
 
     Ok(())
 }
@@ -203,4 +202,9 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
     // ```
 
     Ok(())
+}
+
+pub fn downcast_section_entry<'a, T>(fat: &'a dyn SectionEntry) -> &'a T {
+    let ptr = fat as *const dyn SectionEntry as *const T;
+    unsafe { &*ptr }
 }

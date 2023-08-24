@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ancvm_types = { path = "../types" }
+ancvm_binary = { path = "../binary" }

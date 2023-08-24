@@ -6,9 +6,8 @@
 
 use std::fmt::Display;
 
-use ancvm_types::SectionEntry;
+use module_image::ModuleImage;
 
-pub mod index_map;
 pub mod module_image;
 pub mod utils;
 
@@ -23,7 +22,6 @@ impl Display for BinaryError {
     }
 }
 
-pub fn downcast_section_entry<'a, T>(fat: &'a dyn SectionEntry) -> &'a T {
-    let ptr = fat as *const dyn SectionEntry as *const T;
-    unsafe { &*ptr }
+pub fn load_binary<'a>(module_image_binaries: &'a [&'a [u8]]) -> (&'a [ModuleImage<'a>]) {
+    todo!()
 }

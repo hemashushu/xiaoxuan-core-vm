@@ -93,7 +93,9 @@ impl FuncIndexItem {
 mod tests {
     use ancvm_types::SectionEntry;
 
-    use crate::index_map::func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection};
+    use crate::module_image::func_index_section::{
+        FuncIndexItem, FuncIndexOffset, FuncIndexSection,
+    };
 
     #[test]
     fn test_load_section() {

@@ -31,6 +31,12 @@ pub enum DataSectionType {
     Uninit,
 }
 
+impl From<u8> for DataSectionType {
+    fn from(value: u8) -> Self {
+        unsafe { std::mem::transmute::<u8, DataSectionType>(value) }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypeEntry<'a> {
     pub params: &'a [DataType],
@@ -51,6 +57,12 @@ pub struct FuncEntry<'a> {
 pub enum ModuleShareType {
     Local = 0x0,
     Shared,
+}
+
+impl From<u8> for ModuleShareType {
+    fn from(value: u8) -> Self {
+        unsafe { std::mem::transmute::<u8, ModuleShareType>(value) }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -77,6 +89,12 @@ pub enum SectionId {
     ModuleIndex, // 11
     DataIndex,   // 12
     FuncIndex,   // 13
+}
+
+impl From<u16> for SectionId {
+    fn from(value: u16) -> Self {
+        unsafe { std::mem::transmute::<u16, SectionId>(value) }
+    }
 }
 
 pub trait SectionEntry<'a> {

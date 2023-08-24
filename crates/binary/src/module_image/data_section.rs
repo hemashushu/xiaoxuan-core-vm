@@ -4,7 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-pub mod vm;
-pub mod stack;
-pub mod context;
-pub mod process;
+#[derive(Debug, PartialEq)]
+pub struct DataSection<'a> {
+    // pub items: &'a [DataItem],
+    pub data: &'a [u8],
+}

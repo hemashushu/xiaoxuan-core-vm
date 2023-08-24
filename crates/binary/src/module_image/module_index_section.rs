@@ -37,7 +37,7 @@ pub struct ModuleIndexItem {
     pub name_offset: u32,
     pub name_length: u16,
     pub module_share_type: ModuleShareType,
-    _padding0 :u8
+    _padding0: u8,
 }
 
 impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
@@ -101,7 +101,7 @@ impl<'a> ModuleIndexSection<'a> {
                     module_share_type: entry.module_share_type,
                     name_offset,
                     name_length,
-                    _padding0:0
+                    _padding0: 0,
                 }
             })
             .collect::<Vec<ModuleIndexItem>>();
@@ -119,7 +119,7 @@ impl<'a> ModuleIndexSection<'a> {
 mod tests {
     use ancvm_types::SectionEntry;
 
-    use crate::index_map::module_index_section::{
+    use crate::module_image::module_index_section::{
         ModuleIndexItem, ModuleIndexSection, ModuleShareType,
     };
 
@@ -154,7 +154,7 @@ mod tests {
                 name_offset: 0,
                 name_length: 3,
                 module_share_type: ModuleShareType::Local,
-                _padding0:0
+                _padding0: 0
             }
         );
         assert_eq!(
@@ -163,7 +163,7 @@ mod tests {
                 name_offset: 3,
                 name_length: 5,
                 module_share_type: ModuleShareType::Shared,
-                _padding0:0
+                _padding0: 0
             }
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
@@ -177,14 +177,14 @@ mod tests {
             name_offset: 0,
             name_length: 3,
             module_share_type: ModuleShareType::Local,
-            _padding0:0,
+            _padding0: 0,
         });
 
         items.push(ModuleIndexItem {
             name_offset: 3,
             name_length: 5,
             module_share_type: ModuleShareType::Shared,
-            _padding0:0,
+            _padding0: 0,
         });
 
         let section = ModuleIndexSection {

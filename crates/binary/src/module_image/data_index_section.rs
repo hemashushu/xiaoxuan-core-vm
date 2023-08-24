@@ -103,7 +103,9 @@ impl DataIndexItem {
 mod tests {
     use ancvm_types::{DataSectionType, SectionEntry};
 
-    use crate::index_map::data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection};
+    use crate::module_image::data_index_section::{
+        DataIndexItem, DataIndexOffset, DataIndexSection,
+    };
 
     #[test]
     fn test_load_section() {
