@@ -20,9 +20,9 @@
 // | ...                                                                                                       |
 // |-----------------------------------------------------------------------------------------------------------|
 
-use ancvm_types::{DataSectionType, SectionEntry, SectionId};
-
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
+
+use super::{data_section::DataSectionType, SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct DataIndexSection<'a> {
@@ -101,10 +101,10 @@ impl DataIndexItem {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{DataSectionType, SectionEntry};
-
-    use crate::module_image::data_index_section::{
-        DataIndexItem, DataIndexOffset, DataIndexSection,
+    use crate::module_image::{
+        data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
+        data_section::DataSectionType,
+        SectionEntry,
     };
 
     #[test]
@@ -160,37 +160,20 @@ mod tests {
         let items = section.items;
 
         assert_eq!(items.len(), 3);
+
         assert_eq!(
             items[0],
-            DataIndexItem {
-                data_index: 2,
-                target_module_index: 3,
-                target_data_section_type: DataSectionType::ReadOnly,
-                _padding0: 0,
-                target_data_index: 5,
-            }
+            DataIndexItem::new(2, 3, DataSectionType::ReadOnly, 5)
         );
 
         assert_eq!(
             items[1],
-            DataIndexItem {
-                data_index: 7,
-                target_module_index: 11,
-                target_data_section_type: DataSectionType::ReadWrite,
-                _padding0: 0,
-                target_data_index: 13,
-            }
+            DataIndexItem::new(7, 11, DataSectionType::ReadWrite, 13,)
         );
 
         assert_eq!(
             items[2],
-            DataIndexItem {
-                data_index: 17,
-                target_module_index: 11,
-                target_data_section_type: DataSectionType::ReadWrite,
-                _padding0: 0,
-                target_data_index: 19,
-            }
+            DataIndexItem::new(17, 11, DataSectionType::ReadWrite, 19,)
         );
     }
 
@@ -210,29 +193,9 @@ mod tests {
 
         let mut items: Vec<DataIndexItem> = Vec::new();
 
-        items.push(DataIndexItem {
-            data_index: 2,
-            target_module_index: 3,
-            target_data_section_type: DataSectionType::ReadOnly,
-            _padding0: 0,
-            target_data_index: 5,
-        });
-
-        items.push(DataIndexItem {
-            data_index: 7,
-            target_module_index: 11,
-            target_data_section_type: DataSectionType::ReadWrite,
-            _padding0: 0,
-            target_data_index: 13,
-        });
-
-        items.push(DataIndexItem {
-            data_index: 17,
-            target_module_index: 11,
-            target_data_section_type: DataSectionType::ReadWrite,
-            _padding0: 0,
-            target_data_index: 19,
-        });
+        items.push(DataIndexItem::new(2, 3, DataSectionType::ReadOnly, 5));
+        items.push(DataIndexItem::new(7, 11, DataSectionType::ReadWrite, 13));
+        items.push(DataIndexItem::new(17, 11, DataSectionType::ReadWrite, 19));
 
         let section = DataIndexSection {
             offsets: &offsets,

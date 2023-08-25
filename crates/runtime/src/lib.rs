@@ -4,7 +4,16 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-pub mod vm;
-pub mod stack;
+use std::{
+    any::Any,
+    fmt::{Debug, Display},
+};
+
 pub mod context;
 pub mod process;
+pub mod stack;
+pub mod vm;
+
+pub trait VMErr: Debug + Display {
+    fn as_any(&self) -> &dyn Any;
+}

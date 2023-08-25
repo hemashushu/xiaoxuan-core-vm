@@ -20,9 +20,9 @@
 // | ...                                                                             |
 // |---------------------------------------------------------------------------------|
 
-use ancvm_types::{SectionEntry, SectionId};
-
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
+
+use super::{SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
@@ -91,10 +91,9 @@ impl FuncIndexItem {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::SectionEntry;
-
-    use crate::module_image::func_index_section::{
-        FuncIndexItem, FuncIndexOffset, FuncIndexSection,
+    use crate::module_image::{
+        func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
+        SectionEntry,
     };
 
     #[test]
@@ -147,35 +146,9 @@ mod tests {
         let items = section.items;
 
         assert_eq!(items.len(), 3);
-        assert_eq!(
-            items[0],
-            FuncIndexItem {
-                func_index: 1,
-                target_module_index: 2,
-                _padding0: 0,
-                target_func_index: 3,
-            }
-        );
-
-        assert_eq!(
-            items[1],
-            FuncIndexItem {
-                func_index: 5,
-                target_module_index: 7,
-                _padding0: 0,
-                target_func_index: 11,
-            }
-        );
-
-        assert_eq!(
-            items[2],
-            FuncIndexItem {
-                func_index: 13,
-                target_module_index: 17,
-                _padding0: 0,
-                target_func_index: 19,
-            }
-        );
+        assert_eq!(items[0], FuncIndexItem::new(1, 2, 3,));
+        assert_eq!(items[1], FuncIndexItem::new(5, 7, 11,));
+        assert_eq!(items[2], FuncIndexItem::new(13, 17, 19,));
     }
 
     #[test]
@@ -194,26 +167,9 @@ mod tests {
 
         let mut items: Vec<FuncIndexItem> = Vec::new();
 
-        items.push(FuncIndexItem {
-            func_index: 1,
-            target_module_index: 2,
-            _padding0: 0,
-            target_func_index: 3,
-        });
-
-        items.push(FuncIndexItem {
-            func_index: 5,
-            target_module_index: 7,
-            _padding0: 0,
-            target_func_index: 11,
-        });
-
-        items.push(FuncIndexItem {
-            func_index: 13,
-            target_module_index: 17,
-            _padding0: 0,
-            target_func_index: 19,
-        });
+        items.push(FuncIndexItem::new(1, 2, 3));
+        items.push(FuncIndexItem::new(5, 7, 11));
+        items.push(FuncIndexItem::new(13, 17, 19));
 
         let section = FuncIndexSection {
             offsets: &offsets,

@@ -29,12 +29,14 @@
 //              | ...                                                                        |
 //              |----------------------------------------------------------------------------|
 
-use ancvm_types::{DataEntry, DataType, SectionEntry, SectionId};
+use ancvm_types::DataType;
 
 use crate::utils::{
     load_section_with_one_table, load_section_with_table_and_data_area,
     save_section_with_one_table, save_section_with_table_and_data_area,
 };
+
+use super::{SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct ReadOnlyDataSection<'a> {
@@ -61,6 +63,80 @@ pub struct DataItem {
     pub data_type: DataType,
     _padding0: u8,
     _padding1: u16,
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum DataSectionType {
+    ReadOnly = 0x0,
+    ReadWrite,
+    Uninit,
+}
+
+impl From<u8> for DataSectionType {
+    fn from(value: u8) -> Self {
+        unsafe { std::mem::transmute::<u8, DataSectionType>(value) }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct DataEntry {
+    pub data_type: DataType,
+    pub data: Vec<u8>,
+}
+
+impl DataEntry {
+    pub fn from_i32(value: i32) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+        data.extend([0u8; 4].iter());
+
+        Self {
+            data_type: DataType::I32,
+            data,
+        }
+    }
+
+    pub fn from_i64(value: i64) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+
+        Self {
+            data_type: DataType::I64,
+            data,
+        }
+    }
+
+    pub fn from_f32(value: f32) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+        data.extend([0u8; 4].iter());
+
+        Self {
+            data_type: DataType::F32,
+            data,
+        }
+    }
+
+    pub fn from_f64(value: f64) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+
+        Self {
+            data_type: DataType::F64,
+            data,
+        }
+    }
+
+    pub fn from_bytes(data: Vec<u8>) -> Self {
+        // let mut data: Vec<u8> = Vec::with_capacity(value.len());
+        // data.extend_from_slice(value);
+
+        Self {
+            data_type: DataType::BYTE,
+            data,
+        }
+    }
 }
 
 impl DataItem {
@@ -153,9 +229,12 @@ pub fn convert_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{DataEntry, DataType, SectionEntry};
+    use ancvm_types::DataType;
 
-    use crate::module_image::data_section::DataItem;
+    use crate::module_image::{
+        data_section::{DataEntry, DataItem},
+        SectionEntry,
+    };
 
     use super::{convert_data_entries, ReadWriteDataSection};
 
@@ -163,10 +242,10 @@ mod tests {
     fn test_data_section() {
         let data_entry0 = DataEntry::from_i32(11);
         let data_entry1 = DataEntry::from_i64(13);
-        let data_entry2 = DataEntry::from_bytes("hello".as_bytes());
+        let data_entry2 = DataEntry::from_bytes(b"hello".to_vec());
         let data_entry3 = DataEntry::from_f32(3.14);
         let data_entry4 = DataEntry::from_f64(3e8); // 2.9979e8
-        let data_entry5 = DataEntry::from_bytes("foobar".as_bytes());
+        let data_entry5 = DataEntry::from_bytes(b"foobar".to_vec());
 
         let (items, datas) = convert_data_entries(&vec![
             data_entry0,

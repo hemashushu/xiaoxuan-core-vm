@@ -22,9 +22,11 @@
 
 use std::ptr::slice_from_raw_parts;
 
-use ancvm_types::{DataType, SectionEntry, SectionId, TypeEntry};
+use ancvm_types::DataType;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
+
+use super::{SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct TypeSection<'a> {
@@ -39,6 +41,14 @@ pub struct TypeItem {
     pub param_offset: u32,
     pub result_length: u32,
     pub result_offset: u32,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeEntry {
+    // pub params: &'a [DataType],
+    // pub results: &'a [DataType],
+    pub params: Vec<DataType>,
+    pub results: Vec<DataType>,
 }
 
 impl<'a> SectionEntry<'a> for TypeSection<'a> {
@@ -57,7 +67,7 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_entry(&'a self, idx: u16) -> Box<TypeEntry<'a>> {
+    pub fn get_entry(&'a self, idx: u16) -> TypeEntry {
         let items = self.items;
         let types_data = self.types_data;
 
@@ -68,26 +78,30 @@ impl<'a> TypeSection<'a> {
         let results_data = &types_data
             [item.result_offset as usize..(item.result_offset + item.result_length) as usize];
 
-        Box::new(TypeEntry {
-            params: unsafe {
-                &*slice_from_raw_parts(
-                    params_data.as_ptr() as *const DataType,
-                    item.param_length as usize,
-                )
-            },
-            results: unsafe {
-                &*slice_from_raw_parts(
-                    results_data.as_ptr() as *const DataType,
-                    item.result_length as usize,
-                )
-            },
-        })
+        let params_slice = unsafe {
+            &*slice_from_raw_parts(
+                params_data.as_ptr() as *const DataType,
+                item.param_length as usize,
+            )
+        };
+
+        let results_slice = unsafe {
+            &*slice_from_raw_parts(
+                results_data.as_ptr() as *const DataType,
+                item.result_length as usize,
+            )
+        };
+
+        TypeEntry {
+            params: params_slice.to_vec(),
+            results: results_slice.to_vec(),
+        }
     }
 
-    pub fn convert_to_entries(&'a self) -> Vec<Box<TypeEntry<'a>>> {
+    pub fn convert_to_entries(&'a self) -> Vec<TypeEntry> {
         (0u16..self.items.len() as u16)
             .map(|idx| self.get_entry(idx))
-            .collect::<Vec<Box<TypeEntry>>>()
+            .collect::<Vec<TypeEntry>>()
     }
 
     pub fn convert_from_entries(entries: &[TypeEntry]) -> (Vec<TypeItem>, Vec<u8>) {
@@ -131,9 +145,10 @@ impl<'a> TypeSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::SectionEntry;
-
-    use crate::module_image::type_section::{DataType, TypeEntry, TypeItem, TypeSection};
+    use crate::module_image::{
+        type_section::{DataType, TypeEntry, TypeItem, TypeSection},
+        SectionEntry,
+    };
 
     #[test]
     fn test_load_section() {
@@ -276,29 +291,29 @@ mod tests {
         let p0 = vec![DataType::I32, DataType::I64];
         let r0 = vec![DataType::I32];
         entries.push(TypeEntry {
-            params: &p0,
-            results: &r0,
+            params: p0,
+            results: r0,
         });
 
         let p1 = vec![DataType::I64];
         let r1 = vec![DataType::I64, DataType::I32];
         entries.push(TypeEntry {
-            params: &p1,
-            results: &r1,
+            params: p1,
+            results: r1,
         });
 
         let p2 = vec![];
         let r2 = vec![DataType::F32];
         entries.push(TypeEntry {
-            params: &p2,
-            results: &r2,
+            params: p2,
+            results: r2,
         });
 
         let p3 = vec![];
         let r3 = vec![];
         entries.push(TypeEntry {
-            params: &p3,
-            results: &r3,
+            params: p3,
+            results: r3,
         });
 
         let (items, types_data) = TypeSection::convert_from_entries(&entries);
@@ -308,26 +323,22 @@ mod tests {
         };
 
         assert_eq!(
-            *section.get_entry(0),
+            section.get_entry(0),
             TypeEntry {
-                params: &vec![DataType::I32, DataType::I64],
-                results: &vec![DataType::I32]
+                params: vec![DataType::I32, DataType::I64],
+                results: vec![DataType::I32]
             }
         );
 
         assert_eq!(
-            *section.get_entry(3),
+            section.get_entry(3),
             TypeEntry {
-                params: &vec![],
-                results: &vec![]
+                params: vec![],
+                results: vec![]
             }
         );
 
-        let entries_restore = section
-            .convert_to_entries()
-            .iter()
-            .map(|e| e.as_ref().clone())
-            .collect::<Vec<TypeEntry>>();
+        let entries_restore = section.convert_to_entries();
 
         assert_eq!(entries, entries_restore);
     }

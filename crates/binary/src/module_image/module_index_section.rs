@@ -21,9 +21,9 @@
 // note:
 // the 1st module is the application main module.
 
-use ancvm_types::{ModuleIndexEntry, ModuleShareType, SectionEntry, SectionId};
-
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
+
+use super::{SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleIndexSection<'a> {
@@ -38,6 +38,40 @@ pub struct ModuleIndexItem {
     pub name_length: u16,
     pub module_share_type: ModuleShareType,
     _padding0: u8,
+}
+
+// specify the data type of enum
+// see also:
+// https://doc.rust-lang.org/nomicon/other-reprs.html
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ModuleShareType {
+    Local = 0x0,
+    Shared,
+}
+
+impl From<u8> for ModuleShareType {
+    fn from(value: u8) -> Self {
+        unsafe { std::mem::transmute::<u8, ModuleShareType>(value) }
+    }
+}
+
+impl ModuleIndexItem {
+    pub fn new(name_offset: u32, name_length: u16, module_share_type: ModuleShareType) -> Self {
+        Self {
+            name_offset,
+            name_length,
+            module_share_type,
+            _padding0: 0,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ModuleIndexEntry {
+    pub module_share_type: ModuleShareType,
+    // pub name: &'a str,
+    pub name: String,
 }
 
 impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
@@ -57,7 +91,7 @@ impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
 }
 
 impl<'a> ModuleIndexSection<'a> {
-    pub fn get_entry(&'a self, idx: u16) -> Box<ModuleIndexEntry<'a>> {
+    pub fn get_entry(&'a self, idx: u16) -> ModuleIndexEntry {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -65,16 +99,16 @@ impl<'a> ModuleIndexSection<'a> {
         let name_data = &names_data
             [item.name_offset as usize..(item.name_offset + item.name_length as u32) as usize];
 
-        Box::new(ModuleIndexEntry {
+        ModuleIndexEntry {
             module_share_type: item.module_share_type,
-            name: std::str::from_utf8(name_data).unwrap(),
-        })
+            name: String::from_utf8(name_data.to_vec()).unwrap(),
+        }
     }
 
-    pub fn convert_to_entries(&'a self) -> Vec<Box<ModuleIndexEntry<'a>>> {
+    pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
         (0u16..self.items.len() as u16)
             .map(|idx| self.get_entry(idx))
-            .collect::<Vec<Box<ModuleIndexEntry>>>()
+            .collect::<Vec<ModuleIndexEntry>>()
     }
 
     pub fn convert_from_entries(entries: &[ModuleIndexEntry]) -> (Vec<ModuleIndexItem>, Vec<u8>) {
@@ -92,17 +126,14 @@ impl<'a> ModuleIndexSection<'a> {
                 let name_offset = next_offset;
                 let name_length = name_bytes[idx].len() as u16;
                 next_offset += name_length as u32; // for next offset
-                ModuleIndexItem {
-                    // the function `std::mem::transmute` can convert
-                    // between `enum` and `u8` date, e.g.
-                    // ```rust
-                    //     unsafe { std::mem::transmute::<FROM, TO>(FROM) }
-                    // ```
-                    module_share_type: entry.module_share_type,
-                    name_offset,
-                    name_length,
-                    _padding0: 0,
-                }
+
+                // the function `std::mem::transmute` can convert
+                // between `enum` and `u8` date, e.g.
+                // ```rust
+                //     unsafe { std::mem::transmute::<FROM, TO>(FROM) }
+                // ```
+
+                ModuleIndexItem::new(name_offset, name_length, entry.module_share_type)
             })
             .collect::<Vec<ModuleIndexItem>>();
 
@@ -117,10 +148,9 @@ impl<'a> ModuleIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::SectionEntry;
-
-    use crate::module_image::module_index_section::{
-        ModuleIndexItem, ModuleIndexSection, ModuleShareType,
+    use crate::module_image::{
+        module_index_section::{ModuleIndexItem, ModuleIndexSection, ModuleShareType},
+        SectionEntry,
     };
 
     use super::ModuleIndexEntry;
@@ -150,21 +180,11 @@ mod tests {
         assert_eq!(section.items.len(), 2);
         assert_eq!(
             section.items[0],
-            ModuleIndexItem {
-                name_offset: 0,
-                name_length: 3,
-                module_share_type: ModuleShareType::Local,
-                _padding0: 0
-            }
+            ModuleIndexItem::new(0, 3, ModuleShareType::Local,)
         );
         assert_eq!(
             section.items[1],
-            ModuleIndexItem {
-                name_offset: 3,
-                name_length: 5,
-                module_share_type: ModuleShareType::Shared,
-                _padding0: 0
-            }
+            ModuleIndexItem::new(3, 5, ModuleShareType::Shared,)
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
@@ -173,19 +193,8 @@ mod tests {
     fn test_save_section() {
         let mut items: Vec<ModuleIndexItem> = Vec::new();
 
-        items.push(ModuleIndexItem {
-            name_offset: 0,
-            name_length: 3,
-            module_share_type: ModuleShareType::Local,
-            _padding0: 0,
-        });
-
-        items.push(ModuleIndexItem {
-            name_offset: 3,
-            name_length: 5,
-            module_share_type: ModuleShareType::Shared,
-            _padding0: 0,
-        });
+        items.push(ModuleIndexItem::new(0, 3, ModuleShareType::Local));
+        items.push(ModuleIndexItem::new(3, 5, ModuleShareType::Shared));
 
         let section = ModuleIndexSection {
             items: &items,
@@ -222,12 +231,12 @@ mod tests {
 
         entries.push(ModuleIndexEntry {
             module_share_type: ModuleShareType::Local,
-            name: "helloworld",
+            name: "helloworld".to_string(),
         });
 
         entries.push(ModuleIndexEntry {
             module_share_type: ModuleShareType::Shared,
-            name: "foobar",
+            name: "foobar".to_string(),
         });
 
         let (items, names_data) = ModuleIndexSection::convert_from_entries(&entries);
@@ -237,26 +246,22 @@ mod tests {
         };
 
         assert_eq!(
-            *section.get_entry(0),
+            section.get_entry(0),
             ModuleIndexEntry {
                 module_share_type: ModuleShareType::Local,
-                name: "helloworld",
+                name: "helloworld".to_string(),
             }
         );
 
         assert_eq!(
-            *section.get_entry(1),
+            section.get_entry(1),
             ModuleIndexEntry {
                 module_share_type: ModuleShareType::Shared,
-                name: "foobar",
+                name: "foobar".to_string(),
             }
         );
 
-        let entries_restore = section
-            .convert_to_entries()
-            .iter()
-            .map(|e| e.as_ref().clone())
-            .collect::<Vec<ModuleIndexEntry>>();
+        let entries_restore = section.convert_to_entries();
 
         assert_eq!(entries, entries_restore);
     }

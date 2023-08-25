@@ -57,8 +57,6 @@ pub mod func_section;
 pub mod module_index_section;
 pub mod type_section;
 
-use ancvm_types::{SectionEntry, SectionId};
-
 use crate::{
     module_image::data_index_section::DataIndexSection,
     module_image::func_index_section::FuncIndexSection,
@@ -68,6 +66,8 @@ use crate::{
     utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
     BinaryError,
 };
+
+use self::data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection};
 
 // the "module image file" binary layout:
 //
@@ -102,6 +102,51 @@ pub struct ModuleSection {
     _padding0: u16,
     pub offset: u32,
     pub length: u32,
+}
+
+impl ModuleSection {
+    pub fn new(id: SectionId, offset: u32, length: u32) -> Self {
+        Self {
+            id,
+            _padding0: 0,
+            offset,
+            length,
+        }
+    }
+}
+
+#[repr(u16)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum SectionId {
+    Type = 0x0,    // 0
+    ImportData,    // 1
+    ReadOnlyData,  // 2
+    ReadWriteData, // 3
+    UninitData,    // 4
+    ImportFunc,    // 5
+    Func,          // 6
+    ExportData,    // 7
+    ExportFunc,    // 8
+    ExternalFunc,  // 9
+    AutoFunc,      // 10
+
+    ModuleIndex, // 11
+    DataIndex,   // 12
+    FuncIndex,   // 13
+}
+
+impl From<u16> for SectionId {
+    fn from(value: u16) -> Self {
+        unsafe { std::mem::transmute::<u16, SectionId>(value) }
+    }
+}
+
+pub trait SectionEntry<'a> {
+    fn id(&'a self) -> SectionId;
+    fn load(section_data: &'a [u8]) -> Self
+    where
+        Self: Sized;
+    fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 }
 
 impl<'a> ModuleImage<'a> {
@@ -146,11 +191,7 @@ impl<'a> ModuleImage<'a> {
         })
     }
 
-    pub fn save(
-        // module_image: &ModuleImage,
-        &'a self,
-        writer: &mut dyn std::io::Write,
-    ) -> std::io::Result<()> {
+    pub fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         // write header
         writer.write_all(MAGIC_NUMBER)?;
         writer.write_all(&MINOR_VERSION.to_le_bytes())?;
@@ -158,68 +199,6 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(&vec![0u8, 0, 0, 0])?; // padding, 4 bytes
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
-    }
-
-    pub fn get_section_entry(&'a self, idx: usize) -> Box<dyn SectionEntry + 'a> {
-        let items = self.items;
-        let sections_data = self.sections_data;
-
-        let item = &items[idx];
-        let section_data =
-            &sections_data[item.offset as usize..(item.offset + item.length) as usize];
-
-        let entry: Box<dyn SectionEntry + 'a> = match item.id {
-            SectionId::Type => Box::new(TypeSection::load(section_data)),
-            SectionId::Func => Box::new(FuncSection::load(section_data)),
-            SectionId::ModuleIndex => Box::new(ModuleIndexSection::load(section_data)),
-            SectionId::DataIndex => Box::new(DataIndexSection::load(section_data)),
-            SectionId::FuncIndex => Box::new(FuncIndexSection::load(section_data)),
-            _ => unreachable!("Unknown module section."),
-        };
-
-        entry
-    }
-
-    pub fn get_section_entry_by_id(
-        &'a self,
-        section_id: SectionId,
-    ) -> Option<Box<dyn SectionEntry + 'a>> {
-        let opt_section_data_range = self.items.iter().find_map(|e| {
-            if e.id == section_id {
-                Some((e.offset, e.length))
-            } else {
-                None
-            }
-        });
-
-        if let Some((offset, length)) = opt_section_data_range {
-            let section_data = &self.sections_data[offset as usize..(offset + length) as usize];
-            Some(ModuleImage::convert_to_entry(section_data, section_id))
-        } else {
-            // The specified section can not be found.
-            None
-        }
-    }
-
-    pub fn convert_to_entries(&'a self) -> Vec<Box<dyn SectionEntry + 'a>> {
-        (0..self.items.len())
-            .map(|idx| self.get_section_entry(idx))
-            .collect::<Vec<Box<dyn SectionEntry>>>()
-    }
-
-    pub fn convert_to_entry(
-        section_data: &'a [u8],
-        section_id: SectionId,
-    ) -> Box<dyn SectionEntry + 'a> {
-        let entry: Box<dyn SectionEntry + 'a> = match section_id {
-            SectionId::Type => Box::new(TypeSection::load(section_data)),
-            SectionId::Func => Box::new(FuncSection::load(section_data)),
-            SectionId::ModuleIndex => Box::new(ModuleIndexSection::load(section_data)),
-            SectionId::DataIndex => Box::new(DataIndexSection::load(section_data)),
-            SectionId::FuncIndex => Box::new(FuncIndexSection::load(section_data)),
-            _ => unreachable!("Unknown module section."),
-        };
-        entry
     }
 
     pub fn convert_from_entries(
@@ -248,39 +227,125 @@ impl<'a> ModuleImage<'a> {
         let items = entries
             .iter()
             .zip(offsets.iter().zip(lengths.iter()))
-            .map(|(entry, (offset, length))| ModuleSection {
-                id: entry.id(),
-                _padding0: 0,
-                offset: *offset as u32,
-                length: *length as u32,
+            .map(|(entry, (offset, length))| {
+                ModuleSection::new(entry.id(), *offset as u32, *length as u32)
             })
             .collect::<Vec<ModuleSection>>();
 
         (items, image_data)
     }
+
+    pub fn get_section_index_by_id(&'a self, section_id: SectionId) -> Option<u16> {
+        self.items.iter().enumerate().find_map(|(idx, item)| {
+            if item.id == section_id {
+                Some(idx as u16)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn get_section_data_by_id(&'a self, section_id: SectionId) -> Option<&'a [u8]> {
+        self.items.iter().find_map(|item| {
+            if item.id == section_id {
+                let data =
+                    &self.sections_data[item.offset as usize..(item.offset + item.length) as usize];
+                Some(data)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_module_index_section(&'a self) -> ModuleIndexSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::ModuleIndex);
+        if let Some(section_data) = opt_section_data {
+            ModuleIndexSection::load(section_data)
+        } else {
+            panic!("Can not found the module index section.")
+        }
+    }
+
+    pub fn get_data_index_section(&'a self) -> DataIndexSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::DataIndex);
+        if let Some(section_data) = opt_section_data {
+            DataIndexSection::load(section_data)
+        } else {
+            panic!("Can not found the data index section.")
+        }
+    }
+
+    pub fn get_func_index_section(&'a self) -> FuncIndexSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::FuncIndex);
+        if let Some(section_data) = opt_section_data {
+            FuncIndexSection::load(section_data)
+        } else {
+            panic!("Can not found the function index section.")
+        }
+    }
+
+    pub fn get_read_only_data_section(&'a self) -> ReadOnlyDataSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::ReadOnlyData);
+        if let Some(section_data) = opt_section_data {
+            ReadOnlyDataSection::load(section_data)
+        } else {
+            panic!("Can not found the read-only data section.")
+        }
+    }
+
+    pub fn get_read_write_data_section(&'a self) -> ReadWriteDataSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::ReadWriteData);
+        if let Some(section_data) = opt_section_data {
+            ReadWriteDataSection::load(section_data)
+        } else {
+            panic!("Can not found the read-write data section.")
+        }
+    }
+
+    pub fn get_uninit_data_section(&'a self) -> UninitDataSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::UninitData);
+        if let Some(section_data) = opt_section_data {
+            UninitDataSection::load(section_data)
+        } else {
+            panic!("Can not found the uninitialized data section.")
+        }
+    }
+
+    pub fn get_type_section(&'a self) -> TypeSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::Type);
+        if let Some(section_data) = opt_section_data {
+            TypeSection::load(section_data)
+        } else {
+            panic!("Can not found the type section.")
+        }
+    }
+
+    pub fn get_func_section(&'a self) -> FuncSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::Func);
+        if let Some(section_data) = opt_section_data {
+            FuncSection::load(section_data)
+        } else {
+            panic!("Can not found the function section.")
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{
-        DataSectionType, DataType, FuncEntry, ModuleIndexEntry, ModuleShareType, SectionEntry,
-        TypeEntry,
-    };
+    use ancvm_types::DataType;
 
-    use crate::{
-        module_image::{
-            data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
-            func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
-            func_section::FuncSection,
-            module_index_section::ModuleIndexSection,
-            type_section::TypeSection,
-            ModuleImage, MAGIC_NUMBER,
-        },
-        utils::downcast_section_entry,
+    use crate::module_image::{
+        data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
+        data_section::DataSectionType,
+        func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
+        func_section::{FuncEntry, FuncSection},
+        module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
+        type_section::{TypeEntry, TypeSection},
+        ModuleImage, SectionEntry, MAGIC_NUMBER,
     };
 
     #[test]
-    fn test_module_base_sections() {
+    fn test_module_general_sections() {
         // build TypeSection instance
 
         let mut type_entries: Vec<TypeEntry> = Vec::new();
@@ -290,13 +355,13 @@ mod tests {
         let type3 = vec![DataType::F64];
 
         type_entries.push(TypeEntry {
-            params: &type0,
-            results: &type1,
+            params: type0.clone(),
+            results: type1.clone(),
         });
 
         type_entries.push(TypeEntry {
-            params: &type2,
-            results: &type3,
+            params: type2.clone(),
+            results: type3.clone(),
         });
 
         let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
@@ -313,11 +378,11 @@ mod tests {
 
         func_entries.push(FuncEntry {
             func_type: 0,
-            code: &code0,
+            code: code0.clone(),
         });
         func_entries.push(FuncEntry {
             func_type: 1,
-            code: &code1,
+            code: code1.clone(),
         });
 
         let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
@@ -396,15 +461,15 @@ mod tests {
                 2, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
                 //
-                0, 0, // func type 0
-                0, 0, // padding 0
                 0, 0, 0, 0, // code offset 0
                 5, 0, 0, 0, // code len 0
+                0, 0, // func type 0
+                0, 0, // padding 0
                 //
-                1, 0, // func type 1
-                0, 0, // padding 1
                 5, 0, 0, 0, // code offset 1
                 6, 0, 0, 0, // code len 1
+                1, 0, // func type 1
+                0, 0, // padding 1
                 //
                 1, 2, 3, 5, 7, // code 0
                 11, 13, 17, 19, 23, 29, // code 1
@@ -417,45 +482,43 @@ mod tests {
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
         assert_eq!(module_image_restore.items.len(), 2);
 
-        let type_section_box = module_image_restore.get_section_entry(0);
-        let type_section_restore = downcast_section_entry::<TypeSection>(type_section_box.as_ref());
+        let type_section_restore = module_image_restore.get_type_section();
 
         assert_eq!(type_section_restore.items.len(), 2);
 
         assert_eq!(
-            *type_section_restore.get_entry(0),
+            type_section_restore.get_entry(0),
             TypeEntry {
-                params: &type0,
-                results: &type1,
+                params: type0,
+                results: type1,
             }
         );
 
         assert_eq!(
-            *type_section_restore.get_entry(1),
+            type_section_restore.get_entry(1),
             TypeEntry {
-                params: &type2,
-                results: &type3,
+                params: type2,
+                results: type3,
             }
         );
 
-        let func_section_box = module_image_restore.get_section_entry(1);
-        let func_section_restore = downcast_section_entry::<FuncSection>(func_section_box.as_ref());
+        let func_section_restore = module_image_restore.get_func_section();
 
         assert_eq!(func_section_restore.items.len(), 2);
 
         assert_eq!(
-            *func_section_restore.get_entry(0),
+            func_section_restore.get_entry(0),
             FuncEntry {
                 func_type: 0,
-                code: &code0,
+                code: code0,
             }
         );
 
         assert_eq!(
-            *func_section_restore.get_entry(1),
+            func_section_restore.get_entry(1),
             FuncEntry {
                 func_type: 1,
-                code: &code1,
+                code: code1,
             }
         );
     }
@@ -466,11 +529,11 @@ mod tests {
         let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
         module_index_entries.push(ModuleIndexEntry {
             module_share_type: ModuleShareType::Local,
-            name: "main",
+            name: "main".to_string(),
         });
         module_index_entries.push(ModuleIndexEntry {
             module_share_type: ModuleShareType::Shared,
-            name: "httpclient",
+            name: "httpclient".to_string(),
         });
 
         let (module_index_items, names_data) =
@@ -629,31 +692,27 @@ mod tests {
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
         assert_eq!(module_image_restore.items.len(), 3);
 
-        let module_index_section_box = module_image_restore.get_section_entry(0);
-        let module_index_section_restore =
-            downcast_section_entry::<ModuleIndexSection>(module_index_section_box.as_ref());
+        let module_index_section_restore = module_image_restore.get_module_index_section();
 
         assert_eq!(module_index_section_restore.items.len(), 2);
 
         assert_eq!(
-            *module_index_section_restore.get_entry(0),
+            module_index_section_restore.get_entry(0),
             ModuleIndexEntry {
                 module_share_type: ModuleShareType::Local,
-                name: "main",
+                name: "main".to_string(),
             }
         );
 
         assert_eq!(
-            *module_index_section_restore.get_entry(1),
+            module_index_section_restore.get_entry(1),
             ModuleIndexEntry {
                 module_share_type: ModuleShareType::Shared,
-                name: "httpclient",
+                name: "httpclient".to_string(),
             }
         );
 
-        let data_index_section_box = module_image_restore.get_section_entry(1);
-        let data_index_section_restore =
-            downcast_section_entry::<DataIndexSection>(data_index_section_box.as_ref());
+        let data_index_section_restore = module_image_restore.get_data_index_section();
 
         assert_eq!(data_index_section_restore.offsets.len(), 1);
         assert_eq!(data_index_section_restore.items.len(), 3);
@@ -679,9 +738,7 @@ mod tests {
             &DataIndexItem::new(11, 13, DataSectionType::Uninit, 17)
         );
 
-        let func_index_section_box = module_image_restore.get_section_entry(2);
-        let func_index_section_restore =
-            downcast_section_entry::<FuncIndexSection>(func_index_section_box.as_ref());
+        let func_index_section_restore = module_image_restore.get_func_index_section();
 
         assert_eq!(func_index_section_restore.offsets.len(), 1);
         assert_eq!(func_index_section_restore.items.len(), 1);

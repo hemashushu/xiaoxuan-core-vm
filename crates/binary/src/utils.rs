@@ -6,8 +6,6 @@
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
-use ancvm_types::SectionEntry;
-
 const DATA_ALIGN_BYTES: usize = 4;
 
 /// load a section that contains two tables.
@@ -165,7 +163,6 @@ pub fn save_section_with_table_and_data_area<T>(
     Ok(())
 }
 
-
 /// load a section that contains only one table.
 ///
 /// ```text
@@ -216,7 +213,6 @@ pub fn save_section_with_one_table<T>(
     Ok(())
 }
 
-
 /// load a table
 /// note that record length must be a multiple of 0x4
 pub fn load_items<T>(items_data: &[u8], item_count: usize) -> &[T] {
@@ -256,7 +252,7 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
     Ok(())
 }
 
-pub fn downcast_section_entry<'a, T>(fat: &'a dyn SectionEntry) -> &'a T {
-    let ptr = fat as *const dyn SectionEntry as *const T;
-    unsafe { &*ptr }
-}
+// pub fn downcast_section_entry<'a, T>(fat: &'a dyn SectionEntry) -> &'a T {
+//     let ptr = fat as *const dyn SectionEntry as *const T;
+//     unsafe { &*ptr }
+// }
