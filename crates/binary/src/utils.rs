@@ -165,6 +165,58 @@ pub fn save_section_with_table_and_data_area<T>(
     Ok(())
 }
 
+
+/// load a section that contains only one table.
+///
+/// ```text
+/// |--------------------------------------|
+/// | item count (u32) | padding (4 bytes) |
+/// |--------------------------------------|
+/// | record 0                             | <-- record length must be a multiple of 0x4
+/// | record 1                             |
+/// | ...                                  |
+/// |--------------------------------------|
+/// ```
+pub fn load_section_with_one_table<T>(section_data: &[u8]) -> &[T] {
+    let ptr = section_data.as_ptr();
+    let item_count = unsafe { std::ptr::read(ptr as *const u32) } as usize;
+
+    let one_record_length_in_bytes = size_of::<T>();
+    let total_length_in_bytes = one_record_length_in_bytes * item_count as usize;
+
+    // 8 bytes is the length of header,
+    // 4 bytes `item_count` + 4 bytes padding.
+    let items_data = &section_data[8..(8 + total_length_in_bytes)];
+    let items = load_items::<T>(items_data, item_count);
+
+    items
+}
+
+/// save a section that contains only one table.
+///
+/// ```text
+/// |--------------------------------------|
+/// | item count (u32) | padding (4 bytes) |
+/// |--------------------------------------|
+/// | record 0                             | <-- record length must be a multiple of 0x4
+/// | record 1                             |
+/// | ...                                  |
+/// |--------------------------------------|
+/// ```
+pub fn save_section_with_one_table<T>(
+    items: &[T],
+    writer: &mut dyn std::io::Write,
+) -> std::io::Result<()> {
+    // write header
+    let item_count = items.len();
+    writer.write_all(&(item_count as u32).to_le_bytes())?; // item count
+    writer.write_all(&[0u8; 4])?; // 4 bytes padding
+
+    save_items::<T>(items, writer)?;
+    Ok(())
+}
+
+
 /// load a table
 /// note that record length must be a multiple of 0x4
 pub fn load_items<T>(items_data: &[u8], item_count: usize) -> &[T] {

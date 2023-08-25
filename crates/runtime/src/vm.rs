@@ -6,21 +6,14 @@
 
 /// a thread per VM instance
 pub struct VM {
-    // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,
-    // and the heap is thread-local also.
-    // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
-    //
-    // note that the initial capacity of heap is 0 byte
-    pub heap: Vec<u8>,
-
     // operand stack
     // also includes the function/block frame info when call a function or enter a block,
     //
-    // the default stack capacity is 16 KiB, when a new stack frame is created, the
-    // VM will check the capacity of the stack and ensure there is at lease 16 KiB
+    // the default stack capacity is 32 KiB, when a new stack frame is created, the
+    // VM will check the capacity of the stack and ensure there is at lease 32 KiB
     // for the current frame.
-    // the capacity of stack will be incremented in 16 KiB, i.e. the capacity will be
-    // 16, 32, 48, 64 KiB and so on.
+    // the capacity of stack will be incremented in 32 KiB, i.e. the capacity will be
+    // 32, 64, 96, 128 KiB and so on.
     pub stack: Vec<u8>,
 
     // the following diagram demostrates the stack changing when entering or leaving a function/block.

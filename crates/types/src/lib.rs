@@ -71,6 +71,66 @@ pub struct ModuleIndexEntry<'a> {
     pub name: &'a str,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct DataEntry {
+    pub data_type: DataType,
+    pub data: Vec<u8>,
+}
+
+impl DataEntry {
+    pub fn from_i32(value: i32) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+        data.extend([0u8; 4].iter());
+
+        Self {
+            data_type: DataType::I32,
+            data,
+        }
+    }
+
+    pub fn from_i64(value: i64) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+
+        Self {
+            data_type: DataType::I64,
+            data,
+        }
+    }
+
+    pub fn from_f32(value: f32) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+        data.extend([0u8; 4].iter());
+
+        Self {
+            data_type: DataType::F32,
+            data,
+        }
+    }
+
+    pub fn from_f64(value: f64) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(8);
+        data.extend(value.to_le_bytes().iter());
+
+        Self {
+            data_type: DataType::F64,
+            data,
+        }
+    }
+
+    pub fn from_bytes(value: &[u8]) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(value.len());
+        data.extend_from_slice(value);
+
+        Self {
+            data_type: DataType::BYTE,
+            data,
+        }
+    }
+}
+
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SectionId {

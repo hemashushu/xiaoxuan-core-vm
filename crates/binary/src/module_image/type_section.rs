@@ -57,7 +57,6 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    // pub fn get_entry<'a>(section: &'a TypeSection<'a>, idx: u16) -> Box<TypeEntry<'a>> {
     pub fn get_entry(&'a self, idx: u16) -> Box<TypeEntry<'a>> {
         let items = self.items;
         let types_data = self.types_data;
@@ -85,7 +84,6 @@ impl<'a> TypeSection<'a> {
         })
     }
 
-    // pub fn convert_to_entries<'a>(section: &'a TypeSection<'a>) -> Vec<Box<TypeEntry<'a>>> {
     pub fn convert_to_entries(&'a self) -> Vec<Box<TypeEntry<'a>>> {
         (0u16..self.items.len() as u16)
             .map(|idx| self.get_entry(idx))

@@ -22,6 +22,6 @@ impl Display for BinaryError {
     }
 }
 
-pub fn load_binary<'a>(module_image_binaries: &'a [&'a [u8]]) -> (&'a [ModuleImage<'a>]) {
+pub fn load_binary<'a>(module_image_binaries: &'a [&'a [u8]]) -> &'a [ModuleImage<'a>] {
     todo!()
 }

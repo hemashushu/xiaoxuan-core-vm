@@ -180,8 +180,11 @@ impl<'a> ModuleImage<'a> {
         entry
     }
 
-    pub fn get_section_entry_by_id(&'a self, section_id: SectionId) -> Box<dyn SectionEntry + 'a> {
-        let section_data = self.items.iter().find_map(|e| {
+    pub fn get_section_entry_by_id(
+        &'a self,
+        section_id: SectionId,
+    ) -> Option<Box<dyn SectionEntry + 'a>> {
+        let opt_section_data_range = self.items.iter().find_map(|e| {
             if e.id == section_id {
                 Some((e.offset, e.length))
             } else {
@@ -189,11 +192,34 @@ impl<'a> ModuleImage<'a> {
             }
         });
 
-        // match section_id {
-        //     SectionId::Type => {
-        todo!()
-        //     }
-        // }
+        if let Some((offset, length)) = opt_section_data_range {
+            let section_data = &self.sections_data[offset as usize..(offset + length) as usize];
+            Some(ModuleImage::convert_to_entry(section_data, section_id))
+        } else {
+            // The specified section can not be found.
+            None
+        }
+    }
+
+    pub fn convert_to_entries(&'a self) -> Vec<Box<dyn SectionEntry + 'a>> {
+        (0..self.items.len())
+            .map(|idx| self.get_section_entry(idx))
+            .collect::<Vec<Box<dyn SectionEntry>>>()
+    }
+
+    pub fn convert_to_entry(
+        section_data: &'a [u8],
+        section_id: SectionId,
+    ) -> Box<dyn SectionEntry + 'a> {
+        let entry: Box<dyn SectionEntry + 'a> = match section_id {
+            SectionId::Type => Box::new(TypeSection::load(section_data)),
+            SectionId::Func => Box::new(FuncSection::load(section_data)),
+            SectionId::ModuleIndex => Box::new(ModuleIndexSection::load(section_data)),
+            SectionId::DataIndex => Box::new(DataIndexSection::load(section_data)),
+            SectionId::FuncIndex => Box::new(FuncIndexSection::load(section_data)),
+            _ => unreachable!("Unknown module section."),
+        };
+        entry
     }
 
     pub fn convert_from_entries(
