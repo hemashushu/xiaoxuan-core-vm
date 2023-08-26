@@ -85,11 +85,18 @@ pub struct VM {
     // |   ...   |
     // \---------/
 
+    // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,
+    // and the heap is thread-local also.
+    // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
+    //
+    // note that the initial capacity of heap is 0 byte
+    pub heap: Vec<u8>,
+
     // the end position of the operand stack (a.k.a. SP)
-    pub current_stack_position: usize,
+    pub sp: usize,
 
     // the current frame position in the operand stack (a.k.a. FP)
-    pub current_stack_frame_position: usize,
+    pub fp: usize,
 
     // the calling frame
     //
@@ -143,16 +150,10 @@ pub struct VM {
     // the position of the next executing instruction (a.k.a. IP/PC)
     // the XiaoXuan VM load multiple modules for a application, thus the
     // "complete IP" consists of the module index and the instruction position.
-    pub next_instruction_position: ProgramCounter,
-
-    // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,
-    // and the heap is thread-local also.
-    // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
-    //
-    // note that the initial capacity of heap is 0 byte
-    pub heap: Vec<u8>,
+    pub pc: ProgramCounter,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
     pub addr: usize,
     pub module_index: u16,
@@ -165,13 +166,13 @@ impl VM {
             module_index: 0,
         };
         let stack: Vec<u8> = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
-        let heap: Vec<u8> = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
+        let heap: Vec<u8> = vec![0u8; INIT_HEAP_SIZE_IN_BYTES];
 
         Self {
             stack,
-            current_stack_position: 0,
-            current_stack_frame_position: 0,
-            next_instruction_position: pc,
+            sp: 0,
+            fp: 0,
+            pc,
             heap,
         }
     }

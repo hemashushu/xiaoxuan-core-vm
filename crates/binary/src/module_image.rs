@@ -527,14 +527,14 @@ mod tests {
     fn test_module_index_sections() {
         // build ModuleIndexSection instance
         let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
-        module_index_entries.push(ModuleIndexEntry {
-            module_share_type: ModuleShareType::Local,
-            name: "main".to_string(),
-        });
-        module_index_entries.push(ModuleIndexEntry {
-            module_share_type: ModuleShareType::Shared,
-            name: "httpclient".to_string(),
-        });
+        module_index_entries.push(ModuleIndexEntry::new(
+            ModuleShareType::Local,
+            "main".to_string(),
+        ));
+        module_index_entries.push(ModuleIndexEntry::new(
+            ModuleShareType::Shared,
+            "httpclient".to_string(),
+        ));
 
         let (module_index_items, names_data) =
             ModuleIndexSection::convert_from_entries(&module_index_entries);
@@ -698,18 +698,12 @@ mod tests {
 
         assert_eq!(
             module_index_section_restore.get_entry(0),
-            ModuleIndexEntry {
-                module_share_type: ModuleShareType::Local,
-                name: "main".to_string(),
-            }
+            ModuleIndexEntry::new(ModuleShareType::Local, "main".to_string(),)
         );
 
         assert_eq!(
             module_index_section_restore.get_entry(1),
-            ModuleIndexEntry {
-                module_share_type: ModuleShareType::Shared,
-                name: "httpclient".to_string(),
-            }
+            ModuleIndexEntry::new(ModuleShareType::Shared, "httpclient".to_string(),)
         );
 
         let data_index_section_restore = module_image_restore.get_data_index_section();

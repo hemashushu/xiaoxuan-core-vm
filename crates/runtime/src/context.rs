@@ -32,6 +32,7 @@ pub struct Context<'a> {
 
 pub struct Module<'a> {
     pub data_items: [&'a [DataItem]; 3],
+
     pub read_only_datas: &'a [u8],
     pub read_write_datas: Vec<u8>,
     pub uninit_datas: Vec<u8>,
@@ -117,55 +118,5 @@ pub fn build_module<'a>(module_image: &'a ModuleImage<'a>) -> Module<'a> {
         uninit_datas,
         type_section,
         func_section,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ancvm_binary::module_image::{
-        type_section::{TypeEntry, TypeSection},
-        ModuleImage,
-    };
-    use ancvm_types::DataType;
-
-    fn build_module_binary_with_single_function(
-        params: Vec<DataType>,
-        results: Vec<DataType>,
-        codes: Vec<u8>,
-    ) -> Vec<u8> {
-        // build type section
-        let mut type_entries: Vec<TypeEntry> = Vec::new();
-        type_entries.push(TypeEntry {
-            params: params,
-            results: results,
-        });
-        let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
-        let type_section = TypeSection {
-            items: &type_items,
-            types_data: &types_data,
-        };
-
-        // build function section
-
-        //         let mut func_entries: Vec<FuncEntry> = Vec::new();
-        //         let code0: Vec<u8> = vec![1u8, 2, 3, 5, 7];
-        //         let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29];
-        //
-        //         func_entries.push(FuncEntry {
-        //             func_type: 0,
-        //             code: &code0,
-        //         });
-        //         func_entries.push(FuncEntry {
-        //             func_type: 1,
-        //             code: &code1,
-        //         });
-        //
-        //         let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
-        //         let func_section = FuncSection {
-        //             items: &func_items,
-        //             codes_data: &codes_data,
-        //                 };
-
-        todo!()
     }
 }

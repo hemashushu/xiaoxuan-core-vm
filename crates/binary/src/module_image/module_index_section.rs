@@ -74,6 +74,15 @@ pub struct ModuleIndexEntry {
     pub name: String,
 }
 
+impl ModuleIndexEntry {
+    pub fn new(module_share_type: ModuleShareType, name: String) -> Self {
+        Self {
+            module_share_type,
+            name,
+        }
+    }
+}
+
 impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (items, names_data) =
@@ -99,10 +108,10 @@ impl<'a> ModuleIndexSection<'a> {
         let name_data = &names_data
             [item.name_offset as usize..(item.name_offset + item.name_length as u32) as usize];
 
-        ModuleIndexEntry {
-            module_share_type: item.module_share_type,
-            name: String::from_utf8(name_data.to_vec()).unwrap(),
-        }
+        ModuleIndexEntry::new(
+            item.module_share_type,
+            String::from_utf8(name_data.to_vec()).unwrap(),
+        )
     }
 
     pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
@@ -229,15 +238,15 @@ mod tests {
     fn test_convert() {
         let mut entries: Vec<ModuleIndexEntry> = Vec::new();
 
-        entries.push(ModuleIndexEntry {
-            module_share_type: ModuleShareType::Local,
-            name: "helloworld".to_string(),
-        });
+        entries.push(ModuleIndexEntry::new(
+            ModuleShareType::Local,
+            "helloworld".to_string(),
+        ));
 
-        entries.push(ModuleIndexEntry {
-            module_share_type: ModuleShareType::Shared,
-            name: "foobar".to_string(),
-        });
+        entries.push(ModuleIndexEntry::new(
+            ModuleShareType::Shared,
+            "foobar".to_string(),
+        ));
 
         let (items, names_data) = ModuleIndexSection::convert_from_entries(&entries);
         let section = ModuleIndexSection {
@@ -247,18 +256,12 @@ mod tests {
 
         assert_eq!(
             section.get_entry(0),
-            ModuleIndexEntry {
-                module_share_type: ModuleShareType::Local,
-                name: "helloworld".to_string(),
-            }
+            ModuleIndexEntry::new(ModuleShareType::Local, "helloworld".to_string(),)
         );
 
         assert_eq!(
             section.get_entry(1),
-            ModuleIndexEntry {
-                module_share_type: ModuleShareType::Shared,
-                name: "foobar".to_string(),
-            }
+            ModuleIndexEntry::new(ModuleShareType::Shared, "foobar".to_string(),)
         );
 
         let entries_restore = section.convert_to_entries();

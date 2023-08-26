@@ -22,6 +22,12 @@ impl Display for BinaryError {
     }
 }
 
-pub fn load_binary<'a>(module_image_binaries: &'a [&'a [u8]]) -> &'a [ModuleImage<'a>] {
-    todo!()
+pub fn load_modules_binary(module_binaries: Vec<&[u8]>) -> Result<Vec<ModuleImage>, BinaryError> {
+    let mut module_images: Vec<ModuleImage> = Vec::new();
+    for binary in module_binaries {
+        let module_image = ModuleImage::load(binary)?;
+        module_images.push(module_image);
+    }
+
+    Ok(module_images)
 }
