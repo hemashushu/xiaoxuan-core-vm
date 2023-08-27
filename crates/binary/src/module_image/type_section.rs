@@ -67,7 +67,7 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_entry(&'a self, idx: u16) -> TypeEntry {
+    pub fn get_entry(&'a self, idx: u32) -> TypeEntry {
         let items = self.items;
         let types_data = self.types_data;
 
@@ -99,7 +99,7 @@ impl<'a> TypeSection<'a> {
     }
 
     pub fn convert_to_entries(&'a self) -> Vec<TypeEntry> {
-        (0u16..self.items.len() as u16)
+        (0u32..self.items.len() as u32)
             .map(|idx| self.get_entry(idx))
             .collect::<Vec<TypeEntry>>()
     }

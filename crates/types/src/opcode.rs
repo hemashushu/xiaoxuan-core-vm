@@ -13,23 +13,32 @@
 
 // note
 // i8: data type, data section type, module type
-// i16: module index, function type index, data index, local variable index, block level/index, section id
-// i32: function index, dynamic function index, c function index, syscall number, env call number
+// i32:
+//   - section id
+//   - module index, function type index, data index, local variable index, block level/index,
+//   - function index, dynamic function index, c function index, syscall number, env call number
 
 // XiaoXuan VM instructions are not fixed-length code.
 //
-// - instructions without parameters are 16 bits width
-// - instructions with one parameter, such as `local_get`, `i32_load`, `i32_shl` are 32 bits width
+// - 16 bits:
+//   instructions without parameters, such as `i32_eq`, `i32_add`.
+// - 32 bits:
+//   instructions with one parameter, such as `i32_load`, `i32_store`, `i32_shl`.
 //   16 bits opcode + 16 bits parameter
-// - instructions with one parameter, such as `call`, `ccall` and `addr_function` are 64 bits width
+// - 64 bits:
+//   instructions with one parameter, such as `i32_imm`, `f32_imm`, `local_get`, `data_get`, `block`, `call`.
 //   16 bits opcode + 16 bits padding + 32 bits parameter
-// - instructions with two parameters, such as `block_nez`, `break`, `recur` are 64 bits width
-//   16 bits opcode + 16 bits parameter 1 + 32 bits parameter 2
-// - instructions `i32_imm`, i64_imm_high` and `i64_imm_low` are 64 bits width,
-//   16 bits opcode + 16 bits padding + 32 bits immediate number
+// - 64 bits:
+//   instructions with two parameters, there are `break`, `recur`.
+//   16 bits opcode + 16 bits parameter + 32 bits parameter
+// - 96 bits
+//   instructions with two parameters, there are `i64_imm`, `f64_imm`, `block_nez`,
+//   `host_addr_memory`, `host_addr_shared_memory`.
+//   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2
 //
-// so there are 16 bits, 32 bits and 64 bits instructions, sometimes it is
-// necessary to insert the `nop` instruction to form 32/64 bits (4/8-byte) alignment.
+// so there are 16 bits, 32 bits, 64 bits and 96 bits instructions, sometimes it is
+// necessary to insert the `nop` instruction after the 16 bits instruction
+// to form 32 bits (4-byte) alignment.
 
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -44,13 +53,9 @@ pub enum Opcode {
     //
 
     i32_imm = 0x100,    // (param: immediate_number:int32)
-    i64_imm_high,       // (param: immediate_number_high_32bits:int32)
-    i64_imm_low,        // (param: immediate_number_low_32bits:int32)
-
-    // there are also pesudo instructions in the assembly:
-    // - i64_imm (param: immediate_number:int64)
-    // - f32_imm (param: immediate_number:float32)
-    // - f64_imm (param: immediate_number:float64)
+    i64_imm,            // (param: immediate_number_low:int32, immediate_number_high:int32)
+    f32_imm,            // (param: immediate_number:int32)
+    f64_imm,            // (param: immediate_number_low:int32, immediate_number_high:int32)
 
     //
     // local variable
@@ -60,22 +65,22 @@ pub enum Opcode {
     // each local variable takes up 8-bytes, so the "variable index" can also be used as the
     // data offset.
 
-    local_get = 0x200,  // get the specified local variable and push to the stack    (param: local_variable_index:int16)
-    local_set,          // pop from the stack and set the specified local variable   (param: local_variable_index:int16)
-    local_tee,          // peek from the stack and set the specified local variable  (param: local_variable_index:int16)
+    local_get = 0x200,  // get the specified local variable and push to the stack    (param: local_variable_index:int32)
+    local_set,          // pop from the stack and set the specified local variable   (param: local_variable_index:int32)
+    local_tee,          // peek from the stack and set the specified local variable  (param: local_variable_index:int32)
 
     //
     // thread local variable
     //
 
-    // `thread_local_get`, `thread_local_set` and `thread_local_tee` are
+    // `data_get`, `data_set` and `data_tee` are
     // valid only when the type of specified data is i32/i64/f32/f64,
     // to access the `byte` type thread local data, instructions `addr_data`,
     // `i32_load8_u` and `i32_store8` should be used.
 
-    thread_local_get = 0x300,   // get the specified global variable and push to stack        (param: data_index:int16)
-    thread_local_set,           // pop from the stack and set the specified global variable   (param: data_index:int16)
-    thread_local_tee,           // peek from the stack and set the specified global variable  (param: data_index:int16)
+    data_get = 0x300,   // get the specified global variable and push to stack        (param: data_index:int32)
+    data_set,           // pop from the stack and set the specified global variable   (param: data_index:int32)
+    data_tee,           // peek from the stack and set the specified global variable  (param: data_index:int32)
 
     //
     // operand stack data, thread local data and global shared memory loading and storing
@@ -521,8 +526,8 @@ pub enum Opcode {
     // control flow
     //
 
-    block = 0x1000,     // (param: func_type:int16)
-    block_nez,          // (param: func_type:int16, end_addr_offset:int32)
+    block = 0x1000,     // (param: func_type:int32)
+    block_nez,          // (param: func_type:int32, end_addr_offset:int32)
                         //
                         // P.S.
                         // zero (i32 `0` and i64 `0`) is treated as logic FALSE and
@@ -629,27 +634,34 @@ pub enum Opcode {
     // ```
 
     //
-    // global shared memory
+    // thread-local memory and global shared memory
     //
 
-    shared_memory_size = 0x1200,    // the result is the amount of the memory pages, each page is 64 KiB
-    shared_memory_grow,             // `fn shared_memory_grow(pages:i64)`
+    memory_size = 0x1200,       // the result is the amount of the thread-local memory (i.e. heap in VM) pages, each page is 32 KiB
+    memory_grow,                // `fn memory_grow(pages:i64)`
+    shared_memory_size,         // the result is the amount of the memory pages, each page is 32 KiB
+    shared_memory_grow,         // `fn shared_memory_grow(pages:i64)`
 
     //
-    // address
+    // host memory address
     //
 
-    addr_local = 0x1300,    // (param local_variable_index:int16)
-    addr_data,              // (param data_index:int16)
-    addr_function,          // (param func_index:int32)
-                            // note:
-                            // a host function will be created when `addr_function` is executed, as well as
-                            // the specified VM function will be appended to the "function pointer table" to
-                            // prevent duplicate creation.
+    host_addr_local = 0x1300,   // (param local_variable_index:int32)
+    host_addr_data,             // (param data_index:int32)
+    host_addr_memory,           // (param addr_low:int32, addr_high: int32)
+    host_addr_shared_memory,    // (param addr_low:int32, addr_high: int32)
+    host_addr_function,         // (param func_index:int32)
+                                // note:
+                                // a host function will be created when `addr_function` is executed, as well as
+                                // the specified VM function will be appended to the "function pointer table" to
+                                // prevent duplicate creation.
 
-    addr_func_fp,           // get function frame pointer
-    addr_block_fp,          // get block frame pointer
-    addr_sp,                // get operand stack pointer
+    // addr_func_fp,           // get function stack frame pointer
+    // addr_block_fp,          // get block frame pointer
+
+    sp,                 // get stack pointer
+    fp,                 // get frame pointer (function stack frame only)
+    pc,                 // get program counter (the position of instruction and the current module index)
 
     //
     // atomic

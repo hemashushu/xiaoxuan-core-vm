@@ -41,6 +41,11 @@ pub trait Memory {
         unsafe { std::ptr::write(tp, value) }
     }
 
+    fn fill(&mut self, addr: usize, value: u8, length_in_bytes: usize) {
+        let dst = self.get_mut_ptr(addr);
+        unsafe { std::ptr::write_bytes(dst, value, length_in_bytes) }
+    }
+
     fn copy_to(&self, addr: usize, dst: *mut u8, length_in_bytes: usize) {
         let src = self.get_ptr(addr);
         unsafe { std::ptr::copy(src, dst, length_in_bytes) }

@@ -6,17 +6,17 @@
 
 // "module index section" binary layout
 //
-//              |-----------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                        |
-//              |-----------------------------------------------------------------------------|
-//  item 0 -->  | name offset 0 (u32) | name length 0 (u16) | module type 0 (u8) | pad 1 byte | <-- table
-//  item 1 -->  | name offset 1       | name length 1       | module type 1                   |
-//              | ...                                                                         |
-//              |-----------------------------------------------------------------------------|
-// offset 0 --> | name string 0                                                               | <-- data area
-// offset 1 --> | name string 1                                                               |
-//              | ...                                                                         |
-//              |-----------------------------------------------------------------------------|
+//              |------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                         |
+//              |------------------------------------------------------------------------------|
+//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | module type 0 (u8) | pad 3 bytes | <-- table
+//  item 1 -->  | name offset 1       | name length 1       | module type 1                    |
+//              | ...                                                                          |
+//              |------------------------------------------------------------------------------|
+// offset 0 --> | name string 0                                                                | <-- data area
+// offset 1 --> | name string 1                                                                |
+//              | ...                                                                          |
+//              |------------------------------------------------------------------------------|
 
 // note:
 // the 1st module is the application main module.
@@ -35,9 +35,10 @@ pub struct ModuleIndexSection<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ModuleIndexItem {
     pub name_offset: u32,
-    pub name_length: u16,
-    pub module_share_type: ModuleShareType,
+    pub name_length: u32,
+    pub module_share_type: ModuleShareType, // u8
     _padding0: u8,
+    _padding1: u16,
 }
 
 // specify the data type of enum
@@ -57,12 +58,13 @@ impl From<u8> for ModuleShareType {
 }
 
 impl ModuleIndexItem {
-    pub fn new(name_offset: u32, name_length: u16, module_share_type: ModuleShareType) -> Self {
+    pub fn new(name_offset: u32, name_length: u32, module_share_type: ModuleShareType) -> Self {
         Self {
             name_offset,
             name_length,
             module_share_type,
             _padding0: 0,
+            _padding1: 0,
         }
     }
 }
@@ -100,13 +102,13 @@ impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
 }
 
 impl<'a> ModuleIndexSection<'a> {
-    pub fn get_entry(&'a self, idx: u16) -> ModuleIndexEntry {
+    pub fn get_entry(&'a self, idx: u32) -> ModuleIndexEntry {
         let items = self.items;
         let names_data = self.names_data;
 
         let item = &items[idx as usize];
-        let name_data = &names_data
-            [item.name_offset as usize..(item.name_offset + item.name_length as u32) as usize];
+        let name_data =
+            &names_data[item.name_offset as usize..(item.name_offset + item.name_length) as usize];
 
         ModuleIndexEntry::new(
             item.module_share_type,
@@ -115,7 +117,7 @@ impl<'a> ModuleIndexSection<'a> {
     }
 
     pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
-        (0u16..self.items.len() as u16)
+        (0u32..self.items.len() as u32)
             .map(|idx| self.get_entry(idx))
             .collect::<Vec<ModuleIndexEntry>>()
     }
@@ -133,8 +135,8 @@ impl<'a> ModuleIndexSection<'a> {
             .enumerate()
             .map(|(idx, entry)| {
                 let name_offset = next_offset;
-                let name_length = name_bytes[idx].len() as u16;
-                next_offset += name_length as u32; // for next offset
+                let name_length = name_bytes[idx].len() as u32;
+                next_offset += name_length; // for next offset
 
                 // the function `std::mem::transmute` can convert
                 // between `enum` and `u8` date, e.g.
@@ -171,14 +173,14 @@ mod tests {
             0, 0, 0, 0, // 4 bytes padding
             //
             0, 0, 0, 0, // name offset (item 0)
-            3, 0, // name length
+            3, 0, 0, 0, // name length
             0, // module share type
-            0, // padding
+            0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
-            5, 0, // name length
+            5, 0, 0, 0, // name length
             1, // module share type
-            0, // padding
+            0, 0, 0, // padding
         ];
 
         section_data.extend_from_slice("foo".as_bytes());
@@ -218,14 +220,14 @@ mod tests {
             0, 0, 0, 0, // 4 bytes padding
             //
             0, 0, 0, 0, // name offset (item 0)
-            3, 0, // name length
+            3, 0, 0, 0, // name length
             0, // module share type
-            0, // padding
+            0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
-            5, 0, // name length
+            5, 0, 0, 0, // name length
             1, // module share type
-            0, // padding
+            0, 0, 0, // padding
         ];
 
         expect_data.extend_from_slice(b"foo");

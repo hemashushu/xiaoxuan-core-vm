@@ -6,19 +6,19 @@
 
 // "data index section" binary layout
 //
-// |-----------------------------------------------------------------------------------------------|
-// | item count (u32) | (4 bytes padding)                                                          |
-// |-----------------------------------------------------------------------------------------------|
-// | offset 0 (u32) | count 0 (u32)                                                                | <-- table 0
-// | offset 1       | count 1                                                                      |
-// | ...                                                                                           |
-// |-----------------------------------------------------------------------------------------------|
+// |--------------------------------------|
+// | item count (u32) | (4 bytes padding) |
+// |--------------------------------------|
+// | offset 0 (u32) | count 0 (u32)       | <-- table 0
+// | offset 1       | count 1             |
+// | ...                                  |
+// |--------------------------------------|
 //
-// |-----------------------------------------------------------------------------------------------------------|
-// | data idx 0 (u16) | tar mod idx 0 (u16) | tar data section type 0 (u8) | pad 1 byte | tar data idx 0 (u16) | <-- table 1
-// | data idx 1       | tar mod idx 1       | tar data section type 1      | pad 1 byte | tar data idx 1       |
-// | ...                                                                                                       |
-// |-----------------------------------------------------------------------------------------------------------|
+// |---------------------------------------------------------------------------------------------------------------------|
+// | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad 3 bytes | target data idx 0 (u32) | <-- table 1
+// | data idx 1       | target mod idx 1       | target data section type 1      | pad 3 bytes | target data idx 1       |
+// | ...                                                                                                                 |
+// |---------------------------------------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -59,11 +59,12 @@ pub struct DataIndexOffset {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct DataIndexItem {
-    pub data_index: u16,          // data item index (in a specified module)
-    pub target_module_index: u16, // target module index
-    pub target_data_section_type: DataSectionType, // target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
+    pub data_index: u32,          // data item index (in a specified module)
+    pub target_module_index: u32, // target module index
+    pub target_data_section_type: DataSectionType, // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
     _padding0: u8,
-    pub target_data_index: u16, // target data item index (in a specified section)
+    _padding1: u16,
+    pub target_data_index: u32, // target data item index (in a specified section)
 }
 
 impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
@@ -84,16 +85,17 @@ impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
 
 impl DataIndexItem {
     pub fn new(
-        data_index: u16,
-        target_module_index: u16,
+        data_index: u32,
+        target_module_index: u32,
         target_data_section_type: DataSectionType,
-        target_data_index: u16,
+        target_data_index: u32,
     ) -> Self {
         Self {
             data_index,
             target_module_index,
             target_data_section_type,
             _padding0: 0,
+            _padding1: 0,
             target_data_index,
         }
     }
@@ -118,23 +120,23 @@ mod tests {
             5, 0, 0, 0, // offset 1 (item 1)
             7, 0, 0, 0, // count 1
             //
-            2, 0, // data index, item 0 (little endian)
-            3, 0, // t module index
+            2, 0, 0, 0, // data index, item 0 (little endian)
+            3, 0, 0, 0, // t module index
             0, // t data section type
-            0, // padding
-            5, 0, // t data idx
+            0, 0, 0, // padding
+            5, 0, 0, 0, // t data idx
             //
-            7, 0, // data index, item 1 (little endian)
-            11, 0, // t module index
+            7, 0, 0, 0, // data index, item 1 (little endian)
+            11, 0, 0, 0, // t module index
             1, // t data section type
-            0, // padding
-            13, 0, // t data idx
+            0, 0, 0, // padding
+            13, 0, 0, 0, // t data idx
             //
-            17, 0, // data index, item 2 (little endian)
-            11, 0, // t module index
+            17, 0, 0, 0, // data index, item 2 (little endian)
+            11, 0, 0, 0, // t module index
             1, // t data section type
-            0, // padding
-            19, 0, // t data idx
+            0, 0, 0, // padding
+            19, 0, 0, 0, // t data idx
         ];
 
         let section = DataIndexSection::load(&section_data);
@@ -216,23 +218,23 @@ mod tests {
                 5, 0, 0, 0, // offset 1 (item 1)
                 7, 0, 0, 0, // count 1
                 //
-                2, 0, // data index, item 0 (little endian)
-                3, 0, // t module index
+                2, 0, 0, 0, // data index, item 0 (little endian)
+                3, 0, 0, 0, // t module index
                 0, // t data section type
-                0, // padding
-                5, 0, // t data idx
+                0, 0, 0, // padding
+                5, 0, 0, 0, // t data idx
                 //
-                7, 0, // data index, item 1 (little endian)
-                11, 0, // t module index
+                7, 0, 0, 0, // data index, item 1 (little endian)
+                11, 0, 0, 0, // t module index
                 1, // t data section type
-                0, // padding
-                13, 0, // t data idx
+                0, 0, 0, // padding
+                13, 0, 0, 0, // t data idx
                 //
-                17, 0, // data index, item 2 (little endian)
-                11, 0, // t module index
+                17, 0, 0, 0, // data index, item 2 (little endian)
+                11, 0, 0, 0, // t module index
                 1, // t data section type
-                0, // padding
-                19, 0, // t data idx
+                0, 0, 0, // padding
+                19, 0, 0, 0, // t data idx
             ]
         );
     }

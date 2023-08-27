@@ -6,17 +6,17 @@
 
 // "function section" binary layout
 //
-//                   |---------------------------------------------------------------------------------|
-//                   | item count (u32) | (4 bytes padding)                                            |
-//                   |---------------------------------------------------------------------------------|
-//        item 0 --> | code offset 0 (u32) | code len 0 (u32) | func type 0 (u16) | padding (16 bytes) |  <-- table
-//        item 1 --> | code offset 1       | code len 1       | func type 1       | padding (16 bytes) |
-//                   | ...                                                                             |
-//                   |---------------------------------------------------------------------------------|
-// code offset 0 --> | code 0                                                                          | <-- data area
-// code offset 1 --> | code 1                                                                          |
-//                   | ...                                                                             |
-//                   |---------------------------------------------------------------------------------|
+//                   |------------------------------------------------------------|
+//                   | item count (u32) | (4 bytes padding)                       |
+//                   |------------------------------------------------------------|
+//        item 0 --> | code offset 0 (u32) | code len 0 (u32) | func type 0 (u32) |  <-- table
+//        item 1 --> | code offset 1       | code len 1       | func type 1       |
+//                   | ...                                                        |
+//                   |------------------------------------------------------------|
+// code offset 0 --> | code 0                                                     | <-- data area
+// code offset 1 --> | code 1                                                     |
+//                   | ...                                                        |
+//                   |------------------------------------------------------------|
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -33,13 +33,13 @@ pub struct FuncSection<'a> {
 pub struct FuncItem {
     pub code_offset: u32,
     pub code_length: u32,
-    pub func_type: u16,
-    _padding0: u16,
+    pub func_type: u32,
+    // _padding0: u16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FuncEntry {
-    pub func_type: u16,
+    pub func_type: u32,
     // pub code: &'a [u8],
     pub code: Vec<u8>,
 }
@@ -60,7 +60,7 @@ impl<'a> SectionEntry<'a> for FuncSection<'a> {
 }
 
 impl<'a> FuncSection<'a> {
-    pub fn get_entry(&'a self, idx: u16) -> FuncEntry {
+    pub fn get_entry(&'a self, idx: u32) -> FuncEntry {
         let items = self.items;
         let codes_data = self.codes_data;
 
@@ -75,7 +75,7 @@ impl<'a> FuncSection<'a> {
     }
 
     pub fn convert_to_entries(&'a self) -> Vec<FuncEntry> {
-        (0u16..self.items.len() as u16)
+        (0u32..self.items.len() as u32)
             .map(|idx| self.get_entry(idx))
             .collect::<Vec<FuncEntry>>()
     }
@@ -103,12 +103,12 @@ impl<'a> FuncSection<'a> {
 }
 
 impl FuncItem {
-    pub fn new(code_offset: u32, code_length: u32, func_type: u16) -> Self {
+    pub fn new(code_offset: u32, code_length: u32, func_type: u32) -> Self {
         Self {
             code_offset,
             code_length,
             func_type,
-            _padding0: 0,
+            // _padding0: 0,
         }
     }
 }
@@ -128,13 +128,11 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, // func type
-            0, 0, // padding
+            7, 0, 0, 0, // func type
             //
             11, 0, 0, 0, // code offset (item 1)
             13, 0, 0, 0, // code length
-            17, 0, // func type
-            0, 0, // padding
+            17, 0, 0, 0, // func type
         ];
 
         section_data.extend_from_slice(b"hello0123456789a");
@@ -168,13 +166,11 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, // func type
-            0, 0, // padding
+            7, 0, 0, 0, // func type
             //
             11, 0, 0, 0, // code offset  (item 1)
             13, 0, 0, 0, // code length
-            17, 0, // func type
-            0, 0, // padding
+            17, 0, 0, 0, // func type
         ];
 
         expect_data.extend_from_slice(b"hello0123456789a");

@@ -76,8 +76,8 @@ use self::data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSe
 //              |--------------------------------------------------------------------------|
 //              | item count (u32) | (4 bytes padding)                                     |
 //              |--------------------------------------------------------------------------|
-//   item 0 --> | section id 0 (u16) | padding 2 bytes | offset 0 (u32) | length 0 (u32)   | <-- table
-//   item 1 --> | section id 1       | padding         | offset 1       | length 1         |
+//   item 0 --> | section id 0 (u32) | offset 0 (u32) | length 0 (u32)                     | <-- table
+//   item 1 --> | section id 1       | offset 1       | length 1                           |
 //              | ...                                                                      |
 //              |--------------------------------------------------------------------------|
 // offset 0 --> | section data 0                                                           | <-- data
@@ -98,8 +98,8 @@ pub struct ModuleImage<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct ModuleSection {
-    pub id: SectionId,
-    _padding0: u16,
+    pub id: SectionId, // u32
+    // _padding0: u16,
     pub offset: u32,
     pub length: u32,
 }
@@ -108,14 +108,14 @@ impl ModuleSection {
     pub fn new(id: SectionId, offset: u32, length: u32) -> Self {
         Self {
             id,
-            _padding0: 0,
+            // _padding0: 0,
             offset,
             length,
         }
     }
 }
 
-#[repr(u16)]
+#[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SectionId {
     Type = 0x0,    // 0
@@ -135,9 +135,9 @@ pub enum SectionId {
     FuncIndex,   // 13
 }
 
-impl From<u16> for SectionId {
-    fn from(value: u16) -> Self {
-        unsafe { std::mem::transmute::<u16, SectionId>(value) }
+impl From<u32> for SectionId {
+    fn from(value: u32) -> Self {
+        unsafe { std::mem::transmute::<u32, SectionId>(value) }
     }
 }
 
@@ -235,10 +235,10 @@ impl<'a> ModuleImage<'a> {
         (items, image_data)
     }
 
-    pub fn get_section_index_by_id(&'a self, section_id: SectionId) -> Option<u16> {
+    pub fn get_section_index_by_id(&'a self, section_id: SectionId) -> Option<usize> {
         self.items.iter().enumerate().find_map(|(idx, item)| {
             if item.id == section_id {
-                Some(idx as u16)
+                Some(idx)
             } else {
                 None
             }
@@ -421,13 +421,11 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                0u8, 0, // section id
-                0, 0, // padding
+                0u8, 0, 0, 0, // section id
                 0, 0, 0, 0, // offset 0
                 44, 0, 0, 0, // length 0
                 //
-                6, 0, // section id
-                0, 0, // padding
+                6, 0, 0, 0, // section id
                 44, 0, 0, 0, // offset 1
                 44, 0, 0, 0, // length 1
             ]
@@ -463,13 +461,11 @@ mod tests {
                 //
                 0, 0, 0, 0, // code offset 0
                 5, 0, 0, 0, // code len 0
-                0, 0, // func type 0
-                0, 0, // padding 0
+                0, 0, 0, 0, // func type 0
                 //
                 5, 0, 0, 0, // code offset 1
                 6, 0, 0, 0, // code len 1
-                1, 0, // func type 1
-                0, 0, // padding 1
+                1, 0, 0, 0, // func type 1
                 //
                 1, 2, 3, 5, 7, // code 0
                 11, 13, 17, 19, 23, 29, // code 1
@@ -605,24 +601,21 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                11u8, 0, // section id 0
-                0, 0, // padding 0
+                11u8, 0, 0, 0, // section id 0
                 0, 0, 0, 0, // offset 0
-                40, 0, 0, 0, // length 0
+                48, 0, 0, 0, // length 0
                 //
-                12, 0, // section id 1
-                0, 0, // padding 1
-                40, 0, 0, 0, // offset 1
-                40, 0, 0, 0, // length 1
+                12, 0, 0, 0, // section id 1
+                48, 0, 0, 0, // offset 1
+                64, 0, 0, 0, // length 1
                 //
-                13, 0, // section id 2
-                0, 0, // padding 2
-                80, 0, 0, 0, // offset 2
+                13, 0, 0, 0, // section id 2
+                112, 0, 0, 0, // offset 2
                 28, 0, 0, 0, // length 2
             ]
         );
 
-        let (module_index_section_data, remains) = remains.split_at(40);
+        let (module_index_section_data, remains) = remains.split_at(48);
 
         assert_eq!(
             module_index_section_data,
@@ -630,18 +623,22 @@ mod tests {
                 2, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
                 0, 0, 0, 0, // name offset 0
-                4, 0, // name length 0
-                0, 0, // module type 0
+                4, 0, 0, 0, // name length 0
+                0, // module type 0
+                0, 0, 0, // padding
+                //
                 4, 0, 0, 0, // name offset 1
-                10, 0, // name length 1
-                1, 0, // module type 1
+                10, 0, 0, 0, // name length 1
+                1, // module type 1
+                0, 0, 0, // padding
+                //
                 109, 97, 105, 110, // b"main"
                 104, 116, 116, 112, 99, 108, 105, 101, 110, 116, // b"httpclient"
                 0, 0, // padding for 4-byte alignment
             ]
         );
 
-        let (data_index_section_data, remains) = remains.split_at(40);
+        let (data_index_section_data, remains) = remains.split_at(64);
 
         assert_eq!(
             data_index_section_data,
@@ -652,21 +649,23 @@ mod tests {
                 0, 0, 0, 0, // offset 0
                 3, 0, 0, 0, // count 0
                 /* table 1 */
-                0, 0, // data idx 0
-                1, 0, // target module idx 0
+                0, 0, 0, 0, // data idx 0
+                1, 0, 0, 0, // target module idx 0
                 0, // target data section type 0
-                0, // padding 0
-                2, 0, // target data idx 0
-                3, 0, // data idx 1
-                5, 0, // target module idx 1
+                0, 0, 0, // padding 0
+                2, 0, 0, 0, // target data idx 0
+                //
+                3, 0, 0, 0, // data idx 1
+                5, 0, 0, 0, // target module idx 1
                 1, // target data section type 1
-                0, // padding 1
-                7, 0, // target data idx 1
-                11, 0, // data idx 2
-                13, 0, // target module idx 2
+                0, 0, 0, // padding 1
+                7, 0, 0, 0, // target data idx 1
+                //
+                11, 0, 0, 0, // data idx 2
+                13, 0, 0, 0, // target module idx 2
                 2, // target data section type 2
-                0, // padding 2
-                17, 0, // target data idx 2
+                0, 0, 0, // padding 2
+                17, 0, 0, 0, // target data idx 2
             ]
         );
 
@@ -682,8 +681,7 @@ mod tests {
                 1, 0, 0, 0, // count 0
                 /* table 1 */
                 0, 0, 0, 0, // func idx 0
-                1, 0, // target module idx 0
-                0, 0, // padding
+                1, 0, 0, 0, // target module idx 0
                 2, 0, 0, 0, // target func idx 0
             ]
         );

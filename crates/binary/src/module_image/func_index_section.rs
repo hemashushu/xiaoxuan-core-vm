@@ -14,11 +14,11 @@
 // | ...                                                           |
 // |---------------------------------------------------------------|
 //
-// |---------------------------------------------------------------------------------|
-// | func idx 0 (u32) | tar mod idx 0 (u16) | padding 2 bytes | tar func idx 0 (u32) | <-- table 1
-// | func idx 1       | tar mod idx 1       | padding 2 bytes | tar func idx 1       |
-// | ...                                                                             |
-// |---------------------------------------------------------------------------------|
+// |---------------------------------------------------------------------|
+// | func idx 0 (u32) | target mod idx 0 (u32) | target func idx 0 (u32) | <-- table 1
+// | func idx 1       | target mod idx 1       | target func idx 1       |
+// | ...                                                                 |
+// |---------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -56,8 +56,8 @@ pub struct FuncIndexOffset {
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexItem {
     pub func_index: u32,          // data item index (in a specified module)
-    pub target_module_index: u16, // target module index
-    _padding0: u16,
+    pub target_module_index: u32, // target module index
+    // _padding0: u16,
     pub target_func_index: u32, // target func index
 }
 
@@ -79,11 +79,11 @@ impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
 }
 
 impl FuncIndexItem {
-    pub fn new(func_index: u32, target_module_index: u16, target_func_index: u32) -> Self {
+    pub fn new(func_index: u32, target_module_index: u32, target_func_index: u32) -> Self {
         Self {
             func_index,
             target_module_index,
-            _padding0: 0,
+            // _padding0: 0,
             target_func_index,
         }
     }
@@ -108,19 +108,16 @@ mod tests {
             5, 0, 0, 0, // count 1
             //
             1, 0, 0, 0, // func idx 0, item 0 (little endian)
-            2, 0, // t module idx 0
-            0, 0, // padding 0
-            3, 0, 0, 0, // t func idx 0
+            2, 0, 0, 0, // target module idx 0
+            3, 0, 0, 0, // target func idx 0
             //
             5, 0, 0, 0, // func idx 1, item 1
-            7, 0, // t module idx 1
-            0, 0, // padding 1
-            11, 0, 0, 0, // t func idx 1
+            7, 0, 0, 0, // target module idx 1
+            11, 0, 0, 0, // target func idx 1
             //
             13, 0, 0, 0, // func idx 2, item 2
-            17, 0, // t module idx 2
-            0, 0, // padding 2
-            19, 0, 0, 0, // t func idx 2
+            17, 0, 0, 0, // target module idx 2
+            19, 0, 0, 0, // target func idx 2
         ];
 
         let section = FuncIndexSection::load(&section_data);
@@ -191,19 +188,16 @@ mod tests {
                 5, 0, 0, 0, // count 1
                 //
                 1, 0, 0, 0, // func idx 0, item 0 (little endian)
-                2, 0, // t module idx 0
-                0, 0, // padding 0
-                3, 0, 0, 0, // t func idx 0
+                2, 0, 0, 0, // target module idx 0
+                3, 0, 0, 0, // target func idx 0
                 //
                 5, 0, 0, 0, // func idx 1, item 1
-                7, 0, // t module idx 1
-                0, 0, // padding 1
-                11, 0, 0, 0, // t func idx 1
+                7, 0, 0, 0, // target module idx 1
+                11, 0, 0, 0, // target func idx 1
                 //
                 13, 0, 0, 0, // func idx 2, item 2
-                17, 0, // t module idx 2
-                0, 0, // padding 2
-                19, 0, 0, 0, // t func idx 2
+                17, 0, 0, 0, // target module idx 2
+                19, 0, 0, 0, // target func idx 2
             ]
         );
     }
