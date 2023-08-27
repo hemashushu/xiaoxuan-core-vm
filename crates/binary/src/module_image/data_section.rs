@@ -28,6 +28,19 @@
 //  item 1 -->  | data offset 1       | data length 1       | data type 1                    |
 //              | ...                                                                        |
 //              |----------------------------------------------------------------------------|
+//
+// data size and alignment
+//
+// | type  | size | alignment |
+// |-------|------|-----------|
+// | i32   | 4    | 4         |
+// | i64   | 8    | 8         |
+// | f32   | 4    | 4         |
+// | f64   | 8    | 8         |
+// | byte  | -    | -         |
+//
+// when storing "struct" data the "byte" type can be used, note that
+// the alignment should be speicified.
 
 use ancvm_types::DataType;
 
@@ -83,17 +96,19 @@ impl From<u8> for DataSectionType {
 pub struct DataEntry {
     pub data_type: DataType,
     pub data: Vec<u8>,
+    pub align: u32,
 }
 
 impl DataEntry {
     pub fn from_i32(value: i32) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
-        data.extend([0u8; 4].iter());
+        // data.extend([0u8; 4].iter());
 
         Self {
             data_type: DataType::I32,
             data,
+            align: 4,
         }
     }
 
@@ -104,17 +119,19 @@ impl DataEntry {
         Self {
             data_type: DataType::I64,
             data,
+            align: 8,
         }
     }
 
     pub fn from_f32(value: f32) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
-        data.extend([0u8; 4].iter());
+        // data.extend([0u8; 4].iter());
 
         Self {
             data_type: DataType::F32,
             data,
+            align: 4,
         }
     }
 
@@ -125,16 +142,18 @@ impl DataEntry {
         Self {
             data_type: DataType::F64,
             data,
+            align: 8,
         }
     }
 
-    pub fn from_bytes(data: Vec<u8>) -> Self {
+    pub fn from_bytes(data: Vec<u8>, align: u32) -> Self {
         // let mut data: Vec<u8> = Vec::with_capacity(value.len());
         // data.extend_from_slice(value);
 
         Self {
             data_type: DataType::BYTE,
             data,
+            align,
         }
     }
 }
@@ -208,20 +227,39 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
 pub fn convert_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     let mut next_offset: u32 = 0;
 
-    let items = entries
+    let positions = entries
         .iter()
         .map(|entry| {
-            let data_offset = next_offset;
-            let data_length = entry.data.len() as u32;
-            next_offset += data_length;
+            let remainder = next_offset % entry.align; // remainder
+            let padding = if remainder != 0 {
+                entry.align - remainder
+            } else {
+                0
+            };
 
-            DataItem::new(data_offset, data_length, entry.data_type)
+            let data_offset = next_offset + padding; // the data offset after aligning
+            let data_length = entry.data.len() as u32;
+            next_offset = data_offset + data_length;
+            (padding, data_offset, data_length)
+        })
+        .collect::<Vec<_>>();
+
+    let items = entries
+        .iter()
+        .zip(&positions)
+        .map(|(entry, (_, data_offset, data_length))| {
+            DataItem::new(*data_offset, *data_length, entry.data_type)
         })
         .collect::<Vec<DataItem>>();
 
     let datas = entries
         .iter()
-        .flat_map(|entry| entry.data.clone())
+        .zip(&positions)
+        .flat_map(|(entry, (padding, _, _))| {
+            let mut data = vec![0u8; *padding as usize];
+            data.extend(entry.data.iter());
+            data
+        })
         .collect::<Vec<u8>>();
 
     (items, datas)
@@ -242,10 +280,12 @@ mod tests {
     fn test_data_section() {
         let data_entry0 = DataEntry::from_i32(11);
         let data_entry1 = DataEntry::from_i64(13);
-        let data_entry2 = DataEntry::from_bytes(b"hello".to_vec());
+        let data_entry2 = DataEntry::from_bytes(b"hello".to_vec(), 1);
         let data_entry3 = DataEntry::from_f32(3.14);
         let data_entry4 = DataEntry::from_f64(3e8); // 2.9979e8
-        let data_entry5 = DataEntry::from_bytes(b"foobar".to_vec());
+        let data_entry5 = DataEntry::from_bytes(b"foo".to_vec(), 8);
+        let data_entry6 = DataEntry::from_i64(17);
+        let data_entry7 = DataEntry::from_i32(19);
 
         let (items, datas) = convert_data_entries(&vec![
             data_entry0,
@@ -254,6 +294,8 @@ mod tests {
             data_entry3,
             data_entry4,
             data_entry5,
+            data_entry6,
+            data_entry7,
         ]);
 
         let data_section = ReadWriteDataSection {
@@ -265,44 +307,56 @@ mod tests {
         data_section.save(&mut section_data).unwrap();
 
         let expect_data = vec![
-            6u8, 0, 0, 0, // item count
+            8u8, 0, 0, 0, // item count
             0, 0, 0, 0, // padding
             //
             0, 0, 0, 0, // offset 0
-            8, 0, 0, 0, // length 0
-            0, // data type 0
-            0, 0, 0, // padding 0
+            4, 0, 0, 0, // length
+            0, // type
+            0, 0, 0, // padding
             //
             8, 0, 0, 0, // offset 1
-            8, 0, 0, 0, // length 1
-            1, // data type 1
-            0, 0, 0, // padding 1
+            8, 0, 0, 0, // length
+            1, // type
+            0, 0, 0, // padding
             //
             16, 0, 0, 0, // offset 2
-            5, 0, 0, 0, // length 2
-            4, // data type 2
-            0, 0, 0, // padding 2
+            5, 0, 0, 0, // length
+            4, // type
+            0, 0, 0, // padding
             //
-            21, 0, 0, 0, // offset 3
-            8, 0, 0, 0, // length 3
-            2, // data type 3
-            0, 0, 0, // padding 3
+            24, 0, 0, 0, // offset 3
+            4, 0, 0, 0, // length
+            2, // type
+            0, 0, 0, // padding
             //
-            29, 0, 0, 0, // offset 4
-            8, 0, 0, 0, // length 4
-            3, // data type 4
-            0, 0, 0, // padding 4
+            32, 0, 0, 0, // offset 4
+            8, 0, 0, 0, // length
+            3, // type
+            0, 0, 0, // padding
             //
-            37, 0, 0, 0, // offset 5
-            6, 0, 0, 0, // length 5
-            4, // data type 5
-            0, 0, 0, // padding 5
+            40, 0, 0, 0, // offset 5
+            3, 0, 0, 0, // length
+            4, // type
+            0, 0, 0, // padding
             //
-            11, 0, 0, 0, 0, 0, 0, 0, // data 0
+            48, 0, 0, 0, // offset 6
+            8, 0, 0, 0, // length
+            1, // type
+            0, 0, 0, // padding
+            //
+            56, 0, 0, 0, // offset 7
+            4, 0, 0, 0, // length
+            0, // type
+            0, 0, 0, // padding
+            //
+            // datas
+            //
+            11, 0, 0, 0, // data 0
+            0, 0, 0, 0, // padding
             13, 0, 0, 0, 0, 0, 0, 0, // data 1
-            104, 101, 108, 108, 111, // data 2
-            //
-            195, 245, 72, 64, 0, 0, 0, 0, // data 3
+            104, 101, 108, 108, 111, // data 2, "hello"
+            0, 0, 0, // padding
             // Float (IEEE754 Single precision 32-bit)
             // 0x4048F5C3 = 0 1000000 0  1001000 11110101 11000011
             //              ^ ^--------  ^------------------------
@@ -310,7 +364,8 @@ mod tests {
             //
             // https://www.binaryconvert.com/result_float.html?decimal=051046049052
             //
-            0, 0, 0, 0, 163, 225, 177, 65, // data 4
+            195, 245, 72, 64, // data 3
+            0, 0, 0, 0, // padding
             // Double (IEEE754 Double precision 64-bit)
             // 0x41B1E1A300000000 =
             // 0 1000001 1011 0001 11100001 10100011 00000000 00000000 00000000 00000000
@@ -320,8 +375,11 @@ mod tests {
             // | sign
             //
             // https://www.binaryconvert.com/result_double.html?decimal=051048048048048048048048048
-            102, 111, 111, 98, 97, 114, // data 5
-            0,   // padding
+            0, 0, 0, 0, 163, 225, 177, 65, // data 4
+            102, 111, 111, // data 5, "bar"
+            0, 0, 0, 0, 0, // padding
+            17, 0, 0, 0, 0, 0, 0, 0, // data 6
+            19, 0, 0, 0, // data 7
         ];
 
         assert_eq!(section_data, expect_data);
@@ -330,19 +388,23 @@ mod tests {
         assert_eq!(
             data_section_restore.items,
             &vec![
-                DataItem::new(0, 8, DataType::I32),
+                DataItem::new(0, 4, DataType::I32),
                 DataItem::new(8, 8, DataType::I64),
                 DataItem::new(16, 5, DataType::BYTE),
-                DataItem::new(21, 8, DataType::F32),
-                DataItem::new(29, 8, DataType::F64),
-                DataItem::new(37, 6, DataType::BYTE),
+                DataItem::new(24, 4, DataType::F32),
+                DataItem::new(32, 8, DataType::F64),
+                DataItem::new(40, 3, DataType::BYTE),
+                DataItem::new(48, 8, DataType::I64),
+                DataItem::new(56, 4, DataType::I32),
             ]
         );
 
+        // the data area is too long, only check partly here.
         assert_eq!(
             &data_section_restore.datas[0..16],
             &vec![
-                11u8, 0, 0, 0, 0, 0, 0, 0, // data 0
+                11u8, 0, 0, 0, // data 0
+                0, 0, 0, 0, // padding
                 13, 0, 0, 0, 0, 0, 0, 0, // data 1
             ]
         )

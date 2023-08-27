@@ -22,11 +22,15 @@ const EMPTY_DATA_INDEX_ITEMS: &[DataIndexItem] = &[];
 const EMPTY_DATA_INDEX_OFFSETS: &[DataIndexOffset] = &[];
 
 pub struct Context<'a> {
+    // the VM (it can also be considered as the hardware "CORE")
     pub vm: VM,
 
+    // the indices
     pub module_index_section: ModuleIndexSection<'a>,
     pub data_index_section: DataIndexSection<'a>,
     pub func_index_section: FuncIndexSection<'a>,
+
+    // the modules
     pub modules: Vec<Module<'a>>,
 }
 

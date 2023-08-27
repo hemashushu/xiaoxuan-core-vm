@@ -11,9 +11,10 @@ use std::{
 
 pub mod context;
 pub mod process;
-pub mod stack;
+pub mod memory;
+pub mod indexed_memory;
 pub mod vm;
 
-pub trait VMErr: Debug + Display {
+pub trait VMError: Debug + Display {
     fn as_any(&self) -> &dyn Any;
 }
