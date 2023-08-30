@@ -30,6 +30,7 @@
 // - function section
 //
 // the following sections are not required during the runtime, they are generally used for debuging
+// and linking.
 //
 // - import data section
 // - import function section

@@ -6,7 +6,8 @@
 
 pub mod opcode;
 
-// pub type Operand = [u8; 8];
+pub type Operand = [u8; 8];
+pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -16,4 +17,15 @@ pub enum DataType {
     F32,
     F64,
     BYTE, // only available for data section
+}
+
+// for foreign function interface (FFI)
+// that is, for calling function (in a module of the VM) from the outside,
+// or returning values to the outside.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ForeignValue {
+    I32(i32),
+    I64(i64),
+    F32(f32),
+    F64(f64),
 }

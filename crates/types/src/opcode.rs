@@ -11,12 +11,14 @@
 // - the vm data types:
 //   i8, i16, i32, i64, f32, f64
 
-// note
-// i8: data type, data section type, module type
-// i32:
-//   - section id
-//   - module index, function type index, data index, local variable index, block level/index,
-//   - function index, dynamic function index, c function index, syscall number, env call number
+// note:
+//
+// - i8: data type, data section type, module type
+// - i16: memory store/load offset, block break/recur skip depth
+// - i32:
+//     - section id
+//     - module index, function type index, data index, local variable index,
+//     - function index, dynamic function index, c function index, syscall number, env call number
 
 // XiaoXuan VM instructions are not fixed-length code.
 //
@@ -46,7 +48,8 @@
 pub enum Opcode {
     nop = 0x0,          // instruction to do nothing,
                         // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    drop,               // drop one operand (the top most operand on the operand stack)
+    drop,               // drop one operand (the top most operand)
+    duplicate,          // duplicate one operand (the top most operand)
 
     //
     // immediate number
@@ -58,74 +61,83 @@ pub enum Opcode {
     f64_imm,            // (param: immediate_number_low:int32, immediate_number_high:int32)
 
     //
-    // local variable
+    // local data/variables loading and storing
     //
 
     // in the default XiaoXuan VM implement,
-    // each local variable takes up 8-bytes, so the "variable index" can also be used as the
-    // data offset.
+    // each local variable takes up 8-bytes, the local variable loading/storing instruction
+    // operates one operand each time.
+    // also note that the local variable must align with 8-byte.
 
-    local_get = 0x200,  // get the specified local variable and push to the stack    (param: local_variable_index:int32)
-    local_set,          // pop from the stack and set the specified local variable   (param: local_variable_index:int32)
-    local_tee,          // peek from the stack and set the specified local variable  (param: local_variable_index:int32)
+    local_load = 0x200, // load the specified addr local variable and push into to the stack       // (param: offset_bytes:int16)
+    local_store,        // pop up one operand from the stack and set the specified local variable  // (param: offset_bytes:int16)
 
-    //
-    // thread local variable
-    //
+    // the local_load/local_store instructions require an address of the specified variable, the top most
+    // operand on the stack will be the address. both the address and 'offset_bytes' should be multipled by 8.
 
-    // `data_get`, `data_set` and `data_tee` are
-    // valid only when the type of specified data is i32/i64/f32/f64,
-    // to access the `byte` type thread local data, instructions `addr_data`,
-    // `i32_load8_u` and `i32_store8` should be used.
-
-    data_get = 0x300,   // get the specified global variable and push to stack        (param: data_index:int32)
-    data_set,           // pop from the stack and set the specified global variable   (param: data_index:int32)
-    data_tee,           // peek from the stack and set the specified global variable  (param: data_index:int32)
+    local_load_index,   // load local variable by index             (param: local_variable_index:int32)
+    local_store_index,  // store local variable by index            (param: local_variable_index:int32)
+    local_addr_index,   // get the local variable address by index  (param: local_variable_index:int32)
 
     //
-    // operand stack data, thread local data and global shared memory loading and storing
+    // thread-local data/variable loading and storing
     //
 
-    // note:
-    // integer i8 and i16 can be stored as i32 or i64
+    data_load = 0x300,  // load the specified addr local variable and push into to the stack       // (param: offset_bytes:int16)
+    data_store,         // pop up one operand from the stack and set the specified local variable  // (param: offset_bytes:int16)
+
+    // the data_load/data_store instructions require an address of the specified variable, the top most
+    // operand on the stack will be the address. both the address and 'offset_bytes' should be multipled by 8.
+
+    data_load_index,    // load local variable by index             (param: local_variable_index:int32)
+    data_store_index,   // store local variable by index            (param: local_variable_index:int32)
+    data_addr_index,    // get the local variable address by index  (param: local_variable_index:int32)
+
+    //
+    // heap (thread-local memory) loading and storing
+    //
 
     i32_load = 0x400,   // (param: offset_bytes:int16)
+    i32_store,          // (param: offset_bytes:int16)
+
     i32_load8_s,        // (param: offset_bytes:int16)
     i32_load8_u,        // (param: offset_bytes:int16)
     i32_load16_s,       // (param: offset_bytes:int16)
     i32_load16_u,       // (param: offset_bytes:int16)
-                        //
-    i64_load,           // (param: offset_bytes:int16)
-    i64_load8_s,        // (param: offset_bytes:int16)
-    i64_load8_u,        // (param: offset_bytes:int16)
-    i64_load16_s,       // (param: offset_bytes:int16)
-    i64_load16_u,       // (param: offset_bytes:int16)
-    i64_load32_s,       // (param: offset_bytes:int16)
-    i64_load32_u,       // (param: offset_bytes:int16)
-                        //
-    i32_store,          // (param: offset_bytes:int16)
     i32_store8,         // (param: offset_bytes:int16)
     i32_store16,        // (param: offset_bytes:int16)
-                        //
+
+    i64_load,           // (param: offset_bytes:int16)
     i64_store,          // (param: offset_bytes:int16)
-    i64_store8,         // (param: offset_bytes:int16)
-    i64_store16,        // (param: offset_bytes:int16)
-    i64_store32,        // (param: offset_bytes:int16)
-                        //
+
     f32_load,           // (param: offset_bytes:int16)
-    f64_load,           // (param: offset_bytes:int16)
     f32_store,          // (param: offset_bytes:int16)
+
+    f64_load,           // (param: offset_bytes:int16)
     f64_store,          // (param: offset_bytes:int16)
 
-    byte_fill,          // `fn byte_fill(start_addr:i64, count:i64, value:i8)`
-    byte_copy,          // `fn byte_copy(src_addr:i64, dst_addr:i64, length:i64)`
+    // i32/i64/f32/f64 load/store instructions require an address of the specified variable, the top most
+    // operand on the stack will be the address. both the address and 'offset_bytes' should be aligned by
+    // the specified data type as the following:
+    //
+    // | data type | align (bytes) |
+    // |-----------|---------------|
+    // | i8        | 1             |
+    // | i16       | 2             |
+    // | i32       | 4             |
+    // | i64       | 8             |
+    // | f32       | 4             |
+    // | f64       | 8             |
+
+    fill,               // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
+    copy,               // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)
 
     //
     // comparsion
     //
 
-    // for the binary operations, the first one popped from the
-    // operand stack is the right-hand-side value, e.g.
+    // for the binary operations, the first one popped up from the
+    // stack is the right-hand-side value, e.g.
     //
     // |                 | --> stack end
     // | right hand side | --> 1st pop: RHS
@@ -134,16 +146,18 @@ pub enum Opcode {
     //
     // it is the same order as the function parameter, e.g.
     // function `add (a, b)`
-    // the parameters in the operand stack is:
+    // the parameters in the stack is:
     //
     //  |   |
     //  | b |
     //  | a |
     //  \---/
+    //
+    // note that two operands MUST be the same data type.
 
     // the result of the comparison is a logical TRUE or FALSE, when
-    // the result is TRUE, the number `1` is pushed into the operand stack,
-    // and vice versa the number `0` is pushed into.
+    // the result is TRUE, the number `1:i32` is pushed into the stack,
+    // and vice versa the number `0:i32` is pushed into.
 
     // instruction `i32_lt_u` example:
     //
@@ -152,7 +166,7 @@ pub enum Opcode {
     // (i32.imm 11)
     // (i32.imm 22)
     //
-    // ;; now the operand stack layout is:
+    // ;; now the stack layout is:
     // ;;
     // ;; |    |
     // ;; | 22 |
@@ -163,7 +177,7 @@ pub enum Opcode {
     // ;; `1` will be pushed on to the stack
     // i32.lt_u
     //
-    // ;; now the operand stack layout is:
+    // ;; now the stack layout is:
     // ;;
     // ;; |    |
     // ;; | 1  |
@@ -397,7 +411,7 @@ pub enum Opcode {
     // (f32.imm 10)
     // (f32.imm -1)
     //
-    // ;; now the operand stack layout is:
+    // ;; now the stack layout is:
     // ;;
     // ;; |    |
     // ;; | -1 |
@@ -408,7 +422,7 @@ pub enum Opcode {
     // ;; the top item on the stack will be -10
     // f32.copysign
     //
-    // ;; now the operand stack layout is:
+    // ;; now the stack layout is:
     // ;;
     // ;; |     |
     // ;; | -10 |
@@ -439,12 +453,11 @@ pub enum Opcode {
     // note::
     //
     // in the default XiaoXuan VM implement,
-    // the data type of operand (on the operand stack) is 64-bits raw data
-    // and do NOT check the type of the operand it present.
+    // the data type of operand (on the stack) is a 64-bit raw data
+    // and do NOT check the type of the operand.
     //
-    // so some instructions do the same thing, e.g.
-    // `i64_extend_i32_s` and `i64_sign_extend32_s`,
-    // `i32_trunc_f32_s` and `i32_trunc_f32_u`.
+    // thus some instructions will do the same thing, e.g.
+    // `i32_load` and `i64_load`, `i32_add` and `i64_add`
     //
     // and some instructions are simply ignored, e.g.
     // `i32_reinterpret_f32` and other reinterpret instructions.
@@ -452,16 +465,22 @@ pub enum Opcode {
     // but all these instructions are preserved for consistency, and
     // enable some VM implement for data type checking.
 
-    // convert (wrap) i64 to i32
-    // discard the high 32 bits of a i64 number
-    i32_wrap_i64 = 0x900,
+    // demote i64 to i32
+    // discard the high 32 bits of an i64 number directly
+    i32_demote_i64 = 0x900,
 
-    // convert (extend) i32 to i64
-    i64_extend_i32_s,
-    i64_extend_i32_u,
+    // promote i32 to i64
+    i64_promote_i32_s,
+    i64_promote_i32_u,
 
-    // float to int
-    // convert (truncate fractional part) floating points to integers
+    // demote f64 to f32
+    f32_demote_f64,
+
+    // promote f32 to f64
+    f64_promote_f32,
+
+    // convert float to int
+    // truncate fractional part
     i32_trunc_f32_s,
     i32_trunc_f32_u,
     i32_trunc_f64_s,
@@ -471,7 +490,7 @@ pub enum Opcode {
     i64_trunc_f64_s,
     i64_trunc_f64_u,
 
-    // float to int without exception
+    // convert float to int without exception
     // the semantics are the same as the corresponding non `_sat` instructions, except:
     // - instead of trapping on positive or negative overflow,
     //   they return the maximum or minimum integer value,
@@ -487,8 +506,7 @@ pub enum Opcode {
     i64_trunc_sat_f64_s,
     i64_trunc_sat_f64_u,
 
-    // int to float
-    // convert integers to floating points
+    // convert int to float
     f32_convert_i32_s,
     f32_convert_i32_u,
     f32_convert_i64_s,
@@ -498,95 +516,201 @@ pub enum Opcode {
     f64_convert_i64_s,
     f64_convert_i64_u,
 
-    // demote
-    // convert f64 to f32
-    f32_demote_f64,
-
-    // promote
-    // convert f32 to f64
-    f64_promote_f32,
-
-    // reinterpret
     // reinterpret the bytes of integers as floating points and vice versa
+    // in the default XiaoXuan VM implement, these instructions are simply ignored
     i32_reinterpret_f32,
     i64_reinterpret_f64,
     f32_reinterpret_i32,
     f64_reinterpret_i64,
-
-    // sign extend i32 to i32
-    i32_sign_extend8_s,
-    i32_sign_extend16_s,
-
-    // sign extend i64 to i64
-    i64_sign_extend8_s,
-    i64_sign_extend16_s,
-    i64_sign_extend32_s,
 
     //
     // control flow
     //
 
     block = 0x1000,     // (param: func_type:int32)
-    block_nez,          // (param: func_type:int32, end_addr_offset:int32)
                         //
-                        // P.S.
-                        // zero (i32 `0` and i64 `0`) is treated as logic FALSE and
-                        // non-zero is treated as logic TRUE.
+                        // create a block region. a block is similar to a function, it also has
+                        // parameters and results, it shares the type with function, so the 'block'
+                        // instruction has parameter 'func_type'.
+                        // this instruction will make VM to create a stack frame which is called 'block frame'.
 
-    end,
+    end,                // finish a block or a function.
+                        // when the 'end' instruction is executed, a stack frame will be removed and
+                        // the results of the current block or function will be placed on the top of stack.
 
-    break_,             // (param block_level:int16, end_addr_offset:int32)
-                        //
-                        // note:
-                        // the 'break' instruction is used for jumping to the specified 'end' instruction.
-                        //
-                        // it can be used for the 'if' structure, e.g. (the following are the bytecode)
-                        //
-                        // ```bytecode
-                        // block_nez 0 <the_break_inst_pos>
-                        //   ...
-                        //   break 0 <the_end_inst_pos>
-                        //   ...
-                        // end
-                        // ```
-                        //
-                        // the 'level' param is used to break and carry out a value from a loop structure, e.g.
-                        //
-                        // ```rust
-                        // let i = loop {
-                        //   ...
-                        //   if ... break 100;
-                        //   ...
-                        // }
-                        // ```
-                        //
-                        // the equivalent bytecode are:
-                        //
-                        // ```bytecode
-                        // block 0
-                        //   ...
-                        //   block_nez 0 the_1st_end_inst_pos
-                        //     i32.imm 100
-                        //     break 1 the_2nd_end_inst_pos
-                        //   end
-                        //   ...
-                        // end
-                        // ```
-                        //
-                        // some operands should be copied if the 'break' level is greater than 0 to
-                        // meet the return type of the target block .
-                        //
-                        // the assembly pesudo 'return' instruction will be translated to the 'break' instruction.
+    return_,            // (param skip_depth:int16, end_inst_offset:int32)
 
-    recur,              // (param block_level:int16, start_addr_offset:int32)
+    // the 'return' instruction is similar to the 'end' instruction, it is also
+    // used for finishing a block or a function.
+    // for a block, a block stack frame will be removed and jump to the instruction
+    // that next to the 'end' instruction.
+    // for a function, a function stack frame will be removed and return the the
+    // instruction next to the 'call' instruction.
+    // the operands for the amount of the block or function are placed
+    // on the top of stack.
 
+    // the value of the parameter 'end_inst_offset' should be (`addr of end` - `addr of return`)
+    // e.g.
+    //
+    // ```bytecode
+    // 0d0000 block 0           ;; the size of 'block' instruction is 8 bytes
+    // 0d0008   nop
+    // 0d0010   return 0 12   ;; the size of 'return' instruction is 8 bytes, (12 = 22 - 10) --\
+    // 0d0018   nop           ;;                                                               |
+    // 0d0020   nop           ;;                                                               |
+    // 0d0022 end             ;;                                                               |
+    // 0d0028 nop             ;; <-- jump to here ---------------------------------------------/
+    // ```
+    //
+    // the 'return' instruction can cross over multiple block nested.
+    // when the parameter 'skip_depth' is 0, it simply finish the current block.
+    // when the value is greater than 0, multiple block stack frame will be removed and
+    // the operands for the amount of the 'target block results' are placed
+    // on the top of stack. e.g.
+    //
+    // ```bytecode
+    // 0d0000 block 0
+    // 0d0008   block 0
+    // 0d0016     block 0
+    // 0d0024       nop
+    // 0d0026       return 1 14   ;; (14 = 40 - 26) --------\
+    // 0d0034       nop           ;;                        |
+    // 0d0036     end             ;;                        |
+    // 0d0038     nop             ;;                        |
+    // 0d0040   end               ;;                        |
+    // 0d0042   nop               ;; <----------------------/ jump to here
+    // 0d0044 end
+    // ```
+
+    recur,              // (param skip_depth:int16, start_inst_offset:int32)
+
+    // the 'recur' instruction make VM to jump to the instruction next to the 'block' or 'block_nez',
+    // as well as all the operands in the current stack frame will be removed, and the operands
+    // for the amount of the 'target block/function params' are placed on the top of stack.
+    // it is commonly used to construct the 'while/for' structures in general programming languages,
+    // it is also used to implement the TCO (tail call optimization).
+    //
+    // ```bytecode
+    // 0d0000 block 0
+    // 0d0008   nop             ;; <-----------------\ jump to here
+    // 0d0010   block 0         ;;                   |
+    // 0d0018     nop           ;;                   |
+    // 0d0020     recur 1 12    ;; (12 = 20 - 8) ----/
+    // 0d0028     nop
+    // 0d0030   end
+    // 0d0032 end
+    // ```
+
+    block_nez,          // (param: func_type:int32, alt_inst_offset:int32)
+
+    // the 'block_nez' instruction is similar to the 'block', it also creates a new block region
+    // as well as a block stack frame.
+    // but it jumps to the 'alternative instruction' if the operand on the top of stack is
+    // equals to ZERO.
+    //
+    // 0:i32 and 0:i64 are both treated as logic FALSE and
+    // all other i32/i64 non-zero are treated as logic TRUE.
+    // so the 'block_nez' instruction means only executes the instructions follows the 'block_nez'
+    // when the logic is TRUE, otherwise, go to the 'alternative instruction'.
+    //
+    //
+    // the 'block_nez' instruction is commonly used to construct the 'if' structures
+    // in general programming languages.
+    //
+    // e.g. 1
+    //
+    // ```c
+    // if (i != 0) {
+    //     ...
+    // }
+    // ```
+    //
+    // ```bytecode
+    // 0d0000 block_nez 0 100   ;; -----\
+    // ....                     ;;      |
+    // 0d0100 end               ;; <----/ jump to here when FALSE
+    // ```
+    //
+    // e.g. 2
+    //
+    // ```c
+    // if (i != 0) {
+    //     /* the 'then' part */
+    // } else {
+    //     /* the 'else' part */
+    // }
+    // ```
+    //
+    // ```bytecode
+    //                          ;; the TRUE path    the FALSE path
+    //                          ;; |                |
+    // 0d0000 block_nez 0 158   ;; V                V jump to 0d0158 when FALSE
+    // 0d0008 ...               ;; |+               |-
+    // ;; the 'then' part       ;; |+               |-
+    // 0d0150 return 0 200      ;; \-->--\+         |-
+    // 0d0158 ...               ;;       |-   /--<--/+
+    // ;; the 'else' part       ;;       |-   |+
+    // 0d0350 end               ;;       |-   |+
+    // 0d0352 nop               ;; <-----/    |
+    //                          ;;
+    //                          ;; (+ => execute, - => pass)
+    // ```
+
+    return_nez,         // (param skip_depth:int16, end_inst_offset:int32)
+
+    // a complete 'loop' structure is actually combined with 'block', 'block_nez', 'recur', 'return'
+    // and 'return_nez' instructions, e.g.
+    //
+    // ```rust
+    // let i = loop {
+    //   ...
+    //   if ... break 100;
+    //   ...
+    // }
+    // ```
+    //
+    // the equivalent bytecodes are:
+    //
+    // ```bytecode
+    // 0d0000 block 0
+    // 0d0008   ...             ;; <-------------\
+    //          ...             ;;               |
+    // 0d0100   block_nez 0 28  ;; ----\         |
+    // 0d0112     i32.imm 100   ;;     |         |
+    // 0d0120     return 1 88   ;; ----|----\    |
+    // 0d0128   end             ;; <---/    |    |
+    //          ...             ;;          |    |
+    // 0d0200   recur 0 192     ;; ---------|----/
+    // 0d0208 end               ;;          |
+    // 0d0210 ...               ;; <--------/
+    // ```
+    //
+    // the 'block_nez' block above can be optimised as a 'return_nez' instruction, e.g.
+    //
+    // ```bytecode
+    // 0d0000 block 0
+    // 0d0008   ...             ;; <-------------\
+    //          ...             ;;               |
+    // 0d0100   i32.imm 100     ;;               |
+    //          ...             ;;               |
+    // 0d0120   return_nez 0 88 ;; ---------\    |
+    // 0d0128   drop            ;;          |    |
+    //          ...             ;;          |    |
+    // 0d0200   recur 0 192     ;; ---------|----/
+    // 0d0208 end               ;;          |
+    // 0d0210 ...               ;; <--------/
+    // ```
+
+    // P.S.
+    // there is a pesudo instruction 'break' in the text assembly, it is actually
+    // translated to the 'return' instruction.
 
     //
     // function
     //
 
     call = 0x1100,          // call function                    (param func_index:int32)
-    dcall,                  // closure/dynamic function call
+    dcall,                  // closure/dynamic function call    (operand closure_function_item_addr:i64)
 
     ecall,                  // environment call                 (param env_func_num:int32)
 
@@ -595,52 +719,65 @@ pub enum Opcode {
 
     ccall,                  // external C function call         (param c_func_index:int32)
 
-    // the cfcall operand "cfunc_item_addr" is a vm struct:
-    // closure_function_item: {[ref_count], func_idx:i32, closure_items:i64_ref}
+    // the operand "closure_function_item_addr" of instruction 'dcall' is a struct:
     //
-    // "closure_items" is a linked list:
-    // closure_item: {[ref_count], previous_item_addr:i64_ref, data_type:i32, data_value:db, data_value_ref:i64_ref}
+    // closure_function_item {
+    //     [ref_count],
+    //     func_idx:i32,
+    //     captured_items:i64_ref
+    // }
     //
-    // the closure function will append a param automatically when it is compiled to assembly, e.g.
+    // "captured_items" is a singly linked list:
     //
-    // `fn (i32 a, i32 b) {...}`
-    // will be transformed into
-    // `fn (i32 a, i32 b, pointer closure_item_link_list) {...}`
+    // closure_item_node: {
+    //     [ref_count],
+    //     previous_node_addr:i64_ref,
+    //     data_type:i32,
+    //     data_value:i32/i64/f32/f64,  // for primitive data
+    //     data_value_ref:i64_ref       // for struct data
+    // }
     //
-    // when pass a general function as a parameter, the target function also must be wrapped
-    // into closure function.
-    // when invoke a "function pointer", the "cfcall" instruction should be adopted, e.g.
+    // an additional parameter is appended to the closure function automatically when it is compiled to assembly, e.g.
+    //
+    // `let a = fn (i32 a, i32 b) {...}`
+    //
+    // will be transformed into:
+    //
+    // `let a = fn (i32 a, i32 b, pointer captured_items) {...}`
+    //
+    // when a general function is passed to another function as a parameter, this function is also wrapped
+    // as a closure function, except the value of 'captured_items' is 0.
+    //
+    // an example of "dcall" instruction:
     //
     // ```xiaoxuan
-    // function filter(List data,
-    //                 signature (i32, i32) result boolean predicate) {
+    // type F = signature (i32, i32) result boolean
+    // function filter(List data, F predicate) {
     //    ...
     //    let pass = predicate(1, 2)
     //    ...
     // }
     // ```
     //
-    // the equivalent assembly
+    // the equivalent assembly:
     //
     // ```clojure
     // (func (param $data i64) (param $predicate i64)
     //    ...
-    //    (local.get $predicate)
-    //    (i32.imm 2)
     //    (i32.imm 1)
+    //    (i32.imm 2)
+    //    (local.get $predicate)
     //    dcall
     //    ...
     // )
     // ```
 
     //
-    // thread-local memory and global shared memory
+    // heap (thread-local memory)
     //
 
-    memory_size = 0x1200,       // the result is the amount of the thread-local memory (i.e. heap in VM) pages, each page is 32 KiB
-    memory_grow,                // `fn memory_grow(pages:i64)`
-    shared_memory_size,         // the result is the amount of the memory pages, each page is 32 KiB
-    shared_memory_grow,         // `fn shared_memory_grow(pages:i64)`
+    heap_size = 0x1200,         // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
+    heap_grow,                  // `fn memory_grow(pages:i64)`
 
     //
     // host memory address
@@ -648,26 +785,33 @@ pub enum Opcode {
 
     host_addr_local = 0x1300,   // (param local_variable_index:int32)
     host_addr_data,             // (param data_index:int32)
-    host_addr_memory,           // (param addr_low:int32, addr_high: int32)
-    host_addr_shared_memory,    // (param addr_low:int32, addr_high: int32)
+    host_addr_heap,             // (param addr_low:int32, addr_high: int32)
     host_addr_function,         // (param func_index:int32)
                                 // note:
                                 // a host function will be created when `addr_function` is executed, as well as
                                 // the specified VM function will be appended to the "function pointer table" to
                                 // prevent duplicate creation.
 
-    // addr_func_fp,           // get function stack frame pointer
-    // addr_block_fp,          // get block frame pointer
+    //
+    // VM status
+    //
 
-    sp,                 // get stack pointer
-    fp,                 // get frame pointer (function stack frame only)
-    pc,                 // get program counter (the position of instruction and the current module index)
+    sp = 0x1400,            // get stack pointer
+    fp,                     // get frame pointer (function stack frame only)
+    pc,                     // get program counter (the position of instruction and the current module index)
+                            //
+                            // |            |
+                            // | module idx |
+                            // | inst addr  |
+                            // \------------/
+                            //
+    tid,                    // get the current thread id
 
     //
     // atomic
     //
 
-    i32_cas = 0x1400,       // compare and swap, `fn i32_cas(addr:i64, old_for_compare:i32, new_for_set:i32) -> 0|1`
+    i32_cas = 0x1500,       // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
                             //
                             //  |                 |
                             //  | new_for_set     |
@@ -675,6 +819,6 @@ pub enum Opcode {
                             //  | addr            |
                             //  \-----------------/
 
-    i64_cas,                // compare and swap, `fn i64_cas(addr:i64, old_for_compare:i64, new_for_set:i64) -> 0|1`
+    i64_cas,                // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
 
 }

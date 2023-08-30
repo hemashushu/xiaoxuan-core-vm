@@ -4,6 +4,44 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use ancvm_binary::module_image::ModuleImage;
+use ancvm_types::ForeignValue;
+
+use crate::{context::Context, vm::VM};
+
+pub struct Thread<'a> {
+    // the VM (it can also be considered as the hardware "CORE")
+    pub vm: VM,
+    pub context: Context<'a>,
+}
+
+impl<'a> Thread<'a> {
+    // pub fn build_thread<'a>(module_images: &'a [ModuleImage<'a>]) -> Thread<'a> {
+    pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
+        let vm = VM::new();
+        let context = Context::new(module_images);
+        Self { vm, context }
+    }
+
+    pub fn push_values(&mut self, values: Vec<ForeignValue>) {
+        let stack = &mut self.vm.stack;
+        for value in values {
+            match value {
+                ForeignValue::I32(value) => stack.push_i32(value),
+                ForeignValue::I64(value) => stack.push_i64(value),
+                ForeignValue::F32(value) => stack.push_f32(value),
+                ForeignValue::F64(value) => stack.push_f64(value),
+            }
+        }
+    }
+
+    // pop up the return values of the current function
+    pub fn pop_values(&mut self) -> Vec<ForeignValue> {
+        // ensure the current frame is 'functon frame'
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
@@ -18,7 +56,7 @@ mod tests {
     };
     use ancvm_types::DataType;
 
-    use crate::{context::build_context, vm::ProgramCounter};
+    use crate::{thread::Thread, vm::ProgramCounter};
 
     fn build_module_binary_with_single_function(
         params: Vec<DataType>,
@@ -97,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_function_context() {
+    fn test_single_function_thread() {
         let binary = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32],
             vec![DataType::I64],
@@ -106,19 +144,31 @@ mod tests {
 
         let binaries = vec![&binary[..]];
         let module_images = load_modules_binary(binaries).expect("module binary error");
-        let context = build_context(&module_images[..]);
+        let thread = Thread::new(&module_images);
 
-        // check module index section
+        // start checking
+
+        /*
+         * # check context
+         */
+
+        let context = &thread.context;
+
+        /*
+         * ## check index sections
+         */
+
+        // check "module index section"
         assert_eq!(context.module_index_section.items.len(), 1);
 
         let module_index_entry = context.module_index_section.get_entry(0);
         assert_eq!(module_index_entry.name, "main".to_string());
         assert_eq!(module_index_entry.module_share_type, ModuleShareType::Local);
 
-        // check data index section
+        // check "data index section"
         assert_eq!(context.data_index_section.items.len(), 0);
 
-        // check function index section
+        // check "function index section"
         assert_eq!(context.func_index_section.offsets.len(), 1);
         assert_eq!(context.func_index_section.items.len(), 1);
 
@@ -135,35 +185,20 @@ mod tests {
             &FuncIndexItem::new(0, 0, 0)
         );
 
-        // check vm
-        let vm = context.vm;
-        // assert_eq!(vm.get_stack_capacity(), 32 * 1024);
-        // assert_eq!(vm.heap.len(), 0);
-        assert_eq!(vm.sp, 0);
-        assert_eq!(vm.fp, 0);
-        assert_eq!(
-            vm.pc,
-            ProgramCounter {
-                addr: 0,
-                module_index: 0
-            }
-        );
+        /*
+         * ## check modules
+         */
 
-        // check module
         assert_eq!(context.modules.len(), 1);
 
         let module = &context.modules[0];
-        assert_eq!(module.data_items.len(), 3);
+        assert_eq!(module.datas.len(), 3);
 
-        assert_eq!(module.data_items[0].len(), 0);
-        assert_eq!(module.data_items[1].len(), 0);
-        assert_eq!(module.data_items[2].len(), 0);
+        assert_eq!(module.datas[0].items_count(), 0);
+        assert_eq!(module.datas[1].items_count(), 0);
+        assert_eq!(module.datas[2].items_count(), 0);
 
-        assert_eq!(module.read_only_datas.len(), 0);
-        assert_eq!(module.read_write_datas.len(), 0);
-        assert_eq!(module.uninit_datas.len(), 0);
-
-        // check type section
+        // check "type section"
         assert_eq!(module.type_section.items.len(), 1);
         assert_eq!(
             module.type_section.get_entry(0),
@@ -173,7 +208,7 @@ mod tests {
             }
         );
 
-        // check func section
+        // check "func section"
         assert_eq!(module.func_section.items.len(), 1);
         assert_eq!(
             module.func_section.get_entry(0),
@@ -182,5 +217,31 @@ mod tests {
                 code: vec![0u8]
             }
         );
+
+        /*
+         * # check VM
+         */
+
+        let vm = &thread.vm;
+
+        assert_eq!(
+            vm.pc,
+            ProgramCounter {
+                addr: 0,
+                module_index: 0
+            }
+        );
+
+        /*
+         * ## check stack
+         */
+
+        // TODO::
+
+        /*
+         * ## check heap
+         */
+
+        // TODO::
     }
 }
