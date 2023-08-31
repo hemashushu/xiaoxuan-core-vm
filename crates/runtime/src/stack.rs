@@ -458,13 +458,19 @@ impl Stack {
     }
 
     /// remove the specified frame and all frames that follows this frame.
-    pub fn remove_frames(&mut self, reversed_index: usize) {
+    pub fn remove_frames(&mut self, reversed_index: usize, results_count: usize) {
+        // move the specified number of operands to swap
+        self.move_operands_to_swap(results_count);
+
         let (sp, fp) = {
             let frame_item = self.get_frame(reversed_index);
             (frame_item.addr, frame_item.frame.previous_fp as usize)
         };
         self.sp = sp;
         self.fp = fp;
+
+        // restore parameters from swap
+        self.restore_operands_from_swap(results_count);
     }
 
     /// reset the specified frame:
@@ -475,9 +481,6 @@ impl Stack {
     ///
     /// this function is commonly used for 'loop' structure or 'tail call' statement.
     pub fn reset_to_frame(&mut self, reversed_index: usize, params_count: usize) {
-        // let addr = frame_item.addr;
-        // let frame = frame_item.frame;
-
         let (frame_addr, frame_func_fp, frame_local_vars_len_in_bytes) = {
             let frame_item = self.get_frame(reversed_index);
             (
@@ -563,6 +566,11 @@ impl Stack {
 /// - block has arguments but has no local variables.
 /// - block arguments can NOT be read/write as local variables.
 impl Stack {
+    /// get the local variables start address
+    ///
+    /// note that the address is calculated by 'FP + the size of Frame', so
+    /// even if there is no local variable slots in the current function frame,
+    /// this function always return the calculated address.
     pub fn get_local_address(&self) -> usize {
         // |            |
         // | ...        | <-- args
@@ -702,6 +710,8 @@ mod tests {
         stack.push_i32(31);
         stack.push_i32(37);
 
+        // the current layout
+        //
         //              |        |
         //       0d0024 | 37     |
         //       0d0016 | 31     |
@@ -710,21 +720,23 @@ mod tests {
         //              \--------/
 
         stack.create_func_frame(
-            16, //local_variables_length_in_bytes
-            2,  // params_count
-            71, // func_type
-            73, // module_index
-            79, // func_index
-            83, // return_module_idx
-            89, //return_inst_addr
+            16, // local vars len
+            2,  // params count
+            71, // func type
+            73, // mod idx
+            79, // func idx
+            83, // ret mod idx
+            89, //ret inst addr
         );
 
+        // the current layout
+        //
         // SP--> 0d0080 |        |
         //       0d0072 | 37     |
-        //       0d0064 | 31     | <-- args
+        //       0d0064 | 31     | <-- args 0
         //              |--------|
         //       0d0056 | 0      |
-        //       0d0048 | 0      | <-- local vars
+        //       0d0048 | 0      | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
         //       0d0040 | 83     | return module idx
@@ -734,7 +746,7 @@ mod tests {
         //       0d0024 | 71     | func type
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
-        //              |========|
+        //              |========| <-- fp0
         //       0d0008 | 29     |
         //       0d0000 | 23     |
         //              \--------/
@@ -786,11 +798,13 @@ mod tests {
 
         // check local variables
 
+        // the current layout (partial)
+        //
         //       0d0072 | 37     |
-        //       0d0064 | 31     | <-- args
+        //       0d0064 | 31     | <-- args 0
         //              |--------|
         //       0d0056 | 0      |
-        //       0d0048 | 0      | <-- local vars
+        //       0d0048 | 0      | <-- local vars 0
         //              |--------|
 
         assert_eq!(stack.get_local_address(), fp0 + size_of::<Frame>());
@@ -811,25 +825,30 @@ mod tests {
         stack.push_i32(43);
         stack.push_i32(47);
 
+        // the current layout (partial)
+        //
         // SP--> 0d0104 |        |
         //       0d0096 | 47     |
         //       0d0088 | 43     |
-        //       0d0080 | 41     | <-- operands
+        //       0d0080 | 41     | <-- operands 0
         //              |--------|
         //       0d0072 | 37     |
-        //       0d0064 | 31     | <-- args
+        //       0d0064 | 31     | <-- args 0
         //              |--------|
         //       0d0056 | 223    |
-        //       0d0048 | 211    | <-- local vars
+        //       0d0048 | 211    | <-- local vars 0
         //              |--------|
+        //
         assert_eq!(stack.fp, 16);
         assert_eq!(stack.sp, 104);
 
         // create block frame
         stack.create_block_frame(1, 97);
 
+        // the current layout
+        //
         // SP--> 0d0136 |        |
-        //       0d0128 | 47     | <-- args
+        //       0d0128 | 47     | <-- args 1
         //              |--------|
         //       0d0124 | 0      | return inst addr
         //       0d0120 | 0      | return module idx
@@ -839,16 +858,17 @@ mod tests {
         //       0d0104 | 97     | func type
         //       0d0100 | 16     | func FP
         // FP--> 0d0096 | 16     | prev FP
-        //              |--------|
+        //              |--------| <-- fp1
         //       0d0088 | 43     |
-        //       0d0080 | 41     | <-- previous operands
+        //       0d0080 | 41     | <-- operands 0
         //              |--------|
         //       0d0072 | 37     |
-        //       0d0064 | 31     | <-- previous args
+        //       0d0064 | 31     | <-- args 0
         //              |--------|
         //       0d0056 | 223    |
-        //       0d0048 | 211    | <-- local vars
+        //       0d0048 | 211    | <-- local vars 0
         //              |--------|
+        //
         assert_eq!(stack.fp, 96);
         assert_eq!(stack.sp, 136);
         assert_eq!(stack.read_i32(128), 47); // one operand has been moved
@@ -887,19 +907,21 @@ mod tests {
 
         let fp2 = fp1 + size_of::<Frame>() + 8; // 1 args in the 1st block frame
 
-        //             |          |
-        // block frame | frame 2  |
-        //             |----------| <-- fp2
-        //             | args 1   |
-        // block frame | frame 1  |
-        //             |----------| <-- fp1
-        //             | operands |
-        //             | args 0   |
-        //             | local 0  |
-        //  func frame | frame 0  |
-        //             |----------| <-- fp0
-        //             | operands |
-        //             \----------/
+        // the current layout
+        //
+        //              |            |
+        //  block frame | frame 2    |
+        //              |------------| <-- fp2
+        //              | args 1     |
+        //  block frame | frame 1    |
+        //              |------------| <-- fp1
+        //              | operands 0 |
+        //              | args 0     |
+        //              | local 0    |
+        //   func frame | frame 0    |
+        //              |------------| <-- fp0
+        //              | operands   |
+        //              \------------/
 
         assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, fp2 + size_of::<Frame>());
@@ -935,29 +957,39 @@ mod tests {
         assert_eq!(stack.read_local_i32(24), 37);
 
         // add operands
-        stack.push_i64(239);
-        stack.push_i64(241);
+        stack.push_i32(239);
+        stack.push_i32(241);
 
         // create func frame
-        stack.create_func_frame(0, 1, 103, 107, 109, 113, 127);
+        stack.create_func_frame(
+            0,   // local vars len
+            1,   // params count
+            103, // func type
+            107, // mod idx
+            109, // func idx
+            113, // ret mod idx
+            127, // ret inst addr
+        );
 
-        //             |          |
-        //             | args 3   |
-        //  func frame | frame 3  |
-        //             |----------| <-- fp3
-        //             | operands |
-        // block frame | frame 2  |
-        //             |----------| <-- fp2
-        //             | args 1   |
-        // block frame | frame 1  |
-        //             |----------| <-- fp1
-        //             | operands |
-        //             | args 0   |
-        //             | local 0  |
-        //  func frame | frame 0  |
-        //             |----------| <-- fp0
-        //             | operands |
-        //             \----------/
+        // the current layout
+        //
+        //              |            |
+        //              | 241        | <-- args 3
+        //   func frame | frame 3    |
+        //              |------------| <-- fp3
+        //              | 239        | <-- operands 2
+        //  block frame | frame 2    |
+        //              |------------| <-- fp2
+        //              | args 1     |
+        //  block frame | frame 1    |
+        //              |------------| <-- fp1
+        //              | operands 0 |
+        //              | args 0     |
+        //              | local 0    |
+        //   func frame | frame 0    |
+        //              |------------| <-- fp0
+        //              | operands   |
+        //              \------------/
 
         let fp3 = fp2 + size_of::<Frame>() + 8; // 1 operand in the 2nd block frame
         assert_eq!(stack.fp, fp3);
@@ -988,18 +1020,42 @@ mod tests {
 
         // check local variables
         assert_eq!(stack.get_local_address(), fp3 + size_of::<Frame>()); // because function frame created new local variable slots, the address should be updated
-        assert_eq!(stack.read_local_i64(0), 241);
+        assert_eq!(stack.read_local_i32(0), 241);
 
         // remove the current frame
-        stack.remove_frames(0);
+
+        // push some oparnds first
+        stack.push_i32(251);
+        stack.push_i32(257);
+
+        stack.remove_frames(0, 3);
 
         assert_eq!(stack.get_frame(0).addr, fp2);
         assert_eq!(stack.get_frame(1).addr, fp1);
         assert_eq!(stack.get_frame(2).addr, fp0);
 
+        // check operands
+
+        // the current layout (partial)
+        //
+        //              |          |
+        //              | 257      |
+        //              | 251      | <-- from operands 3
+        //              | 241      | <-- from args 3
+        //              | 239      | <-- operands 2
+        //  block frame | frame 2  |
+        //              |----------| <-- fp2
+
+        assert_eq!(stack.read_i32(stack.sp - 8), 257);
+        assert_eq!(stack.read_i32(stack.sp - 16), 251);
+        assert_eq!(stack.read_i32(stack.sp - 24), 241);
+        assert_eq!(stack.read_i32(stack.sp - 32), 239);
+
         // check local variables
 
-        assert_eq!(stack.get_local_address(), fp0 + size_of::<Frame>()); // because the 2nd function frame has been removed, so the address should be restored
+        // because the 2nd function frame has been removed, so the address should be restored to
+        // the 1st function frame
+        assert_eq!(stack.get_local_address(), fp0 + size_of::<Frame>());
 
         assert_eq!(stack.read_local_i32(0), 211);
         assert_eq!(stack.read_local_i32(8), 223);
@@ -1007,17 +1063,155 @@ mod tests {
         assert_eq!(stack.read_local_i32(24), 37);
 
         // remove the parent frame
-        stack.remove_frames(1);
+        stack.remove_frames(1, 2);
+
+        // SP--> 0d0112 |        |
+        //       0d0104 | 257    |
+        //       0d0096 | 251    | <-- from operands 3
+        //              |--------|
+        //       0d0088 | 43     |
+        //       0d0080 | 41     | <-- operands 0
+        //              |--------|
+        //       0d0072 | 37     |
+        //       0d0064 | 31     | <-- args 0
+        //              |--------|
+        //       0d0056 | 223    |
+        //       0d0048 | 211    | <-- local vars 0
+        //              |--------| <-- fp0
+        //              |        | <-- operands
+        //              \--------/
+
         assert_eq!(stack.get_frame(0).addr, fp0);
+        assert_eq!(stack.sp, 112);
+
+        // check operands
+        assert_eq!(stack.read_i32(104), 257);
+        assert_eq!(stack.read_i32(96), 251);
+        assert_eq!(stack.read_i32(88), 43);
+        assert_eq!(stack.read_i32(80), 41);
     }
 
     #[test]
     fn test_reset_frame() {
+        let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
+
+        stack.push_i32(23);
+        stack.push_i32(29);
+        stack.push_i32(31);
+        stack.push_i32(37);
+
+        // the current layout
         //
+        //              |        |
+        //       0d0024 | 37     |
+        //       0d0016 | 31     |
+        //       0d0008 | 29     |
+        // FP,SP 0d0000 | 23     |
+        //              \--------/
+
+        stack.create_func_frame(
+            16, // local vars len
+            2,  // params count
+            71, // func type
+            73, // mod idx
+            79, // func idx
+            83, // ret mod idx
+            89, //ret inst addr
+        );
+
+        // the current layout
+        //
+        // SP--> 0d0080 |        |
+        //       0d0072 | 37     |
+        //       0d0064 | 31     | <-- args 0
+        //              |--------|
+        //       0d0056 | 0      |
+        //       0d0048 | 0      | <-- local vars 0
+        //              |--------|
+        //       0d0044 | 89     | return inst addr
+        //       0d0040 | 83     | return module idx
+        //       0d0036 | 16     | local vars len
+        //       0d0032 | 79     | func idx
+        //       0d0028 | 73     | module idx
+        //       0d0024 | 71     | func type
+        //       0d0020 | 16     | func FP
+        // FP--> 0d0016 | 0      | prev FP
+        //              |========| <-- fp0
+        //       0d0008 | 29     |
+        //       0d0000 | 23     |
+        //              \--------/
+
+        // update local variables
+        stack.write_local_i32(0, 101);
+        stack.write_local_i32(8, 103);
+
+        // check local variables
+        assert_eq!(stack.read_local_i32(0), 101);
+        assert_eq!(stack.read_local_i32(8), 103);
+        assert_eq!(stack.read_local_i32(16), 31);
+        assert_eq!(stack.read_local_i32(24), 37);
+
+        // push some operands
+        stack.push_i32(107);
+        stack.push_i32(109);
+        stack.push_i32(113);
+        stack.push_i32(127);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0112 |        |
+        //       0d0104 | 127    |
+        //       0d0096 | 113    |
+        //       0d0088 | 109    |
+        //       0d0080 | 107    | <-- operands 0
+        //              |--------|
+        //       0d0072 | 37     |
+        //       0d0064 | 31     | <-- args 0
+        //              |--------|
+        //       0d0056 | 103    |
+        //       0d0048 | 101    | <-- local vars 0
+        //              |--------|
+
+        // check SP
+        assert_eq!(stack.sp, 112);
+        assert_eq!(stack.peek_i32(), 127);
+
+        // reset the frame
+        stack.reset_to_frame(0, 2);
+
+        // the current layout
+        //
+        // SP--> 0d0080 |        |
+        //       0d0072 | 127    |
+        //       0d0064 | 113    | <-- args 0 (updated)
+        //              |--------|
+        //       0d0056 | 0      |
+        //       0d0048 | 0      | <-- local vars 0 (reset)
+        //              |--------|
+        //       0d0044 | 89     | return inst addr
+        //       0d0040 | 83     | return module idx
+        //       0d0036 | 16     | local vars len
+        //       0d0032 | 79     | func idx
+        //       0d0028 | 73     | module idx
+        //       0d0024 | 71     | func type
+        //       0d0020 | 16     | func FP
+        // FP--> 0d0016 | 0      | prev FP
+        //              |========| <-- fp0
+        //       0d0008 | 29     |
+        //       0d0000 | 23     |
+        //              \--------/
+
+        // check local variables
+        assert_eq!(stack.read_local_i32(0), 0); // reset
+        assert_eq!(stack.read_local_i32(8), 0); // reset
+        assert_eq!(stack.read_local_i32(16), 113); // updated
+        assert_eq!(stack.read_local_i32(24), 127); // updated
+
+        // TODO::
     }
 
     #[test]
     fn test_reset_frame_depth() {
-        //
+        // TODO::
     }
 }

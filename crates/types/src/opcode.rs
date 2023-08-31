@@ -662,8 +662,6 @@ pub enum Opcode {
     //                          ;; (+ => execute, - => pass)
     // ```
 
-    return_nez,         // (param skip_depth:int16, end_inst_offset:int32)
-
     // a complete 'loop' structure is actually combined with 'block', 'block_nez', 'recur', 'return'
     // and 'return_nez' instructions, e.g.
     //
@@ -710,6 +708,120 @@ pub enum Opcode {
     // P.S.
     // there is a pesudo instruction 'break' in the text assembly, it is actually
     // translated to the 'return' instruction.
+
+    recur_nez,          // (param skip_depth:int16, start_inst_offset:int32)
+
+    // instruction 'recur_nez' is used to implement the TCO (tail call optimization).
+    //
+    // consider the following function:
+    //
+    // ```rust
+    // /* calculate '3+2+1', the result should be '6' */
+    //
+    // let s = accumulate(0, 3);   //
+    //
+    // fn accumulate(sum: i32, number: i32) -> i32 {    // /-----\
+    //     let new_sum = sum + number;                  // | +   |
+    //     if number == 0 {                             // | --> | branch then
+    //         new_sum                                  // | <-- | return 0
+    //     } else {                                     // | --> | branch else
+    //         accumulate(new_sum, number - 1)          // | <-- | return 1
+    //     }                                            // |     |
+    // }                                                // \-----/
+    // ```
+    //
+    // when invoke function call 'accumulate(0, 3)', the calling path is as follows:
+    //
+    // (0,3)--\
+    //        |    /-----\     (3,2)  /-----\     (5,1)  /-----\     (6,0)  /-----\
+    //        \--> | +   |   /------> | +   |   /------> | +   |   /------> | +   |
+    //             |=====|   |        |=====|   |        |=====|   |        |=====|
+    //             | --> |   |        | --> |   |        | --> |   |        | --> | -----\
+    //             | <-- |   |        | <-- |   |        | <-- |   |  /---- | <-- | <----/
+    //             |=====|   |        |=====|   |        |=====|   |  |     |=====|
+    //             | --> | --/        | --> | --/        | --> | --/  |     | --> |
+    //        /--- | <-- | <--------- | <-- | <--------- | <-- | <----/     | <-- |
+    //        |    \-----/            \-----/            \-----/            \-----/
+    //   6 <--/
+    //
+    // the function 'accumulate' is invoked 4 times and 4 stack frames are created.
+    // since there is no other operation after statement 'accumulate(new_sum, number - 1)', and
+    // only return a value afterwards, so the calling path can be simplified as follows:
+    //
+    // (0,3)--\
+    //        |    /-----\     (3,2)  /-----\     (5,1)  /-----\     (6,0)  /-----\
+    //        \--> | +   |   /------> | +   |   /------> | +   |   /------> | +   |
+    //             |=====|   |        |=====|   |        |=====|   |        |=====|
+    //             | --> |   |        | --> |   |        | --> |   |        | --> | ---\
+    //             | <-- |   |        | <-- |   |        | <-- |   |    /-- | <-- | <--/
+    //             |=====|   |        |=====|   |        |=====|   |    |   |=====|
+    //             | --> | --/        | --> | --/        | --> | --/    |   | --> |
+    //             | <-- |            | <-- |            | <-- |        |   | <-- |
+    //             \-----/            \-----/            \-----/        |   \-----/
+    //   6 <------------------------------------------------------------/
+    //
+    // now we can introduce the instruction 'recur/recur_nez', which lets the VM execute
+    // (rather than 'call') the function again from beginning with new arguments,
+    // so that we can optimize the calling path:
+    //
+    // (0,3)--\
+    //        |    /-----\
+    //        \--> | +   | <----\  <----\  <----\
+    //             |=====|      |       |       |
+    //             | --> | --\  |       |       |
+    //        /--- | <-- | <-/  |       |       |
+    //        |    |=====|      |       |       |
+    //        |    | --> | -----/  -----/  -----/
+    //        |    |     | (3,2)  (5,1)  (6,0)
+    //        |    \-----/
+    //   6 <--/
+    //
+    // shown above is TCO (tail call optimization), this optimization saves us from
+    // creating and destroying calling stack frames multiple times, which saves resources
+    // to improve program efficiency.
+    //
+    // an important prerequisite for TCO is that the 'recur call' statement
+    // (in genernal programming language) must be the last operation of the function,
+    // or the last operation in the function branch, otherwise the logical error will occur. e.g.
+    //
+    // ```rust
+    // fn factorial(number: i32) -> i32 {
+    //     if number == 0 {
+    //         1
+    //     } else {
+    //         number * factorial(number - 1)
+    //     }
+    // }
+    // ```
+    //
+    // the statement 'number * factorial(number - 1)' exands as follows:
+    //
+    // ```rust
+    // let i = number;
+    // let j = factorial(number - 1);
+    // i * j
+    // ```
+    //
+    // obviously the function call statement 'factorial(number - 1)' is neither the last operation
+    // of the function nor the last operation of the function branch. the last operation
+    // is 'i * j', so this code cann't apply TCO.
+    //
+    // of course we can modify this function so that it can apply TCO, e.g.
+    //
+    // ```rust
+    // /* calculate '5*4*3*2*1', the result should be '120' */
+    //
+    // let s = factorial_tco(1, 5);
+    //
+    // fn factorial_tco(sum: i32, number: i32) -> i32 {
+    //     if number == 0 {
+    //         sum
+    //     } else {
+    //         let new_sum = sum * number;
+    //         factorial_tco(new_sum, number - 1)
+    //     }
+    // }
+    // ```
 
     //
     // function
