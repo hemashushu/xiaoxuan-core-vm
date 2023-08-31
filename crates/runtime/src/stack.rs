@@ -501,7 +501,7 @@ impl Stack {
         // just do nothing when all conditions are met.
         if (!is_func_frame)
             && (frame_addr == self.fp)
-            && (self.sp - params_count == self.fp + size_of::<Frame>())
+            && (self.sp - params_count * OPERAND_SIZE_IN_BYTES == self.fp + size_of::<Frame>())
         {
             return;
         }
@@ -1201,17 +1201,255 @@ mod tests {
         //       0d0000 | 23     |
         //              \--------/
 
+        // check frame
+        let f0 = stack.get_frame(0);
+        assert_eq!(f0.addr, 16);
+        assert_eq!(
+            f0.frame,
+            &Frame {
+                previous_fp: 0,
+                func_fp: 16,
+                func_type: 71,
+                module_index: 73,
+                func_index: 79,
+                local_vars_len: 16,
+                return_module_idx: 83,
+                return_inst_addr: 89
+            }
+        );
+
         // check local variables
         assert_eq!(stack.read_local_i32(0), 0); // reset
         assert_eq!(stack.read_local_i32(8), 0); // reset
         assert_eq!(stack.read_local_i32(16), 113); // updated
         assert_eq!(stack.read_local_i32(24), 127); // updated
 
-        // TODO::
-    }
+        // add some operands and change local variables to
+        // prepare for the next reset
 
-    #[test]
-    fn test_reset_frame_depth() {
-        // TODO::
+        stack.write_local_i32(0, 131);
+        stack.write_local_i32(8, 137);
+        stack.push_i32(139);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0088 |        |
+        //       0d0080 | 139    | <-- operands 0
+        //       0d0072 | 127    |
+        //       0d0064 | 113    | <-- args 0
+        //              |--------|
+        //       0d0056 | 137    |
+        //       0d0048 | 131    | <-- local vars 0
+        //              |--------|
+
+        // create block frame
+        stack.create_block_frame(1, 149);
+
+        // the current layout
+        //
+        // SP--> 0d0120 |        |
+        //       0d0112 | 139    | <-- args 1
+        //              |--------|
+        //       0d0108 | 0      |
+        //       0d0104 | 0      |
+        //       0d0100 | 0      |
+        //       0d0096 | 0      |
+        //       0d0092 | 73     | module idx
+        //       0d0088 | 149    | func type
+        //       0d0084 | 16     | func FP
+        // FP--> 0d0080 | 16     | prev FP
+        //              |========| <-- fp1
+        //       0d0072 | 127    |
+        //       0d0064 | 113    | <-- args 0
+        //              |--------|
+        //       0d0056 | 137    |
+        //       0d0048 | 131    | <-- local vars 0
+        //              |--------|
+        //       0d0044 | 89     | return inst addr
+        //       0d0040 | 83     | return module idx
+        //       0d0036 | 16     | local vars len
+        //       0d0032 | 79     | func idx
+        //       0d0028 | 73     | module idx
+        //       0d0024 | 71     | func type
+        //       0d0020 | 16     | func FP
+        //       0d0016 | 0      | prev FP
+        //              |========| <-- fp0
+        //       0d0008 | 29     |
+        //       0d0000 | 23     |
+        //              \--------/
+
+        assert_eq!(stack.fp, 80);
+        assert_eq!(stack.sp, 120);
+
+        assert_eq!(stack.peek_i32(), 139);
+
+        // add operands
+        stack.push_i32(149);
+        stack.push_i32(151);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0136 |        |
+        //       0d0128 | 151    |
+        //       0d0120 | 149    | <-- operands 1
+        //       0d0112 | 139    | <-- args 1
+        //              |--------|
+
+        // reset the frame
+        stack.reset_to_frame(0, 1);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0120 |        |
+        //       0d0112 | 151    | <-- args 1
+        //              |--------|
+        //       0d0108 | 0      |
+        //       0d0104 | 0      |
+        //       0d0100 | 0      |
+        //       0d0096 | 0      |
+        //       0d0092 | 73     | module idx
+        //       0d0088 | 149    | func type
+        //       0d0084 | 16     | func FP
+        // FP--> 0d0080 | 16     | prev FP
+        //              |========| <-- fp1
+
+        assert_eq!(stack.fp, 80);
+        assert_eq!(stack.sp, 120);
+        assert_eq!(stack.peek_i32(), 151);
+
+        // check frame
+        let f1 = stack.get_frame(0);
+        assert_eq!(f1.addr, 80);
+        assert_eq!(
+            f1.frame,
+            &Frame {
+                previous_fp: 16,
+                func_fp: 16,
+                func_type: 149,
+                module_index: 73,
+                func_index: 0,
+                local_vars_len: 0,
+                return_module_idx: 0,
+                return_inst_addr: 0
+            }
+        );
+
+        // reset block frame again
+        stack.reset_to_frame(0, 1);
+
+        // nothings has changed
+        assert_eq!(stack.fp, 80);
+        assert_eq!(stack.sp, 120);
+        assert_eq!(stack.peek_i32(), 151);
+
+        // create block frame
+
+        // add some operands for preparing for the next reset
+        stack.push_i32(157);
+
+        stack.create_block_frame(0, 163);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0160 |        |
+        //              |--------|
+        //       0d0156 | 0      |
+        //       0d0152 | 0      |
+        //       0d0148 | 0      |
+        //       0d0144 | 0      |
+        //       0d0140 | 73     | module idx
+        //       0d0136 | 163    | func type
+        //       0d0132 | 16     | func FP
+        // FP--> 0d0128 | 80     | prev FP
+        //              |========| <-- fp2
+        //       0d0120 | 157    | <-- operands 1
+        //       0d0112 | 151    | <-- args 1
+        //              |--------|
+        //       0d0108 | 0      |
+        //       0d0104 | 0      |
+        //       0d0100 | 0      |
+        //       0d0096 | 0      |
+        //       0d0092 | 73     | module idx
+        //       0d0088 | 149    | func type
+        //       0d0084 | 16     | func FP
+        //       0d0080 | 16     | prev FP
+        //              |========| <-- fp1
+
+        assert_eq!(stack.fp, 128);
+        assert_eq!(stack.sp, 160);
+        assert_eq!(stack.get_frame(0).frame.func_type, 163);
+
+        // add two operands
+        stack.push_i32(167);
+        stack.push_i32(173);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0176 |        |
+        //       0d0168 | 173    |
+        //       0d0160 | 167    |
+        //              |--------|
+        //       0d0156 | 0      |
+
+        assert_eq!(stack.sp, 176);
+
+        // crossing reset
+        stack.reset_to_frame(1, 2);
+
+        // the current layout (partial)
+        //
+        // SP--> 0d0128 |        |
+        //       0d0120 | 173    |
+        //       0d0112 | 167    | <-- args 1 from operands 2
+        //              |--------|
+        //       0d0108 | 0      |
+        //       0d0104 | 0      |
+        //       0d0100 | 0      |
+        //       0d0096 | 0      |
+        //       0d0092 | 73     | module idx
+        //       0d0088 | 149    | func type
+        //       0d0084 | 16     | func FP
+        // FP--> 0d0080 | 16     | prev FP
+        //              |========| <-- fp1
+
+        assert_eq!(stack.fp, 80);
+        assert_eq!(stack.sp, 128);
+        assert_eq!(stack.get_frame(0).frame.func_type, 149);
+
+        // check args
+        assert_eq!(stack.read_i32(stack.sp - 8), 173);
+        assert_eq!(stack.read_i32(stack.sp - 16), 167);
+
+        // crossing reset
+        stack.reset_to_frame(1, 1);
+
+        // the current layout
+        //
+        // SP--> 0d0072 |        |
+        //       0d0064 | 173    | <-- args 0 from operands 1
+        //              |--------|
+        //       0d0056 | 0      |
+        //       0d0048 | 0      | <-- local vars 0
+        //              |--------|
+        //       0d0044 | 89     | return inst addr
+        //       0d0040 | 83     | return module idx
+        //       0d0036 | 16     | local vars len
+        //       0d0032 | 79     | func idx
+        //       0d0028 | 73     | module idx
+        //       0d0024 | 71     | func type
+        //       0d0020 | 16     | func FP
+        // FP--> 0d0016 | 0      | prev FP
+        //              |========| <-- fp0
+        //       0d0008 | 29     |
+        //       0d0000 | 23     |
+        //              \--------/
+
+        assert_eq!(stack.fp, 16);
+        assert_eq!(stack.sp, 72);
+
+        // check local variables
+        assert_eq!(stack.read_local_i32(0), 0); // reset
+        assert_eq!(stack.read_local_i32(8), 0); // reset
+        assert_eq!(stack.read_local_i32(16), 173); // updated
     }
 }
