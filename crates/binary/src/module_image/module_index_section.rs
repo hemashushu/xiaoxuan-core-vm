@@ -69,7 +69,7 @@ impl ModuleIndexItem {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ModuleIndexEntry {
     pub module_share_type: ModuleShareType,
     // pub name: &'a str,

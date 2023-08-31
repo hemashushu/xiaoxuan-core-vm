@@ -37,7 +37,7 @@ pub struct FuncItem {
     // _padding0: u16,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct FuncEntry {
     pub func_type: u32,
     // pub code: &'a [u8],

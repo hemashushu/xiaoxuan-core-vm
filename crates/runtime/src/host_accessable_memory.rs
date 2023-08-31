@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-pub trait ResizeableMemory {
-    fn get_capacity_in_pages(&self) -> usize;
-    fn resize(&mut self, new_size_in_pages: usize);
+pub trait HostAccessableMemory {
+    // it's recommended that add annotation "#[inline]" to the implementation
+    fn get_host_address(&self, offset: usize) -> usize;
 }

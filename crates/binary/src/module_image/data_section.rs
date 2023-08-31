@@ -92,7 +92,7 @@ impl From<u8> for DataSectionType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug)]
 pub struct DataEntry {
     pub data_type: DataType,
     pub data: Vec<u8>,

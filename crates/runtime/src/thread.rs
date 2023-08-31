@@ -16,7 +16,6 @@ pub struct Thread<'a> {
 }
 
 impl<'a> Thread<'a> {
-    // pub fn build_thread<'a>(module_images: &'a [ModuleImage<'a>]) -> Thread<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let vm = VM::new();
         let context = Context::new(module_images);

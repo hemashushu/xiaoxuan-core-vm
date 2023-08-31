@@ -456,11 +456,17 @@ pub enum Opcode {
     // the data type of operand (on the stack) is a 64-bit raw data
     // and do NOT check the type of the operand.
     //
-    // thus some instructions will do the same thing, e.g.
-    // `i32_load` and `i64_load`, `i32_add` and `i64_add`
+    // thus some instructions will do the same thing:
+    // - i32/i64 logical operations (except left/right shift), e.g.
+    //   `i32.and` and `i64.and`, `i32.or` and `i64.or`
+    // - i32/i64 comparsion, e.g.
+    //   `i32.eqz` and `i64.eqz`, `i32.eq` and `i64.eq`
     //
-    // and some instructions are simply ignored, e.g.
-    // `i32_reinterpret_f32` and other reinterpret instructions.
+    // and the reinterpret instructions are simply ignored, e.g.
+    // - `i32_reinterpret_f32`
+    // - `i64_reinterpret_f64`
+    // - `f32_reinterpret_i32`
+    // - `f64_reinterpret_i64`
     //
     // but all these instructions are preserved for consistency, and
     // enable some VM implement for data type checking.
@@ -709,15 +715,8 @@ pub enum Opcode {
     // function
     //
 
-    call = 0x1100,          // call function                    (param func_index:int32)
+    call = 0x1100,          // general function call            (param func_index:int32)
     dcall,                  // closure/dynamic function call    (operand closure_function_item_addr:i64)
-
-    ecall,                  // environment call                 (param env_func_num:int32)
-
-    scall,                  // syscall                          (param sys_call_num:int32)
-                            // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
-
-    ccall,                  // external C function call         (param c_func_index:int32)
 
     // the operand "closure_function_item_addr" of instruction 'dcall' is a struct:
     //
@@ -771,6 +770,13 @@ pub enum Opcode {
     //    ...
     // )
     // ```
+
+    ecall,                  // environment call                 (param env_func_num:int32)
+
+    scall,                  // syscall                          (param sys_call_num:int32)
+                            // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+
+    ccall,                  // external C function call         (param c_func_index:int32)
 
     //
     // heap (thread-local memory)

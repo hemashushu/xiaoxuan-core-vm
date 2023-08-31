@@ -14,7 +14,10 @@ use ancvm_binary::module_image::{
     ModuleImage, SectionId,
 };
 
-use crate::indexed_memory::{IndexedMemory, ReadOnlyMemory, ReadWriteMemory, UninitMemory};
+use crate::{
+    datas::{ReadOnlyDatas, ReadWriteDatas, UninitDatas},
+    indexed_memory::IndexedMemory,
+};
 
 const EMPTY_DATA: &[u8] = &[];
 const EMPTY_DATA_ITEMS: &[DataItem] = &[];
@@ -32,10 +35,6 @@ pub struct Context<'a> {
 }
 
 pub struct Module<'a> {
-    // pub data_items: [&'a [DataItem]; 3],
-    // pub read_only_datas: &'a [u8],
-    // pub read_write_datas: Vec<u8>,
-    // pub uninit_datas: Vec<u8>,
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
 
     pub type_section: TypeSection<'a>,
@@ -43,7 +42,6 @@ pub struct Module<'a> {
 }
 
 impl<'a> Context<'a> {
-    // pub fn build_context<'a>(module_images: &'a [ModuleImage<'a>]) -> Context<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let modules = module_images
             .iter()
@@ -64,10 +62,7 @@ impl<'a> Context<'a> {
                 }
             };
 
-        // let vm = VM::new();
-
         Self {
-            // vm,
             module_index_section,
             data_index_section,
             func_index_section,
@@ -77,7 +72,6 @@ impl<'a> Context<'a> {
 }
 
 impl<'a> Module<'a> {
-    // pub fn build_module<'a>(module_image: &'a ModuleImage<'a>) -> Module<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
         let (read_only_data_items, read_only_datas) =
             if let Some(_) = module_image.get_section_index_by_id(SectionId::ReadOnlyData) {
@@ -110,9 +104,9 @@ impl<'a> Module<'a> {
                 (EMPTY_DATA_ITEMS, Vec::<u8>::new())
             };
 
-        let read_only_memory = ReadOnlyMemory::new(read_only_data_items, read_only_datas);
-        let read_write_memory = ReadWriteMemory::new(read_write_data_items, read_write_datas);
-        let uninit_memory = UninitMemory::new(uninit_data_items, uninit_datas);
+        let read_only_memory = ReadOnlyDatas::new(read_only_data_items, read_only_datas);
+        let read_write_memory = ReadWriteDatas::new(read_write_data_items, read_write_datas);
+        let uninit_memory = UninitDatas::new(uninit_data_items, uninit_datas);
 
         let type_section = module_image.get_type_section();
         let func_section = module_image.get_func_section();

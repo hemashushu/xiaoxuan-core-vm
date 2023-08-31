@@ -10,7 +10,9 @@ use std::{
 };
 
 pub mod context;
+pub mod datas;
 pub mod heap;
+pub mod host_accessable_memory;
 pub mod indexed_memory;
 pub mod memory;
 pub mod resizeable_memory;

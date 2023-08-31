@@ -43,7 +43,7 @@ pub struct TypeItem {
     pub result_offset: u32,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct TypeEntry {
     // pub params: &'a [DataType],
     // pub results: &'a [DataType],
