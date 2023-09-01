@@ -6,6 +6,26 @@
 
 use crate::memory::Memory;
 
+/// in the XiaoXuam VM, local variable memory and data memory is access
+/// by the index instead of the "memory address (pointer)".
+///
+/// this mechanism makes data access by (higher-level) programs more safe, and
+/// also makes high-level programming languages more efficient by eliminating
+/// the need to check boundaries over and over again when accessing an array
+/// using an index.
+///
+/// e.g.
+///
+/// ```c
+/// int a[] = {10,11,12};
+/// int b[] = {13,14,15};
+///
+/// int main(void){
+///         int i = a[2]; // ok
+///         int j = a[4]; // b[0] will be accessed.
+/// }
+/// ```
+///
 pub trait IndexedMemory: Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);

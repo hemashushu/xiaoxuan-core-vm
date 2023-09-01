@@ -46,11 +46,11 @@ mod tests {
     use ancvm_binary::{
         load_modules_binary,
         module_image::{
-            func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
+            func_index_section::{FuncIndexItem, FuncIndexSection},
             func_section::{FuncEntry, FuncSection},
             module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
             type_section::{TypeEntry, TypeSection},
-            ModuleImage, SectionEntry,
+            ModuleImage, RangeItem, SectionEntry,
         },
     };
     use ancvm_types::DataType;
@@ -100,16 +100,16 @@ mod tests {
         };
 
         // build function index
-        let mut func_index_offsets: Vec<FuncIndexOffset> = Vec::new();
+        let mut func_ranges: Vec<RangeItem> = Vec::new();
         let mut func_index_items: Vec<FuncIndexItem> = Vec::new();
 
-        func_index_offsets.push(FuncIndexOffset {
+        func_ranges.push(RangeItem {
             offset: 0,
             count: 1,
         });
         func_index_items.push(FuncIndexItem::new(0, 0, 0));
         let func_index_section = FuncIndexSection {
-            offsets: &func_index_offsets,
+            ranges: &func_ranges,
             items: &func_index_items,
         };
 
@@ -168,16 +168,10 @@ mod tests {
         assert_eq!(context.data_index_section.items.len(), 0);
 
         // check "function index section"
-        assert_eq!(context.func_index_section.offsets.len(), 1);
+        assert_eq!(context.func_index_section.ranges.len(), 1);
         assert_eq!(context.func_index_section.items.len(), 1);
 
-        assert_eq!(
-            &context.func_index_section.offsets[0],
-            &FuncIndexOffset {
-                offset: 0,
-                count: 1
-            }
-        );
+        assert_eq!(&context.func_index_section.ranges[0], &RangeItem::new(0, 1));
 
         assert_eq!(
             &context.func_index_section.items[0],

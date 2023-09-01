@@ -54,13 +54,13 @@ use super::{SectionEntry, SectionId};
 #[derive(Debug, PartialEq)]
 pub struct ReadOnlyDataSection<'a> {
     pub items: &'a [DataItem],
-    pub datas: &'a [u8],
+    pub datas_data: &'a [u8],
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ReadWriteDataSection<'a> {
     pub items: &'a [DataItem],
-    pub datas: &'a [u8],
+    pub datas_data: &'a [u8],
 }
 
 #[derive(Debug, PartialEq)]
@@ -71,11 +71,11 @@ pub struct UninitDataSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct DataItem {
-    pub data_offset: u32,
-    pub data_length: u32,
-    pub data_type: DataType,
-    _padding0: u8,
-    _padding1: u16,
+    pub data_offset: u32, // the offset of a data item in the section's "data area"
+    pub data_length: u32, // the length (in bytes) of a data item in the section's "data area"
+    pub data_type: DataType, // the data type field is not necessary at runtime, though it is helpful for debugging.
+    _padding0: u8,           //
+    _padding1: u16,          //
 }
 
 #[repr(u8)]
@@ -95,6 +95,8 @@ impl From<u8> for DataSectionType {
 #[derive(Debug)]
 pub struct DataEntry {
     pub data_type: DataType,
+    // the length of data entry is determited by the data type, when the data type is 'byte',
+    // the 'vec.len()' is used.
     pub data: Vec<u8>,
     pub align: u32,
 }
@@ -103,7 +105,6 @@ impl DataEntry {
     pub fn from_i32(value: i32) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
-        // data.extend([0u8; 4].iter());
 
         Self {
             data_type: DataType::I32,
@@ -126,7 +127,6 @@ impl DataEntry {
     pub fn from_f32(value: f32) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
-        // data.extend([0u8; 4].iter());
 
         Self {
             data_type: DataType::F32,
@@ -147,9 +147,6 @@ impl DataEntry {
     }
 
     pub fn from_bytes(data: Vec<u8>, align: u32) -> Self {
-        // let mut data: Vec<u8> = Vec::with_capacity(value.len());
-        // data.extend_from_slice(value);
-
         Self {
             data_type: DataType::BYTE,
             data,
@@ -180,11 +177,14 @@ impl<'a> SectionEntry<'a> for ReadOnlyDataSection<'a> {
         Self: Sized,
     {
         let (items, datas) = load_section_with_table_and_data_area::<DataItem>(section_data);
-        ReadOnlyDataSection { items, datas }
+        ReadOnlyDataSection {
+            items,
+            datas_data: datas,
+        }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        save_section_with_table_and_data_area(self.items, self.datas, writer)
+        save_section_with_table_and_data_area(self.items, self.datas_data, writer)
     }
 }
 
@@ -198,11 +198,14 @@ impl<'a> SectionEntry<'a> for ReadWriteDataSection<'a> {
         Self: Sized,
     {
         let (items, datas) = load_section_with_table_and_data_area::<DataItem>(section_data);
-        ReadWriteDataSection { items, datas }
+        ReadWriteDataSection {
+            items,
+            datas_data: datas,
+        }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        save_section_with_table_and_data_area(self.items, self.datas, writer)
+        save_section_with_table_and_data_area(self.items, self.datas_data, writer)
     }
 }
 
@@ -252,7 +255,7 @@ pub fn convert_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
         })
         .collect::<Vec<DataItem>>();
 
-    let datas = entries
+    let datas_data = entries
         .iter()
         .zip(&positions)
         .flat_map(|(entry, (padding, _, _))| {
@@ -262,7 +265,7 @@ pub fn convert_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
         })
         .collect::<Vec<u8>>();
 
-    (items, datas)
+    (items, datas_data)
 }
 
 #[cfg(test)]
@@ -300,7 +303,7 @@ mod tests {
 
         let data_section = ReadWriteDataSection {
             items: &items,
-            datas: &datas,
+            datas_data: &datas,
         };
 
         let mut section_data: Vec<u8> = Vec::new();
@@ -401,7 +404,7 @@ mod tests {
 
         // the data area is too long, only check partly here.
         assert_eq!(
-            &data_section_restore.datas[0..16],
+            &data_section_restore.datas_data[0..16],
             &vec![
                 11u8, 0, 0, 0, // data 0
                 0, 0, 0, 0, // padding

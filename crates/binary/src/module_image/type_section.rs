@@ -6,19 +6,19 @@
 
 // "type section" binary layout
 //
-//                     |---------------------------------------------------------------------------------------|
-//                     | item count (u32) | (4 bytes padding)                                                  |
-//                     |---------------------------------------------------------------------------------------|
-//          item 0 --> | param len 0 (u32) | param offset 0 (u32) | result len 0 (u32) | result offset 0 (u32) | <-- table
-//          item 1 --> | param len 1       | param offset 1       | result len 1       | result offset 1       |
-//                     | ...                                                                                   |
-//                     |---------------------------------------------------------------------------------------|
-// param offset 0 -->  | param type list 0                                                                     | <-- data area
-// result offset 0 --> | result type list 0                                                                    |
-// param offset 1 -->  | param type list 1                                                                     |
-// result offset 1 --> | result type list 1                                                                    |
-//                     | ...                                                                                   |
-//                     |---------------------------------------------------------------------------------------|
+//                     |---------------------------------------------------------------------------------------------|
+//                     | item count (u32) | (4 bytes padding)                                                        |
+//                     |---------------------------------------------------------------------------------------------|
+//          item 0 --> | param offset 0 (u32) | param length 0 (u32) | result offset 0 (u32) | result length 0 (u32) | <-- table
+//          item 1 --> | param offset 1       | param length 1       | result offset 1       | result length 1       |
+//                     | ...                                                                                         |
+//                     |---------------------------------------------------------------------------------------------|
+// param offset 0 -->  | parameters type list 0                                                                      | <-- data area
+// result offset 0 --> | results type list 0                                                                         |
+// param offset 1 -->  | parameters type list 1                                                                      |
+// result offset 1 --> | results type list 1                                                                         |
+//                     | ...                                                                                         |
+//                     |---------------------------------------------------------------------------------------------|
 
 use std::ptr::slice_from_raw_parts;
 
@@ -37,16 +37,14 @@ pub struct TypeSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct TypeItem {
-    pub param_length: u32,
-    pub param_offset: u32,
-    pub result_length: u32,
-    pub result_offset: u32,
+    pub param_offset: u32,  // the offset of the "parameters type list" in data area
+    pub param_length: u32,  // the length (in bytes) of the "parameters type list" in data area
+    pub result_offset: u32, // the offset of the "results type list" in data area
+    pub result_length: u32, // the length (in bytes) of the "results type list" in data area
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TypeEntry {
-    // pub params: &'a [DataType],
-    // pub results: &'a [DataType],
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
 }
@@ -156,20 +154,20 @@ mod tests {
             3u8, 0, 0, 0, // item count
             0, 0, 0, 0, // 4 bytes padding
             //
-            2, 0, 0, 0, // param length (item 0)
-            0, 0, 0, 0, // param offset
-            3, 0, 0, 0, // result length
+            0, 0, 0, 0, // param offset (item 0)
+            2, 0, 0, 0, // param length
             2, 0, 0, 0, // result offset
+            3, 0, 0, 0, // result length
             //
-            1, 0, 0, 0, // param length (item 1)
-            5, 0, 0, 0, // param offset
-            0, 0, 0, 0, // result length
+            5, 0, 0, 0, // param offset (item 1)
+            1, 0, 0, 0, // param length
             6, 0, 0, 0, // result offset
+            0, 0, 0, 0, // result length
             //
-            4, 0, 0, 0, // param length (item 1)
-            6, 0, 0, 0, // param offset
-            1, 0, 0, 0, // result length
+            6, 0, 0, 0, // param offset (item 2)
+            4, 0, 0, 0, // param length
             10, 0, 0, 0, // result offset
+            1, 0, 0, 0, // result length
             //
             1u8, 2, // param types 0
             3, 2, 1, // result types 0
@@ -185,28 +183,28 @@ mod tests {
         assert_eq!(
             section.items[0],
             TypeItem {
-                param_length: 2,
                 param_offset: 0,
-                result_length: 3,
+                param_length: 2,
                 result_offset: 2,
+                result_length: 3,
             }
         );
         assert_eq!(
             section.items[1],
             TypeItem {
-                param_length: 1,
                 param_offset: 5,
-                result_length: 0,
+                param_length: 1,
                 result_offset: 6,
+                result_length: 0,
             }
         );
         assert_eq!(
             section.items[2],
             TypeItem {
-                param_length: 4,
                 param_offset: 6,
-                result_length: 1,
+                param_length: 4,
                 result_offset: 10,
+                result_length: 1,
             }
         );
     }
@@ -216,24 +214,24 @@ mod tests {
         let mut items: Vec<TypeItem> = Vec::new();
 
         items.push(TypeItem {
-            param_length: 2,
             param_offset: 0,
-            result_length: 3,
+            param_length: 2,
             result_offset: 2,
+            result_length: 3,
         });
 
         items.push(TypeItem {
-            param_length: 1,
             param_offset: 5,
-            result_length: 0,
+            param_length: 1,
             result_offset: 6,
+            result_length: 0,
         });
 
         items.push(TypeItem {
-            param_length: 4,
             param_offset: 6,
-            result_length: 1,
+            param_length: 4,
             result_offset: 10,
+            result_length: 1,
         });
 
         let section = TypeSection {
@@ -257,20 +255,20 @@ mod tests {
                 3u8, 0, 0, 0, // item count
                 0, 0, 0, 0, // 4 bytes padding
                 //
-                2, 0, 0, 0, // param length (item 0)
-                0, 0, 0, 0, // param offset
-                3, 0, 0, 0, // result length
+                0, 0, 0, 0, // param offset (item 0)
+                2, 0, 0, 0, // param length
                 2, 0, 0, 0, // result offset
+                3, 0, 0, 0, // result length
                 //
-                1, 0, 0, 0, // param length (item 1)
-                5, 0, 0, 0, // param offset
-                0, 0, 0, 0, // result length
+                5, 0, 0, 0, // param offset (item 1)
+                1, 0, 0, 0, // param length
                 6, 0, 0, 0, // result offset
+                0, 0, 0, 0, // result length
                 //
-                4, 0, 0, 0, // param length (item 1)
-                6, 0, 0, 0, // param offset
-                1, 0, 0, 0, // result length
+                6, 0, 0, 0, // param offset (item 2)
+                4, 0, 0, 0, // param length
                 10, 0, 0, 0, // result offset
+                1, 0, 0, 0, // result length
                 //
                 1u8, 2, // param types 0
                 3, 2, 1, // result types 0

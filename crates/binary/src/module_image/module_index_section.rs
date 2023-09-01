@@ -34,8 +34,8 @@ pub struct ModuleIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct ModuleIndexItem {
-    pub name_offset: u32,
-    pub name_length: u32,
+    pub name_offset: u32, // the offset of the name string in data area
+    pub name_length: u32, // the length (in bytes) of the name string in data area
     pub module_share_type: ModuleShareType, // u8
     _padding0: u8,
     _padding1: u16,

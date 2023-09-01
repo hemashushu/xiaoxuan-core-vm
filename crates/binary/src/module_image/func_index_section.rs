@@ -22,34 +22,12 @@
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{SectionEntry, SectionId};
+use super::{RangeItem, SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
-    pub offsets: &'a [FuncIndexOffset],
+    pub ranges: &'a [RangeItem],
     pub items: &'a [FuncIndexItem],
-}
-
-// one index offset item per module.
-// for example, consider the following items:
-//
-// module 0 ----- index item 0
-//            |-- index item 1
-//            |-- index item 2
-//
-// module 1 ----- index item 3
-//            |-- index item 4
-//
-// since there are 2 modules, so there will be
-// 2 index offset items as the following:
-//
-// index offset 0 = {offset:0, count:3}
-// index offset 1 = {offset:3, count:2}
-#[repr(C)]
-#[derive(Debug, PartialEq)]
-pub struct FuncIndexOffset {
-    pub offset: u32,
-    pub count: u32,
 }
 
 #[repr(C)]
@@ -57,20 +35,19 @@ pub struct FuncIndexOffset {
 pub struct FuncIndexItem {
     pub func_index: u32,          // data item index (in a specified module)
     pub target_module_index: u32, // target module index
-    // _padding0: u16,
-    pub target_func_index: u32, // target func index
+    pub target_func_index: u32,   // target func index
 }
 
 impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
-        let (offsets, items) =
-            load_section_with_two_tables::<FuncIndexOffset, FuncIndexItem>(section_data);
+        let (ranges, items) =
+            load_section_with_two_tables::<RangeItem, FuncIndexItem>(section_data);
 
-        FuncIndexSection { offsets, items }
+        FuncIndexSection { ranges, items }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        save_section_with_two_tables(self.offsets, self.items, writer)
+        save_section_with_two_tables(self.ranges, self.items, writer)
     }
 
     fn id(&'a self) -> SectionId {
@@ -83,7 +60,6 @@ impl FuncIndexItem {
         Self {
             func_index,
             target_module_index,
-            // _padding0: 0,
             target_func_index,
         }
     }
@@ -92,8 +68,8 @@ impl FuncIndexItem {
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
-        SectionEntry,
+        func_index_section::{FuncIndexItem, FuncIndexSection},
+        RangeItem, SectionEntry,
     };
 
     #[test]
@@ -122,23 +98,11 @@ mod tests {
 
         let section = FuncIndexSection::load(&section_data);
 
-        let offsets = section.offsets;
+        let ranges = section.ranges;
 
-        assert_eq!(offsets.len(), 2);
-        assert_eq!(
-            offsets[0],
-            FuncIndexOffset {
-                offset: 1,
-                count: 2,
-            }
-        );
-        assert_eq!(
-            offsets[1],
-            FuncIndexOffset {
-                offset: 3,
-                count: 5,
-            }
-        );
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0], RangeItem::new(1, 2,));
+        assert_eq!(ranges[1], RangeItem::new(3, 5,));
 
         let items = section.items;
 
@@ -150,17 +114,10 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut offsets: Vec<FuncIndexOffset> = Vec::new();
+        let mut ranges: Vec<RangeItem> = Vec::new();
 
-        offsets.push(FuncIndexOffset {
-            offset: 1,
-            count: 2,
-        });
-
-        offsets.push(FuncIndexOffset {
-            offset: 3,
-            count: 5,
-        });
+        ranges.push(RangeItem::new(1, 2));
+        ranges.push(RangeItem::new(3, 5));
 
         let mut items: Vec<FuncIndexItem> = Vec::new();
 
@@ -169,7 +126,7 @@ mod tests {
         items.push(FuncIndexItem::new(13, 17, 19));
 
         let section = FuncIndexSection {
-            offsets: &offsets,
+            ranges: &ranges,
             items: &items,
         };
 

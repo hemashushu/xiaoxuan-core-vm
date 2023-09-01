@@ -4,57 +4,79 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-// a module consists of a header and several sections:
+// a module consists of two parts, data and code (i.e., instructions), which
+// are spread out in the following sections:
 //
-// - function type section
-//   the signature of the function, as well as the code block
 // - import data section (optional)
 // - data sections (optional)
-//   there are 3 kind of data: read-only, read-write, uninit(ialized)
-//   all data are thread-local, so the RW section will be cloned and the
-//   uninit section will be allocated when a new thread was created
+//   there are 3 kinds of data sections: read-only, read-write, uninit(ialized)
+//   all data are thread-local, so the read-write section will be cloned and the
+//   uninitialized section will be allocated when a new thread is created.
+//
+// - function type section
+//   the signature of a function, the types are also applied to the code blocks.
 // - import function section (optional)
+// - local variable section
 // - function section
-//   a function is consists of a type, a local variable list, and the instructions
-// - export data section (optional)
-// - export function section (optional)
+//   a function is consists of a type, a local variable list, and instructions
+//
 // - (import) external C function section (optional)
 //   a list of external C functions
+// - export data section (optional)
+// - export function section (optional)
 // - auto function index list section (optional)
 //   the index of functions that are executed before application start, after application exits and
 //   the index of the entry (main) function.
 //
-// a minimal module can only contains 2 sections:
+// a minimal module only requires 3 sections:
 //
 // - function type section
+// - local variable section
 // - function section
 //
-// the following sections are not required during the runtime, they are generally used for debuging
+// of these, the following sections are not required during the runtime, they are generally used for debuging
 // and linking.
 //
 // - import data section
 // - import function section
 // - export data section
 // - export function section
-// - import external C function section
 //
-// because once all modules (source file) have been compiled, all imports and exports are resolved
-// and stored in the following sections, these sections speed up the next time the program loading:
-// note that only the application main module contains these sections.
+// because in the modules linking stage (which follows the compiling stage), all imports and exports
+// are resolved and stored the indices in the following sections,
+// this help speeding up the next time the program loading:
 //
 // - module index section
 // - data index section (optional)
 // - func index section
 //
-// there are also some in-memory tables, they are created at application startup:
+// note that only the application main module contains these sections.
 //
-// - external function index (optional)
-// - library list (optional)
+//
+// about the design of module:
+//
+// the loading and startup of XiaoXuan modules are extremely fast, because:
+// - there is no parsing process, the loading process actually does only two things: maps
+//   the module image file into memory, and locates the start and end positions of echo
+//   sections.
+// - instructions are executed directly on the binary (bytecode of the module)
+//
+// these allow the XiaoXuan applications to have almost no startup time, and are suitable
+// for using as 'function' in scripts.
+
+
+// the data type of fields:
+//
+// - u8: data type, data section type, module share type
+// - u16: memory store/load offset, block break/recur skip depth
+// - u32: section id, module index, function type index, data index, local variable index,
+//   function index, dynamic function index, c function index, syscall number, env call number
 
 pub mod data_index_section;
 pub mod data_section;
 pub mod func_index_section;
 pub mod func_section;
+pub mod local_variable_section;
 pub mod module_index_section;
 pub mod type_section;
 
@@ -100,45 +122,76 @@ pub struct ModuleImage<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ModuleSection {
     pub id: SectionId, // u32
-    // _padding0: u16,
     pub offset: u32,
     pub length: u32,
 }
 
 impl ModuleSection {
     pub fn new(id: SectionId, offset: u32, length: u32) -> Self {
-        Self {
-            id,
-            // _padding0: 0,
-            offset,
-            length,
-        }
+        Self { id, offset, length }
     }
 }
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SectionId {
-    Type = 0x0,    // 0
-    ImportData,    // 1
-    ReadOnlyData,  // 2
-    ReadWriteData, // 3
-    UninitData,    // 4
-    ImportFunc,    // 5
-    Func,          // 6
-    ExportData,    // 7
-    ExportFunc,    // 8
-    ExternalFunc,  // 9
-    AutoFunc,      // 10
-
-    ModuleIndex, // 11
-    DataIndex,   // 12
-    FuncIndex,   // 13
+    ReadOnlyData = 0x10, // 0x10
+    ReadWriteData,       // 0x11
+    UninitData,          // 0x12
+    //
+    Type = 0x20,   // 0x20
+    LocalVariable, // 0x21
+    Func,          // 0x22
+    //
+    ImportData = 0x30, // 0x30
+    ImportFunc,        // 0x31
+    ExportData,        // 0x32
+    ExportFunc,        // 0x33
+    ExternalFunc,      // 0x34
+    AutoFunc,          // 0x35
+    //
+    ModuleIndex = 0x40, // 0x40
+    DataIndex,          // 0x41
+    FuncIndex,          // 0x42
 }
 
 impl From<u32> for SectionId {
     fn from(value: u32) -> Self {
         unsafe { std::mem::transmute::<u32, SectionId>(value) }
+    }
+}
+
+// use for data index section and function index section
+//
+// one range item per module.
+// for example, consider the following items:
+//
+// module 0 ----- index item 0
+//            |-- index item 1
+//            |-- index item 2
+//
+// module 1 ----- index item 3
+//            |-- index item 4
+//
+// since there are 2 modules, so there will be
+// 2 range items as the following:
+//
+// range 0 = {offset:0, count:3}
+// range 1 = {offset:3, count:2}
+//
+// use the C style struct memory layout
+// see also:
+// https://doc.rust-lang.org/reference/type-layout.html#reprc-structs
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct RangeItem {
+    pub offset: u32,
+    pub count: u32,
+}
+
+impl RangeItem {
+    pub fn new(offset: u32, count: u32) -> Self {
+        Self { offset, count }
     }
 }
 
@@ -336,13 +389,13 @@ mod tests {
     use ancvm_types::DataType;
 
     use crate::module_image::{
-        data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
+        data_index_section::{DataIndexItem, DataIndexSection},
         data_section::DataSectionType,
-        func_index_section::{FuncIndexItem, FuncIndexOffset, FuncIndexSection},
+        func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
         module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
         type_section::{TypeEntry, TypeSection},
-        ModuleImage, SectionEntry, MAGIC_NUMBER,
+        ModuleImage, RangeItem, SectionEntry, MAGIC_NUMBER,
     };
 
     #[test]
@@ -422,11 +475,11 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                0u8, 0, 0, 0, // section id
+                0x20u8, 0, 0, 0, // section id
                 0, 0, 0, 0, // offset 0
                 44, 0, 0, 0, // length 0
                 //
-                6, 0, 0, 0, // section id
+                0x22u8, 0, 0, 0, // section id
                 44, 0, 0, 0, // offset 1
                 44, 0, 0, 0, // length 1
             ]
@@ -438,14 +491,14 @@ mod tests {
             &vec![
                 2u8, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
-                2, 0, 0, 0, // param len 0
                 0, 0, 0, 0, // param offset 0
-                1, 0, 0, 0, // result len 0
+                2, 0, 0, 0, // param len 0
                 2, 0, 0, 0, // result offset 0
-                0, 0, 0, 0, // param len 1
+                1, 0, 0, 0, // result len 0
                 3, 0, 0, 0, // param offset 1
-                1, 0, 0, 0, // result len 1
+                0, 0, 0, 0, // param len 1
                 3, 0, 0, 0, // result offset 1
+                1, 0, 0, 0, // result len 1
                 0, // I32
                 1, // I64
                 2, // F32
@@ -541,30 +594,24 @@ mod tests {
         };
 
         // build DataIndexSection instance
-        let data_index_offset0 = DataIndexOffset {
-            count: 3,
-            offset: 0,
-        };
+        let data_range0 = RangeItem::new(0, 3);
 
         let data_index_item0 = DataIndexItem::new(0, 1, DataSectionType::ReadOnly, 2);
         let data_index_item1 = DataIndexItem::new(3, 5, DataSectionType::ReadWrite, 7);
         let data_index_item2 = DataIndexItem::new(11, 13, DataSectionType::Uninit, 17);
 
         let data_index_section = DataIndexSection {
-            offsets: &vec![data_index_offset0],
+            ranges: &vec![data_range0],
             items: &vec![data_index_item0, data_index_item1, data_index_item2],
         };
 
         // build FuncIndexSection instance
-        let func_index_offset0 = FuncIndexOffset {
-            offset: 0,
-            count: 1,
-        };
+        let func_range0 = RangeItem::new(0, 1);
 
         let func_index_item0 = FuncIndexItem::new(0, 1, 2);
 
         let func_index_section = FuncIndexSection {
-            offsets: &vec![func_index_offset0],
+            ranges: &vec![func_range0],
             items: &vec![func_index_item0],
         };
 
@@ -602,15 +649,15 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                11u8, 0, 0, 0, // section id 0
+                0x40u8, 0, 0, 0, // section id 0
                 0, 0, 0, 0, // offset 0
                 48, 0, 0, 0, // length 0
                 //
-                12, 0, 0, 0, // section id 1
+                0x41u8, 0, 0, 0, // section id 1
                 48, 0, 0, 0, // offset 1
                 64, 0, 0, 0, // length 1
                 //
-                13, 0, 0, 0, // section id 2
+                0x42u8, 0, 0, 0, // section id 2
                 112, 0, 0, 0, // offset 2
                 28, 0, 0, 0, // length 2
             ]
@@ -707,16 +754,10 @@ mod tests {
 
         let data_index_section_restore = module_image_restore.get_data_index_section();
 
-        assert_eq!(data_index_section_restore.offsets.len(), 1);
+        assert_eq!(data_index_section_restore.ranges.len(), 1);
         assert_eq!(data_index_section_restore.items.len(), 3);
 
-        assert_eq!(
-            &data_index_section_restore.offsets[0],
-            &DataIndexOffset {
-                count: 3,
-                offset: 0,
-            }
-        );
+        assert_eq!(&data_index_section_restore.ranges[0], &RangeItem::new(0, 3));
 
         assert_eq!(
             &data_index_section_restore.items[0],
@@ -733,15 +774,12 @@ mod tests {
 
         let func_index_section_restore = module_image_restore.get_func_index_section();
 
-        assert_eq!(func_index_section_restore.offsets.len(), 1);
+        assert_eq!(func_index_section_restore.ranges.len(), 1);
         assert_eq!(func_index_section_restore.items.len(), 1);
 
         assert_eq!(
-            &func_index_section_restore.offsets[0],
-            &FuncIndexOffset {
-                offset: 0,
-                count: 1,
-            }
+            &func_index_section_restore.ranges[0],
+            &RangeItem::new(0, 1,)
         );
 
         assert_eq!(

@@ -6,17 +6,17 @@
 
 // "function section" binary layout
 //
-//                   |------------------------------------------------------------|
-//                   | item count (u32) | (4 bytes padding)                       |
-//                   |------------------------------------------------------------|
-//        item 0 --> | code offset 0 (u32) | code len 0 (u32) | func type 0 (u32) |  <-- table
-//        item 1 --> | code offset 1       | code len 1       | func type 1       |
-//                   | ...                                                        |
-//                   |------------------------------------------------------------|
-// code offset 0 --> | code 0                                                     | <-- data area
-// code offset 1 --> | code 1                                                     |
-//                   | ...                                                        |
-//                   |------------------------------------------------------------|
+//              |---------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                          |
+//              |---------------------------------------------------------------|
+//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | func type 0 (u32) |  <-- table
+//   item 1 --> | code offset 1       | code length 1       | func type 1       |
+//              | ...                                                           |
+//              |---------------------------------------------------------------|
+// offset 0 --> | code 0                                                        | <-- data area
+// offset 1 --> | code 1                                                        |
+//              | ...                                                           |
+//              |---------------------------------------------------------------|
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -31,16 +31,14 @@ pub struct FuncSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FuncItem {
-    pub code_offset: u32,
-    pub code_length: u32,
+    pub code_offset: u32, // the offset of the code in data area
+    pub code_length: u32, // the length (in bytes) of the code in data area
     pub func_type: u32,
-    // _padding0: u16,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FuncEntry {
     pub func_type: u32,
-    // pub code: &'a [u8],
     pub code: Vec<u8>,
 }
 
@@ -108,7 +106,6 @@ impl FuncItem {
             code_offset,
             code_length,
             func_type,
-            // _padding0: 0,
         }
     }
 }

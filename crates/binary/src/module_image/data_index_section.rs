@@ -22,38 +22,12 @@
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{data_section::DataSectionType, SectionEntry, SectionId};
+use super::{data_section::DataSectionType, RangeItem, SectionEntry, SectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct DataIndexSection<'a> {
-    pub offsets: &'a [DataIndexOffset],
+    pub ranges: &'a [RangeItem],
     pub items: &'a [DataIndexItem],
-}
-
-// one index offset item per module.
-// for example, consider the following items:
-//
-// module 0 ----- index item 0
-//            |-- index item 1
-//            |-- index item 2
-//
-// module 1 ----- index item 3
-//            |-- index item 4
-//
-// since there are 2 modules, so there will be
-// 2 index offset items as the following:
-//
-// index offset 0 = {offset:0, count:3}
-// index offset 1 = {offset:3, count:2}
-//
-// use the C style struct memory layout
-// see also:
-// https://doc.rust-lang.org/reference/type-layout.html#reprc-structs
-#[repr(C)]
-#[derive(Debug, PartialEq)]
-pub struct DataIndexOffset {
-    pub offset: u32,
-    pub count: u32,
 }
 
 #[repr(C)]
@@ -69,13 +43,13 @@ pub struct DataIndexItem {
 
 impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
-        let (offsets, items) =
-            load_section_with_two_tables::<DataIndexOffset, DataIndexItem>(section_data);
-        DataIndexSection { offsets, items }
+        let (ranges, items) =
+            load_section_with_two_tables::<RangeItem, DataIndexItem>(section_data);
+        DataIndexSection { ranges, items }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        save_section_with_two_tables(self.offsets, self.items, writer)
+        save_section_with_two_tables(self.ranges, self.items, writer)
     }
 
     fn id(&'a self) -> SectionId {
@@ -104,7 +78,7 @@ impl DataIndexItem {
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        data_index_section::{DataIndexItem, DataIndexOffset, DataIndexSection},
+        data_index_section::{DataIndexItem, DataIndexSection, RangeItem},
         data_section::DataSectionType,
         SectionEntry,
     };
@@ -141,23 +115,11 @@ mod tests {
 
         let section = DataIndexSection::load(&section_data);
 
-        let offsets = section.offsets;
+        let ranges = section.ranges;
 
-        assert_eq!(offsets.len(), 2);
-        assert_eq!(
-            offsets[0],
-            DataIndexOffset {
-                offset: 2,
-                count: 3,
-            }
-        );
-        assert_eq!(
-            offsets[1],
-            DataIndexOffset {
-                offset: 5,
-                count: 7
-            }
-        );
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0], RangeItem::new(2, 3,));
+        assert_eq!(ranges[1], RangeItem::new(5, 7));
 
         let items = section.items;
 
@@ -181,17 +143,10 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut offsets: Vec<DataIndexOffset> = Vec::new();
+        let mut ranges: Vec<RangeItem> = Vec::new();
 
-        offsets.push(DataIndexOffset {
-            offset: 2,
-            count: 3,
-        });
-
-        offsets.push(DataIndexOffset {
-            offset: 5,
-            count: 7,
-        });
+        ranges.push(RangeItem::new(2, 3));
+        ranges.push(RangeItem::new(5, 7));
 
         let mut items: Vec<DataIndexItem> = Vec::new();
 
@@ -200,7 +155,7 @@ mod tests {
         items.push(DataIndexItem::new(17, 11, DataSectionType::ReadWrite, 19));
 
         let section = DataIndexSection {
-            offsets: &offsets,
+            ranges: &ranges,
             items: &items,
         };
 
