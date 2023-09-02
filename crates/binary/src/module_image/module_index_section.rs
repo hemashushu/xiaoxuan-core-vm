@@ -37,8 +37,7 @@ pub struct ModuleIndexItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
     pub module_share_type: ModuleShareType, // u8
-    _padding0: u8,
-    _padding1: u16,
+    _padding0: [u8; 3],
 }
 
 // specify the data type of enum
@@ -63,8 +62,7 @@ impl ModuleIndexItem {
             name_offset,
             name_length,
             module_share_type,
-            _padding0: 0,
-            _padding1: 0,
+            _padding0: [0, 0, 0],
         }
     }
 }

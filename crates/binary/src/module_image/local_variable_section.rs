@@ -61,8 +61,7 @@ pub struct VariableItem {
     pub var_offset: u32, // the offset of a data item in the "local variable slots area"
     pub var_length: u32, // the length (in bytes) of a data item in the "local variable slots area"
     pub data_type: u8, // the data type field is not necessary at runtime, though it is helpful for debugging.
-    _padding0: u8,     //
-    _padding1: u16,    //
+    _padding0: [u8; 3], //
 }
 
 #[derive(Debug, PartialEq)]

@@ -36,8 +36,7 @@ pub struct DataIndexItem {
     pub data_index: u32,          // data item index (in a specified module)
     pub target_module_index: u32, // target module index
     pub target_data_section_type: DataSectionType, // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
-    _padding0: u8,
-    _padding1: u16,
+    _padding0: [u8; 3],
     pub target_data_index: u32, // target data item index (in a specified section)
 }
 
@@ -68,8 +67,7 @@ impl DataIndexItem {
             data_index,
             target_module_index,
             target_data_section_type,
-            _padding0: 0,
-            _padding1: 0,
+            _padding0: [0, 0, 0],
             target_data_index,
         }
     }

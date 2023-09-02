@@ -4,9 +4,15 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use std::{
+    any::Any,
+    fmt::{Debug, Display},
+};
+
 pub mod opcode;
 
 pub type Operand = [u8; 8];
+
 pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 
 #[repr(u8)]
@@ -28,4 +34,9 @@ pub enum ForeignValue {
     I64(i64),
     F32(f32),
     F64(f64),
+}
+
+pub trait RuntimeError: Debug + Display {
+    fn get_message(&self) -> &str;
+    fn as_any(&self) -> &dyn Any;
 }

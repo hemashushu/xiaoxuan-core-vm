@@ -26,49 +26,70 @@ use crate::memory::Memory;
 /// }
 /// ```
 ///
+/// IT IS WORTH NOTHING THAT, the local variable slots of XiaoXuan VM is allocated
+/// on the stack frame for simplicity, however, the stack does not directly implement
+/// this trait due to the structure of the program, instead, it implements a similar
+/// set of functions.
 pub trait IndexedMemory: Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);
 
-    fn items_count(&self) -> usize;
+    #[inline]
+    fn get_idx_address(&self, idx: usize, offset: usize) -> usize {
+        let (start, _) = self.get_offset_and_length_by_index(idx);
 
-    fn read_i32_by_index(&self, idx: usize) -> i32 {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.read_i32(addr)
+        // note
+        // the 'offset' value should be checked here to make sure it is
+        // not exceed the boundaries of the data, but for now it is not
+        // checked for simplicity.
+        start + offset
     }
 
-    fn read_i64_by_index(&self, idx: usize) -> i64 {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.read_i64(addr)
+    fn load_idx_64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_64(self.get_idx_address(idx, offset), dst_ptr);
     }
 
-    fn read_f32_by_index(&self, idx: usize) -> f32 {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.read_f32(addr)
+    fn load_idx_32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32(self.get_idx_address(idx, offset), dst_ptr);
     }
 
-    fn read_f64_by_index(&self, idx: usize) -> f64 {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.read_f64(addr)
+    fn load_idx_64_with_float_check(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_64_with_float_check(self.get_idx_address(idx, offset), dst_ptr);
     }
 
-    fn write_i32_by_index(&mut self, idx: usize, value: i32) {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.write_i32(addr, value)
+    fn load_idx_32_with_float_check(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_with_float_check(self.get_idx_address(idx, offset), dst_ptr);
     }
 
-    fn write_i64_by_index(&mut self, idx: usize, value: i64) {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.write_i64(addr, value)
+    fn load_idx_32_extend_from_i8(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i8(self.get_idx_address(idx, offset), dst_ptr)
     }
 
-    fn write_f32_by_index(&mut self, idx: usize, value: f32) {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.write_f32(addr, value)
+    fn load_idx_32_extend_from_u8(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_u8(self.get_idx_address(idx, offset), dst_ptr)
     }
 
-    fn write_f64_by_index(&mut self, idx: usize, value: f64) {
-        let (addr, _) = self.get_offset_and_length_by_index(idx);
-        self.write_f64(addr, value)
+    fn load_idx_32_extend_from_i16(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i16(self.get_idx_address(idx, offset), dst_ptr)
+    }
+
+    fn load_idx_32_extend_from_u16(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_u16(self.get_idx_address(idx, offset), dst_ptr)
+    }
+
+    fn store_idx_64(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
+        self.store_64(src_ptr, self.get_idx_address(idx, offset));
+    }
+
+    fn store_idx_32(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
+        self.store_32(src_ptr, self.get_idx_address(idx, offset));
+    }
+
+    fn store_idx_16(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
+        self.store_16(src_ptr, self.get_idx_address(idx, offset));
+    }
+
+    fn store_idx_8(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
+        self.store_8(src_ptr, self.get_idx_address(idx, offset));
     }
 }

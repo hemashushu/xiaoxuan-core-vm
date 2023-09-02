@@ -187,10 +187,6 @@ mod tests {
         let module = &context.modules[0];
         assert_eq!(module.datas.len(), 3);
 
-        assert_eq!(module.datas[0].items_count(), 0);
-        assert_eq!(module.datas[1].items_count(), 0);
-        assert_eq!(module.datas[2].items_count(), 0);
-
         // check "type section"
         assert_eq!(module.type_section.items.len(), 1);
         assert_eq!(

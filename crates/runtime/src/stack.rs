@@ -10,7 +10,8 @@ use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
     host_accessable_memory::HostAccessableMemory, memory::Memory,
-    resizeable_memory::ResizeableMemory, MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
+    resizeable_memory::ResizeableMemory, type_memory::TypeMemory, MEMORY_PAGE_SIZE_IN_BYTES,
+    STACK_FRAME_SIZE_IN_PAGES,
 };
 
 pub struct Stack {
@@ -168,6 +169,15 @@ impl HostAccessableMemory for Stack {
     }
 }
 
+impl TypeMemory for Stack {
+    //
+}
+
+/// implements stack general functions:
+///
+/// - push/pop/peek
+/// - create frame
+/// - exit frame
 impl Stack {
     pub fn ensure_stack_space(&mut self) {
         // check the capacity of the stack to make sure
@@ -237,6 +247,40 @@ impl Stack {
     pub fn pop_f64(&mut self) -> f64 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_f64(self.sp)
+    }
+
+    // this is an unsafe function, the caller should write
+    // data to stack immediately after calling this function.
+    //
+    // e.g.
+    //
+    // ```rust
+    // let ptr = stack.push_from_memory();
+    // read_write_data.load_idx_64(0, 0, ptr);
+    // ```
+    //
+    // this function does not interpret the value of the data, so
+    // it's supposed to fast than reading the value of data from
+    // memory and push the value into stack. the same purpose for
+    // the function 'pop_to_memory'.
+    pub fn push_from_memory(&mut self) -> *mut u8 {
+        let ptr = self.get_mut_ptr(self.sp);
+        self.sp += OPERAND_SIZE_IN_BYTES;
+        ptr
+    }
+
+    // this is an unsafe function, the caller should write
+    // data to memory immediately after calling this function.
+    //
+    // e.g.
+    //
+    // ```rust
+    // let ptr = stack.pop_to_memory();
+    // read_write_data.store_idx_64(0, 0);
+    // ```
+    pub fn pop_to_memory(&mut self) -> *const u8 {
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.get_ptr(self.sp)
     }
 
     /**
@@ -458,7 +502,7 @@ impl Stack {
     }
 
     /// remove the specified frame and all frames that follows this frame.
-    pub fn remove_frames(&mut self, reversed_index: usize, results_count: usize) {
+    pub fn exit_frames(&mut self, reversed_index: usize, results_count: usize) {
         // move the specified number of operands to swap
         self.move_operands_to_swap(results_count);
 
@@ -559,72 +603,6 @@ impl Stack {
     }
 }
 
-/// local variables access
-///
-/// note:
-/// - function arguments can also be read/write as local variables.
-/// - block has arguments but has no local variables.
-/// - block arguments can NOT be read/write as local variables.
-impl Stack {
-    /// get the local variables start address
-    ///
-    /// note that the address is calculated by 'FP + the size of Frame', so
-    /// even if there is no local variable slots in the current function frame,
-    /// this function always return the calculated address.
-    pub fn get_local_address(&self) -> usize {
-        // |            |
-        // | ...        | <-- args
-        // |------------|
-        // | ...        |
-        // |------------| <-- local vars start
-        // | frame info |
-        // |------------| <-- FP
-        // | ...        |
-        // \------------/
-
-        let frame = self.read_frame(self.fp);
-        let func_fp = frame.func_fp;
-        func_fp as usize + size_of::<Frame>()
-    }
-
-    pub fn get_local_host_address(&self) -> usize {
-        let addr = self.get_local_address();
-        (&self.data[addr..]).as_ptr() as usize
-    }
-
-    pub fn read_local_i32(&self, offset: usize) -> i32 {
-        self.read_i32(self.get_local_address() + offset)
-    }
-
-    pub fn read_local_i64(&self, offset: usize) -> i64 {
-        self.read_i64(self.get_local_address() + offset)
-    }
-
-    pub fn read_local_f32(&self, offset: usize) -> f32 {
-        self.read_f32(self.get_local_address() + offset)
-    }
-
-    pub fn read_local_f64(&self, offset: usize) -> f64 {
-        self.read_f64(self.get_local_address() + offset)
-    }
-
-    pub fn write_local_i32(&mut self, offset: usize, value: i32) {
-        self.write_i32(self.get_local_address() + offset, value)
-    }
-
-    pub fn write_local_i64(&mut self, offset: usize, value: i64) {
-        self.write_i64(self.get_local_address() + offset, value)
-    }
-
-    pub fn write_local_f32(&mut self, offset: usize, value: f32) {
-        self.write_f32(self.get_local_address() + offset, value)
-    }
-
-    pub fn write_local_f64(&mut self, offset: usize, value: f64) {
-        self.write_f64(self.get_local_address() + offset, value)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::mem::size_of;
@@ -632,11 +610,42 @@ mod tests {
     use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
     use crate::{
-        memory::Memory,
         resizeable_memory::ResizeableMemory,
         stack::{Frame, Stack},
+        type_memory::TypeMemory,
         MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
     };
+
+    impl Stack {
+        /// get the local variables start address
+        ///
+        /// note that the address is calculated by 'FP + the size of Frame', so
+        /// even if there is no local variable slots in the current function frame,
+        /// this function always return the calculated address.
+        fn get_local_start_address(&self) -> usize {
+            // |            |
+            // | ...        | <-- args
+            // |------------|
+            // | ...        |
+            // |------------| <-- local vars start
+            // | frame info |
+            // |------------| <-- FP
+            // | ...        |
+            // \------------/
+
+            let frame = self.read_frame(self.fp);
+            let func_fp = frame.func_fp;
+            func_fp as usize + size_of::<Frame>()
+        }
+
+        fn read_local_i32(&self, offset: usize) -> i32 {
+            self.read_i32(self.get_local_start_address() + offset)
+        }
+
+        fn write_local_i32(&mut self, offset: usize, value: i32) {
+            self.write_i32(self.get_local_start_address() + offset, value)
+        }
+    }
 
     #[test]
     fn test_stack_capacity() {
@@ -807,7 +816,7 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
 
-        assert_eq!(stack.get_local_address(), fp0 + size_of::<Frame>());
+        assert_eq!(stack.get_local_start_address(), fp0 + size_of::<Frame>());
         assert_eq!(stack.read_local_i32(0), 0);
         assert_eq!(stack.read_local_i32(8), 0);
         assert_eq!(stack.read_local_i32(16), 31);
@@ -1019,7 +1028,7 @@ mod tests {
         assert_eq!(stack.get_frame(3).addr, fp0);
 
         // check local variables
-        assert_eq!(stack.get_local_address(), fp3 + size_of::<Frame>()); // because function frame created new local variable slots, the address should be updated
+        assert_eq!(stack.get_local_start_address(), fp3 + size_of::<Frame>()); // because function frame created new local variable slots, the address should be updated
         assert_eq!(stack.read_local_i32(0), 241);
 
         // remove the current frame
@@ -1028,7 +1037,7 @@ mod tests {
         stack.push_i32(251);
         stack.push_i32(257);
 
-        stack.remove_frames(0, 3);
+        stack.exit_frames(0, 3);
 
         assert_eq!(stack.get_frame(0).addr, fp2);
         assert_eq!(stack.get_frame(1).addr, fp1);
@@ -1055,7 +1064,7 @@ mod tests {
 
         // because the 2nd function frame has been removed, so the address should be restored to
         // the 1st function frame
-        assert_eq!(stack.get_local_address(), fp0 + size_of::<Frame>());
+        assert_eq!(stack.get_local_start_address(), fp0 + size_of::<Frame>());
 
         assert_eq!(stack.read_local_i32(0), 211);
         assert_eq!(stack.read_local_i32(8), 223);
@@ -1063,7 +1072,7 @@ mod tests {
         assert_eq!(stack.read_local_i32(24), 37);
 
         // remove the parent frame
-        stack.remove_frames(1, 2);
+        stack.exit_frames(1, 2);
 
         // SP--> 0d0112 |        |
         //       0d0104 | 257    |

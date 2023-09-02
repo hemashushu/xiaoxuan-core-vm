@@ -75,22 +75,25 @@
 // the default implement of XiaoXuan VM is stack-base, which its operands are
 // 8-byte raw data, the data presentation is as the following:
 //
-//    MSB                            LSB
-// 64 |---------------------------------| 1 bit
-//    |   16     16      16     8    8  | bytes
+//    MSB                             LSB
+// 64 |---------------------------------| 0
+//    |   16     16      16     8    8  | bits
 //    |-------|-------|-------|----|----|
-//    |---sign-extend--------------| i8 |
+//    |000000000000000|-sign-extend| i8 |
 //    |---------------------------------|
-//    |---sign-extend---------|   i16   |
+//    |000000000000000|-sign--|   i16   |
 //    |---------------------------------|
-//    |---sign-extend---|      i32      |
+//    |000000000000000|        i32      |
 //    |---------------------------------|
-//    |                i64              |
+//    |               i64               |
 //    |---------------------------------|
-//    |00000000000000000|      f32      |
+//    |000000000000000|        f32      |
 //    |---------------------------------|
 //    |               f64               |
 //    |---------------------------------|
+//
+// the i8 and i16 are sign-extend as i32, so there are actually two kinds of length for
+// operands, 32-bit and 64-bit operands.
 
 // the note of instruction format
 //
@@ -128,10 +131,10 @@ pub enum Opcode {
     // immediate number
     //
 
-    i32_imm = 0x100,    // (param: immediate_number:i32)
-    i64_imm,            // (param: immediate_number_low:i32, immediate_number_high:i32)
-    f32_imm,            // (param: immediate_number:i32)
-    f64_imm,            // (param: immediate_number_low:i32, immediate_number_high:i32)
+    i32_imm = 0x100,    // (param immediate_number:i32)
+    i64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
+    f32_imm,            // (param immediate_number:i32)
+    f64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
 
     // i32/i64/f32/f64 load/store instructions require the address and offset alignment:
     //
@@ -150,21 +153,18 @@ pub enum Opcode {
     // pop up one operand from the stack and set the specified local variable.
     //
 
-    local_load = 0x200,     // load local variable              (param: offset_bytes:i16 local_variable_index:i32)
-    local_load8_s,          //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load8_u,          //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load16_s,         //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load16_u,         //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load32_s,         //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load32_u,         //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_load32_float,     // Load with floating-point validity check.
-    local_load_float,       //                                  (param: offset_bytes:i16 local_variable_index:i32)
-
-    local_store,            // store local variable             (param: offset_bytes:i16 local_variable_index:i32)
-    local_store8,           //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_store16,          //                                  (param: offset_bytes:i16 local_variable_index:i32)
-    local_store32,          //                                  (param: offset_bytes:i16 local_variable_index:i32)
-
+    local_load = 0x200,     // load local variable              (param offset_bytes:i16 local_variable_index:i32)
+    local_load_i8_s,        //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_i8_u,        //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_i16_s,       //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_i16_u,       //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_i32,         //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_f32,         // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    local_load_f64,         // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    local_store,            // store local variable             (param offset_bytes:i16 local_variable_index:i32)
+    local_store8,           //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_store16,          //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_store32,          //                                  (param offset_bytes:i16 local_variable_index:i32)
 
     //
     // data (thread-local variables) loading and storing
@@ -172,42 +172,130 @@ pub enum Opcode {
     // pop up one operand from the stack and set the specified data
     //
 
-    data_load = 0x300,      // load data                        (param: offset_bytes:i16 data_index:i32)
-    data_load8_s,           //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load8_u,           //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load16_s,          //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load16_u,          //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load32_s,          //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load32_u,          //                                  (param: offset_bytes:i16 data_index:i32)
-    data_load32_float,      // Load with floating-point validity check.
-    data_load_float,        //                                  (param: offset_bytes:i16 data_index:i32)
-
-    data_store,             // store data                       (param: offset_bytes:i16 data_index:i32)
-    data_store8,            //                                  (param: offset_bytes:i16 data_index:i32)
-    data_store16,           //                                  (param: offset_bytes:i16 data_index:i32)
-    data_store32,           //                                  (param: offset_bytes:i16 data_index:i32)
+    data_load = 0x300,      // load data                        (param offset_bytes:i16 data_index:i32)
+    data_load_i8_s,         //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_i8_u,         //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_i16_s,        //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_i16_u,        //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_i32,          //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_f32,          // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    data_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    data_store,             // store data                       (param offset_bytes:i16 data_index:i32)
+    data_store8,            //                                  (param offset_bytes:i16 data_index:i32)
+    data_store16,           //                                  (param offset_bytes:i16 data_index:i32)
+    data_store32,           //                                  (param offset_bytes:i16 data_index:i32)
 
     //
     // heap (thread-local memory) loading and storing
     //
 
-    heap_load = 0x400,      // load heap                        (param: offset_bytes:i16 heap_index:i32)
-    heap_load8_s,           //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load8_u,           //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load16_s,          //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load16_u,          //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load32_s,          //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load32_u,          //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_load32_float,      // Load with floating-point validity check.
-    heap_load_float,        //                                  (param: offset_bytes:i16 heap_index:i32)
-
-    heap_store,             // store heap                       (param: offset_bytes:i16 heap_index:i32)
-    heap_store8,            //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_store16,           //                                  (param: offset_bytes:i16 heap_index:i32)
-    heap_store32,           //                                  (param: offset_bytes:i16 heap_index:i32)
+    heap_load = 0x400,      // load heap                        (param offset_bytes:i16 heap_index:i32)
+    heap_load_i8_s,         //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load_i8_u,         //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load_i16_s,        //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load_i16_u,        //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load_i32,          //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load_f32,          // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    heap_store,             // store heap                       (param offset_bytes:i16 heap_index:i32)
+    heap_store8,            //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_store16,           //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_store32,           //                                  (param offset_bytes:i16 heap_index:i32)
 
     heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
     heap_copy,              // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)
+
+    heap_size,              // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
+    heap_grow,              //                                  (operand pages:i64)
+
+    //
+    // conversion
+    //
+
+    /* TEMPORARY REMOVE
+    // note::
+    //
+    // in the default XiaoXuan VM implement,
+    // the data type of operand (on the stack) is a 64-bit raw data
+    // and do NOT check the type of the operand.
+    //
+    // thus some instructions will do the same thing:
+    // - i32/i64 logical operations (except left/right shift), e.g.
+    //   `i32.and` and `i64.and`, `i32.or` and `i64.or`
+    // - i32/i64 comparsion, e.g.
+    //   `i32.eqz` and `i64.eqz`, `i32.eq` and `i64.eq`
+    //
+    // and the reinterpret instructions are simply ignored, e.g.
+    // - `i32_reinterpret_f32`
+    // - `i64_reinterpret_f64`
+    // - `f32_reinterpret_i32`
+    // - `f64_reinterpret_i64`
+    //
+    // but all these instructions are preserved for consistency, and
+    // enable some VM implement for data type checking.
+    */
+
+    // demote i64 to i32
+    // discard the high 32 bits of an i64 number directly
+    i32_demote_i64 = 0x500,
+
+    // promote i32 to i64
+    i64_promote_i32_s,
+    i64_promote_i32_u,
+
+    // demote f64 to f32
+    f32_demote_f64,
+
+    // promote f32 to f64
+    f64_promote_f32,
+
+    // convert float to int
+    // truncate fractional part
+    i32_trunc_f32_s,
+    i32_trunc_f32_u,
+    i32_trunc_f64_s,
+    i32_trunc_f64_u,
+    i64_trunc_f32_s,
+    i64_trunc_f32_u,
+    i64_trunc_f64_s,
+    i64_trunc_f64_u,
+
+    /* TEMPORARY REMOVE
+    // convert float to int without exception
+    // the semantics are the same as the corresponding non `_sat` instructions, except:
+    // - instead of trapping on positive or negative overflow,
+    //   they return the maximum or minimum integer value,
+    //   respectively, and do not trap.
+    //   this behavior is also referred to as "saturating".
+    // - instead of trapping on NaN, they return 0 and do not trap.
+    i32_trunc_sat_f32_s,
+    i32_trunc_sat_f32_u,
+    i32_trunc_sat_f64_s,
+    i32_trunc_sat_f64_u,
+    i64_trunc_sat_f32_s,
+    i64_trunc_sat_f32_u,
+    i64_trunc_sat_f64_s,
+    i64_trunc_sat_f64_u,
+    */
+
+    // convert int to float
+    f32_convert_i32_s,
+    f32_convert_i32_u,
+    f32_convert_i64_s,
+    f32_convert_i64_u,
+    f64_convert_i32_s,
+    f64_convert_i32_u,
+    f64_convert_i64_s,
+    f64_convert_i64_u,
+
+    /* TEMPORARY REMOVE
+    // reinterpret the bytes of integers as floating points and vice versa
+    // in the default XiaoXuan VM implement, these instructions are simply ignored
+    i32_reinterpret_f32,
+    i64_reinterpret_f64,
+    f32_reinterpret_i32,
+    f64_reinterpret_i64,
+     */
 
     //
     // comparsion
@@ -261,7 +349,7 @@ pub enum Opcode {
     // ;; \----/
     // ```
 
-    i32_eqz = 0x500,
+    i32_eqz = 0x600,
     i32_eq,
     i32_nez,
     i32_ne,
@@ -305,7 +393,7 @@ pub enum Opcode {
     // arithmetic
     //
 
-    i32_add = 0x600,
+    i32_add = 0x700,
     i32_sub,
     i32_mul,
     i32_div_s,
@@ -395,18 +483,18 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0x700,    // bitwise AND
+    i32_and = 0x800,    // bitwise AND
     i32_or,             // bitwise OR
     i32_xor,            // bitwise XOR
     i32_not,            // bitwise NOT
     i32_clz,            // count leading zeros
     i32_ctz,            // count trailing zeros
     i32_popcnt,         // count the total amount of value `1` bits
-    i32_shl,            // shift left                   (param: move_bits:i16)
-    i32_shr_s,          // arithmetic right shift       (param: move_bits:i16)
-    i32_shr_u,          // logical right shift          (param: move_bits:i16)
-    i32_rotl,           // left rotate                  (param: move_bits:i16)
-    i32_rotr,           // right rotate                 (param: move_bits:i16)
+    i32_shl,            // shift left                   (param move_bits:i16)
+    i32_shr_s,          // arithmetic right shift       (param move_bits:i16)
+    i32_shr_u,          // logical right shift          (param move_bits:i16)
+    i32_rotl,           // left rotate                  (param move_bits:i16)
+    i32_rotr,           // right rotate                 (param move_bits:i16)
 
 
     // instruction `i32.shl` example:
@@ -459,7 +547,7 @@ pub enum Opcode {
     // math functions
     //
 
-    f32_abs = 0x800,
+    f32_abs = 0x900,
     f32_neg,
     f32_ceil,
     f32_floor,
@@ -524,97 +612,10 @@ pub enum Opcode {
     f64_copysign, // copy sign
 
     //
-    // conversion
-    //
-
-    /* TEMPORARY REMOVE
-    // note::
-    //
-    // in the default XiaoXuan VM implement,
-    // the data type of operand (on the stack) is a 64-bit raw data
-    // and do NOT check the type of the operand.
-    //
-    // thus some instructions will do the same thing:
-    // - i32/i64 logical operations (except left/right shift), e.g.
-    //   `i32.and` and `i64.and`, `i32.or` and `i64.or`
-    // - i32/i64 comparsion, e.g.
-    //   `i32.eqz` and `i64.eqz`, `i32.eq` and `i64.eq`
-    //
-    // and the reinterpret instructions are simply ignored, e.g.
-    // - `i32_reinterpret_f32`
-    // - `i64_reinterpret_f64`
-    // - `f32_reinterpret_i32`
-    // - `f64_reinterpret_i64`
-    //
-    // but all these instructions are preserved for consistency, and
-    // enable some VM implement for data type checking.
-    */
-
-    // demote i64 to i32
-    // discard the high 32 bits of an i64 number directly
-    i32_demote_i64 = 0x900,
-
-    // promote i32 to i64
-    i64_promote_i32_s,
-    i64_promote_i32_u,
-
-    // demote f64 to f32
-    f32_demote_f64,
-
-    // promote f32 to f64
-    f64_promote_f32,
-
-    // convert float to int
-    // truncate fractional part
-    i32_trunc_f32_s,
-    i32_trunc_f32_u,
-    i32_trunc_f64_s,
-    i32_trunc_f64_u,
-    i64_trunc_f32_s,
-    i64_trunc_f32_u,
-    i64_trunc_f64_s,
-    i64_trunc_f64_u,
-
-    // convert float to int without exception
-    // the semantics are the same as the corresponding non `_sat` instructions, except:
-    // - instead of trapping on positive or negative overflow,
-    //   they return the maximum or minimum integer value,
-    //   respectively, and do not trap.
-    //   this behavior is also referred to as "saturating".
-    // - instead of trapping on NaN, they return 0 and do not trap.
-    i32_trunc_sat_f32_s,
-    i32_trunc_sat_f32_u,
-    i32_trunc_sat_f64_s,
-    i32_trunc_sat_f64_u,
-    i64_trunc_sat_f32_s,
-    i64_trunc_sat_f32_u,
-    i64_trunc_sat_f64_s,
-    i64_trunc_sat_f64_u,
-
-    // convert int to float
-    f32_convert_i32_s,
-    f32_convert_i32_u,
-    f32_convert_i64_s,
-    f32_convert_i64_u,
-    f64_convert_i32_s,
-    f64_convert_i32_u,
-    f64_convert_i64_s,
-    f64_convert_i64_u,
-
-    /* TEMPORARY REMOVE
-    // reinterpret the bytes of integers as floating points and vice versa
-    // in the default XiaoXuan VM implement, these instructions are simply ignored
-    i32_reinterpret_f32,
-    i64_reinterpret_f64,
-    f32_reinterpret_i32,
-    f64_reinterpret_i64,
-     */
-
-    //
     // control flow
     //
 
-    block = 0x1000,     // (param: func_type:i32)
+    block = 0x1000,     // (param func_type:i32)
                         //
                         // create a block region. a block is similar to a function, it also has
                         // parameters and results, it shares the type with function, so the 'block'
@@ -688,7 +689,7 @@ pub enum Opcode {
     // 0d0032 end
     // ```
 
-    block_nez,          // (param: func_type:i32, alt_inst_offset:i32)
+    block_nez,          // (param func_type:i32, alt_inst_offset:i32)
 
     // the 'block_nez' instruction is similar to the 'block', it also creates a new block region
     // as well as a block stack frame.
@@ -972,17 +973,10 @@ pub enum Opcode {
     ccall,                  // external C function call         (param c_func_index:i32)
 
     //
-    // heap (thread-local memory)
-    //
-
-    heap_size = 0x1200,         // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
-    heap_grow,                  // `fn memory_grow(pages:i64)`
-
-    //
     // host memory address
     //
 
-    host_addr_local = 0x1300,   // (param local_variable_index:i32)
+    host_addr_local = 0x1200,   // (param local_variable_index:i32)
     host_addr_data,             // (param data_index:i32)
     host_addr_heap,             // (param addr_low:i32, addr_high: i32)
     host_addr_function,         // (param func_index:i32)
@@ -995,7 +989,7 @@ pub enum Opcode {
     // VM status
     //
 
-    sp = 0x1400,            // get stack pointer
+    sp = 0x1300,            // get stack pointer
     fp,                     // get frame pointer (function stack frame only)
     pc,                     // get program counter (the position of instruction and the current module index)
                             //
@@ -1010,7 +1004,7 @@ pub enum Opcode {
     // atomic
     //
 
-    i32_cas = 0x1500,       // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
+    i32_cas = 0x1400,       // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
                             //
                             //  |                 |
                             //  | new_for_set     |

@@ -61,10 +61,6 @@ impl IndexedMemory for ReadOnlyDatas<'_> {
         let item = &self.data_items[idx];
         (item.data_offset as usize, item.data_length as usize)
     }
-
-    fn items_count(&self) -> usize {
-        self.data_items.len()
-    }
 }
 
 impl HostAccessableMemory for ReadOnlyDatas<'_> {
@@ -92,10 +88,6 @@ impl IndexedMemory for ReadWriteDatas<'_> {
         let item = &self.data_items[idx];
         (item.data_offset as usize, item.data_length as usize)
     }
-
-    fn items_count(&self) -> usize {
-        self.data_items.len()
-    }
 }
 
 impl HostAccessableMemory for ReadWriteDatas<'_> {
@@ -122,10 +114,6 @@ impl IndexedMemory for UninitDatas<'_> {
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
         let item = &self.data_items[idx];
         (item.data_offset as usize, item.data_length as usize)
-    }
-
-    fn items_count(&self) -> usize {
-        self.data_items.len()
     }
 }
 
