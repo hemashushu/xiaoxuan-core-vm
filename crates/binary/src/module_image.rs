@@ -16,8 +16,8 @@
 // - function type section
 //   the signature of a function, the types are also applied to the code blocks.
 // - import function section (optional)
-// - local variable section
 // - function section
+// - local variable section
 //   a function is consists of a type, a local variable list, and instructions
 //
 // - (import) external C function section (optional)
@@ -31,8 +31,8 @@
 // a minimal module only requires 3 sections:
 //
 // - function type section
-// - local variable section
 // - function section
+// - local variable section
 //
 // of these, the following sections are not required during the runtime, they are generally used for debuging
 // and linking.
@@ -64,7 +64,6 @@
 // these allow the XiaoXuan applications to have almost no startup time, and are suitable
 // for using as 'function' in scripts.
 
-
 // the data type of fields:
 //
 // - u8: data type, data section type, module share type
@@ -90,7 +89,10 @@ use crate::{
     BinaryError,
 };
 
-use self::data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection};
+use self::{
+    data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
+    local_variable_section::LocalVariableSection,
+};
 
 // the "module image file" binary layout:
 //
@@ -140,8 +142,8 @@ pub enum SectionId {
     UninitData,          // 0x12
     //
     Type = 0x20,   // 0x20
-    LocalVariable, // 0x21
-    Func,          // 0x22
+    Func,          // 0x21
+    LocalVariable, // 0x22
     //
     ImportData = 0x30, // 0x30
     ImportFunc,        // 0x31
@@ -382,6 +384,15 @@ impl<'a> ModuleImage<'a> {
             panic!("Can not found the function section.")
         }
     }
+
+    pub fn get_local_variable_section(&'a self) -> LocalVariableSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(SectionId::LocalVariable);
+        if let Some(section_data) = opt_section_data {
+            LocalVariableSection::load(section_data)
+        } else {
+            panic!("Can not found the local variable section.")
+        }
+    }
 }
 
 #[cfg(test)]
@@ -393,6 +404,7 @@ mod tests {
         data_section::DataSectionType,
         func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
+        local_variable_section::{LocalVariableSection, VariableItem, VariableItemEntry},
         module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
         type_section::{TypeEntry, TypeSection},
         ModuleImage, RangeItem, SectionEntry, MAGIC_NUMBER,
@@ -445,9 +457,26 @@ mod tests {
             codes_data: &codes_data,
         };
 
+        // build LocalVariableSection instance
+
+        let mut local_var_entries: Vec<Vec<VariableItemEntry>> = Vec::new();
+        local_var_entries.push(vec![
+            VariableItemEntry::from_i32(),
+            VariableItemEntry::from_i64(),
+        ]);
+        local_var_entries.push(vec![VariableItemEntry::from_bytes(12, 4)]);
+
+        let (local_var_lists, local_var_list_data) =
+            LocalVariableSection::convert_from_entries(&local_var_entries);
+        let local_var_section = LocalVariableSection {
+            lists: &local_var_lists,
+            list_data: &local_var_list_data,
+        };
+
         // build ModuleImage instance
 
-        let section_entries: Vec<&dyn SectionEntry> = vec![&type_section, &func_section];
+        let section_entries: Vec<&dyn SectionEntry> =
+            vec![&type_section, &func_section, &local_var_section];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
             items: &section_items,
@@ -463,14 +492,14 @@ mod tests {
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
 
-        assert_eq!(&image_data[16..20], &vec![2, 0, 0, 0]); // item count
+        assert_eq!(&image_data[16..20], &vec![3, 0, 0, 0]); // item count
         assert_eq!(&image_data[20..24], &vec![0, 0, 0, 0]); // padding
 
         // image header 24 bytes
         let remains = &image_data[24..];
 
-        // section table length = 12 (record length) * 2
-        let (section_table_data, remains) = remains.split_at(24);
+        // section table length = 12 (the record length) * 3
+        let (section_table_data, remains) = remains.split_at(36);
 
         assert_eq!(
             section_table_data,
@@ -479,9 +508,13 @@ mod tests {
                 0, 0, 0, 0, // offset 0
                 44, 0, 0, 0, // length 0
                 //
-                0x22u8, 0, 0, 0, // section id
+                0x21u8, 0, 0, 0, // section id
                 44, 0, 0, 0, // offset 1
                 44, 0, 0, 0, // length 1
+                //
+                0x22u8, 0, 0, 0, // section id
+                88, 0, 0, 0, // offset 1
+                68, 0, 0, 0, // length 1
             ]
         );
 
@@ -506,7 +539,7 @@ mod tests {
             ]
         );
 
-        let (func_section_data, _) = remains.split_at(44);
+        let (func_section_data, remains) = remains.split_at(44);
         assert_eq!(
             func_section_data,
             &vec![
@@ -528,12 +561,52 @@ mod tests {
             ]
         );
 
+        assert_eq!(
+            remains,
+            &vec![
+                // header
+                2, 0, 0, 0, // item count
+                0, 0, 0, 0, // 4 bytes padding
+                // table
+                0, 0, 0, 0, // offset
+                2, 0, 0, 0, // count
+                16, 0, 0, 0, // alloc bytes
+                //
+                24, 0, 0, 0, // offset (2 items * 12 bytes/item)
+                1, 0, 0, 0, // count
+                16, 0, 0, 0, // alloc bytes
+                //
+                // data
+                //
+                // list 0
+                0, 0, 0, 0, // var offset (i32)
+                4, 0, 0, 0, // var len
+                0, // data type
+                0, // padding
+                4, 0, // align
+                //
+                8, 0, 0, 0, // var offset (i64)
+                8, 0, 0, 0, // var len
+                1, // data type
+                0, // padding
+                8, 0, // align
+                //
+                // list 1
+                0, 0, 0, 0, // var offset
+                12, 0, 0, 0, // var len
+                4, // data type
+                0, // padding
+                4, 0, // align
+            ]
+        );
+
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
-        assert_eq!(module_image_restore.items.len(), 2);
+        assert_eq!(module_image_restore.items.len(), 3);
+
+        // check type
 
         let type_section_restore = module_image_restore.get_type_section();
-
         assert_eq!(type_section_restore.items.len(), 2);
 
         assert_eq!(
@@ -552,8 +625,9 @@ mod tests {
             }
         );
 
-        let func_section_restore = module_image_restore.get_func_section();
+        // check func
 
+        let func_section_restore = module_image_restore.get_func_section();
         assert_eq!(func_section_restore.items.len(), 2);
 
         assert_eq!(
@@ -570,6 +644,24 @@ mod tests {
                 func_type: 1,
                 code: code1,
             }
+        );
+
+        // check local vars
+
+        let local_var_section_restore = module_image_restore.get_local_variable_section();
+        assert_eq!(local_var_section_restore.lists.len(), 2);
+
+        assert_eq!(
+            local_var_section_restore.get_variable_list(0),
+            &vec![
+                VariableItem::new(0, 4, DataType::I32, 4),
+                VariableItem::new(8, 8, DataType::I64, 8),
+            ]
+        );
+
+        assert_eq!(
+            local_var_section_restore.get_variable_list(1),
+            &vec![VariableItem::new(0, 12, DataType::BYTE, 4),]
         );
     }
 

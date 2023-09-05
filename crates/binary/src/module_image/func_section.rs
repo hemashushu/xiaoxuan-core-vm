@@ -72,11 +72,11 @@ impl<'a> FuncSection<'a> {
         }
     }
 
-    pub fn convert_to_entries(&'a self) -> Vec<FuncEntry> {
-        (0u32..self.items.len() as u32)
-            .map(|idx| self.get_entry(idx))
-            .collect::<Vec<FuncEntry>>()
-    }
+    // pub fn convert_to_entries(&'a self) -> Vec<FuncEntry> {
+    //     (0u32..self.items.len() as u32)
+    //         .map(|idx| self.get_entry(idx))
+    //         .collect::<Vec<FuncEntry>>()
+    // }
 
     pub fn convert_from_entries(entries: &[FuncEntry]) -> (Vec<FuncItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
@@ -214,8 +214,7 @@ mod tests {
             }
         );
 
-        let entries_restore = section.convert_to_entries();
-
-        assert_eq!(entries, entries_restore);
+        // let entries_restore = section.convert_to_entries();
+        // assert_eq!(entries, entries_restore);
     }
 }

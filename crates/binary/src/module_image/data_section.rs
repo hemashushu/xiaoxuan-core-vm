@@ -6,28 +6,28 @@
 
 // "read-only/read-write data section" binary layout
 //
-//              |-------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                      |
-//              |-------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad 1 byte | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | data type 1      | pad 1 byte | align 1       |
-//              | ...                                                                                       |
-//              |-------------------------------------------------------------------------------------------|
-// offset 0 --> | data 0 | data 1 | ...                                                                     | <-- data area
-//              |          ^                                                                                |
-// offset 1 ----|----------|                                                                                |
-//              |-------------------------------------------------------------------------------------------|
+//              |---------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                        |
+//              |---------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | data type 1      |              | align 1       |
+//              | ...                                                                                         |
+//              |---------------------------------------------------------------------------------------------|
+// offset 0 --> | data 0 | data 1 | ...                                                                       | <-- data area
+//              |          ^                                                                                  |
+// offset 1 ----|----------|                                                                                  |
+//              |---------------------------------------------------------------------------------------------|
 //
 //
 // "uninit data section" binary layout
 //
-//              |-------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                      |
-//              |-------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad 1 byte | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | data type 1      | pad 1 byte | align 1       |
-//              | ...                                                                                       |
-//              |-------------------------------------------------------------------------------------------|
+//              |---------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                        |
+//              |---------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | data type 1      |              | align 1       |
+//              | ...                                                                                         |
+//              |---------------------------------------------------------------------------------------------|
 //
 // data size and alignment
 //
@@ -73,9 +73,16 @@ pub struct UninitDataSection<'a> {
 pub struct DataItem {
     pub data_offset: u32, // the offset of a data item in the section's "data area"
     pub data_length: u32, // the length (in bytes) of a data item in the section's "data area"
-    pub data_type: DataType, // the data type field is not necessary at runtime, though it is helpful for debugging.
-    _padding0: u8,           //
-    pub align: u16,          //
+
+    // the data type field is not necessary at runtime, though it is helpful for debugging.
+    pub data_type: DataType,
+
+    _padding0: u8,
+
+    // the align field is not necessary either at runtime because the 'data_offset'
+    // is aligned  at compilation, it is only needed when copying data into other memory, such as
+    // copying a struct from data section into heap.
+    pub align: u16,
 }
 
 #[repr(u8)]
@@ -278,7 +285,7 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
     }
 }
 
-pub fn convert_data_entries(entries: &[DataEntry], is_uninit: bool) -> (Vec<DataItem>, Vec<u8>) {
+pub fn convert_from_entries(entries: &[DataEntry], is_uninit: bool) -> (Vec<DataItem>, Vec<u8>) {
     // | type  | size | alignment |
     // |-------|------|-----------|
     // | i32   | 4    | 4         |
@@ -342,7 +349,7 @@ mod tests {
         SectionEntry,
     };
 
-    use super::{convert_data_entries, ReadWriteDataSection};
+    use super::{convert_from_entries, ReadWriteDataSection};
 
     #[test]
     fn test_read_write_data_section() {
@@ -355,7 +362,7 @@ mod tests {
         let data_entry6 = DataEntry::from_i64(17);
         let data_entry7 = DataEntry::from_i32(19);
 
-        let (items, datas) = convert_data_entries(
+        let (items, datas) = convert_from_entries(
             &vec![
                 data_entry0,
                 data_entry1,
@@ -500,7 +507,7 @@ mod tests {
         let data_entry6 = DataEntry::from_uninit_i64();
         let data_entry7 = DataEntry::from_uninit_i32();
 
-        let (items, _) = convert_data_entries(
+        let (items, _) = convert_from_entries(
             &vec![
                 data_entry0,
                 data_entry1,

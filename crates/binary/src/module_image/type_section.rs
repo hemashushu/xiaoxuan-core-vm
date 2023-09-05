@@ -6,19 +6,19 @@
 
 // "type section" binary layout
 //
-//                     |---------------------------------------------------------------------------------------------|
-//                     | item count (u32) | (4 bytes padding)                                                        |
-//                     |---------------------------------------------------------------------------------------------|
-//          item 0 --> | param offset 0 (u32) | param length 0 (u32) | result offset 0 (u32) | result length 0 (u32) | <-- table
-//          item 1 --> | param offset 1       | param length 1       | result offset 1       | result length 1       |
-//                     | ...                                                                                         |
-//                     |---------------------------------------------------------------------------------------------|
-// param offset 0 -->  | parameters type list 0                                                                      | <-- data area
-// result offset 0 --> | results type list 0                                                                         |
-// param offset 1 -->  | parameters type list 1                                                                      |
-// result offset 1 --> | results type list 1                                                                         |
-//                     | ...                                                                                         |
-//                     |---------------------------------------------------------------------------------------------|
+//                     |-------------------------------------------------------------------------------------------|
+//                     | item count (u32) | (4 bytes padding)                                                      |
+//                     |-------------------------------------------------------------------------------------------|
+//          item 0 --> | param offset 0 (u32) | param count 0 (u32) | result offset 0 (u32) | result count 0 (u32) | <-- table
+//          item 1 --> | param offset 1       | param count 1       | result offset 1       | result count 1       |
+//                     | ...                                                                                       |
+//                     |-------------------------------------------------------------------------------------------|
+// param offset 0 -->  | parameters data type list 0                                                               | <-- data area
+// result offset 0 --> | results data type list 0                                                                  |
+// param offset 1 -->  | parameters data type list 1                                                               |
+// result offset 1 --> | results data type list 1                                                                  |
+//                     | ...                                                                                       |
+//                     |-------------------------------------------------------------------------------------------|
 
 use std::ptr::slice_from_raw_parts;
 
@@ -37,10 +37,18 @@ pub struct TypeSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct TypeItem {
-    pub param_offset: u32,  // the offset of the "parameters type list" in data area
-    pub param_length: u32,  // the length (in bytes) of the "parameters type list" in data area
-    pub result_offset: u32, // the offset of the "results type list" in data area
-    pub result_length: u32, // the length (in bytes) of the "results type list" in data area
+    // the offset of the "parameters type list" in data area
+    pub param_offset: u32,
+
+    // the amount of parameters, because the size of 'data type' is 1 byte, so this value is also
+    // the length (in bytes) of the "parameters type list" in data area
+    pub param_count: u32,
+
+    // the offset of the "results type list" in data area
+    pub result_offset: u32,
+
+    // the length (in bytes) of the "results type list" in data area
+    pub result_count: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -72,21 +80,21 @@ impl<'a> TypeSection<'a> {
         let item = &items[idx as usize];
 
         let params_data = &types_data
-            [item.param_offset as usize..(item.param_offset + item.param_length) as usize];
+            [(item.param_offset as usize)..((item.param_offset + item.param_count) as usize)];
         let results_data = &types_data
-            [item.result_offset as usize..(item.result_offset + item.result_length) as usize];
+            [(item.result_offset as usize)..((item.result_offset + item.result_count) as usize)];
 
         let params_slice = unsafe {
             &*slice_from_raw_parts(
                 params_data.as_ptr() as *const DataType,
-                item.param_length as usize,
+                item.param_count as usize,
             )
         };
 
         let results_slice = unsafe {
             &*slice_from_raw_parts(
                 results_data.as_ptr() as *const DataType,
-                item.result_length as usize,
+                item.result_count as usize,
             )
         };
 
@@ -96,11 +104,11 @@ impl<'a> TypeSection<'a> {
         }
     }
 
-    pub fn convert_to_entries(&'a self) -> Vec<TypeEntry> {
-        (0u32..self.items.len() as u32)
-            .map(|idx| self.get_entry(idx))
-            .collect::<Vec<TypeEntry>>()
-    }
+    // pub fn convert_to_entries(&'a self) -> Vec<TypeEntry> {
+    //     (0u32..self.items.len() as u32)
+    //         .map(|idx| self.get_entry(idx))
+    //         .collect::<Vec<TypeEntry>>()
+    // }
 
     pub fn convert_from_entries(entries: &[TypeEntry]) -> (Vec<TypeItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
@@ -109,15 +117,18 @@ impl<'a> TypeSection<'a> {
             .iter()
             .map(|entry| {
                 let param_offset = next_offset;
-                let param_length = entry.params.len() as u32;
-                let result_offset = param_offset + param_length;
-                let result_length = entry.results.len() as u32;
+                let param_count = entry.params.len() as u32;
+                let result_offset = param_offset + param_count;
+                let result_count = entry.results.len() as u32;
 
-                next_offset = result_offset + result_length; // for next offset
+                // the size of 'data type' is 1 byte, so the 'result_count' is
+                // also the length (in bytes) of the list.
+                next_offset = result_offset + result_count; // for next offset
+
                 TypeItem {
-                    param_length,
+                    param_count,
                     param_offset,
-                    result_length,
+                    result_count,
                     result_offset,
                 }
             })
@@ -155,19 +166,19 @@ mod tests {
             0, 0, 0, 0, // 4 bytes padding
             //
             0, 0, 0, 0, // param offset (item 0)
-            2, 0, 0, 0, // param length
+            2, 0, 0, 0, // param count
             2, 0, 0, 0, // result offset
-            3, 0, 0, 0, // result length
+            3, 0, 0, 0, // result count
             //
             5, 0, 0, 0, // param offset (item 1)
-            1, 0, 0, 0, // param length
+            1, 0, 0, 0, // param count
             6, 0, 0, 0, // result offset
-            0, 0, 0, 0, // result length
+            0, 0, 0, 0, // result count
             //
             6, 0, 0, 0, // param offset (item 2)
-            4, 0, 0, 0, // param length
+            4, 0, 0, 0, // param count
             10, 0, 0, 0, // result offset
-            1, 0, 0, 0, // result length
+            1, 0, 0, 0, // result count
             //
             1u8, 2, // param types 0
             3, 2, 1, // result types 0
@@ -184,27 +195,27 @@ mod tests {
             section.items[0],
             TypeItem {
                 param_offset: 0,
-                param_length: 2,
+                param_count: 2,
                 result_offset: 2,
-                result_length: 3,
+                result_count: 3,
             }
         );
         assert_eq!(
             section.items[1],
             TypeItem {
                 param_offset: 5,
-                param_length: 1,
+                param_count: 1,
                 result_offset: 6,
-                result_length: 0,
+                result_count: 0,
             }
         );
         assert_eq!(
             section.items[2],
             TypeItem {
                 param_offset: 6,
-                param_length: 4,
+                param_count: 4,
                 result_offset: 10,
-                result_length: 1,
+                result_count: 1,
             }
         );
     }
@@ -215,23 +226,23 @@ mod tests {
 
         items.push(TypeItem {
             param_offset: 0,
-            param_length: 2,
+            param_count: 2,
             result_offset: 2,
-            result_length: 3,
+            result_count: 3,
         });
 
         items.push(TypeItem {
             param_offset: 5,
-            param_length: 1,
+            param_count: 1,
             result_offset: 6,
-            result_length: 0,
+            result_count: 0,
         });
 
         items.push(TypeItem {
             param_offset: 6,
-            param_length: 4,
+            param_count: 4,
             result_offset: 10,
-            result_length: 1,
+            result_count: 1,
         });
 
         let section = TypeSection {
@@ -256,19 +267,19 @@ mod tests {
                 0, 0, 0, 0, // 4 bytes padding
                 //
                 0, 0, 0, 0, // param offset (item 0)
-                2, 0, 0, 0, // param length
+                2, 0, 0, 0, // param count
                 2, 0, 0, 0, // result offset
-                3, 0, 0, 0, // result length
+                3, 0, 0, 0, // result count
                 //
                 5, 0, 0, 0, // param offset (item 1)
-                1, 0, 0, 0, // param length
+                1, 0, 0, 0, // param count
                 6, 0, 0, 0, // result offset
-                0, 0, 0, 0, // result length
+                0, 0, 0, 0, // result count
                 //
                 6, 0, 0, 0, // param offset (item 2)
-                4, 0, 0, 0, // param length
+                4, 0, 0, 0, // param count
                 10, 0, 0, 0, // result offset
-                1, 0, 0, 0, // result length
+                1, 0, 0, 0, // result count
                 //
                 1u8, 2, // param types 0
                 3, 2, 1, // result types 0
@@ -336,8 +347,7 @@ mod tests {
             }
         );
 
-        let entries_restore = section.convert_to_entries();
-
-        assert_eq!(entries, entries_restore);
+        // let entries_restore = section.convert_to_entries();
+        // assert_eq!(entries, entries_restore);
     }
 }

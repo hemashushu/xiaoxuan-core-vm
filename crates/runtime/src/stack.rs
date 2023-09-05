@@ -23,7 +23,7 @@ pub struct Stack {
     //
     // 1. the arguments (i.e. the operands on the top of stack) are moved from stack to swap first,
     // 2. then the frame information is created,
-    // 3. as well as allocating local variables slots,
+    // 3. as well as allocating local variables area,
     // 4. finnaly the arguments are restored from the swap to stack.
     //
     // when exiting a stack frame:
@@ -53,7 +53,7 @@ pub struct Stack {
 // | arg 0                | <-- args from caller              | operand 0            |
 // |----------------------|                                   |----------------------|
 // | local 1              |                                   | arg 1                |
-// | local 0              | <-- local variable slots          | arg 0                |
+// | local 0              | <-- local variable area           | arg 0                |
 // |----------------------| <-------------------------------> |----------------------|
 // | return inst addr     |                                   | 0                    |
 // | return module idx    |                                   | 0                    |
@@ -494,7 +494,7 @@ impl Stack {
         self.sp += size_of::<Frame>();
         self.fp = fp;
 
-        // allocate local variable slots
+        // allocate local variable area
         self.sp += local_variables_length_in_bytes as usize;
 
         // restore the arguments from swap
@@ -518,8 +518,8 @@ impl Stack {
     }
 
     /// reset the specified frame:
-    /// - initialize all local variable slots (if present) to value 0
-    /// - remove all oprands which follow the local variable slots
+    /// - initialize all local variable area (if present) to value 0
+    /// - remove all oprands which follow the local variable area
     /// - remove all frames which follow the current frame
     /// - moves the specified number of operands to the top of stack
     ///
@@ -573,7 +573,7 @@ impl Stack {
             let local_vars_addr_start = frame_addr + size_of::<Frame>();
             self.sp = local_vars_addr_start + frame_local_vars_len_in_bytes;
 
-            // re-initialize the local variable slots
+            // re-initialize the local variable area
             let dst = self.data[local_vars_addr_start..].as_mut_ptr();
             unsafe {
                 std::ptr::write_bytes(dst, 0, frame_local_vars_len_in_bytes);
@@ -620,7 +620,7 @@ mod tests {
         /// get the local variables start address
         ///
         /// note that the address is calculated by 'FP + the size of Frame', so
-        /// even if there is no local variable slots in the current function frame,
+        /// even if there is no local variable area in the current function frame,
         /// this function always return the calculated address.
         fn get_local_start_address(&self) -> usize {
             // |            |
@@ -1028,7 +1028,9 @@ mod tests {
         assert_eq!(stack.get_frame(3).addr, fp0);
 
         // check local variables
-        assert_eq!(stack.get_local_start_address(), fp3 + size_of::<Frame>()); // because function frame created new local variable slots, the address should be updated
+
+        // because function frame created new local variable area, the address should be updated
+        assert_eq!(stack.get_local_start_address(), fp3 + size_of::<Frame>());
         assert_eq!(stack.read_local_i32(0), 241);
 
         // remove the current frame

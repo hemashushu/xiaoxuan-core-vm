@@ -245,7 +245,7 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
     //
     //     unsafe {
     //         std::ptr::copy(src, dst, total_length_in_bytes);
-    //         items_buf.set_len(total_length_in_bytes);
+    //         buf.set_len(total_length_in_bytes);
     //     }
     // ```
 

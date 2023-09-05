@@ -63,7 +63,7 @@
 
             (block $blk1 (param i32) (param i32) (result i32) (result i32)
                 ;; a block can also contains parameters and results just like a function, except
-                ;; it wouldn't create local variable slots, in fact it shares the local variables
+                ;; it wouldn't create local variable area, in fact it shares the local variables
                 ;; with the function.
                 ;;
                 ;; if a block omits the type, it indicates that it has neigher parameters

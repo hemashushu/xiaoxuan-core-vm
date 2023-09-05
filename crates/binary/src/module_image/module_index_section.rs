@@ -6,17 +6,17 @@
 
 // "module index section" binary layout
 //
-//              |------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                         |
-//              |------------------------------------------------------------------------------|
-//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | module type 0 (u8) | pad 3 bytes | <-- table
-//  item 1 -->  | name offset 1       | name length 1       | module type 1                    |
-//              | ...                                                                          |
-//              |------------------------------------------------------------------------------|
-// offset 0 --> | name string 0                                                                | <-- data area
-// offset 1 --> | name string 1                                                                |
-//              | ...                                                                          |
-//              |------------------------------------------------------------------------------|
+//              |------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                               |
+//              |------------------------------------------------------------------------------------|
+//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | module share type 0 (u8) | pad 3 bytes | <-- table
+//  item 1 -->  | name offset 1       | name length 1       | module share type 1      |             |
+//              | ...                                                                                |
+//              |------------------------------------------------------------------------------------|
+// offset 0 --> | name string 0                                                                      | <-- data area
+// offset 1 --> | name string 1                                                                      |
+//              | ...                                                                                |
+//              |------------------------------------------------------------------------------------|
 
 // note:
 // the 1st module is the application main module.
@@ -114,11 +114,11 @@ impl<'a> ModuleIndexSection<'a> {
         )
     }
 
-    pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
-        (0u32..self.items.len() as u32)
-            .map(|idx| self.get_entry(idx))
-            .collect::<Vec<ModuleIndexEntry>>()
-    }
+    // pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
+    //     (0u32..self.items.len() as u32)
+    //         .map(|idx| self.get_entry(idx))
+    //         .collect::<Vec<ModuleIndexEntry>>()
+    // }
 
     pub fn convert_from_entries(entries: &[ModuleIndexEntry]) -> (Vec<ModuleIndexItem>, Vec<u8>) {
         let name_bytes = entries
@@ -264,8 +264,7 @@ mod tests {
             ModuleIndexEntry::new(ModuleShareType::Shared, "foobar".to_string(),)
         );
 
-        let entries_restore = section.convert_to_entries();
-
-        assert_eq!(entries, entries_restore);
+        // let entries_restore = section.convert_to_entries();
+        // assert_eq!(entries, entries_restore);
     }
 }

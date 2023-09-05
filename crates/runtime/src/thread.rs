@@ -7,29 +7,135 @@
 use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::ForeignValue;
 
-use crate::{context::Context, vm::VM};
+use crate::{
+    context::Context, heap::Heap, stack::Stack, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
+};
 
 pub struct Thread<'a> {
-    // the VM (it can also be considered as the hardware "CORE")
-    pub vm: VM,
+    // operand stack also includes the function/block frame info
+    // when call a function or enter a block,
+    //
+    // the default stack capacity is 32 KiB, when a new stack frame is created, the
+    // VM will check the capacity of the stack and ensure there is at lease 32 KiB
+    // for the current frame.
+    // the capacity of stack will be incremented in 32 KiB, i.e. the capacity will be
+    // 32, 64, 96, 128 KiB and so on.
+    //
+    // the following diagram demostrates the stack changing when entering or leaving a function/block.
+    //
+    // 1. function 1 is going to call function 2, the arguments are ready.
+    //
+    // |         |
+    // |         |
+    // |  arg 1  | <-- operands that are to be used as arguments
+    // |  arg 0  |
+    // |---------|
+    // |   ###   | <-- other operands of function 1
+    // |---------| <-- current stack frame pointer (FP)
+    // |   ...   |
+    // \---------/ <-- stack start
+    //
+    // 2. called function 2.
+    //
+    // |         |
+    // |  arg 1  | <-- arguments will be moved to the top of stack, follows the frame info and local variables.
+    // |  arg 0  |
+    // |---------|
+    // | local 1 |
+    // | local 0 | <-- allocates the local variable area
+    // |---------|
+    // |   $$$   | <-- the stack frame information, includes the previous FP, return address (instruction addr and module index),
+    // |   $$$   |     also includes the current function information, such as function type, funcion index, and so on.
+    // |   $$$   |     note that the original arguments is moved to the top of stack.
+    // |---------| <-- new stack frame pointer (FP of function 2)
+    // |   ###   | <-- other operands of function 1
+    // |---------| <-- function 1 stack frame pointer (FP of function 1)
+    // |   ...   |
+    // \---------/
+    //
+    // 3. function 2 is going to return function 1 with two results
+    //
+    // |         |
+    // | resul 1 |
+    // | resul 0 | <-- results
+    // |---------|
+    // |   %%%   | <-- other operands of function 2
+    // |---------|
+    // |  arg 1  |
+    // |  arg 0  |
+    // |---------|
+    // | local 1 |
+    // | local 0 |
+    // |---------|
+    // |   $$$   |
+    // |   $$$   |
+    // |   $$$   |
+    // |---------| <-- FP of function 2
+    // |   ###   | <-- other operands of function 1
+    // |---------| <-- FP of function 1
+    // |   ...   |
+    // \---------/
+    //
+    // 4. returned
+    //
+    // |         |
+    // | resul 1 | <-- the results are copied to the position immediately following the
+    // | resul 0 |     function 1 operands, all data between the results and FP 2 will be removed.
+    // |---------|
+    // |   ###   | <-- other operands of function 1
+    // |---------| <-- FP of function 1
+    // |   ...   |
+    // \---------/
+    //
+    pub stack: Stack,
+
+    // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,
+    // and the heap is thread-local also.
+    // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
+    //
+    // note that the initial capacity of heap is 0 byte
+    pub heap: Heap,
+
+    // the position of the next executing instruction (a.k.a. IP/PC)
+    // the XiaoXuan VM load multiple modules for a application, thus the
+    // "complete IP" consists of the module index and the instruction position.
+    pub pc: ProgramCounter,
+
     pub context: Context<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ProgramCounter {
+    pub addr: usize,       // the address of instruction
+    pub module_index: u32, // the module index
 }
 
 impl<'a> Thread<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
-        let vm = VM::new();
+        let stack = Stack::new(INIT_STACK_SIZE_IN_PAGES);
+        let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
+
+        let pc = ProgramCounter {
+            addr: 0,
+            module_index: 0,
+        };
+
         let context = Context::new(module_images);
-        Self { vm, context }
+        Self {
+            stack,
+            heap,
+            pc,
+            context,
+        }
     }
 
     pub fn push_values(&mut self, values: Vec<ForeignValue>) {
-        let stack = &mut self.vm.stack;
         for value in values {
             match value {
-                ForeignValue::I32(value) => stack.push_i32(value),
-                ForeignValue::I64(value) => stack.push_i64(value),
-                ForeignValue::F32(value) => stack.push_f32(value),
-                ForeignValue::F64(value) => stack.push_f64(value),
+                ForeignValue::I32(value) => self.stack.push_i32(value),
+                ForeignValue::I64(value) => self.stack.push_i64(value),
+                ForeignValue::F32(value) => self.stack.push_f32(value),
+                ForeignValue::F64(value) => self.stack.push_f64(value),
             }
         }
     }
@@ -48,6 +154,7 @@ mod tests {
         module_image::{
             func_index_section::{FuncIndexItem, FuncIndexSection},
             func_section::{FuncEntry, FuncSection},
+            local_variable_section::{LocalVariableSection, VariableItem, VariableItemEntry},
             module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
             type_section::{TypeEntry, TypeSection},
             ModuleImage, RangeItem, SectionEntry,
@@ -55,12 +162,13 @@ mod tests {
     };
     use ancvm_types::DataType;
 
-    use crate::{thread::Thread, vm::ProgramCounter};
+    use crate::thread::{ProgramCounter, Thread};
 
     fn build_module_binary_with_single_function(
         params: Vec<DataType>,
         results: Vec<DataType>,
         codes: Vec<u8>,
+        locals: Vec<VariableItemEntry>,
     ) -> Vec<u8> {
         // build type section
         let mut type_entries: Vec<TypeEntry> = Vec::new();
@@ -84,6 +192,17 @@ mod tests {
         let func_section = FuncSection {
             items: &func_items,
             codes_data: &codes_data,
+        };
+
+        // build local variable section
+        let mut local_var_entries: Vec<Vec<VariableItemEntry>> = Vec::new();
+        local_var_entries.push(locals);
+
+        let (local_var_lists, local_var_list_data) =
+            LocalVariableSection::convert_from_entries(&local_var_entries);
+        let local_var_section = LocalVariableSection {
+            lists: &local_var_lists,
+            list_data: &local_var_list_data,
         };
 
         // build module index
@@ -119,6 +238,7 @@ mod tests {
             &func_section,
             &mod_index_section,
             &func_index_section,
+            &local_var_section,
         ];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
@@ -139,6 +259,7 @@ mod tests {
             vec![DataType::I32, DataType::I32],
             vec![DataType::I64],
             vec![0u8],
+            vec![VariableItemEntry::from_i32()],
         );
 
         let binaries = vec![&binary[..]];
@@ -207,14 +328,19 @@ mod tests {
             }
         );
 
+        // check "local variable section"
+        assert_eq!(module.local_variable_section.lists.len(), 1);
+        assert_eq!(
+            module.local_variable_section.get_variable_list(0),
+            &vec![VariableItem::new(0, 4, DataType::I32, 4)]
+        );
+
         /*
-         * # check VM
+         * # check pc
          */
 
-        let vm = &thread.vm;
-
         assert_eq!(
-            vm.pc,
+            thread.pc,
             ProgramCounter {
                 addr: 0,
                 module_index: 0

@@ -14,11 +14,11 @@
 // | ...                                  |
 // |--------------------------------------|
 //
-// |---------------------------------------------------------------------------------------------------------------------|
-// | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad 3 bytes | target data idx 0 (u32) | <-- table 1
-// | data idx 1       | target mod idx 1       | target data section type 1      | pad 3 bytes | target data idx 1       |
-// | ...                                                                                                                 |
-// |---------------------------------------------------------------------------------------------------------------------|
+// |-----------------------------------------------------------------------------------------------------------------------|
+// | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | target data idx 0 (u32) | <-- table 1
+// | data idx 1       | target mod idx 1       | target data section type 1      |               | target data idx 1       |
+// | ...                                                                                                                   |
+// |-----------------------------------------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 

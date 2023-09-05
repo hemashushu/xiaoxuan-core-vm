@@ -17,11 +17,11 @@ pub mod heap;
 pub mod host_accessable_memory;
 pub mod indexed_memory;
 pub mod memory;
+pub mod processor;
 pub mod resizeable_memory;
 pub mod stack;
 pub mod thread;
 pub mod type_memory;
-pub mod vm;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
 pub const STACK_FRAME_SIZE_IN_PAGES: usize = 1;

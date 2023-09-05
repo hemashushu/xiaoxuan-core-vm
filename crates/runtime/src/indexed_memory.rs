@@ -26,7 +26,7 @@ use crate::memory::Memory;
 /// }
 /// ```
 ///
-/// IT IS WORTH NOTHING THAT, the local variable slots of XiaoXuan VM is allocated
+/// IT IS WORTH NOTHING THAT, the local variable area of XiaoXuan VM is allocated
 /// on the stack frame for simplicity, however, the stack does not directly implement
 /// this trait due to the structure of the program, instead, it implements a similar
 /// set of functions.

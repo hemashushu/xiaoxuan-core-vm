@@ -11,7 +11,7 @@ use ancvm_binary::module_image::{
     func_section::FuncSection,
     module_index_section::ModuleIndexSection,
     type_section::TypeSection,
-    ModuleImage, SectionId, RangeItem,
+    ModuleImage, SectionId, RangeItem, local_variable_section::LocalVariableSection,
 };
 
 use crate::{
@@ -37,6 +37,7 @@ pub struct Context<'a> {
 pub struct Module<'a> {
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
     pub type_section: TypeSection<'a>,
+    pub local_variable_section: LocalVariableSection<'a>,
     pub func_section: FuncSection<'a>,
 }
 
@@ -109,6 +110,7 @@ impl<'a> Module<'a> {
 
         let type_section = module_image.get_type_section();
         let func_section = module_image.get_func_section();
+        let local_variable_section = module_image.get_local_variable_section();
 
         Self {
             datas: [
@@ -118,6 +120,7 @@ impl<'a> Module<'a> {
             ],
             type_section,
             func_section,
+            local_variable_section,
         }
     }
 }
