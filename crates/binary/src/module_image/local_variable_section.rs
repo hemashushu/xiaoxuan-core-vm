@@ -6,17 +6,17 @@
 
 // "local variable section" binary layout
 //
-//              |----------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                       |
-//              |----------------------------------------------------------------------------|
-//  item 0 -->  | list offset 0 (u32) | list item count 0 (u32) | allocated_in_bytes 0 (u32) | <-- table
-//  item 1 -->  | list offset 1       | list item count 1       | allocated_in_bytes 1       |
-//              | ...                                                                        |
-//              |----------------------------------------------------------------------------|
-// offset 0 --> | list 0                                                                     | <-- data area
-// offset 1 --> | list 1                                                                     |
-//              | ...                                                                        |
-//              |----------------------------------------------------------------------------|
+//              |-----------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                        |
+//              |-----------------------------------------------------------------------------|
+//  item 0 -->  | list offset 0 (u32) | list item count 0 (u32) | list allocate bytes 0 (u32) | <-- table
+//  item 1 -->  | list offset 1       | list item count 1       | list allocate bytes 1       |
+//              | ...                                                                         |
+//              |-----------------------------------------------------------------------------|
+// offset 0 --> | list 0                                                                      | <-- data area
+// offset 1 --> | list 1                                                                      |
+//              | ...                                                                         |
+//              |-----------------------------------------------------------------------------|
 //
 //
 // the variable "list" is a table too, the "list" layout:
@@ -58,7 +58,7 @@ pub struct VariableList {
     // note that all variables in the 'local variable area' MUST be 8-byte aligned,
     // and their size are padded to a multiple of 8.
     // so the value of this filed will be always the multiple of 8.
-    pub list_allocated_in_bytes: u32,
+    pub list_allocate_bytes: u32,
 }
 
 #[repr(C)]
@@ -205,7 +205,7 @@ impl<'a> LocalVariableSection<'a> {
     ) -> (Vec<VariableList>, Vec<u8>) {
         let var_item_length_in_bytes = size_of::<VariableItem>();
 
-        // generate a list of (list, list_allocated_in_bytes)
+        // generate a list of (list, list_allocate_bytes)
         let list_vec = entires
             .iter()
             .map(|list_entry| {
@@ -240,7 +240,7 @@ impl<'a> LocalVariableSection<'a> {
                     })
                     .collect::<Vec<VariableItem>>();
 
-                // here 'next_offset' is the list_allocated_in_bytes
+                // here 'next_offset' is the list_allocate_bytes
                 (items, next_offset)
             })
             .collect::<Vec<(Vec<VariableItem>, u32)>>();
@@ -249,7 +249,7 @@ impl<'a> LocalVariableSection<'a> {
         let mut next_offset: u32 = 0;
         let lists = list_vec
             .iter()
-            .map(|(list, list_allocated_in_bytes)| {
+            .map(|(list, list_allocate_bytes)| {
                 let list_offset = next_offset;
                 let list_item_count = list.len() as u32;
                 next_offset += list_item_count * var_item_length_in_bytes as u32;
@@ -257,7 +257,7 @@ impl<'a> LocalVariableSection<'a> {
                 VariableList {
                     list_offset,
                     list_item_count,
-                    list_allocated_in_bytes: *list_allocated_in_bytes,
+                    list_allocate_bytes: *list_allocate_bytes,
                 }
             })
             .collect::<Vec<VariableList>>();
@@ -583,7 +583,7 @@ mod tests {
             VariableList {
                 list_offset: 0,
                 list_item_count: 4,
-                list_allocated_in_bytes: 32
+                list_allocate_bytes: 32
             }
         );
 
@@ -592,7 +592,7 @@ mod tests {
             VariableList {
                 list_offset: 48,
                 list_item_count: 6,
-                list_allocated_in_bytes: 56
+                list_allocate_bytes: 56
             }
         );
 
@@ -601,7 +601,7 @@ mod tests {
             VariableList {
                 list_offset: 120,
                 list_item_count: 0,
-                list_allocated_in_bytes: 0
+                list_allocate_bytes: 0
             }
         );
 
@@ -610,7 +610,7 @@ mod tests {
             VariableList {
                 list_offset: 120,
                 list_item_count: 1,
-                list_allocated_in_bytes: 8
+                list_allocate_bytes: 8
             }
         );
 
@@ -619,7 +619,7 @@ mod tests {
             VariableList {
                 list_offset: 132,
                 list_item_count: 0,
-                list_allocated_in_bytes: 0
+                list_allocate_bytes: 0
             }
         );
 
@@ -628,7 +628,7 @@ mod tests {
             VariableList {
                 list_offset: 132,
                 list_item_count: 0,
-                list_allocated_in_bytes: 0
+                list_allocate_bytes: 0
             }
         );
 
@@ -637,7 +637,7 @@ mod tests {
             VariableList {
                 list_offset: 132,
                 list_item_count: 1,
-                list_allocated_in_bytes: 8
+                list_allocate_bytes: 8
             }
         );
 

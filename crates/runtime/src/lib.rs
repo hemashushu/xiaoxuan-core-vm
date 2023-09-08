@@ -22,6 +22,7 @@ pub mod resizeable_memory;
 pub mod stack;
 pub mod thread;
 pub mod type_memory;
+pub mod utils;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
 pub const STACK_FRAME_SIZE_IN_PAGES: usize = 1;

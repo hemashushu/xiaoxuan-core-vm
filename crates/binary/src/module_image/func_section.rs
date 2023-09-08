@@ -6,17 +6,17 @@
 
 // "function section" binary layout
 //
-//              |---------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                          |
-//              |---------------------------------------------------------------|
-//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | func type 0 (u32) |  <-- table
-//   item 1 --> | code offset 1       | code length 1       | func type 1       |
-//              | ...                                                           |
-//              |---------------------------------------------------------------|
-// offset 0 --> | code 0                                                        | <-- data area
-// offset 1 --> | code 1                                                        |
-//              | ...                                                           |
-//              |---------------------------------------------------------------|
+//              |----------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                           |
+//              |----------------------------------------------------------------|
+//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | type index 0 (u32) |  <-- table
+//   item 1 --> | code offset 1       | code length 1       | type index 1       |
+//              | ...                                                            |
+//              |----------------------------------------------------------------|
+// offset 0 --> | code 0                                                         | <-- data area
+// offset 1 --> | code 1                                                         |
+//              | ...                                                            |
+//              |----------------------------------------------------------------|
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -33,12 +33,12 @@ pub struct FuncSection<'a> {
 pub struct FuncItem {
     pub code_offset: u32, // the offset of the code in data area
     pub code_length: u32, // the length (in bytes) of the code in data area
-    pub func_type: u32,
+    pub type_index: u32,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FuncEntry {
-    pub func_type: u32,
+    pub type_index: u32,
     pub code: Vec<u8>,
 }
 
@@ -67,7 +67,7 @@ impl<'a> FuncSection<'a> {
             &codes_data[item.code_offset as usize..(item.code_offset + item.code_length) as usize];
 
         FuncEntry {
-            func_type: item.func_type,
+            type_index: item.type_index,
             code: code_data.to_vec(),
         }
     }
@@ -87,7 +87,7 @@ impl<'a> FuncSection<'a> {
                 let code_offset = next_offset;
                 let code_length = entry.code.len() as u32;
                 next_offset += code_length; // for next offset
-                FuncItem::new(code_offset, code_length, entry.func_type)
+                FuncItem::new(code_offset, code_length, entry.type_index)
             })
             .collect::<Vec<FuncItem>>();
 
@@ -101,11 +101,11 @@ impl<'a> FuncSection<'a> {
 }
 
 impl FuncItem {
-    pub fn new(code_offset: u32, code_length: u32, func_type: u32) -> Self {
+    pub fn new(code_offset: u32, code_length: u32, type_index: u32) -> Self {
         Self {
             code_offset,
             code_length,
-            func_type,
+            type_index,
         }
     }
 }
@@ -183,12 +183,12 @@ mod tests {
         let code1 = b"world".to_vec();
 
         entries.push(FuncEntry {
-            func_type: 7,
+            type_index: 7,
             code: code0.clone(),
         });
 
         entries.push(FuncEntry {
-            func_type: 9,
+            type_index: 9,
             code: code1.clone(),
         });
 
@@ -201,7 +201,7 @@ mod tests {
         assert_eq!(
             section.get_entry(0),
             FuncEntry {
-                func_type: 7,
+                type_index: 7,
                 code: code0
             }
         );
@@ -209,7 +209,7 @@ mod tests {
         assert_eq!(
             section.get_entry(1),
             FuncEntry {
-                func_type: 9,
+                type_index: 9,
                 code: code1
             }
         );

@@ -67,7 +67,7 @@
 // the data type of fields:
 //
 // - u8: data type, data section type, module share type
-// - u16: memory store/load offset, block break/recur skip depth
+// - u16: memory store/load offset, data align, block break/recur skip depth, params count, results count
 // - u32: section id, module index, function type index, data index, local variable index,
 //   function index, dynamic function index, c function index, syscall number, env call number
 
@@ -157,11 +157,11 @@ pub enum SectionId {
     FuncIndex,          // 0x42
 }
 
-impl From<u32> for SectionId {
-    fn from(value: u32) -> Self {
-        unsafe { std::mem::transmute::<u32, SectionId>(value) }
-    }
-}
+// impl From<u32> for SectionId {
+//     fn from(value: u32) -> Self {
+//         unsafe { std::mem::transmute::<u32, SectionId>(value) }
+//     }
+// }
 
 // use for data index section and function index section
 //
@@ -443,11 +443,11 @@ mod tests {
         let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29];
 
         func_entries.push(FuncEntry {
-            func_type: 0,
+            type_index: 0,
             code: code0.clone(),
         });
         func_entries.push(FuncEntry {
-            func_type: 1,
+            type_index: 1,
             code: code1.clone(),
         });
 
@@ -506,32 +506,35 @@ mod tests {
             &vec![
                 0x20u8, 0, 0, 0, // section id
                 0, 0, 0, 0, // offset 0
-                44, 0, 0, 0, // length 0
+                36, 0, 0, 0, // length 0
                 //
                 0x21u8, 0, 0, 0, // section id
-                44, 0, 0, 0, // offset 1
+                36, 0, 0, 0, // offset 1
                 44, 0, 0, 0, // length 1
                 //
                 0x22u8, 0, 0, 0, // section id
-                88, 0, 0, 0, // offset 1
+                80, 0, 0, 0, // offset 1
                 68, 0, 0, 0, // length 1
             ]
         );
 
-        let (type_section_data, remains) = remains.split_at(44);
+        let (type_section_data, remains) = remains.split_at(36);
         assert_eq!(
             type_section_data,
             &vec![
                 2u8, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
+                //
+                2, 0, // param len 0
+                1, 0, // result len 0
                 0, 0, 0, 0, // param offset 0
-                2, 0, 0, 0, // param len 0
                 2, 0, 0, 0, // result offset 0
-                1, 0, 0, 0, // result len 0
+                //
+                0, 0, // param len 1
+                1, 0, // result len 1
                 3, 0, 0, 0, // param offset 1
-                0, 0, 0, 0, // param len 1
                 3, 0, 0, 0, // result offset 1
-                1, 0, 0, 0, // result len 1
+                //
                 0, // I32
                 1, // I64
                 2, // F32
@@ -633,7 +636,7 @@ mod tests {
         assert_eq!(
             func_section_restore.get_entry(0),
             FuncEntry {
-                func_type: 0,
+                type_index: 0,
                 code: code0,
             }
         );
@@ -641,7 +644,7 @@ mod tests {
         assert_eq!(
             func_section_restore.get_entry(1),
             FuncEntry {
-                func_type: 1,
+                type_index: 1,
                 code: code1,
             }
         );

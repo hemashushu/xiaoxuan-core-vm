@@ -6,19 +6,19 @@
 
 // "data index section" binary layout
 //
-// |--------------------------------------|
-// | item count (u32) | (4 bytes padding) |
-// |--------------------------------------|
-// | offset 0 (u32) | count 0 (u32)       | <-- table 0
-// | offset 1       | count 1             |
-// | ...                                  |
-// |--------------------------------------|
+//         |--------------------------------------|
+//         | item count (u32) | (4 bytes padding) |
+//         |--------------------------------------|
+// range 0 | offset 0 (u32) | count 0 (u32)       | <-- table 0
+// range 1 | offset 1       | count 1             |
+//         | ...                                  |
+//         |--------------------------------------|
 //
-// |-----------------------------------------------------------------------------------------------------------------------|
-// | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | target data idx 0 (u32) | <-- table 1
-// | data idx 1       | target mod idx 1       | target data section type 1      |               | target data idx 1       |
-// | ...                                                                                                                   |
-// |-----------------------------------------------------------------------------------------------------------------------|
+//         |--------------------------------------------------------------------------------------------------------------------------------|
+//         | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | target internal data idx 0 (u32) | <-- table 1
+//         | data idx 1       | target mod idx 1       | target data section type 1      |               | target internal data idx 1       |
+//         | ...                                                                                                                            |
+//         |--------------------------------------------------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -33,11 +33,29 @@ pub struct DataIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct DataIndexItem {
-    pub data_index: u32,          // data item index (in a specified module)
-    pub target_module_index: u32, // target module index
-    pub target_data_section_type: DataSectionType, // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
+    // the index of data item
+    //
+    // this index includes:
+    // - imported read-only data items
+    // - internal read-only data items
+    // - imported read-write data items
+    // - internal read-write data items
+    // - imported uninitilized data items
+    // - internal uninitilized data items
+    pub data_index: u32,
+
+    // target module index
+    pub target_module_index: u32,
+
+    // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
+    pub target_data_section_type: DataSectionType,
     _padding0: [u8; 3],
-    pub target_data_index: u32, // target data item index (in a specified section)
+
+    // the index of the internal data item in a specified data section (in a specified module)
+    //
+    // this index is the actual index of the internal data item in a specified data section
+    // i.e., it excludes the imported data items.
+    pub target_data_internal_index: u32,
 }
 
 impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
@@ -61,14 +79,14 @@ impl DataIndexItem {
         data_index: u32,
         target_module_index: u32,
         target_data_section_type: DataSectionType,
-        target_data_index: u32,
+        target_data_internal_index: u32,
     ) -> Self {
         Self {
             data_index,
             target_module_index,
             target_data_section_type,
             _padding0: [0, 0, 0],
-            target_data_index,
+            target_data_internal_index,
         }
     }
 }

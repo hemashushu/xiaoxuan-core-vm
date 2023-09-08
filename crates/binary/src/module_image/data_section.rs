@@ -93,11 +93,11 @@ pub enum DataSectionType {
     Uninit,
 }
 
-impl From<u8> for DataSectionType {
-    fn from(value: u8) -> Self {
-        unsafe { std::mem::transmute::<u8, DataSectionType>(value) }
-    }
-}
+// impl From<u8> for DataSectionType {
+//     fn from(value: u8) -> Self {
+//         unsafe { std::mem::transmute::<u8, DataSectionType>(value) }
+//     }
+// }
 
 #[derive(Debug)]
 pub struct DataEntry {

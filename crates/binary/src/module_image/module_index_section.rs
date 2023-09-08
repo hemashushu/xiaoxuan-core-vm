@@ -50,11 +50,11 @@ pub enum ModuleShareType {
     Shared,
 }
 
-impl From<u8> for ModuleShareType {
-    fn from(value: u8) -> Self {
-        unsafe { std::mem::transmute::<u8, ModuleShareType>(value) }
-    }
-}
+// impl From<u8> for ModuleShareType {
+//     fn from(value: u8) -> Self {
+//         unsafe { std::mem::transmute::<u8, ModuleShareType>(value) }
+//     }
+// }
 
 impl ModuleIndexItem {
     pub fn new(name_offset: u32, name_length: u32, module_share_type: ModuleShareType) -> Self {

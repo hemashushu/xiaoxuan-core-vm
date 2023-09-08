@@ -6,19 +6,19 @@
 
 // "type section" binary layout
 //
-//                     |-------------------------------------------------------------------------------------------|
-//                     | item count (u32) | (4 bytes padding)                                                      |
-//                     |-------------------------------------------------------------------------------------------|
-//          item 0 --> | param offset 0 (u32) | param count 0 (u32) | result offset 0 (u32) | result count 0 (u32) | <-- table
-//          item 1 --> | param offset 1       | param count 1       | result offset 1       | result count 1       |
-//                     | ...                                                                                       |
-//                     |-------------------------------------------------------------------------------------------|
-// param offset 0 -->  | parameters data type list 0                                                               | <-- data area
-// result offset 0 --> | results data type list 0                                                                  |
-// param offset 1 -->  | parameters data type list 1                                                               |
-// result offset 1 --> | results data type list 1                                                                  |
-//                     | ...                                                                                       |
-//                     |-------------------------------------------------------------------------------------------|
+//                     |-----------------------------------------------------------------------------------------------|
+//                     | item count (u32) | (4 bytes padding)                                                          |
+//                     |-----------------------------------------------------------------------------------------------|
+//          item 0 --> | params count 0 (u16) | results count 0 (u16) | params offset 0 (u32) | results offset 0 (u32) | <-- table
+//          item 1 --> | params count 1       | results count 1       | params offset 1       | results offset 1       |
+//                     | ...                                                                                           |
+//                     |-----------------------------------------------------------------------------------------------|
+// param offset 0 -->  | parameters data type list 0                                                                   | <-- data area
+// result offset 0 --> | results data type list 0                                                                      |
+// param offset 1 -->  | parameters data type list 1                                                                   |
+// result offset 1 --> | results data type list 1                                                                      |
+//                     | ...                                                                                           |
+//                     |-----------------------------------------------------------------------------------------------|
 
 use std::ptr::slice_from_raw_parts;
 
@@ -37,18 +37,18 @@ pub struct TypeSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct TypeItem {
-    // the offset of the "parameters type list" in data area
-    pub param_offset: u32,
-
     // the amount of parameters, because the size of 'data type' is 1 byte, so this value is also
     // the length (in bytes) of the "parameters type list" in data area
-    pub param_count: u32,
+    pub params_count: u16,
+
+    // the amount of results, it's also the length (in bytes) of the "results type list" in data area
+    pub results_count: u16,
+
+    // the offset of the "parameters type list" in data area
+    pub params_offset: u32,
 
     // the offset of the "results type list" in data area
-    pub result_offset: u32,
-
-    // the length (in bytes) of the "results type list" in data area
-    pub result_count: u32,
+    pub results_offset: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -73,42 +73,41 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> TypeEntry {
+    pub fn get_params_and_results_list(&'a self, idx: u32) -> (&'a [DataType], &'a [DataType]) {
         let items = self.items;
         let types_data = self.types_data;
 
         let item = &items[idx as usize];
 
-        let params_data = &types_data
-            [(item.param_offset as usize)..((item.param_offset + item.param_count) as usize)];
-        let results_data = &types_data
-            [(item.result_offset as usize)..((item.result_offset + item.result_count) as usize)];
+        let params_data = &types_data[(item.params_offset as usize)
+            ..(item.params_offset as usize + item.params_count as usize)];
+        let results_data = &types_data[(item.results_offset as usize)
+            ..(item.results_offset as usize + item.results_count as usize)];
 
         let params_slice = unsafe {
             &*slice_from_raw_parts(
                 params_data.as_ptr() as *const DataType,
-                item.param_count as usize,
+                item.params_count as usize,
             )
         };
 
         let results_slice = unsafe {
             &*slice_from_raw_parts(
                 results_data.as_ptr() as *const DataType,
-                item.result_count as usize,
+                item.results_count as usize,
             )
         };
 
+        (params_slice, results_slice)
+    }
+
+    pub fn get_entry(&'a self, idx: u32) -> TypeEntry {
+        let (params_slice, results_slice) = self.get_params_and_results_list(idx);
         TypeEntry {
             params: params_slice.to_vec(),
             results: results_slice.to_vec(),
         }
     }
-
-    // pub fn convert_to_entries(&'a self) -> Vec<TypeEntry> {
-    //     (0u32..self.items.len() as u32)
-    //         .map(|idx| self.get_entry(idx))
-    //         .collect::<Vec<TypeEntry>>()
-    // }
 
     pub fn convert_from_entries(entries: &[TypeEntry]) -> (Vec<TypeItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
@@ -116,20 +115,20 @@ impl<'a> TypeSection<'a> {
         let items = entries
             .iter()
             .map(|entry| {
-                let param_offset = next_offset;
-                let param_count = entry.params.len() as u32;
-                let result_offset = param_offset + param_count;
-                let result_count = entry.results.len() as u32;
+                let params_count = entry.params.len() as u16;
+                let params_offset = next_offset;
+                let results_count = entry.results.len() as u16;
+                let results_offset = params_offset + params_count as u32;
 
                 // the size of 'data type' is 1 byte, so the 'result_count' is
                 // also the length (in bytes) of the list.
-                next_offset = result_offset + result_count; // for next offset
+                next_offset = results_offset + results_count as u32; // for next offset
 
                 TypeItem {
-                    param_count,
-                    param_offset,
-                    result_count,
-                    result_offset,
+                    params_count,
+                    results_count,
+                    params_offset,
+                    results_offset,
                 }
             })
             .collect::<Vec<TypeItem>>();
@@ -165,20 +164,20 @@ mod tests {
             3u8, 0, 0, 0, // item count
             0, 0, 0, 0, // 4 bytes padding
             //
+            2, 0, // param count
+            3, 0, // result count
             0, 0, 0, 0, // param offset (item 0)
-            2, 0, 0, 0, // param count
             2, 0, 0, 0, // result offset
-            3, 0, 0, 0, // result count
             //
+            1, 0, // param count
+            0, 0, // result count
             5, 0, 0, 0, // param offset (item 1)
-            1, 0, 0, 0, // param count
             6, 0, 0, 0, // result offset
-            0, 0, 0, 0, // result count
             //
+            4, 0, // param count
+            1, 0, // result count
             6, 0, 0, 0, // param offset (item 2)
-            4, 0, 0, 0, // param count
             10, 0, 0, 0, // result offset
-            1, 0, 0, 0, // result count
             //
             1u8, 2, // param types 0
             3, 2, 1, // result types 0
@@ -194,28 +193,28 @@ mod tests {
         assert_eq!(
             section.items[0],
             TypeItem {
-                param_offset: 0,
-                param_count: 2,
-                result_offset: 2,
-                result_count: 3,
+                params_count: 2,
+                results_count: 3,
+                params_offset: 0,
+                results_offset: 2,
             }
         );
         assert_eq!(
             section.items[1],
             TypeItem {
-                param_offset: 5,
-                param_count: 1,
-                result_offset: 6,
-                result_count: 0,
+                params_count: 1,
+                results_count: 0,
+                params_offset: 5,
+                results_offset: 6,
             }
         );
         assert_eq!(
             section.items[2],
             TypeItem {
-                param_offset: 6,
-                param_count: 4,
-                result_offset: 10,
-                result_count: 1,
+                params_count: 4,
+                results_count: 1,
+                params_offset: 6,
+                results_offset: 10,
             }
         );
     }
@@ -225,24 +224,24 @@ mod tests {
         let mut items: Vec<TypeItem> = Vec::new();
 
         items.push(TypeItem {
-            param_offset: 0,
-            param_count: 2,
-            result_offset: 2,
-            result_count: 3,
+            params_count: 2,
+            results_count: 3,
+            params_offset: 0,
+            results_offset: 2,
         });
 
         items.push(TypeItem {
-            param_offset: 5,
-            param_count: 1,
-            result_offset: 6,
-            result_count: 0,
+            params_count: 1,
+            results_count: 0,
+            params_offset: 5,
+            results_offset: 6,
         });
 
         items.push(TypeItem {
-            param_offset: 6,
-            param_count: 4,
-            result_offset: 10,
-            result_count: 1,
+            params_count: 4,
+            results_count: 1,
+            params_offset: 6,
+            results_offset: 10,
         });
 
         let section = TypeSection {
@@ -266,20 +265,20 @@ mod tests {
                 3u8, 0, 0, 0, // item count
                 0, 0, 0, 0, // 4 bytes padding
                 //
+                2, 0, // param count
+                3, 0, // result count
                 0, 0, 0, 0, // param offset (item 0)
-                2, 0, 0, 0, // param count
                 2, 0, 0, 0, // result offset
-                3, 0, 0, 0, // result count
                 //
+                1, 0, // param count
+                0, 0, // result count
                 5, 0, 0, 0, // param offset (item 1)
-                1, 0, 0, 0, // param count
                 6, 0, 0, 0, // result offset
-                0, 0, 0, 0, // result count
                 //
+                4, 0, // param count
+                1, 0, // result count
                 6, 0, 0, 0, // param offset (item 2)
-                4, 0, 0, 0, // param count
                 10, 0, 0, 0, // result offset
-                1, 0, 0, 0, // result count
                 //
                 1u8, 2, // param types 0
                 3, 2, 1, // result types 0

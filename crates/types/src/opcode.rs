@@ -105,7 +105,7 @@
 // - 16 bits:
 //   instructions without parameters, such as `i32_eq`, `i32_add`.
 // - 32 bits:
-//   instructions with one parameter, such as `i32_load`, `i32_store`, `i32_shl`.
+//   instructions with one parameter, such as `i32_shl`.
 //   16 bits opcode + 16 bits parameter
 // - 64 bits:
 //   instructions with one parameter, such as `i32_imm`, `f32_imm`, `local_get`, `data_get`, `block`, `call`.
@@ -534,14 +534,15 @@ pub enum Opcode {
     i64_or,
     i64_xor,
     i64_not,
-    i64_shl,
-    i64_shr_s,
-    i64_shr_u,
-    i64_rotl,
-    i64_rotr,
     i64_clz,
     i64_ctz,
     i64_popcnt,
+    i64_shl,            // shift left                   (param move_bits:i16)
+    i64_shr_s,          // arithmetic right shift       (param move_bits:i16)
+    i64_shr_u,          // logical right shift          (param move_bits:i16)
+    i64_rotl,           // left rotate                  (param move_bits:i16)
+    i64_rotr,           // right rotate                 (param move_bits:i16)
+
 
     //
     // math functions
@@ -615,16 +616,16 @@ pub enum Opcode {
     // control flow
     //
 
-    block = 0x1000,     // (param func_type:i32)
+    end = 0x1000,       // finish a block or a function.
+    // when the 'end' instruction is executed, a stack frame will be removed and
+    // the results of the current block or function will be placed on the top of stack.
+
+    block,              // (param type_index:i32)
                         //
                         // create a block region. a block is similar to a function, it also has
                         // parameters and results, it shares the type with function, so the 'block'
-                        // instruction has parameter 'func_type'.
+                        // instruction has parameter 'type_index'.
                         // this instruction will make VM to create a stack frame which is called 'block frame'.
-
-    end,                // finish a block or a function.
-                        // when the 'end' instruction is executed, a stack frame will be removed and
-                        // the results of the current block or function will be placed on the top of stack.
 
     return_,            // (param skip_depth:i16, end_inst_offset:i32)
 
@@ -689,7 +690,7 @@ pub enum Opcode {
     // 0d0032 end
     // ```
 
-    block_nez,          // (param func_type:i32, alt_inst_offset:i32)
+    block_nez,          // (param type_index:i32, alt_inst_offset:i32)
 
     // the 'block_nez' instruction is similar to the 'block', it also creates a new block region
     // as well as a block stack frame.
@@ -910,13 +911,13 @@ pub enum Opcode {
     //
 
     call = 0x1100,          // general function call            (param func_index:i32)
-    dcall,                  // closure/dynamic function call    (operand closure_function_item_addr:i64)
+    dcall,                  // closure/dynamic function call    (operand func_index:i64)
 
-    // the operand "closure_function_item_addr" of instruction 'dcall' is a struct:
+    // the operand "func_index" is part of the "closure_function_item":
     //
     // closure_function_item {
     //     [ref_count],
-    //     func_idx:i32,
+    //     func_index:i32,
     //     captured_items:i64_ref
     // }
     //
