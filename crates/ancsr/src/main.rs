@@ -8,6 +8,6 @@ mod tests {
 
     #[test]
     fn test_test() {
-        assert_eq!(1, Opcode::drop as u16);
+        assert_eq!(Opcode::drop as u16, 0x101);
     }
 }

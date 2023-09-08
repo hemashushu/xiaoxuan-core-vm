@@ -46,6 +46,9 @@ pub trait TypeMemory: Memory {
         unsafe { std::ptr::write(tp, value) }
     }
 
+    // although unsigned-integers and signed-integers are stored in the
+    // same way in memory, two different naming functions are still provided
+    // here for the name consisstency.
     fn write_u32(&mut self, addr: usize, value: u32) {
         let tp = self.get_mut_ptr(addr) as *mut u32;
         unsafe { std::ptr::write(tp, value) }

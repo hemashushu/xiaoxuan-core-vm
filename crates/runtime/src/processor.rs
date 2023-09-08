@@ -21,8 +21,8 @@ pub struct Processor {
 }
 
 pub enum InterpretResult {
-    MoveOn(usize),      // (increment_in_bytes: usize)
-    Jump(usize, usize), // (module_index: usize, instruction_address: usize)
+    MoveOn(usize),      // PARAM (increment_in_bytes: usize)
+    Jump(usize, usize), // PARAM (module_index: usize, instruction_address: usize)
     End,
 }
 
@@ -128,7 +128,7 @@ impl Processor {
 
         self.process_continuous_instructions(thread);
 
-        // pop up results
+        // pop results off the stack
         let results = thread.pop_values(&type_entry.results);
 
         Ok(results)
@@ -156,11 +156,11 @@ mod tests {
         // 0d0000 nop
         // 0d0002 end
         //
-        // (i32) -> (i32)
+        // (i32, i32) -> (i32, i32)
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32, DataType::I32], // results
             BytecodeWriter::new()
                 .write_opcode(Opcode::nop)
                 .write_opcode(Opcode::end)
@@ -171,8 +171,16 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![ForeignValue::I32(11)]);
-        assert_eq!(result0.unwrap(), vec![ForeignValue::I32(11)]);
+        let result0 = processor.process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::I32(7), ForeignValue::I32(11)],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::I32(7), ForeignValue::I32(11)]
+        );
 
         // bytecodes
         //
@@ -226,6 +234,85 @@ mod tests {
         assert_eq!(
             result2.unwrap(),
             vec![ForeignValue::I32(19), ForeignValue::I32(19)]
+        );
+    }
+
+    #[test]
+    fn test_processor_immediate() {
+        let processor = Processor::new();
+
+        // bytecodes
+        //
+        // 0d0000 i32_imm 23
+        // 0d0008 i64_imm 0x29313741_43475359
+        // 0d0020 i32_imm -223
+        // 0d0028 i64_imm -227
+        // 0d0040 end
+        //
+        // () -> (i32, i64, i32, i64)
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                                                           // params
+            vec![DataType::I32, DataType::I64, DataType::I32, DataType::I64], // results
+            BytecodeWriter::new()
+                .write_opcode_i32(Opcode::i32_imm, 23)
+                .write_opcode_pesudo_i64(Opcode::i64_imm, 0x29313741_43475359u64)
+                .write_opcode_i32(Opcode::i32_imm, (0 - 223) as u32)
+                .write_opcode_pesudo_i64(Opcode::i64_imm, (0 - 227) as u64)
+                .write_opcode(Opcode::end)
+                .to_bytes(),
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::I32(23),
+                ForeignValue::I64(0x29313741_43475359u64),
+                ForeignValue::I32((0 - 223) as u32),
+                ForeignValue::I64((0 - 227) as u64)
+            ]
+        );
+
+        // bytecodes
+        //
+        // 0d0000 f32_imm 3.1415926
+        // 0d0008 f64_imm 6.626e-34
+        // 0d0020 f32_imm -2.71828
+        // 0d0028 f64_imm -2.9979e8
+        // 0d0040 end
+        //
+        // () -> (f32, f64, f32, f64)
+
+        let binary1 = build_module_binary_with_single_function(
+            vec![],                                                           // params
+            vec![DataType::F32, DataType::F64, DataType::F32, DataType::F64], // results
+            BytecodeWriter::new()
+                .write_opcode_pesudo_f32(Opcode::f32_imm, 3.1415926f32)
+                .write_opcode_pesudo_f64(Opcode::f64_imm, 6.626e-34f64)
+                .write_opcode_pesudo_f32(Opcode::f32_imm, -2.71828f32)
+                .write_opcode_pesudo_f64(Opcode::f64_imm, -2.9979e8f64)
+                .write_opcode(Opcode::end)
+                .to_bytes(),
+            vec![], // local vars
+        );
+
+        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let mut thread1 = Thread::new(&image1);
+
+        let result1 = processor.process_function(&mut thread1, 0, 0, &vec![]);
+        assert_eq!(
+            result1.unwrap(),
+            vec![
+                ForeignValue::F32(3.1415926f32),
+                ForeignValue::F64(6.626e-34f64),
+                ForeignValue::F32(-2.71828f32),
+                ForeignValue::F64(-2.9979e8f64)
+            ]
         );
     }
 }

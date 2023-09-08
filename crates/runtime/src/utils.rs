@@ -25,7 +25,10 @@ impl BytecodeWriter {
         self
     }
 
-    fn start_opcode_with_i16(self, opcode: Opcode, value: i16) -> Self {
+    /// note:
+    /// to simplify data type conversion, all integers in instructions are
+    /// read and written as unsigned integers.
+    fn start_opcode_with_i16(self, opcode: Opcode, value: u16) -> Self {
         let mut new_self = self.start_opcode(opcode);
         let data = value.to_le_bytes();
         new_self.buffer.write_all(&data).unwrap();
@@ -36,7 +39,7 @@ impl BytecodeWriter {
         self.start_opcode_with_i16(opcode, 0)
     }
 
-    fn append_i32(mut self, value: i32) -> Self {
+    fn append_i32(mut self, value: u32) -> Self {
         let data = value.to_le_bytes();
         self.buffer.write_all(&data).unwrap();
         self
@@ -46,27 +49,34 @@ impl BytecodeWriter {
         self.start_opcode(opcode)
     }
 
-    pub fn write_opcode_i16(self, opcode: Opcode, value: i16) -> Self {
+    pub fn write_opcode_i16(self, opcode: Opcode, value: u16) -> Self {
         self.start_opcode_with_i16(opcode, value)
     }
 
-    pub fn write_opcode_i32(self, opcode: Opcode, value: i32) -> Self {
+    pub fn write_opcode_i32(self, opcode: Opcode, value: u32) -> Self {
         self.start_opcode_with_16bits_padding(opcode)
             .append_i32(value)
     }
 
-    pub fn write_opcode_i16_i32(self, opcode: Opcode, param0: i16, param1: i32) -> Self {
+    pub fn write_opcode_i16_i32(self, opcode: Opcode, param0: u16, param1: u32) -> Self {
         self.start_opcode_with_i16(opcode, param0)
             .append_i32(param1)
     }
 
-    pub fn write_opcode_i32_i32(self, opcode: Opcode, param0: i32, param1: i32) -> Self {
+    pub fn write_opcode_i32_i32(self, opcode: Opcode, param0: u32, param1: u32) -> Self {
         self.start_opcode_with_16bits_padding(opcode)
             .append_i32(param0)
             .append_i32(param1)
     }
 
-    pub fn write_opcode_pesudo_i64(self, opcode: Opcode, value: i64) -> Self {
+    pub fn write_opcode_pesudo_i64(self, opcode: Opcode, value: u64) -> Self {
+        let data = value.to_le_bytes();
+        let mut new_self = self.start_opcode_with_16bits_padding(opcode);
+        new_self.buffer.write_all(&data).unwrap();
+        new_self
+    }
+
+    pub fn write_opcode_pesudo_f32(self, opcode: Opcode, value: f32) -> Self {
         let data = value.to_le_bytes();
         let mut new_self = self.start_opcode_with_16bits_padding(opcode);
         new_self.buffer.write_all(&data).unwrap();
@@ -331,7 +341,7 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             .to_bytes();
 
-        assert_eq!(code0, vec![0x00, 0x07]);
+        assert_eq!(code0, vec![0x00, 0x08]);
 
         let code1 = BytecodeWriter::new()
             .write_opcode_i16(Opcode::i32_shl, 7)
@@ -340,7 +350,7 @@ mod tests {
         assert_eq!(
             code1,
             vec![
-                0x07, 0x08, // opcode
+                0x07, 0x09, // opcode
                 07, 0, // param
             ]
         );
@@ -352,7 +362,7 @@ mod tests {
         assert_eq!(
             code2,
             vec![
-                0x01, 0x10, // opcode
+                0x01, 0x0b, // opcode
                 0, 0, // padding
                 11, 0, 0, 0 // param
             ]
@@ -365,7 +375,7 @@ mod tests {
         assert_eq!(
             code3,
             vec![
-                0x02, 0x10, // opcode
+                0x02, 0x0b, // opcode
                 13, 0, // param 0
                 17, 0, 0, 0 // param 1
             ]
@@ -378,7 +388,7 @@ mod tests {
         assert_eq!(
             code4,
             vec![
-                0x04, 0x10, // opcode
+                0x04, 0x0b, // opcode
                 0, 0, // padding
                 19, 0, 0, 0, // param 0
                 23, 0, 0, 0 // param 1
@@ -386,13 +396,13 @@ mod tests {
         );
 
         let code5 = BytecodeWriter::new()
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x1122334455667788i64)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x1122334455667788u64)
             .to_bytes();
 
         assert_eq!(
             code5,
             vec![
-                0x01, 0x01, // opcode
+                0x01, 0x02, // opcode
                 0, 0, // padding
                 0x88, 0x77, 0x66, 0x55, // param 0
                 0x44, 0x33, 0x22, 0x11 // param 1
@@ -408,7 +418,7 @@ mod tests {
         assert_eq!(
             code6,
             vec![
-                0x03, 0x01, // opcode
+                0x03, 0x02, // opcode
                 0, 0, // padding
                 0x11, 0x31, 0x02, 0xde, // param 0
                 0x0b, 0x86, 0x0b, 0x39, // param 1

@@ -202,8 +202,18 @@ impl Stack {
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
+    pub fn push_u32(&mut self, value: u32) {
+        self.write_u32(self.sp, value);
+        self.sp += OPERAND_SIZE_IN_BYTES;
+    }
+
     pub fn push_i64(&mut self, value: i64) {
         self.write_i64(self.sp, value);
+        self.sp += OPERAND_SIZE_IN_BYTES;
+    }
+
+    pub fn push_u64(&mut self, value: u64) {
+        self.write_u64(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
@@ -221,8 +231,16 @@ impl Stack {
         self.read_i32(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
+    pub fn peek_u32(&self) -> u32 {
+        self.read_u32(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
     pub fn peek_i64(&self) -> i64 {
         self.read_i64(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_u64(&self) -> u64 {
+        self.read_u64(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
     pub fn peek_f32(&self) -> f32 {
@@ -238,9 +256,19 @@ impl Stack {
         self.read_i32(self.sp)
     }
 
+    pub fn pop_u32(&mut self) -> u32 {
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_u32(self.sp)
+    }
+
     pub fn pop_i64(&mut self) -> i64 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_i64(self.sp)
+    }
+
+    pub fn pop_u64(&mut self) -> u64 {
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_u64(self.sp)
     }
 
     pub fn pop_f32(&mut self) -> f32 {
@@ -278,7 +306,7 @@ impl Stack {
     //
     // this function does not interpret the value of the data, so
     // it's supposed to fast than reading the value of data from
-    // memory and push the value into stack. the same purpose for
+    // memory and push the value onto stack. the same purpose for
     // the function 'pop_to_memory'.
     pub fn push_from_memory(&mut self) -> *mut u8 {
         let ptr = self.get_mut_ptr(self.sp);

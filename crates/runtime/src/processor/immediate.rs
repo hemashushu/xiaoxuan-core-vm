@@ -10,23 +10,23 @@ use super::InterpretResult;
 
 pub fn i32_imm(thread: &mut Thread) -> InterpretResult {
     let value = thread.get_param_i32();
-    thread.stack.push_i32(value);
+    thread.stack.push_u32(value);
     InterpretResult::MoveOn(8)
 }
 
 pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
     let (low, high) = thread.get_param_i32_i32();
-    let mut value: i64 = high as i64;
+    let mut value: u64 = high as u64;
     value = value << 32;
-    value = value | (low as i64);
+    value = value | (low as u64);
 
-    thread.stack.push_i64(value);
+    thread.stack.push_u64(value);
     InterpretResult::MoveOn(12)
 }
 
 pub fn f32_imm(thread: &mut Thread) -> InterpretResult {
     let i32_value = thread.get_param_i32();
-    let value = unsafe { std::mem::transmute::<i32, f32>(i32_value) };
+    let value = unsafe { std::mem::transmute::<u32, f32>(i32_value) };
 
     thread.stack.push_f32(value);
     InterpretResult::MoveOn(8)

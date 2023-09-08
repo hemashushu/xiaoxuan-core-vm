@@ -30,8 +30,8 @@ pub enum DataType {
 // or returning values to the outside.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ForeignValue {
-    I32(i32),
-    I64(i64),
+    I32(u32),
+    I64(u64),
     F32(f32),
     F64(f64),
 }

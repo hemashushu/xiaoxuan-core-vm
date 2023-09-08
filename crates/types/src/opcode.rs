@@ -117,12 +117,29 @@
 //   instructions with two parameters, there are `i64_imm`, `f64_imm`, `block_nez`,
 //   `host_addr_memory`, `host_addr_shared_memory`.
 //   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2
-
+//
+// the instruction schemes:
+//
+// - [opcode i16]
+// - [opcode i16] - [param i16      ]
+// - [opcode i16] - [param i16      ] + [param i32]
+// - [opcode i16] - [padding 16 bits] + [param i32]
+// - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
+//
+// opcode scheme:
+//
+// MSB           LSB
+// 00000000 00000000
+// -------- --------
+// |        |
+// |        \ items
+// |
+// \ catalogs
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum Opcode {
-    nop = 0x0,          // instruction to do nothing,
+    nop = 0x100,        // instruction to do nothing,
                         // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     drop,               // drop one operand (the top most operand)
     duplicate,          // duplicate one operand (the top most operand)
@@ -131,7 +148,7 @@ pub enum Opcode {
     // immediate number
     //
 
-    i32_imm = 0x100,    // (param immediate_number:i32)
+    i32_imm = 0x200,    // (param immediate_number:i32)
     i64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
     f32_imm,            // (param immediate_number:i32)
     f64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
@@ -149,11 +166,11 @@ pub enum Opcode {
 
     //
     // local data/variables loading and storing
-    // load the specified local variable and push into to the stack, or
-    // pop up one operand from the stack and set the specified local variable.
+    // load the specified local variable and push onto to the stack, or
+    // pop one operand off the stack and set the specified local variable.
     //
 
-    local_load = 0x200,     // load local variable              (param offset_bytes:i16 local_variable_index:i32)
+    local_load = 0x300,     // load local variable              (param offset_bytes:i16 local_variable_index:i32)
     local_load_i8_s,        //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_load_i8_u,        //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_load_i16_s,       //                                  (param offset_bytes:i16 local_variable_index:i32)
@@ -168,11 +185,11 @@ pub enum Opcode {
 
     //
     // data (thread-local variables) loading and storing
-    // load the specified data and push into to the stack, or
-    // pop up one operand from the stack and set the specified data
+    // load the specified data and push onto to the stack, or
+    // pop one operand off the stack and set the specified data
     //
 
-    data_load = 0x300,      // load data                        (param offset_bytes:i16 data_index:i32)
+    data_load = 0x400,      // load data                        (param offset_bytes:i16 data_index:i32)
     data_load_i8_s,         //                                  (param offset_bytes:i16 data_index:i32)
     data_load_i8_u,         //                                  (param offset_bytes:i16 data_index:i32)
     data_load_i16_s,        //                                  (param offset_bytes:i16 data_index:i32)
@@ -189,7 +206,7 @@ pub enum Opcode {
     // heap (thread-local memory) loading and storing
     //
 
-    heap_load = 0x400,      // load heap                        (param offset_bytes:i16 heap_index:i32)
+    heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_index:i32)
     heap_load_i8_s,         //                                  (param offset_bytes:i16 heap_index:i32)
     heap_load_i8_u,         //                                  (param offset_bytes:i16 heap_index:i32)
     heap_load_i16_s,        //                                  (param offset_bytes:i16 heap_index:i32)
@@ -212,32 +229,9 @@ pub enum Opcode {
     // conversion
     //
 
-    /* TEMPORARY REMOVE
-    // note::
-    //
-    // in the default XiaoXuan VM implement,
-    // the data type of operand (on the stack) is a 64-bit raw data
-    // and do NOT check the type of the operand.
-    //
-    // thus some instructions will do the same thing:
-    // - i32/i64 logical operations (except left/right shift), e.g.
-    //   `i32.and` and `i64.and`, `i32.or` and `i64.or`
-    // - i32/i64 comparsion, e.g.
-    //   `i32.eqz` and `i64.eqz`, `i32.eq` and `i64.eq`
-    //
-    // and the reinterpret instructions are simply ignored, e.g.
-    // - `i32_reinterpret_f32`
-    // - `i64_reinterpret_f64`
-    // - `f32_reinterpret_i32`
-    // - `f64_reinterpret_i64`
-    //
-    // but all these instructions are preserved for consistency, and
-    // enable some VM implement for data type checking.
-    */
-
     // demote i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_demote_i64 = 0x500,
+    i32_demote_i64 = 0x600,
 
     // promote i32 to i64
     i64_promote_i32_s,
@@ -260,24 +254,6 @@ pub enum Opcode {
     i64_trunc_f64_s,
     i64_trunc_f64_u,
 
-    /* TEMPORARY REMOVE
-    // convert float to int without exception
-    // the semantics are the same as the corresponding non `_sat` instructions, except:
-    // - instead of trapping on positive or negative overflow,
-    //   they return the maximum or minimum integer value,
-    //   respectively, and do not trap.
-    //   this behavior is also referred to as "saturating".
-    // - instead of trapping on NaN, they return 0 and do not trap.
-    i32_trunc_sat_f32_s,
-    i32_trunc_sat_f32_u,
-    i32_trunc_sat_f64_s,
-    i32_trunc_sat_f64_u,
-    i64_trunc_sat_f32_s,
-    i64_trunc_sat_f32_u,
-    i64_trunc_sat_f64_s,
-    i64_trunc_sat_f64_u,
-    */
-
     // convert int to float
     f32_convert_i32_s,
     f32_convert_i32_u,
@@ -287,15 +263,6 @@ pub enum Opcode {
     f64_convert_i32_u,
     f64_convert_i64_s,
     f64_convert_i64_u,
-
-    /* TEMPORARY REMOVE
-    // reinterpret the bytes of integers as floating points and vice versa
-    // in the default XiaoXuan VM implement, these instructions are simply ignored
-    i32_reinterpret_f32,
-    i64_reinterpret_f64,
-    f32_reinterpret_i32,
-    f64_reinterpret_i64,
-     */
 
     //
     // comparsion
@@ -321,8 +288,8 @@ pub enum Opcode {
     // note that two operands MUST be the same data type.
 
     // the result of the comparison is a logical TRUE or FALSE, when
-    // the result is TRUE, the number `1:i32` is pushed into the stack,
-    // and vice versa the number `0:i32` is pushed into.
+    // the result is TRUE, the number `1:i32` is pushed onto the stack,
+    // and vice versa the number `0:i32` is pushed onto.
 
     // instruction `i32_lt_u` example:
     //
@@ -349,7 +316,7 @@ pub enum Opcode {
     // ;; \----/
     // ```
 
-    i32_eqz = 0x600,
+    i32_eqz = 0x700,
     i32_eq,
     i32_nez,
     i32_ne,
@@ -393,7 +360,7 @@ pub enum Opcode {
     // arithmetic
     //
 
-    i32_add = 0x700,
+    i32_add = 0x800,
     i32_sub,
     i32_mul,
     i32_div_s,
@@ -483,7 +450,7 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0x800,    // bitwise AND
+    i32_and = 0x900,    // bitwise AND
     i32_or,             // bitwise OR
     i32_xor,            // bitwise XOR
     i32_not,            // bitwise NOT
@@ -548,7 +515,7 @@ pub enum Opcode {
     // math functions
     //
 
-    f32_abs = 0x900,
+    f32_abs = 0xa00,
     f32_neg,
     f32_ceil,
     f32_floor,
@@ -616,7 +583,7 @@ pub enum Opcode {
     // control flow
     //
 
-    end = 0x1000,       // finish a block or a function.
+    end = 0xb00,        // finish a block or a function.
     // when the 'end' instruction is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
@@ -910,7 +877,7 @@ pub enum Opcode {
     // function
     //
 
-    call = 0x1100,          // general function call            (param func_index:i32)
+    call = 0xc00,           // general function call            (param func_index:i32)
     dcall,                  // closure/dynamic function call    (operand func_index:i64)
 
     // the operand "func_index" is part of the "closure_function_item":
@@ -977,7 +944,7 @@ pub enum Opcode {
     // host memory address
     //
 
-    host_addr_local = 0x1200,   // (param local_variable_index:i32)
+    host_addr_local = 0xd00,    // (param local_variable_index:i32)
     host_addr_data,             // (param data_index:i32)
     host_addr_heap,             // (param addr_low:i32, addr_high: i32)
     host_addr_function,         // (param func_index:i32)
@@ -990,7 +957,7 @@ pub enum Opcode {
     // VM status
     //
 
-    sp = 0x1300,            // get stack pointer
+    sp = 0x1200,            // get stack pointer
     fp,                     // get frame pointer (function stack frame only)
     pc,                     // get program counter (the position of instruction and the current module index)
                             //
@@ -1005,7 +972,7 @@ pub enum Opcode {
     // atomic
     //
 
-    i32_cas = 0x1400,       // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
+    i32_cas = 0xe00,        // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
                             //
                             //  |                 |
                             //  | new_for_set     |

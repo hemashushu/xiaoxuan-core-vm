@@ -129,29 +129,48 @@ impl<'a> Thread<'a> {
         }
     }
 
+    /// push values onto the stack
+    ///
+    /// note that the first value will be inserted into the stack bottom:
+    ///
+    /// array [0, 1, 2] -> |  2  |
+    ///                    |  1  |
+    ///                    |  0  |
+    ///                    \-----/
     pub fn push_values(&mut self, values: &[ForeignValue]) {
         for value in values {
             match value {
-                ForeignValue::I32(value) => self.stack.push_i32(*value),
-                ForeignValue::I64(value) => self.stack.push_i64(*value),
+                ForeignValue::I32(value) => self.stack.push_u32(*value),
+                ForeignValue::I64(value) => self.stack.push_u64(*value),
                 ForeignValue::F32(value) => self.stack.push_f32(*value),
                 ForeignValue::F64(value) => self.stack.push_f64(*value),
             }
         }
     }
 
-    // pop up the return values of the current function
+    /// pop values off the stack
+    ///
+    /// note that the values on the stack top will be poped first and became
+    /// the LAST element of the array
+    ///
+    /// |  2  | -> array [0, 1, 2]
+    /// |  1  |
+    /// |  0  |
+    /// \-----/
     pub fn pop_values(&mut self, data_types: &[DataType]) -> Vec<ForeignValue> {
-        data_types
+        let mut reversed_results = data_types
             .iter()
+            .rev()
             .map(|data_type| match data_type {
-                DataType::I32 => ForeignValue::I32(self.stack.pop_i32()),
-                DataType::I64 => ForeignValue::I64(self.stack.pop_i64()),
+                DataType::I32 => ForeignValue::I32(self.stack.pop_u32()),
+                DataType::I64 => ForeignValue::I64(self.stack.pop_u64()),
                 DataType::F32 => ForeignValue::F32(self.stack.pop_f32()),
                 DataType::F64 => ForeignValue::F64(self.stack.pop_f64()),
                 _ => panic!("Foreign interface does not support byte type."),
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        reversed_results.reverse();
+        reversed_results
     }
 
     /// get (target_module_index, target_internal_function_index)
@@ -211,32 +230,36 @@ impl<'a> Thread<'a> {
 
     /// 64 bits instruction
     /// [opcode + padding + i32]
-    pub fn get_param_i32(&self) -> i32 {
+    ///
+    /// note:
+    /// to simplify data type conversion, all integers in instructions are
+    /// read and written as unsigned integers.
+    pub fn get_param_i32(&self) -> u32 {
         let data = self.get_instruction(4, 4);
-        let ptr_i32 = data.as_ptr() as *const i32;
-        unsafe { std::ptr::read(ptr_i32) }
+        let ptr_u32 = data.as_ptr() as *const u32;
+        unsafe { std::ptr::read(ptr_u32) }
     }
 
     /// 64 bits instruction
     /// [opcode + i16 + i32]
-    pub fn get_param_i16_i32(&self) -> (i16, i32) {
+    pub fn get_param_i16_i32(&self) -> (u16, u32) {
         let data = self.get_instruction(2, 6);
 
         unsafe {
-            let p0 = std::ptr::read(data.as_ptr() as *const i16);
-            let p1 = std::ptr::read((&data[2..]).as_ptr() as *const i32);
+            let p0 = std::ptr::read(data.as_ptr() as *const u16);
+            let p1 = std::ptr::read((&data[2..]).as_ptr() as *const u32);
             (p0, p1)
         }
     }
 
     /// 96 bits instruction
     /// [opcode + padding + i32 + i32]
-    pub fn get_param_i32_i32(&self) -> (i32, i32) {
+    pub fn get_param_i32_i32(&self) -> (u32, u32) {
         let data = self.get_instruction(4, 8);
 
         unsafe {
-            let p0 = std::ptr::read(data.as_ptr() as *const i32);
-            let p1 = std::ptr::read((&data[4..]).as_ptr() as *const i32);
+            let p0 = std::ptr::read(data.as_ptr() as *const u32);
+            let p1 = std::ptr::read((&data[4..]).as_ptr() as *const u32);
             (p0, p1)
         }
     }
@@ -245,11 +268,11 @@ impl<'a> Thread<'a> {
     pub fn get_instruction(&self, offset: usize, len_in_bytes: usize) -> &[u8] {
         // the instruction schemes:
         //
-        // - opcode i16
-        // - opcode i16 - param i16
-        // - opcode i16 - param i16 + param i32
-        // - opcode i16 - padding 16bits + param i32
-        // - opcode i16 - padding 16bits + param i32 + param i32
+        // - [opcode i16]
+        // - [opcode i16] - [param i16      ]
+        // - [opcode i16] - [param i16      ] + [param i32]
+        // - [opcode i16] - [padding 16 bits] + [param i32]
+        // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
 
         let ProgramCounter { addr, module_index } = self.pc;
         let codes_data = self.context.modules[module_index as usize]
