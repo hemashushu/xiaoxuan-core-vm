@@ -23,13 +23,13 @@ impl Heap {
 
 impl Memory for Heap {
     #[inline]
-    fn get_ptr(&self, addr: usize) -> *const u8 {
-        (&self.data[addr..]).as_ptr()
+    fn get_ptr(&self, address: usize) -> *const u8 {
+        (&self.data[address..]).as_ptr()
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, addr: usize) -> *mut u8 {
-        (&mut self.data[addr..]).as_mut_ptr()
+    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
+        (&mut self.data[address..]).as_mut_ptr()
     }
 }
 

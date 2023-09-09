@@ -313,7 +313,7 @@ mod tests {
         assert_eq!(
             thread.pc,
             ProgramCounter {
-                addr: 0,
+                instruction_address: 0,
                 module_index: 0
             }
         );

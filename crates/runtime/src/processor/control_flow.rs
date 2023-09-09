@@ -9,10 +9,10 @@ use crate::thread::Thread;
 use super::InterpretResult;
 
 pub fn end(thread: &mut Thread) -> InterpretResult {
-    let (is_func_frame, return_module_index, return_instruction_address) =
+    let (is_function_frame, return_module_index, return_instruction_address) =
         thread.stack.exit_frames(0);
 
-    if is_func_frame && return_instruction_address == 0 {
+    if is_function_frame && return_instruction_address == 0 {
         InterpretResult::End
     } else {
         InterpretResult::Jump(

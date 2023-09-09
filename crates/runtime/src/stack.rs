@@ -103,8 +103,8 @@ pub struct Stack {
 #[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct Frame {
-    pub previous_fp: u32, //--\
-    pub func_fp: u32,     //--/-- 8 bytes <-- addr low
+    pub previous_frame_address: u32, //--\
+    pub function_frame_address: u32, //--/-- 8 bytes <-- addr low
 
     pub params_count: u16,  //--\
     pub results_count: u16, //--|
@@ -119,13 +119,13 @@ pub struct Frame {
 
 #[derive(Debug, PartialEq)]
 pub struct FrameItem<'a> {
-    pub addr: usize,
+    pub address: usize,
     pub frame: &'a Frame,
 }
 
 impl<'a> FrameItem<'a> {
-    pub fn new(addr: usize, frame: &'a Frame) -> Self {
-        Self { addr, frame }
+    pub fn new(address: usize, frame: &'a Frame) -> Self {
+        Self { address, frame }
     }
 }
 
@@ -145,13 +145,13 @@ impl Stack {
 
 impl Memory for Stack {
     #[inline]
-    fn get_ptr(&self, addr: usize) -> *const u8 {
-        (&self.data[addr..]).as_ptr()
+    fn get_ptr(&self, address: usize) -> *const u8 {
+        (&self.data[address..]).as_ptr()
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, addr: usize) -> *mut u8 {
-        (&mut self.data[addr..]).as_mut_ptr()
+    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
+        (&mut self.data[address..]).as_mut_ptr()
     }
 }
 
@@ -177,7 +177,7 @@ impl TypeMemory for Stack {
     //
 }
 
-/// implements stack general functions:
+/// implements stack general functions
 ///
 /// - push/pop/peek
 /// - create frame
@@ -301,7 +301,7 @@ impl Stack {
     //
     // ```rust
     // let ptr = stack.push_from_memory();
-    // read_write_data.load_idx_64(0, 0, ptr);
+    // memory.load_64(address, ptr);
     // ```
     //
     // this function does not interpret the value of the data, so
@@ -321,7 +321,7 @@ impl Stack {
     //
     // ```rust
     // let ptr = stack.pop_to_memory();
-    // read_write_data.store_idx_64(0, 0);
+    // memory.store_64(ptr, address);
     // ```
     pub fn pop_to_memory(&mut self) -> *const u8 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
@@ -371,7 +371,7 @@ impl Stack {
         let mut frame = self.read_frame(fp);
 
         while remains > 0 {
-            fp = frame.previous_fp as usize;
+            fp = frame.previous_frame_address as usize;
             if fp == 0 {
                 panic!("The index is out of bounds.")
             }
@@ -387,7 +387,7 @@ impl Stack {
      *
      * return the FFP (FP of function) and FuncFrame.
      */
-    pub fn get_func_frame(&self) -> FrameItem {
+    pub fn get_function_frame(&self) -> FrameItem {
         // the FFP pointer:
         //
         //       |         |           |         |
@@ -403,15 +403,36 @@ impl Stack {
         // is "function stack frame".
 
         let frame = self.read_frame(self.fp);
-        if frame.func_fp as usize == self.fp {
+        if frame.function_frame_address as usize == self.fp {
             // the current frame is function frame
             FrameItem::new(self.fp, frame)
         } else {
             // the current frame is block frame
-            let func_fp = frame.func_fp as usize;
+            let func_fp = frame.function_frame_address as usize;
             let func_frame = self.read_frame(func_fp);
             FrameItem::new(func_fp, func_frame)
         }
+    }
+
+    /// get the local variables area start address
+    ///
+    /// note that the address is calculated by 'FP + the size of Frame', so
+    /// even if there is no local variable area in the current function frame,
+    /// this function always return the calculated address.
+    pub fn get_local_variables_start_address(&self) -> usize {
+        // |            |
+        // | ...        | <-- args
+        // |------------|
+        // | ...        |
+        // |------------| <-- local vars start
+        // | frame info |
+        // |------------| <-- FP
+        // | ...        |
+        // \------------/
+
+        let frame = self.read_frame(self.fp);
+        let func_fp = frame.function_frame_address;
+        func_fp as usize + size_of::<Frame>()
     }
 
     fn read_frame(&self, addr: usize) -> &Frame {
@@ -466,7 +487,7 @@ impl Stack {
         self.sp += count_in_bytes;
     }
 
-    pub fn create_func_frame(
+    pub fn create_function_frame(
         &mut self,
         local_variables_allocate_bytes: u32,
         params_count: u16,
@@ -489,8 +510,8 @@ impl Stack {
         let mut func_frame = self.write_frame(fp);
 
         // write values
-        func_frame.previous_fp = previous_fp as u32;
-        func_frame.func_fp = fp as u32; // the function FP point to the current frame itself.
+        func_frame.previous_frame_address = previous_fp as u32;
+        func_frame.function_frame_address = fp as u32; // the function FP point to the current frame itself.
         func_frame.params_count = params_count;
         func_frame.results_count = results_count;
         func_frame.module_index = module_index;
@@ -518,7 +539,7 @@ impl Stack {
         let (func_fp, module_index) = {
             let frame_item = self.get_frame(0);
             let frame = frame_item.frame;
-            let func_fp = frame.func_fp;
+            let func_fp = frame.function_frame_address;
             let module_index = frame.module_index;
             (func_fp, module_index)
         };
@@ -531,8 +552,8 @@ impl Stack {
         let mut block_frame = self.write_frame(fp);
 
         // write values
-        block_frame.previous_fp = previous_fp as u32; // singly linked list
-        block_frame.func_fp = func_fp;
+        block_frame.previous_frame_address = previous_fp as u32; // singly linked list
+        block_frame.function_frame_address = func_fp;
         block_frame.params_count = params_count;
         block_frame.results_count = results_count;
         block_frame.module_index = module_index;
@@ -552,15 +573,23 @@ impl Stack {
 
     /// remove the specified frame and all frames that follows this frame.
     ///
-    /// return (is_func_frame, return_module_index, return_instruction_address)
+    /// return (is_function_frame, return_module_index, return_instruction_address)
     pub fn exit_frames(&mut self, reversed_index: usize) -> (bool, u32, u32) {
-        let (sp, fp, is_func_frame, results_count, return_module_index, return_instruction_address) = {
+        let (
+            sp,
+            fp,
+            is_function_frame,
+            results_count,
+            return_module_index,
+            return_instruction_address,
+        ) = {
             let frame_item = self.get_frame(reversed_index);
-            let is_func_frame = frame_item.frame.func_fp as usize == frame_item.addr;
+            let is_function_frame =
+                frame_item.frame.function_frame_address as usize == frame_item.address;
             (
-                frame_item.addr,                       // current frame start address
-                frame_item.frame.previous_fp as usize, // previous FP
-                is_func_frame,
+                frame_item.address,                               // current frame start address
+                frame_item.frame.previous_frame_address as usize, // previous FP
+                is_function_frame,
                 frame_item.frame.results_count,
                 frame_item.frame.return_module_index,
                 frame_item.frame.return_instruction_address,
@@ -577,7 +606,7 @@ impl Stack {
         self.restore_operands_from_swap(results_count);
 
         (
-            is_func_frame,
+            is_function_frame,
             return_module_index,
             return_instruction_address,
         )
@@ -594,14 +623,14 @@ impl Stack {
         let (frame_addr, params_count, frame_func_fp, frame_local_vars_len_in_bytes) = {
             let frame_item = self.get_frame(reversed_index);
             (
-                frame_item.addr,
+                frame_item.address,
                 frame_item.frame.params_count,
-                frame_item.frame.func_fp as usize,
+                frame_item.frame.function_frame_address as usize,
                 frame_item.frame.local_variables_allocate_bytes as usize,
             )
         };
 
-        let is_func_frame: bool = frame_addr == frame_func_fp;
+        let is_function_frame: bool = frame_addr == frame_func_fp;
 
         // optimized for blocks like 'loop' structures.
         //
@@ -610,7 +639,7 @@ impl Stack {
         // - there is no other operands than parameters
         //
         // just do nothing when all conditions are met.
-        if (!is_func_frame)
+        if (!is_function_frame)
             && (frame_addr == self.fp)
             && (self.sp - params_count as usize * OPERAND_SIZE_IN_BYTES
                 == self.fp + size_of::<Frame>())
@@ -621,7 +650,7 @@ impl Stack {
         // move the specified number of operands to swap
         self.move_operands_to_swap(params_count);
 
-        if is_func_frame {
+        if is_function_frame {
             // the current frame is function frame
 
             // remove all operands and frames which follows the current frame
@@ -685,33 +714,12 @@ mod tests {
     };
 
     impl Stack {
-        /// get the local variables start address
-        ///
-        /// note that the address is calculated by 'FP + the size of Frame', so
-        /// even if there is no local variable area in the current function frame,
-        /// this function always return the calculated address.
-        fn get_local_start_address(&self) -> usize {
-            // |            |
-            // | ...        | <-- args
-            // |------------|
-            // | ...        |
-            // |------------| <-- local vars start
-            // | frame info |
-            // |------------| <-- FP
-            // | ...        |
-            // \------------/
-
-            let frame = self.read_frame(self.fp);
-            let func_fp = frame.func_fp;
-            func_fp as usize + size_of::<Frame>()
+        fn read_local_by_offset_i32(&self, offset: usize) -> i32 {
+            self.read_i32(self.get_local_variables_start_address() + offset)
         }
 
-        fn read_local_i32(&self, offset: usize) -> i32 {
-            self.read_i32(self.get_local_start_address() + offset)
-        }
-
-        fn write_local_i32(&mut self, offset: usize, value: i32) {
-            self.write_i32(self.get_local_start_address() + offset, value)
+        fn write_local_by_offset_i32(&mut self, offset: usize, value: i32) {
+            self.write_i32(self.get_local_variables_start_address() + offset, value)
         }
     }
 
@@ -811,7 +819,7 @@ mod tests {
         // FP,SP 0d0000 | 23     |
         //              \--------/
 
-        stack.create_func_frame(
+        stack.create_function_frame(
             16, // local vars len
             2,  // params count
             0,  // results count
@@ -868,12 +876,12 @@ mod tests {
 
         // check frame
         let f0 = stack.get_frame(0);
-        assert_eq!(f0.addr, 16);
+        assert_eq!(f0.address, 16);
         assert_eq!(
             f0.frame,
             &Frame {
-                previous_fp: 0,
-                func_fp: 16,
+                previous_frame_address: 0,
+                function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
                 // type_index: 71,
@@ -885,10 +893,10 @@ mod tests {
             }
         );
 
-        let f0b = stack.get_func_frame();
+        let f0b = stack.get_function_frame();
         assert_eq!(f0, f0b);
 
-        let fp0 = f0.addr;
+        let fp0 = f0.address;
 
         // check local variables
 
@@ -901,19 +909,22 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
 
-        assert_eq!(stack.get_local_start_address(), fp0 + size_of::<Frame>());
-        assert_eq!(stack.read_local_i32(0), 0);
-        assert_eq!(stack.read_local_i32(8), 0);
-        assert_eq!(stack.read_local_i32(16), 31);
-        assert_eq!(stack.read_local_i32(24), 37);
+        assert_eq!(
+            stack.get_local_variables_start_address(),
+            fp0 + size_of::<Frame>()
+        );
+        assert_eq!(stack.read_local_by_offset_i32(0), 0);
+        assert_eq!(stack.read_local_by_offset_i32(8), 0);
+        assert_eq!(stack.read_local_by_offset_i32(16), 31);
+        assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // write local variables
 
-        stack.write_local_i32(0, 211);
-        stack.write_local_i32(8, 223);
+        stack.write_local_by_offset_i32(0, 211);
+        stack.write_local_by_offset_i32(8, 223);
 
-        assert_eq!(stack.read_local_i32(0), 211);
-        assert_eq!(stack.read_local_i32(8), 223);
+        assert_eq!(stack.read_local_by_offset_i32(0), 211);
+        assert_eq!(stack.read_local_by_offset_i32(8), 223);
 
         // add more operands
 
@@ -971,12 +982,12 @@ mod tests {
         assert_eq!(stack.read_i32(88), 43); // the old operand has no change
 
         let f1 = stack.get_frame(0);
-        assert_eq!(f1.addr, 96);
+        assert_eq!(f1.address, 96);
         assert_eq!(
             f1.frame,
             &Frame {
-                previous_fp: 16,
-                func_fp: 16,
+                previous_frame_address: 16,
+                function_frame_address: 16,
                 // type_index: 97,
                 params_count: 1,
                 results_count: 2,
@@ -988,18 +999,18 @@ mod tests {
             }
         );
 
-        assert_eq!(stack.get_frame(1).addr, fp0);
-        assert_eq!(stack.get_func_frame(), stack.get_frame(1));
+        assert_eq!(stack.get_frame(1).address, fp0);
+        assert_eq!(stack.get_function_frame(), stack.get_frame(1));
 
-        let fp1 = f1.addr;
+        let fp1 = f1.address;
 
         // check local variables
 
         // the values have no change
-        assert_eq!(stack.read_local_i32(0), 211);
-        assert_eq!(stack.read_local_i32(8), 223);
-        assert_eq!(stack.read_local_i32(16), 31);
-        assert_eq!(stack.read_local_i32(24), 37);
+        assert_eq!(stack.read_local_by_offset_i32(0), 211);
+        assert_eq!(stack.read_local_by_offset_i32(8), 223);
+        assert_eq!(stack.read_local_by_offset_i32(16), 31);
+        assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // create block frame
         stack.create_block_frame(0, 0);
@@ -1027,12 +1038,12 @@ mod tests {
         assert_eq!(stack.read_i32(fp2 - 8), 47); // the old operand has no change
 
         let f2 = stack.get_frame(0);
-        assert_eq!(f2.addr, fp2);
+        assert_eq!(f2.address, fp2);
         assert_eq!(
             f2.frame,
             &Frame {
-                previous_fp: fp1 as u32,
-                func_fp: fp0 as u32,
+                previous_frame_address: fp1 as u32,
+                function_frame_address: fp0 as u32,
                 // type_index: 101,
                 params_count: 0,
                 results_count: 0,
@@ -1044,25 +1055,25 @@ mod tests {
             }
         );
 
-        assert_eq!(stack.get_frame(1).addr, fp1);
-        assert_eq!(stack.get_frame(2).addr, fp0);
-        assert_eq!(stack.get_func_frame(), stack.get_frame(2));
+        assert_eq!(stack.get_frame(1).address, fp1);
+        assert_eq!(stack.get_frame(2).address, fp0);
+        assert_eq!(stack.get_function_frame(), stack.get_frame(2));
 
-        let fp2 = f2.addr;
+        let fp2 = f2.address;
 
         // check local variables
 
-        assert_eq!(stack.read_local_i32(0), 211); // only function frame has local variables
-        assert_eq!(stack.read_local_i32(8), 223); // so the block frame does change the local variable address
-        assert_eq!(stack.read_local_i32(16), 31);
-        assert_eq!(stack.read_local_i32(24), 37);
+        assert_eq!(stack.read_local_by_offset_i32(0), 211); // only function frame has local variables
+        assert_eq!(stack.read_local_by_offset_i32(8), 223); // so the block frame does change the local variable address
+        assert_eq!(stack.read_local_by_offset_i32(16), 31);
+        assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // add operands
         stack.push_i32(239);
         stack.push_i32(241);
 
         // create func frame
-        stack.create_func_frame(
+        stack.create_function_frame(
             0, // local vars len
             1, // params count
             3, // results count
@@ -1098,12 +1109,12 @@ mod tests {
         assert_eq!(stack.sp, fp3 + size_of::<Frame>() + 8); // 1 args in the current frame
 
         let f3 = stack.get_frame(0);
-        assert_eq!(f3.addr, fp3);
+        assert_eq!(f3.address, fp3);
         assert_eq!(
             f3.frame,
             &Frame {
-                previous_fp: fp2 as u32,
-                func_fp: fp3 as u32,
+                previous_frame_address: fp2 as u32,
+                function_frame_address: fp3 as u32,
                 // type_index: 103,
                 params_count: 1,
                 results_count: 3,
@@ -1115,18 +1126,21 @@ mod tests {
             }
         );
 
-        let f3b = stack.get_func_frame();
+        let f3b = stack.get_function_frame();
         assert_eq!(f3, f3b);
 
-        assert_eq!(stack.get_frame(1).addr, fp2);
-        assert_eq!(stack.get_frame(2).addr, fp1);
-        assert_eq!(stack.get_frame(3).addr, fp0);
+        assert_eq!(stack.get_frame(1).address, fp2);
+        assert_eq!(stack.get_frame(2).address, fp1);
+        assert_eq!(stack.get_frame(3).address, fp0);
 
         // check local variables
 
         // because function frame created new local variable area, the address should be updated
-        assert_eq!(stack.get_local_start_address(), fp3 + size_of::<Frame>());
-        assert_eq!(stack.read_local_i32(0), 241);
+        assert_eq!(
+            stack.get_local_variables_start_address(),
+            fp3 + size_of::<Frame>()
+        );
+        assert_eq!(stack.read_local_by_offset_i32(0), 241);
 
         // remove the current frame
 
@@ -1143,15 +1157,15 @@ mod tests {
         //   func frame | frame 3    |
         //              |------------| <-- fp3
 
-        let (is_func_frame0, ret_module_idx0, ret_inst_addr0) = stack.exit_frames(0);
+        let (is_function_frame0, ret_module_idx0, ret_inst_addr0) = stack.exit_frames(0);
 
-        assert_eq!(is_func_frame0, true);
+        assert_eq!(is_function_frame0, true);
         assert_eq!(ret_module_idx0, 113);
         assert_eq!(ret_inst_addr0, 127);
 
-        assert_eq!(stack.get_frame(0).addr, fp2);
-        assert_eq!(stack.get_frame(1).addr, fp1);
-        assert_eq!(stack.get_frame(2).addr, fp0);
+        assert_eq!(stack.get_frame(0).address, fp2);
+        assert_eq!(stack.get_frame(1).address, fp1);
+        assert_eq!(stack.get_frame(2).address, fp0);
 
         // check operands
 
@@ -1174,17 +1188,20 @@ mod tests {
 
         // because the 2nd function frame has been removed, so the address should be restored to
         // the 1st function frame
-        assert_eq!(stack.get_local_start_address(), fp0 + size_of::<Frame>());
+        assert_eq!(
+            stack.get_local_variables_start_address(),
+            fp0 + size_of::<Frame>()
+        );
 
-        assert_eq!(stack.read_local_i32(0), 211);
-        assert_eq!(stack.read_local_i32(8), 223);
-        assert_eq!(stack.read_local_i32(16), 31);
-        assert_eq!(stack.read_local_i32(24), 37);
+        assert_eq!(stack.read_local_by_offset_i32(0), 211);
+        assert_eq!(stack.read_local_by_offset_i32(8), 223);
+        assert_eq!(stack.read_local_by_offset_i32(16), 31);
+        assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // remove the parent frame
-        let (is_func_frame1, ret_module_idx1, ret_inst_addr1) = stack.exit_frames(1);
+        let (is_function_frame1, ret_module_idx1, ret_inst_addr1) = stack.exit_frames(1);
 
-        assert_eq!(is_func_frame1, false);
+        assert_eq!(is_function_frame1, false);
         assert_eq!(ret_module_idx1, 0);
         assert_eq!(ret_inst_addr1, 0);
 
@@ -1204,7 +1221,7 @@ mod tests {
         //              |        | <-- operands
         //              \--------/
 
-        assert_eq!(stack.get_frame(0).addr, fp0);
+        assert_eq!(stack.get_frame(0).address, fp0);
         assert_eq!(stack.sp, 112);
 
         // check operands
@@ -1214,9 +1231,9 @@ mod tests {
         assert_eq!(stack.read_i32(80), 41);
 
         // remove the last frame
-        let (is_func_frame2, ret_module_idx2, ret_inst_addr2) = stack.exit_frames(0);
+        let (is_function_frame2, ret_module_idx2, ret_inst_addr2) = stack.exit_frames(0);
 
-        assert_eq!(is_func_frame2, true);
+        assert_eq!(is_function_frame2, true);
         assert_eq!(ret_module_idx2, 83);
         assert_eq!(ret_inst_addr2, 89);
 
@@ -1247,7 +1264,7 @@ mod tests {
         // FP,SP 0d0000 | 23     |
         //              \--------/
 
-        stack.create_func_frame(
+        stack.create_function_frame(
             16, // local vars len
             2,  // params count
             // 71, // func type
@@ -1281,14 +1298,14 @@ mod tests {
         //              \--------/
 
         // update local variables
-        stack.write_local_i32(0, 101);
-        stack.write_local_i32(8, 103);
+        stack.write_local_by_offset_i32(0, 101);
+        stack.write_local_by_offset_i32(8, 103);
 
         // check local variables
-        assert_eq!(stack.read_local_i32(0), 101);
-        assert_eq!(stack.read_local_i32(8), 103);
-        assert_eq!(stack.read_local_i32(16), 31);
-        assert_eq!(stack.read_local_i32(24), 37);
+        assert_eq!(stack.read_local_by_offset_i32(0), 101);
+        assert_eq!(stack.read_local_by_offset_i32(8), 103);
+        assert_eq!(stack.read_local_by_offset_i32(16), 31);
+        assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // push some operands
         stack.push_i32(107);
@@ -1342,12 +1359,12 @@ mod tests {
 
         // check frame
         let f0 = stack.get_frame(0);
-        assert_eq!(f0.addr, 16);
+        assert_eq!(f0.address, 16);
         assert_eq!(
             f0.frame,
             &Frame {
-                previous_fp: 0,
-                func_fp: 16,
+                previous_frame_address: 0,
+                function_frame_address: 16,
                 // type_index: 71,
                 params_count: 2,
                 results_count: 0,
@@ -1360,16 +1377,16 @@ mod tests {
         );
 
         // check local variables
-        assert_eq!(stack.read_local_i32(0), 0); // reset
-        assert_eq!(stack.read_local_i32(8), 0); // reset
-        assert_eq!(stack.read_local_i32(16), 113); // updated
-        assert_eq!(stack.read_local_i32(24), 127); // updated
+        assert_eq!(stack.read_local_by_offset_i32(0), 0); // reset
+        assert_eq!(stack.read_local_by_offset_i32(8), 0); // reset
+        assert_eq!(stack.read_local_by_offset_i32(16), 113); // updated
+        assert_eq!(stack.read_local_by_offset_i32(24), 127); // updated
 
         // add some operands and change local variables to
         // prepare for the next reset
 
-        stack.write_local_i32(0, 131);
-        stack.write_local_i32(8, 137);
+        stack.write_local_by_offset_i32(0, 131);
+        stack.write_local_by_offset_i32(8, 137);
         stack.push_i32(139);
 
         // the current layout (partial)
@@ -1460,12 +1477,12 @@ mod tests {
 
         // check frame
         let f1 = stack.get_frame(0);
-        assert_eq!(f1.addr, 80);
+        assert_eq!(f1.address, 80);
         assert_eq!(
             f1.frame,
             &Frame {
-                previous_fp: 16,
-                func_fp: 16,
+                previous_frame_address: 16,
+                function_frame_address: 16,
                 // type_index: 149,
                 params_count: 1,
                 results_count: 2,
@@ -1604,9 +1621,9 @@ mod tests {
         assert_eq!(stack.sp, 80);
 
         // check local variables
-        assert_eq!(stack.read_local_i32(0), 0); // reset
-        assert_eq!(stack.read_local_i32(8), 0); // reset
-        assert_eq!(stack.read_local_i32(16), 181); // updated
-        assert_eq!(stack.read_local_i32(24), 191); // updated
+        assert_eq!(stack.read_local_by_offset_i32(0), 0); // reset
+        assert_eq!(stack.read_local_by_offset_i32(8), 0); // reset
+        assert_eq!(stack.read_local_by_offset_i32(16), 181); // updated
+        assert_eq!(stack.read_local_by_offset_i32(24), 191); // updated
     }
 }

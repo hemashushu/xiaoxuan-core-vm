@@ -8,12 +8,40 @@
 //
 // the data types that VM supports:
 //
-// - i32
 // - i64
-// - f32
 // - f64
+// - i32
+// - f32
 //
-// the note of floating-point number:
+// data layout:
+//
+// the default implement of XiaoXuan VM is stack-base, which its operands are
+// 8-byte raw data, the data presentation is as the following:
+//
+//    MSB                             LSB
+// 64 |---------------------------------| 0
+//    |   16     16      16     8    8  | bits
+//    |-------|-------|-------|----|----|
+//    |               i64               | <-- native data type
+//    |---------------------------------|
+//    |000000000000000|        i32      |
+//    |---------------------------------|
+//    |000000000000000|-sign--|   i16   |
+//    |---------------------------------|
+//    |000000000000000|-sign-extend| i8 |
+//    |---------------------------------|
+//    |               f64               | <-- native data type
+//    |---------------------------------|
+//    |000000000000000|        f32      |
+//    |---------------------------------|
+//
+//
+// the i8 and i16 are sign-extend as i32, so there are actually two kinds of length for
+// operands, 32-bit and 64-bit operands.
+
+// note:
+//
+// the floating-point number:
 //
 // like most processors and VM, f32/f64 is stored with
 // IEEE 754-2008 format, in addition to the normal floating-point numbers,
@@ -32,6 +60,7 @@
 // - 1/-0 = -Infinity
 //
 // ref:
+//
 // - https://en.wikipedia.org/wiki/Floating-point_arithmetic
 // - https://en.wikipedia.org/wiki/IEEE_754
 // - https://en.wikipedia.org/wiki/IEEE_754-2008_revision
@@ -70,32 +99,9 @@
 //
 // in other words, the +/-Infinity, -0, NaN, will cause the VM to throw exceptions.
 
-// the note of data layout:
+// note:
 //
-// the default implement of XiaoXuan VM is stack-base, which its operands are
-// 8-byte raw data, the data presentation is as the following:
-//
-//    MSB                             LSB
-// 64 |---------------------------------| 0
-//    |   16     16      16     8    8  | bits
-//    |-------|-------|-------|----|----|
-//    |000000000000000|-sign-extend| i8 |
-//    |---------------------------------|
-//    |000000000000000|-sign--|   i16   |
-//    |---------------------------------|
-//    |000000000000000|        i32      |
-//    |---------------------------------|
-//    |               i64               |
-//    |---------------------------------|
-//    |000000000000000|        f32      |
-//    |---------------------------------|
-//    |               f64               |
-//    |---------------------------------|
-//
-// the i8 and i16 are sign-extend as i32, so there are actually two kinds of length for
-// operands, 32-bit and 64-bit operands.
-
-// the note of instruction format
+// the instruction schemes:
 //
 // XiaoXuan VM instructions are not fixed-length code. there are
 // 16 bits, 32 bits, 64 bits and 96 bits instructions, sometimes it is
@@ -118,7 +124,7 @@
 //   `host_addr_memory`, `host_addr_shared_memory`.
 //   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2
 //
-// the instruction schemes:
+// the simplified schemes:
 //
 // - [opcode i16]
 // - [opcode i16] - [param i16      ]
@@ -126,7 +132,7 @@
 // - [opcode i16] - [padding 16 bits] + [param i32]
 // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
 //
-// opcode scheme:
+// the opcode scheme:
 //
 // MSB           LSB
 // 00000000 00000000
@@ -135,6 +141,7 @@
 // |        \ items
 // |
 // \ catalogs
+//
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -171,17 +178,17 @@ pub enum Opcode {
     //
 
     local_load = 0x300,     // load local variable              (param offset_bytes:i16 local_variable_index:i32)
-    local_load_i8_s,        //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_i8_u,        //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_i16_s,       //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_i16_u,       //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_i32,         //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_f32,         // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
-    local_load_f64,         // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    local_load32,           //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load32_i16_s,     //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load32_i16_u,     //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load32_i8_s,      //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load32_i8_u,      //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load_f64,         // Load f64 with floating-point validity check.     (param offset_bytes:i16 local_index:i32)
+    local_load32_f32,       // Load f32 with floating-point validity check.     (param offset_bytes:i16 local_index:i32)
     local_store,            // store local variable             (param offset_bytes:i16 local_variable_index:i32)
-    local_store8,           //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_store16,          //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_store32,          //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_store16,          //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_store8,           //                                  (param offset_bytes:i16 local_variable_index:i32)
 
     //
     // data (thread-local variables) loading and storing
@@ -190,34 +197,34 @@ pub enum Opcode {
     //
 
     data_load = 0x400,      // load data                        (param offset_bytes:i16 data_index:i32)
-    data_load_i8_s,         //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_i8_u,         //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_i16_s,        //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_i16_u,        //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_i32,          //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_f32,          // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
-    data_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    data_load32,            //                                  (param offset_bytes:i16 data_index:i32)
+    data_load32_i16_s,      //                                  (param offset_bytes:i16 data_index:i32)
+    data_load32_i16_u,      //                                  (param offset_bytes:i16 data_index:i32)
+    data_load32_i8_s,       //                                  (param offset_bytes:i16 data_index:i32)
+    data_load32_i8_u,       //                                  (param offset_bytes:i16 data_index:i32)
+    data_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_index:i32)
+    data_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_index:i32)
     data_store,             // store data                       (param offset_bytes:i16 data_index:i32)
-    data_store8,            //                                  (param offset_bytes:i16 data_index:i32)
-    data_store16,           //                                  (param offset_bytes:i16 data_index:i32)
     data_store32,           //                                  (param offset_bytes:i16 data_index:i32)
+    data_store16,           //                                  (param offset_bytes:i16 data_index:i32)
+    data_store8,            //                                  (param offset_bytes:i16 data_index:i32)
 
     //
     // heap (thread-local memory) loading and storing
     //
 
     heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_index:i32)
-    heap_load_i8_s,         //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_i8_u,         //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_i16_s,        //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_i16_u,        //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_i32,          //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_f32,          // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    heap_load32,            //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load32_i16_s,      //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load32_i16_u,      //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load32_i8_s,       //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load32_i8_u,       //                                  (param offset_bytes:i16 heap_index:i32)
     heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
+    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
     heap_store,             // store heap                       (param offset_bytes:i16 heap_index:i32)
-    heap_store8,            //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_store16,           //                                  (param offset_bytes:i16 heap_index:i32)
     heap_store32,           //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_store16,           //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_store8,            //                                  (param offset_bytes:i16 heap_index:i32)
 
     heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
     heap_copy,              // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)

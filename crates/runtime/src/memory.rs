@@ -31,41 +31,41 @@
 /// and the another one is load_32/store_32.
 pub trait Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
-    fn get_ptr(&self, addr: usize) -> *const u8;
+    fn get_ptr(&self, address: usize) -> *const u8;
 
     // it's recommended that add annotation "#[inline]" to the implementation
-    fn get_mut_ptr(&mut self, addr: usize) -> *mut u8;
+    fn get_mut_ptr(&mut self, address: usize) -> *mut u8;
 
-    fn fill(&mut self, addr: usize, value: u8, length_in_bytes: usize) {
-        let dst = self.get_mut_ptr(addr);
+    fn fill(&mut self, address: usize, value: u8, length_in_bytes: usize) {
+        let dst = self.get_mut_ptr(address);
         unsafe {
             std::ptr::write_bytes(dst, value, length_in_bytes);
         }
     }
 
     #[inline]
-    fn load_to(&self, src_addr: usize, dst_ptr: *mut u8, length_in_bytes: usize) {
-        let src = self.get_ptr(src_addr);
+    fn load_to(&self, src_address: usize, dst_ptr: *mut u8, length_in_bytes: usize) {
+        let src = self.get_ptr(src_address);
         unsafe {
             std::ptr::copy(src, dst_ptr, length_in_bytes);
         }
     }
 
-    fn load_64(&self, src_addr: usize, dst_ptr: *mut u8) {
-        self.load_to(src_addr, dst_ptr, 8);
+    fn load_64(&self, src_address: usize, dst_ptr: *mut u8) {
+        self.load_to(src_address, dst_ptr, 8);
     }
 
-    fn load_32(&self, src_addr: usize, dst_ptr: *mut u8) {
-        self.load_to(src_addr, dst_ptr, 4);
+    fn load_32(&self, src_address: usize, dst_ptr: *mut u8) {
+        self.load_to(src_address, dst_ptr, 4);
     }
 
     // load 64-bit data with extra check
     // because VM does support some IEEE 754 variants.
-    fn load_64_with_float_check(&self, src_addr: usize, dst_ptr: *mut u8) -> bool {
-        let tp = self.get_ptr(src_addr) as *const f64;
+    fn load_64_with_float_check(&self, src_address: usize, dst_ptr: *mut u8) -> bool {
+        let tp = self.get_ptr(src_address) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
         if val.is_normal() || val.is_subnormal() || val == 0.0f64 {
-            self.load_64(src_addr, dst_ptr);
+            self.load_64(src_address, dst_ptr);
             true
         } else {
             false
@@ -85,8 +85,8 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_i8(&self, src_addr: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_addr) as *const i8;
+    fn load_32_extend_from_i8(&self, src_address: usize, dst_ptr: *mut u8) {
+        let tp_src = self.get_ptr(src_address) as *const i8;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as i32;
             let dst_ptr_32 = dst_ptr as *mut i32;
@@ -94,8 +94,8 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_u8(&self, src_addr: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_addr) as *const u8;
+    fn load_32_extend_from_u8(&self, src_address: usize, dst_ptr: *mut u8) {
+        let tp_src = self.get_ptr(src_address) as *const u8;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as u32;
             let dst_ptr_32 = dst_ptr as *mut u32;
@@ -103,8 +103,8 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_i16(&self, src_addr: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_addr) as *const i16;
+    fn load_32_extend_from_i16(&self, src_address: usize, dst_ptr: *mut u8) {
+        let tp_src = self.get_ptr(src_address) as *const i16;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as i32;
             let dst_ptr_32 = dst_ptr as *mut i32;
@@ -112,8 +112,8 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_u16(&self, src_addr: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_addr) as *const u16;
+    fn load_32_extend_from_u16(&self, src_address: usize, dst_ptr: *mut u8) {
+        let tp_src = self.get_ptr(src_address) as *const u16;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as u32;
             let dst_ptr_32 = dst_ptr as *mut u32;
@@ -122,26 +122,26 @@ pub trait Memory {
     }
 
     #[inline]
-    fn store_from(&mut self, src_ptr: *const u8, dst_addr: usize, length_in_bytes: usize) {
-        let dst = self.get_mut_ptr(dst_addr);
+    fn store_from(&mut self, src_ptr: *const u8, dst_address: usize, length_in_bytes: usize) {
+        let dst = self.get_mut_ptr(dst_address);
         unsafe {
             std::ptr::copy(src_ptr, dst, length_in_bytes);
         }
     }
 
-    fn store_64(&mut self, src_ptr: *const u8, dst_addr: usize) {
-        self.store_from(src_ptr, dst_addr, 8);
+    fn store_64(&mut self, src_ptr: *const u8, dst_address: usize) {
+        self.store_from(src_ptr, dst_address, 8);
     }
 
-    fn store_32(&mut self, src_ptr: *const u8, dst_addr: usize) {
-        self.store_from(src_ptr, dst_addr, 4);
+    fn store_32(&mut self, src_ptr: *const u8, dst_address: usize) {
+        self.store_from(src_ptr, dst_address, 4);
     }
 
-    fn store_16(&mut self, src_ptr: *const u8, dst_addr: usize) {
-        self.store_from(src_ptr, dst_addr, 2);
+    fn store_16(&mut self, src_ptr: *const u8, dst_address: usize) {
+        self.store_from(src_ptr, dst_address, 2);
     }
 
-    fn store_8(&mut self, src_ptr: *const u8, dst_addr: usize) {
-        self.store_from(src_ptr, dst_addr, 1);
+    fn store_8(&mut self, src_ptr: *const u8, dst_address: usize) {
+        self.store_from(src_ptr, dst_address, 1);
     }
 }

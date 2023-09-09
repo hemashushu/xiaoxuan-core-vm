@@ -44,7 +44,7 @@ pub struct Thread<'a> {
     // | local 1 |
     // | local 0 | <-- allocates the local variable area
     // |---------|
-    // |   $$$   | <-- the stack frame information, includes the previous FP, return address (instruction addr and module index),
+    // |   $$$   | <-- the stack frame information, includes the previous FP, return address (instruction address and module index),
     // |   $$$   |     also includes the current function information, such as function type, funcion index, and so on.
     // |   $$$   |     note that the original arguments is moved to the top of stack.
     // |---------| <-- new stack frame pointer (FP of function 2)
@@ -106,8 +106,8 @@ pub struct Thread<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
-    pub addr: usize,         // the address of instruction
-    pub module_index: usize, // the module index
+    pub instruction_address: usize, // the address of instruction
+    pub module_index: usize,        // the module index
 }
 
 impl<'a> Thread<'a> {
@@ -116,7 +116,7 @@ impl<'a> Thread<'a> {
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
 
         let pc = ProgramCounter {
-            addr: 0,
+            instruction_address: 0,
             module_index: 0,
         };
 
@@ -274,11 +274,12 @@ impl<'a> Thread<'a> {
         // - [opcode i16] - [padding 16 bits] + [param i32]
         // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
 
-        let ProgramCounter { addr, module_index } = self.pc;
-        let codes_data = self.context.modules[module_index as usize]
-            .func_section
-            .codes_data;
-        let dst = addr + offset;
+        let ProgramCounter {
+            instruction_address,
+            module_index,
+        } = self.pc;
+        let codes_data = self.context.modules[module_index].func_section.codes_data;
+        let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
     }
 }
