@@ -397,7 +397,7 @@ impl<'a> ModuleImage<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::DataType;
+    use ancvm_types::{DataType, MemoryDataType};
 
     use crate::module_image::{
         data_index_section::{DataIndexItem, DataIndexSection},
@@ -657,14 +657,14 @@ mod tests {
         assert_eq!(
             local_var_section_restore.get_variable_list(0),
             &vec![
-                VariableItem::new(0, 4, DataType::I32, 4),
-                VariableItem::new(8, 8, DataType::I64, 8),
+                VariableItem::new(0, 4, MemoryDataType::I32, 4),
+                VariableItem::new(8, 8, MemoryDataType::I64, 8),
             ]
         );
 
         assert_eq!(
             local_var_section_restore.get_variable_list(1),
-            &vec![VariableItem::new(0, 12, DataType::BYTE, 4),]
+            &vec![VariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
         );
     }
 

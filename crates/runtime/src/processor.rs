@@ -6,7 +6,10 @@
 
 // processor
 
-use ancvm_types::{opcode::Opcode, ForeignValue};
+use ancvm_types::{
+    opcode::{Opcode, MAX_OPCODE_NUMBER},
+    ForeignValue,
+};
 
 use crate::{thread::Thread, VMError};
 
@@ -33,7 +36,7 @@ fn unreachable(_: &mut Thread) -> InterpretResult {
 
 impl Processor {
     pub fn new() -> Processor {
-        let mut interpreters: Vec<InterpretFunc> = vec![unreachable; u16::MAX as usize];
+        let mut interpreters: Vec<InterpretFunc> = vec![unreachable; MAX_OPCODE_NUMBER];
 
         // operand
         interpreters[Opcode::nop as usize] = operand::nop;
@@ -192,11 +195,11 @@ mod tests {
             &mut thread0,
             0,
             0,
-            &vec![ForeignValue::I32(7), ForeignValue::I32(11)],
+            &vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
         );
         assert_eq!(
             result0.unwrap(),
-            vec![ForeignValue::I32(7), ForeignValue::I32(11)]
+            vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
         );
 
         // bytecodes
@@ -223,9 +226,9 @@ mod tests {
             &mut thread1,
             0,
             0,
-            &vec![ForeignValue::I32(13), ForeignValue::I32(17)],
+            &vec![ForeignValue::UInt32(13), ForeignValue::UInt32(17)],
         );
-        assert_eq!(result1.unwrap(), vec![ForeignValue::I32(13)]);
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(13)]);
 
         // bytecodes
         //
@@ -247,10 +250,11 @@ mod tests {
         let image2 = load_modules_binary(vec![&binary2]).unwrap();
         let mut thread2 = Thread::new(&image2);
 
-        let result2 = processor.process_function(&mut thread2, 0, 0, &vec![ForeignValue::I32(19)]);
+        let result2 =
+            processor.process_function(&mut thread2, 0, 0, &vec![ForeignValue::UInt32(19)]);
         assert_eq!(
             result2.unwrap(),
-            vec![ForeignValue::I32(19), ForeignValue::I32(19)]
+            vec![ForeignValue::UInt32(19), ForeignValue::UInt32(19)]
         );
     }
 
@@ -288,10 +292,10 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::I32(23),
-                ForeignValue::I64(0x29313741_43475359u64),
-                ForeignValue::I32((0i32 - 223) as u32),
-                ForeignValue::I64((0i64 - 227) as u64)
+                ForeignValue::UInt32(23),
+                ForeignValue::UInt64(0x29313741_43475359u64),
+                ForeignValue::UInt32((0i32 - 223) as u32),
+                ForeignValue::UInt64((0i64 - 227) as u64)
             ]
         );
 
@@ -325,10 +329,10 @@ mod tests {
         assert_eq!(
             result1.unwrap(),
             vec![
-                ForeignValue::F32(3.1415926f32),
-                ForeignValue::F64(6.626e-34f64),
-                ForeignValue::F32(-2.71828f32),
-                ForeignValue::F64(-2.9979e8f64)
+                ForeignValue::Float32(3.1415926f32),
+                ForeignValue::Float64(6.626e-34f64),
+                ForeignValue::Float32(-2.71828f32),
+                ForeignValue::Float64(-2.9979e8f64)
             ]
         );
     }
@@ -462,25 +466,25 @@ mod tests {
             0,
             0,
             &vec![
-                ForeignValue::F32(3.1415926f32),
-                ForeignValue::F64(2.9979e8f64),
+                ForeignValue::Float32(3.1415926f32),
+                ForeignValue::Float64(2.9979e8f64),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::I64(0xf0e0d0c0_19171311u64),
-                ForeignValue::I32(0xf0e0d0c0u32),
-                ForeignValue::I32(0xf0e0u32),
-                ForeignValue::I32(0xfffff0e0u32), // extend from i16 to i32
-                ForeignValue::I32(0xf0u32),
-                ForeignValue::I32(0xfffffff0u32), // extend from i8 to i32
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0xf0e0d0c0u32),
+                ForeignValue::UInt32(0xf0e0u32),
+                ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
+                ForeignValue::UInt32(0xf0u32),
+                ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
                 //
-                ForeignValue::F32(3.1415926f32),
-                ForeignValue::F64(2.9979e8f64),
+                ForeignValue::Float32(3.1415926f32),
+                ForeignValue::Float64(2.9979e8f64),
                 //
-                ForeignValue::I64(0xf0e0d0c0_19171311u64),
-                ForeignValue::I32(0x19171311u32),
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0x19171311u32),
             ]
         );
     }

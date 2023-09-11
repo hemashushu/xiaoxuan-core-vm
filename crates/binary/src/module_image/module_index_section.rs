@@ -136,12 +136,6 @@ impl<'a> ModuleIndexSection<'a> {
                 let name_length = name_bytes[idx].len() as u32;
                 next_offset += name_length; // for next offset
 
-                // the function `std::mem::transmute` can convert
-                // between `enum` and `u8` date, e.g.
-                // ```rust
-                //     unsafe { std::mem::transmute::<FROM, TO>(FROM) }
-                // ```
-
                 ModuleIndexItem::new(name_offset, name_length, entry.module_share_type)
             })
             .collect::<Vec<ModuleIndexItem>>();

@@ -6,28 +6,28 @@
 
 // "read-only/read-write data section" binary layout
 //
-//              |---------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                        |
-//              |---------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | data type 1      |              | align 1       |
-//              | ...                                                                                         |
-//              |---------------------------------------------------------------------------------------------|
-// offset 0 --> | data 0 | data 1 | ...                                                                       | <-- data area
-//              |          ^                                                                                  |
-// offset 1 ----|----------|                                                                                  |
-//              |---------------------------------------------------------------------------------------------|
+//              |-------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                            |
+//              |-------------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | align 1       |
+//              | ...                                                                                             |
+//              |-------------------------------------------------------------------------------------------------|
+// offset 0 --> | data 0 | data 1 | ...                                                                           | <-- data area
+//              |          ^                                                                                      |
+// offset 1 ----|----------|                                                                                      |
+//              |-------------------------------------------------------------------------------------------------|
 //
 //
 // "uninit data section" binary layout
 //
-//              |---------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                        |
-//              |---------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | data type 1      |              | align 1       |
-//              | ...                                                                                         |
-//              |---------------------------------------------------------------------------------------------|
+//              |-------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                            |
+//              |-------------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | align 1       |
+//              | ...                                                                                             |
+//              |-------------------------------------------------------------------------------------------------|
 //
 // data size and alignment
 //
@@ -37,12 +37,12 @@
 // | i64   | 8    | 8         |
 // | f32   | 4    | 4         |
 // | f64   | 8    | 8         |
-// | byte  | -    | -         |
+// | bytes | -    | -         |
 //
 // when storing "struct" data, the data type "byte" should be used, as well as
 // the alignment should be speicified.
 
-use ancvm_types::DataType;
+use ancvm_types::MemoryDataType;
 
 use crate::utils::{
     load_section_with_one_table, load_section_with_table_and_data_area,
@@ -75,7 +75,7 @@ pub struct DataItem {
     pub data_length: u32, // the length (in bytes) of a data item in the section's "data area"
 
     // the data type field is not necessary at runtime, though it is helpful for debugging.
-    pub data_type: DataType,
+    pub memory_data_type: MemoryDataType,
 
     _padding0: u8,
 
@@ -101,8 +101,15 @@ pub enum DataSectionType {
 
 #[derive(Debug)]
 pub struct DataEntry {
-    pub data_type: DataType,
+    pub memory_data_type: MemoryDataType,
     pub data: Vec<u8>,
+    pub length: u32,
+    pub align: u16,
+}
+
+#[derive(Debug)]
+pub struct UninitDataEntry {
+    pub memory_data_type: MemoryDataType,
     pub length: u32,
     pub align: u16,
 }
@@ -113,7 +120,7 @@ impl DataEntry {
         data.extend(value.to_le_bytes().iter());
 
         Self {
-            data_type: DataType::I32,
+            memory_data_type: MemoryDataType::I32,
             data,
             length: 4,
             align: 4,
@@ -125,7 +132,7 @@ impl DataEntry {
         data.extend(value.to_le_bytes().iter());
 
         Self {
-            data_type: DataType::I64,
+            memory_data_type: MemoryDataType::I64,
             data,
             length: 8,
             align: 8,
@@ -137,7 +144,7 @@ impl DataEntry {
         data.extend(value.to_le_bytes().iter());
 
         Self {
-            data_type: DataType::F32,
+            memory_data_type: MemoryDataType::F32,
             data,
             length: 4,
             align: 4,
@@ -149,7 +156,7 @@ impl DataEntry {
         data.extend(value.to_le_bytes().iter());
 
         Self {
-            data_type: DataType::F64,
+            memory_data_type: MemoryDataType::F64,
             data,
             length: 8,
             align: 8,
@@ -160,53 +167,50 @@ impl DataEntry {
         let length = data.len() as u32;
 
         Self {
-            data_type: DataType::BYTE,
+            memory_data_type: MemoryDataType::BYTES,
             data,
             length,
             align,
         }
     }
+}
 
-    pub fn from_uninit_i32() -> Self {
+impl UninitDataEntry {
+    pub fn from_i32() -> Self {
         Self {
-            data_type: DataType::I32,
-            data: vec![],
+            memory_data_type: MemoryDataType::I32,
             length: 4,
             align: 4,
         }
     }
 
-    pub fn from_uninit_i64() -> Self {
+    pub fn from_i64() -> Self {
         Self {
-            data_type: DataType::I64,
-            data: vec![],
+            memory_data_type: MemoryDataType::I64,
             length: 8,
             align: 8,
         }
     }
 
-    pub fn from_uninit_f32() -> Self {
+    pub fn from_f32() -> Self {
         Self {
-            data_type: DataType::F32,
-            data: vec![],
+            memory_data_type: MemoryDataType::F32,
             length: 4,
             align: 4,
         }
     }
 
-    pub fn from_uninit_f64() -> Self {
+    pub fn from_f64() -> Self {
         Self {
-            data_type: DataType::F64,
-            data: vec![],
+            memory_data_type: MemoryDataType::F64,
             length: 8,
             align: 8,
         }
     }
 
-    pub fn from_uninit_bytes(length: u32, align: u16) -> Self {
+    pub fn from_bytes(length: u32, align: u16) -> Self {
         Self {
-            data_type: DataType::BYTE,
-            data: vec![],
+            memory_data_type: MemoryDataType::BYTES,
             length,
             align,
         }
@@ -214,11 +218,11 @@ impl DataEntry {
 }
 
 impl DataItem {
-    pub fn new(data_offset: u32, data_length: u32, data_type: DataType, align: u16) -> Self {
+    pub fn new(data_offset: u32, data_length: u32, data_type: MemoryDataType, align: u16) -> Self {
         DataItem {
             data_offset,
             data_length,
-            data_type,
+            memory_data_type: data_type,
             _padding0: 0,
             align,
         }
@@ -285,14 +289,14 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
     }
 }
 
-pub fn convert_from_entries(entries: &[DataEntry], is_uninit: bool) -> (Vec<DataItem>, Vec<u8>) {
+pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     // | type  | size | alignment |
     // |-------|------|-----------|
     // | i32   | 4    | 4         |
     // | i64   | 8    | 8         |
     // | f32   | 4    | 4         |
     // | f64   | 8    | 8         |
-    // | byte  | -    | -         |
+    // | bytes | -    | -         |
 
     let mut next_offset: u32 = 0;
 
@@ -319,33 +323,82 @@ pub fn convert_from_entries(entries: &[DataEntry], is_uninit: bool) -> (Vec<Data
         .iter()
         .zip(&positions)
         .map(|(entry, (_, data_offset, data_length))| {
-            DataItem::new(*data_offset, *data_length, entry.data_type, entry.align)
+            DataItem::new(
+                *data_offset,
+                *data_length,
+                entry.memory_data_type,
+                entry.align,
+            )
         })
         .collect::<Vec<DataItem>>();
 
-    let datas_data = if is_uninit {
-        vec![]
-    } else {
-        entries
-            .iter()
-            .zip(&positions)
-            .flat_map(|(entry, (padding, _, _))| {
-                let mut data = vec![0u8; *padding as usize];
-                data.extend(entry.data.iter());
-                data
-            })
-            .collect::<Vec<u8>>()
-    };
+    let datas_data = entries
+        .iter()
+        .zip(&positions)
+        .flat_map(|(entry, (padding, _, _))| {
+            let mut data = vec![0u8; *padding as usize];
+            data.extend(entry.data.iter());
+            data
+        })
+        .collect::<Vec<u8>>();
 
     (items, datas_data)
 }
 
+pub fn convert_from_uninit_entries(entries: &[UninitDataEntry]) -> Vec<DataItem> {
+    // | type  | size | alignment |
+    // |-------|------|-----------|
+    // | i32   | 4    | 4         |
+    // | i64   | 8    | 8         |
+    // | f32   | 4    | 4         |
+    // | f64   | 8    | 8         |
+    // | bytes | -    | -         |
+
+    let mut next_offset: u32 = 0;
+
+    // get the position '(padding, data_offset, data_length)'
+
+    let positions = entries
+        .iter()
+        .map(|entry| {
+            let remainder = next_offset % (entry.align as u32); // remainder
+            let padding = if remainder != 0 {
+                (entry.align as u32) - remainder
+            } else {
+                0
+            };
+
+            let data_offset = next_offset + padding; // the data offset after aligning
+            let data_length = entry.length;
+            next_offset = data_offset + data_length;
+            (padding, data_offset, data_length)
+        })
+        .collect::<Vec<_>>();
+
+    let items = entries
+        .iter()
+        .zip(&positions)
+        .map(|(entry, (_, data_offset, data_length))| {
+            DataItem::new(
+                *data_offset,
+                *data_length,
+                entry.memory_data_type,
+                entry.align,
+            )
+        })
+        .collect::<Vec<DataItem>>();
+
+    items
+}
+
 #[cfg(test)]
 mod tests {
-    use ancvm_types::DataType;
+    use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
-        data_section::{DataEntry, DataItem, UninitDataSection},
+        data_section::{
+            convert_from_uninit_entries, DataEntry, DataItem, UninitDataEntry, UninitDataSection,
+        },
         SectionEntry,
     };
 
@@ -362,19 +415,16 @@ mod tests {
         let data_entry6 = DataEntry::from_i64(17);
         let data_entry7 = DataEntry::from_i32(19);
 
-        let (items, datas) = convert_from_entries(
-            &vec![
-                data_entry0,
-                data_entry1,
-                data_entry2,
-                data_entry3,
-                data_entry4,
-                data_entry5,
-                data_entry6,
-                data_entry7,
-            ],
-            false,
-        );
+        let (items, datas) = convert_from_entries(&vec![
+            data_entry0,
+            data_entry1,
+            data_entry2,
+            data_entry3,
+            data_entry4,
+            data_entry5,
+            data_entry6,
+            data_entry7,
+        ]);
 
         let data_section = ReadWriteDataSection {
             items: &items,
@@ -474,14 +524,14 @@ mod tests {
         assert_eq!(
             data_section_restore.items,
             &vec![
-                DataItem::new(0, 4, DataType::I32, 4),
-                DataItem::new(8, 8, DataType::I64, 8),
-                DataItem::new(16, 5, DataType::BYTE, 1),
-                DataItem::new(24, 4, DataType::F32, 4),
-                DataItem::new(32, 8, DataType::F64, 8),
-                DataItem::new(40, 3, DataType::BYTE, 8),
-                DataItem::new(48, 8, DataType::I64, 8),
-                DataItem::new(56, 4, DataType::I32, 4),
+                DataItem::new(0, 4, MemoryDataType::I32, 4),
+                DataItem::new(8, 8, MemoryDataType::I64, 8),
+                DataItem::new(16, 5, MemoryDataType::BYTES, 1),
+                DataItem::new(24, 4, MemoryDataType::F32, 4),
+                DataItem::new(32, 8, MemoryDataType::F64, 8),
+                DataItem::new(40, 3, MemoryDataType::BYTES, 8),
+                DataItem::new(48, 8, MemoryDataType::I64, 8),
+                DataItem::new(56, 4, MemoryDataType::I32, 4),
             ]
         );
 
@@ -498,28 +548,25 @@ mod tests {
 
     #[test]
     fn test_uninit_data_section() {
-        let data_entry0 = DataEntry::from_uninit_i32();
-        let data_entry1 = DataEntry::from_uninit_i64();
-        let data_entry2 = DataEntry::from_uninit_bytes(5, 1);
-        let data_entry3 = DataEntry::from_uninit_f32();
-        let data_entry4 = DataEntry::from_uninit_f64();
-        let data_entry5 = DataEntry::from_uninit_bytes(3, 8);
-        let data_entry6 = DataEntry::from_uninit_i64();
-        let data_entry7 = DataEntry::from_uninit_i32();
+        let data_entry0 = UninitDataEntry::from_i32();
+        let data_entry1 = UninitDataEntry::from_i64();
+        let data_entry2 = UninitDataEntry::from_bytes(5, 1);
+        let data_entry3 = UninitDataEntry::from_f32();
+        let data_entry4 = UninitDataEntry::from_f64();
+        let data_entry5 = UninitDataEntry::from_bytes(3, 8);
+        let data_entry6 = UninitDataEntry::from_i64();
+        let data_entry7 = UninitDataEntry::from_i32();
 
-        let (items, _) = convert_from_entries(
-            &vec![
-                data_entry0,
-                data_entry1,
-                data_entry2,
-                data_entry3,
-                data_entry4,
-                data_entry5,
-                data_entry6,
-                data_entry7,
-            ],
-            true,
-        );
+        let items = convert_from_uninit_entries(&vec![
+            data_entry0,
+            data_entry1,
+            data_entry2,
+            data_entry3,
+            data_entry4,
+            data_entry5,
+            data_entry6,
+            data_entry7,
+        ]);
 
         let data_section = UninitDataSection { items: &items };
 
@@ -585,14 +632,14 @@ mod tests {
         assert_eq!(
             data_section_restore.items,
             &vec![
-                DataItem::new(0, 4, DataType::I32, 4),
-                DataItem::new(8, 8, DataType::I64, 8),
-                DataItem::new(16, 5, DataType::BYTE, 1),
-                DataItem::new(24, 4, DataType::F32, 4),
-                DataItem::new(32, 8, DataType::F64, 8),
-                DataItem::new(40, 3, DataType::BYTE, 8),
-                DataItem::new(48, 8, DataType::I64, 8),
-                DataItem::new(56, 4, DataType::I32, 4),
+                DataItem::new(0, 4, MemoryDataType::I32, 4),
+                DataItem::new(8, 8, MemoryDataType::I64, 8),
+                DataItem::new(16, 5, MemoryDataType::BYTES, 1),
+                DataItem::new(24, 4, MemoryDataType::F32, 4),
+                DataItem::new(32, 8, MemoryDataType::F64, 8),
+                DataItem::new(40, 3, MemoryDataType::BYTES, 8),
+                DataItem::new(48, 8, MemoryDataType::I64, 8),
+                DataItem::new(56, 4, MemoryDataType::I32, 4),
             ]
         );
     }

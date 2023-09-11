@@ -13,6 +13,10 @@
 // - i32
 // - f32
 //
+// note that 'i32' above means a 32-bit integer, which is equivalent to
+// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
+// the same applies to the i8, i16 and i64.
+//
 // data layout:
 //
 // the default implement of XiaoXuan VM is stack-base, which its operands are
@@ -35,9 +39,6 @@
 //    |000000000000000|        f32      |
 //    |---------------------------------|
 //
-//
-// the i8 and i16 are sign-extend as i32, so there are actually two kinds of length for
-// operands, 32-bit and 64-bit operands.
 
 // note:
 //
@@ -92,7 +93,7 @@
 //  N                -       11111111            0000000000 0000000000 000     value = +/- Infinity
 //  N                -       11111111            ---------- ---------- ---     NaN
 //
-// when load data from memory as floating-point number, there is the following check:
+// when load data from memory as floating-point number, there are some checking as the following:
 // 1. exponent between (00000001) and (11111110): pass
 // 2. exponent is zero, if the sign bit is zero: pass
 // 3. failed.
@@ -104,9 +105,9 @@
 // the instruction schemes:
 //
 // XiaoXuan VM instructions are not fixed-length code. there are
-// 16 bits, 32 bits, 64 bits and 96 bits instructions, sometimes it is
-// necessary to insert the `nop` instruction after the 16 bits instruction
-// to form 32 bits (4-byte) alignment.
+// 16 bits, 32 bits, 64 bits and 96 bits instructions, it is
+// necessary to insert the `nop` instruction between the 16 (32) bits instruction and the 64 (96) bits
+// instruction to achieve 32 bits (4-byte) alignment.
 //
 // - 16 bits:
 //   instructions without parameters, such as `i32_eq`, `i32_add`.
@@ -114,15 +115,15 @@
 //   instructions with one parameter, such as `i32_shl`.
 //   16 bits opcode + 16 bits parameter
 // - 64 bits:
-//   instructions with one parameter, such as `i32_imm`, `f32_imm`, `local_get`, `data_get`, `block`, `call`.
-//   16 bits opcode + 16 bits padding + 32 bits parameter
+//   instructions with one parameter, such as `i32_imm`, `f32_imm`, `block`, `call`.
+//   16 bits opcode + 16 bits padding + 32 bits parameter (4-byte alignment require)
 // - 64 bits:
-//   instructions with two parameters, there are `break`, `recur`.
-//   16 bits opcode + 16 bits parameter + 32 bits parameter
+//   instructions with two parameters, such as `local_load`, `data_load`, `break`, `recur`.
+//   16 bits opcode + 16 bits parameter + 32 bits parameter (4-byte alignment require)
 // - 96 bits
-//   instructions with two parameters, there are `i64_imm`, `f64_imm`, `block_nez`,
+//   instructions with two parameters, such as `i64_imm`, `f64_imm`, `block_nez`,
 //   `host_addr_memory`, `host_addr_shared_memory`.
-//   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2
+//   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2 (4-byte alignment require)
 //
 // the simplified schemes:
 //
@@ -226,11 +227,11 @@ pub enum Opcode {
     heap_store16,           //                                  (param offset_bytes:i16 heap_index:i32)
     heap_store8,            //                                  (param offset_bytes:i16 heap_index:i32)
 
-    heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
-    heap_copy,              // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)
-
-    heap_size,              // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
-    heap_grow,              //                                  (operand pages:i64)
+    // TODO: MOVE TO ECALL
+    // heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
+    // heap_copy,              // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)
+    // heap_size,              // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
+    // heap_grow,              //                                  (operand pages:i64)
 
     //
     // conversion
@@ -887,7 +888,10 @@ pub enum Opcode {
     call = 0xc00,           // general function call            (param func_index:i32)
     dcall,                  // closure/dynamic function call    (operand func_index:i64)
 
-    // the operand "func_index" is part of the "closure_function_item":
+    // call a function which is specified at runtime.
+    //
+    // when a general or anonymous function is passed to another function as a parameter,
+    // it passs a pointer of a struct 'closure_function_item' actually:
     //
     // closure_function_item {
     //     [ref_count],
@@ -905,7 +909,7 @@ pub enum Opcode {
     //     data_value_ref:i64_ref       // for struct data
     // }
     //
-    // an additional parameter is appended to the closure function automatically when it is compiled to assembly, e.g.
+    // an additional parameter is appended to the ananymous function automatically when it is compiled to assembly, e.g.
     //
     // `let a = fn (i32 a, i32 b) {...}`
     //
@@ -913,8 +917,24 @@ pub enum Opcode {
     //
     // `let a = fn (i32 a, i32 b, pointer captured_items) {...}`
     //
-    // when a general function is passed to another function as a parameter, this function is also wrapped
-    // as a closure function, except the value of 'captured_items' is 0.
+    // ```text
+    //                              |--> func_index --> fn (a, b, captured_items) {...}
+    //                         /----|
+    //                         |    |--> captured_items
+    //                         |
+    // let a = filter(list, predicate)
+    // ```
+    //
+    // for a general function, the compiler generates an anonymous function for wrapping the
+    // general function, e.g.
+    //
+    // ```text
+    //                              |--> func_index --> | fn (a, b, captured_items)
+    //                         /----|                   | {
+    //                         |    |--> 0              |     the_general_function(a, b)
+    //                         |                        | }
+    // let a = filter(list, predicate)
+    // ```
     //
     // an example of "dcall" instruction:
     //
@@ -922,7 +942,7 @@ pub enum Opcode {
     // type F = signature (i32, i32) result boolean
     // function filter(List data, F predicate) {
     //    ...
-    //    let pass = predicate(1, 2)
+    //    let a = predicate(...)
     //    ...
     // }
     // ```
@@ -932,9 +952,7 @@ pub enum Opcode {
     // ```clojure
     // (func (param $data i64) (param $predicate i64)
     //    ...
-    //    (i32.imm 1)
-    //    (i32.imm 2)
-    //    (local.get $predicate)
+    //    (local.get $predicate 0)  ;; get the target function index
     //    dcall
     //    ...
     // )
@@ -944,27 +962,18 @@ pub enum Opcode {
 
     scall,                  // syscall                          (param sys_call_num:i32)
                             // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
-
+                            //
     ccall,                  // external C function call         (param c_func_index:i32)
-
-    //
-    // host memory address
-    //
-
-    host_addr_local = 0xd00,    // (param local_variable_index:i32)
-    host_addr_data,             // (param data_index:i32)
-    host_addr_heap,             // (param addr_low:i32, addr_high: i32)
-    host_addr_function,         // (param func_index:i32)
-                                // note:
-                                // a host function will be created when `addr_function` is executed, as well as
-                                // the specified VM function will be appended to the "function pointer table" to
-                                // prevent duplicate creation.
+                            //
+                            // note that both 'scall' and 'ccall' are optional instructions, they may be
+                            // unavailable in some environment.
+                            // the supported feature list can be obtained through the 'ecall' instruction with code 'features'.
 
     //
     // VM status
     //
 
-    sp = 0x1200,            // get stack pointer
+    sp = 0x0d00,            // get stack pointer
     fp,                     // get frame pointer (function stack frame only)
     pc,                     // get program counter (the position of instruction and the current module index)
                             //
@@ -973,20 +982,44 @@ pub enum Opcode {
                             // | inst addr  |
                             // \------------/
                             //
-    tid,                    // get the current thread id
+
+                                // get the host address of memory
+    host_addr_local = 0xe00,    // (param local_variable_index:i32)
+    host_addr_data,             // (param data_index:i32)
+    host_addr_heap,             // (param addr_low:i32, addr_high: i32)
+
 
     //
     // atomic
+    // only available in shared-memory
     //
-
-    i32_cas = 0xe00,        // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
+    //
+    // i32_cas = 0xe00,     // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
                             //
                             //  |                 |
                             //  | new_for_set     |
                             //  | old_for_compare |
                             //  | addr            |
                             //  \-----------------/
+    //
+    // i64_cas,             // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
 
-    i64_cas,                // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
 
+    // TODO: MOVE TO ECALL
+    //host_addr_function,         // (param func_index:i32)
+                                // note:
+                                // a host function will be created when `addr_function` is executed, as well as
+                                // the specified VM function will be appended to the "function pointer table" to
+                                // prevent duplicate creation.
+
+    //
+    // SIMD
+    //
+    // ref:
+    // - https://github.com/rust-lang/portable-simd
+    // - https://doc.rust-lang.org/std/simd/index.html
+    // - https://github.com/rust-lang/packed_simd
+    // - https://github.com/rust-lang/rfcs/blob/master/text/2325-stable-simd.md
 }
+
+pub const MAX_OPCODE_NUMBER:usize = 0x1000;

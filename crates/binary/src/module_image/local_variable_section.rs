@@ -21,11 +21,11 @@
 //
 // the variable "list" is a table too, the "list" layout:
 //
-//              |-------------------------------------------------------------------------------------------------------------|
-//  item 0 -->  | var offset 0 (u32) | var actual length 0 (u32) | data type 0 (u8) | pad (1 byte) | var actual align 0 (u16) | <-- list
-//  item 1 -->  | var offset 1       | var actual length 1       | data type 1      |              | var actual align 1       |
-//              | ...                                                                                                         |
-//              |-------------------------------------------------------------------------------------------------------------|
+//              |-----------------------------------------------------------------------------------------------------------------|
+//  item 0 -->  | var offset 0 (u32) | var actual length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | var actual align 0 (u16) | <-- list
+//  item 1 -->  | var offset 1       | var actual length 1       | mem data type 1      |              | var actual align 1       |
+//              | ...                                                                                                             |
+//              |-----------------------------------------------------------------------------------------------------------------|
 //
 // note that all variables in the 'local variable area' MUST be 8-byte aligned,
 // and their size are padded to a multiple of 8.
@@ -36,7 +36,7 @@
 
 use std::mem::size_of;
 
-use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_types::{MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -81,7 +81,7 @@ pub struct VariableItem {
     pub var_actual_length: u32,
 
     // the data_type field is not necessary at runtime, though it is helpful for debugging.
-    pub data_type: DataType,
+    pub memory_data_type: MemoryDataType,
 
     _padding0: u8,
 
@@ -99,7 +99,7 @@ pub struct VariableItem {
 
 #[derive(Debug, PartialEq)]
 pub struct VariableItemEntry {
-    pub data_type: DataType,
+    pub memory_data_type: MemoryDataType,
 
     // actual length of the variable/data
     pub length: u32,
@@ -110,7 +110,7 @@ pub struct VariableItemEntry {
 impl VariableItemEntry {
     pub fn from_i32() -> Self {
         Self {
-            data_type: DataType::I32,
+            memory_data_type: MemoryDataType::I32,
             length: 4,
             align: 4,
         }
@@ -118,7 +118,7 @@ impl VariableItemEntry {
 
     pub fn from_i64() -> Self {
         Self {
-            data_type: DataType::I64,
+            memory_data_type: MemoryDataType::I64,
             length: 8,
             align: 8,
         }
@@ -126,7 +126,7 @@ impl VariableItemEntry {
 
     pub fn from_f32() -> Self {
         Self {
-            data_type: DataType::F32,
+            memory_data_type: MemoryDataType::F32,
             length: 4,
             align: 4,
         }
@@ -134,7 +134,7 @@ impl VariableItemEntry {
 
     pub fn from_f64() -> Self {
         Self {
-            data_type: DataType::F64,
+            memory_data_type: MemoryDataType::F64,
             length: 8,
             align: 8,
         }
@@ -142,7 +142,7 @@ impl VariableItemEntry {
 
     pub fn from_bytes(length: u32, align: u16) -> Self {
         Self {
-            data_type: DataType::BYTE,
+            memory_data_type: MemoryDataType::BYTES,
             length,
             align,
         }
@@ -153,13 +153,13 @@ impl VariableItem {
     pub fn new(
         var_offset: u32,
         var_actual_length: u32,
-        data_type: DataType,
+        data_type: MemoryDataType,
         var_actual_align: u16,
     ) -> Self {
         Self {
             var_offset,
             var_actual_length,
-            data_type,
+            memory_data_type: data_type,
             _padding0: 0,
             var_actual_align,
         }
@@ -220,7 +220,7 @@ impl<'a> LocalVariableSection<'a> {
                         let item = VariableItem::new(
                             next_offset,
                             entry.length,
-                            entry.data_type,
+                            entry.memory_data_type,
                             entry.align,
                         );
 
@@ -289,7 +289,7 @@ impl<'a> LocalVariableSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::DataType;
+    use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
         local_variable_section::{VariableItem, VariableList},
@@ -647,10 +647,10 @@ mod tests {
         assert_eq!(
             list0,
             &vec![
-                VariableItem::new(0, 4, DataType::I32, 4),
-                VariableItem::new(8, 8, DataType::I64, 8),
-                VariableItem::new(16, 4, DataType::F32, 4),
-                VariableItem::new(24, 8, DataType::F64, 8),
+                VariableItem::new(0, 4, MemoryDataType::I32, 4),
+                VariableItem::new(8, 8, MemoryDataType::I64, 8),
+                VariableItem::new(16, 4, MemoryDataType::F32, 4),
+                VariableItem::new(24, 8, MemoryDataType::F64, 8),
             ]
         );
 
@@ -658,12 +658,12 @@ mod tests {
         assert_eq!(
             list1,
             &vec![
-                VariableItem::new(0, 4, DataType::I32, 4),
-                VariableItem::new(8, 1, DataType::BYTE, 2),
-                VariableItem::new(16, 4, DataType::I32, 4),
-                VariableItem::new(24, 6, DataType::BYTE, 12),
-                VariableItem::new(32, 12, DataType::BYTE, 16),
-                VariableItem::new(48, 4, DataType::I32, 4),
+                VariableItem::new(0, 4, MemoryDataType::I32, 4),
+                VariableItem::new(8, 1, MemoryDataType::BYTES, 2),
+                VariableItem::new(16, 4, MemoryDataType::I32, 4),
+                VariableItem::new(24, 6, MemoryDataType::BYTES, 12),
+                VariableItem::new(32, 12, MemoryDataType::BYTES, 16),
+                VariableItem::new(48, 4, MemoryDataType::I32, 4),
             ]
         );
 
@@ -671,7 +671,10 @@ mod tests {
         assert_eq!(list2.len(), 0);
 
         let list3 = section.get_variable_list(3);
-        assert_eq!(list3, &vec![VariableItem::new(0, 1, DataType::BYTE, 4),]);
+        assert_eq!(
+            list3,
+            &vec![VariableItem::new(0, 1, MemoryDataType::BYTES, 4),]
+        );
 
         let list4 = section.get_variable_list(4);
         assert_eq!(list4.len(), 0);
@@ -680,6 +683,9 @@ mod tests {
         assert_eq!(list5.len(), 0);
 
         let list6 = section.get_variable_list(6);
-        assert_eq!(list6, &vec![VariableItem::new(0, 4, DataType::I32, 4),]);
+        assert_eq!(
+            list6,
+            &vec![VariableItem::new(0, 4, MemoryDataType::I32, 4),]
+        );
     }
 }

@@ -140,10 +140,10 @@ impl<'a> Thread<'a> {
     pub fn push_values(&mut self, values: &[ForeignValue]) {
         for value in values {
             match value {
-                ForeignValue::I32(value) => self.stack.push_u32(*value),
-                ForeignValue::I64(value) => self.stack.push_u64(*value),
-                ForeignValue::F32(value) => self.stack.push_f32(*value),
-                ForeignValue::F64(value) => self.stack.push_f64(*value),
+                ForeignValue::UInt32(value) => self.stack.push_u32(*value),
+                ForeignValue::UInt64(value) => self.stack.push_u64(*value),
+                ForeignValue::Float32(value) => self.stack.push_f32(*value),
+                ForeignValue::Float64(value) => self.stack.push_f64(*value),
             }
         }
     }
@@ -162,11 +162,10 @@ impl<'a> Thread<'a> {
             .iter()
             .rev()
             .map(|data_type| match data_type {
-                DataType::I32 => ForeignValue::I32(self.stack.pop_u32()),
-                DataType::I64 => ForeignValue::I64(self.stack.pop_u64()),
-                DataType::F32 => ForeignValue::F32(self.stack.pop_f32()),
-                DataType::F64 => ForeignValue::F64(self.stack.pop_f64()),
-                _ => panic!("Foreign interface does not support byte type."),
+                DataType::I32 => ForeignValue::UInt32(self.stack.pop_u32()),
+                DataType::I64 => ForeignValue::UInt64(self.stack.pop_u64()),
+                DataType::F32 => ForeignValue::Float32(self.stack.pop_f32()),
+                DataType::F64 => ForeignValue::Float64(self.stack.pop_f64()),
             })
             .collect::<Vec<_>>();
         reversed_results.reverse();
@@ -231,9 +230,9 @@ impl<'a> Thread<'a> {
     /// 64 bits instruction
     /// [opcode + padding + i32]
     ///
-    /// note:
-    /// to simplify data type conversion, all integers in instructions are
-    /// read and written as unsigned integers.
+    /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
+    /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
+    /// the same applies to the i8, i16 and i64.
     pub fn get_param_i32(&self) -> u32 {
         let data = self.get_instruction(4, 4);
         let ptr_u32 = data.as_ptr() as *const u32;

@@ -25,9 +25,9 @@ impl BytecodeWriter {
         self
     }
 
-    /// note:
-    /// to simplify data type conversion, all integers in instructions are
-    /// read and written as unsigned integers.
+    /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
+    /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
+    /// the same applies to the i8, i16 and i64.
     fn start_opcode_with_i16(self, opcode: Opcode, value: u16) -> Self {
         let mut new_self = self.start_opcode(opcode);
         let data = value.to_le_bytes();
@@ -45,47 +45,73 @@ impl BytecodeWriter {
         self
     }
 
+    fn require_4bytes_padding(self) -> Self {
+        if self.buffer.len() % 4 != 0 {
+            // insert padding instruction
+            self.start_opcode(Opcode::nop)
+        } else {
+            self
+        }
+    }
+
+    /// 16-bit instruction
     pub fn write_opcode(self, opcode: Opcode) -> Self {
         self.start_opcode(opcode)
     }
 
+    /// (16+16)-bit instruction
     pub fn write_opcode_i16(self, opcode: Opcode, value: u16) -> Self {
         self.start_opcode_with_i16(opcode, value)
     }
 
+    /// 64-bit instruction
     pub fn write_opcode_i32(self, opcode: Opcode, value: u32) -> Self {
-        self.start_opcode_with_16bits_padding(opcode)
+        self.require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode)
             .append_i32(value)
     }
 
+    /// 64-bit instruction
     pub fn write_opcode_i16_i32(self, opcode: Opcode, param0: u16, param1: u32) -> Self {
-        self.start_opcode_with_i16(opcode, param0)
+        self.require_4bytes_padding()
+            .start_opcode_with_i16(opcode, param0)
             .append_i32(param1)
     }
 
+    /// 96-bit instruction
     pub fn write_opcode_i32_i32(self, opcode: Opcode, param0: u32, param1: u32) -> Self {
-        self.start_opcode_with_16bits_padding(opcode)
+        self.require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode)
             .append_i32(param0)
             .append_i32(param1)
     }
 
+    /// 96-bit instruction
     pub fn write_opcode_pesudo_i64(self, opcode: Opcode, value: u64) -> Self {
         let data = value.to_le_bytes();
-        let mut new_self = self.start_opcode_with_16bits_padding(opcode);
+        let mut new_self = self
+            .require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode);
         new_self.buffer.write_all(&data).unwrap();
         new_self
     }
 
+    /// 64-bit instruction
     pub fn write_opcode_pesudo_f32(self, opcode: Opcode, value: f32) -> Self {
         let data = value.to_le_bytes();
-        let mut new_self = self.start_opcode_with_16bits_padding(opcode);
+        let mut new_self = self
+            .require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode);
         new_self.buffer.write_all(&data).unwrap();
         new_self
     }
 
+    /// 96-bit instruction
     pub fn write_opcode_pesudo_f64(self, opcode: Opcode, value: f64) -> Self {
         let data = value.to_le_bytes();
-        let mut new_self = self.start_opcode_with_16bits_padding(opcode);
+        let mut new_self = self
+            .require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode);
         new_self.buffer.write_all(&data).unwrap();
         new_self
     }
@@ -102,6 +128,7 @@ impl BytecodeWriter {
 #[cfg(test)]
 pub mod test_helper {
     use ancvm_binary::module_image::{
+        data_section::{DataEntry, UninitDataEntry},
         func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
         local_variable_section::{LocalVariableSection, VariableItemEntry},
@@ -112,6 +139,26 @@ pub mod test_helper {
     use ancvm_types::DataType;
 
     pub fn build_module_binary_with_single_function(
+        params: Vec<DataType>,
+        results: Vec<DataType>,
+        codes: Vec<u8>,
+        local_variables: Vec<VariableItemEntry>,
+    ) -> Vec<u8> {
+        build_module_binary_with_single_function_and_data_sections(
+            vec![],
+            vec![],
+            vec![],
+            params,
+            results,
+            codes,
+            local_variables,
+        )
+    }
+
+    pub fn build_module_binary_with_single_function_and_data_sections(
+        read_only_datas: Vec<DataEntry>,
+        read_write_datas: Vec<DataEntry>,
+        uninit_datas: Vec<UninitDataEntry>,
         params: Vec<DataType>,
         results: Vec<DataType>,
         codes: Vec<u8>,
@@ -213,7 +260,7 @@ mod tests {
             RangeItem,
         },
     };
-    use ancvm_types::{opcode::Opcode, DataType};
+    use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
     use crate::{
         resizeable_memory::ResizeableMemory,
@@ -303,7 +350,7 @@ mod tests {
         assert_eq!(module.local_variable_section.lists.len(), 1);
         assert_eq!(
             module.local_variable_section.get_variable_list(0),
-            &vec![VariableItem::new(0, 4, DataType::I32, 4)]
+            &vec![VariableItem::new(0, 4, MemoryDataType::I32, 4)]
         );
 
         /*
@@ -336,7 +383,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytecode_writer() {
+    fn test_bytecode_writer_schemes() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
             .to_bytes();
@@ -424,5 +471,104 @@ mod tests {
                 0x0b, 0x86, 0x0b, 0x39, // param 1
             ]
         );
+    }
+
+    #[test]
+    fn test_bytecode_writer_padding() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16(Opcode::i32_shl, 0x5)
+            .write_opcode_i16(Opcode::i32_shr_s, 0x7)
+            // padding
+            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
+            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
+            .write_opcode(Opcode::i32_sub)
+            .write_opcode(Opcode::i32_mul)
+            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
+            .write_opcode(Opcode::i32_div_s)
+            // padding
+            .write_opcode_i32(Opcode::block, 0x41)
+            .write_opcode_i32(Opcode::call, 0x43)
+            .write_opcode(Opcode::i32_div_u)
+            // padding
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
+            .write_opcode_i32_i32(Opcode::block_nez, 0x59, 0x61)
+            .to_bytes();
+
+        assert_eq!(
+            code0,
+            vec![
+                // i32_add
+                0x00, 0x08, //
+                // i32_shl 0x5
+                0x07, 0x09, //
+                0x5, 0, //
+                // i32_shr_s 0x7
+                0x08, 0x09, //
+                0x7, 0, //
+                // padding nop
+                0x00, 0x01, //
+                // local_load 0x11 0x13
+                0x00, 0x03, //
+                0x11, 0x00, //
+                0x13, 0x00, 0x00, 0x00, //
+                // local_store 0x17 0x19
+                0x08, 0x03, //
+                0x17, 0x00, //
+                0x19, 0x00, 0x00, 0x00, //
+                // i32_sub
+                0x01, 0x08, //
+                // i32_mul
+                0x02, 0x08, //
+                // local_load 0x23 0x29
+                0x00, 0x03, //
+                0x23, 0x00, //
+                0x29, 0x00, 0x00, 0x00, //
+                // local_store 0x31 0x37
+                0x08, 0x03, //
+                0x31, 0x00, //
+                0x37, 0x00, 0x00, 0x00, //
+                // i32_div_s
+                0x03, 0x08, //
+                // padding nop
+                0x00, 0x01, //
+                // block 0x41
+                0x01, 0x0b, //
+                0x00, 0x00, //
+                0x41, 0x00, 0x00, 0x00, //
+                // call 0x43
+                0x00, 0x0c, //
+                0x00, 0x00, //
+                0x43, 0x00, 0x00, 0x00, //
+                // i32_div_u
+                0x04, 0x08, //
+                // padding nop
+                0x00, 0x01, //
+                // i64_imm 0x47 0x53
+                0x01, 0x02, //
+                0x00, 0x00, //
+                0x47, 0x00, 0x00, 0x00, //
+                0x53, 0x00, 0x00, 0x00, //
+                // block_nez 0x59 0x61
+                0x04, 0x0b, //
+                0x00, 0x00, //
+                0x59, 0x00, 0x00, 0x00, //
+                0x61, 0x00, 0x00, 0x00, //
+            ]
+        );
+    }
+
+    union AB {
+        a:DataType,
+        b:u8
+    }
+
+    #[test]
+    fn test_union(){
+        let b = unsafe {
+            AB{b:3}.a
+        };
+        println!("{:?}", b);
     }
 }
