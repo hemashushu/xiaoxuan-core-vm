@@ -155,7 +155,7 @@ pub fn save_section_with_table_and_data_area<T>(
 
     if remainder != 0 {
         let padding = DATA_ALIGN_BYTES - remainder;
-        for _ in 0..padding {
+        for _count in 0..padding {
             writer.write(b"\0")?;
         }
     }

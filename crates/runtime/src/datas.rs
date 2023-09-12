@@ -50,7 +50,7 @@ impl Memory for ReadOnlyDatas<'_> {
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, _: usize) -> *mut u8 {
+    fn get_mut_ptr(&mut self, _address: usize) -> *mut u8 {
         panic!("Read-only memory can not be written to.")
     }
 }

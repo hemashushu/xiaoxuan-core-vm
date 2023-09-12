@@ -32,11 +32,12 @@ use crate::memory::Memory;
 /// set of functions.
 pub trait IndexedMemory: Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
+    /// get (offset, length)
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);
 
     #[inline]
     fn get_idx_address(&self, idx: usize, offset: usize) -> usize {
-        let (start, _) = self.get_offset_and_length_by_index(idx);
+        let (start, _length) = self.get_offset_and_length_by_index(idx);
 
         // note
         // the 'offset' value should be checked here to make sure it is

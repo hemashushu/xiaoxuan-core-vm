@@ -411,7 +411,12 @@ mod tests {
     };
 
     #[test]
-    fn test_module_general_sections() {
+    fn test_module_data_sections() {
+        // TODO::
+    }
+
+    #[test]
+    fn test_module_function_sections() {
         // build TypeSection instance
 
         let mut type_entries: Vec<TypeEntry> = Vec::new();
@@ -812,7 +817,7 @@ mod tests {
             ]
         );
 
-        let (func_index_section_data, _) = remains.split_at(28);
+        let (func_index_section_data, _remains) = remains.split_at(28);
 
         assert_eq!(
             func_index_section_data,

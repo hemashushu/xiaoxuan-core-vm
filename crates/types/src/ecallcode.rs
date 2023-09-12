@@ -22,9 +22,10 @@ pub enum ECallCode {
 
     heap_fill,          // fill the specified memory region with specified value    (param start_addr:i64, count:i64, value:i8)
     heap_copy,          // copy the specified memory region to specified address    (param src_addr:i64, dst_addr:i64, length:i64)
-    heap_size,          // the result is the amount of the thread-local
-                        // memory (i.e. heap) pages, each page is 32 KiB
+    heap_size,          // return the amount of the thread-local
+                        // memory (i.e. heap) pages, each page is 32 KiB by default
     heap_grow,          // increase the heap size                                   (param pages:i64)
+                        // return the new size (in pages)
 
     // thread
 
@@ -41,12 +42,12 @@ pub enum ECallCode {
     //                          |                                      | |       | |
     //                          |  /---------------\                   | | <-----/ |
     //                          |  | message box   | <---------------------------/
-    //                          |  \---------------/                   | |
-    //                          |                                      | |
-    //                          |  /----------\  /------\  /-------\   | |
-    //                          |  | backpack |  | heap |  | stack |   | |
-    //                          |  \----------/  \------/  \-------/   | |
-    //                          |                                      | |
+    //    (UNDECIDED)           |  \---------------/                   | |
+    // /---------------\  load  |                                      | |
+    // |               | -----> |  /----------\  /------\  /-------\   | |
+    // | shared memory |        |  | backpack |  | heap |  | stack |   | |
+    // |               | <----- |  \----------/  \------/  \-------/   | |
+    // \---------------/ store  |                                      | |
     //                          |  /-----------------\     status      | |
     //   module                 |  | read-write data |-\   /----\      | |
     // /----------------\       |  | uninit. data    | |   | SP |      | |
@@ -62,15 +63,18 @@ pub enum ECallCode {
     //                                           threads
     //
     // note that the heap, stack, data sections, backpack and messagebox are all thread-local,
-    // by default the XiaoXuan has not 'global' data or variables, as well as no shared-memory.
-    //
-    // threads can only comunicate through message box.
+    // by default the XiaoXuan has no 'global' data or variables.
+    // threads can comunicate through message box or shared-memory.
 
     thread_id,          // get the current thread id
     thread_create,      // craete a new thread, return the mailbox id
     thread_msg_send,    // (param mailbox_id:i32)
     thread_msg_reply,   // reply message to parent thread
-    thread_exit,
+    thread_exit,        //
+                        // ref:
+                        // - https://doc.rust-lang.org/std/sync/mpsc/index.html
+                        // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
+                        // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
     // backpack
     //

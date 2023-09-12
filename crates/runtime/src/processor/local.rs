@@ -157,7 +157,7 @@ fn get_data_address_by_index(
 
     // get the local variable info
     let ProgramCounter {
-        instruction_address: _,
+        instruction_address: _instruction_address,
         module_index,
     } = thread.pc;
 

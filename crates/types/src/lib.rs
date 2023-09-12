@@ -11,6 +11,7 @@ use std::{
 
 pub mod ecallcode;
 pub mod opcode;
+pub mod utils;
 
 /// the raw data type of operands
 pub type Operand = [u8; 8];
@@ -86,6 +87,33 @@ pub enum ForeignValue {
     Float64(f64),
 }
 
+/// sometimes you may want to get a specified type from 'dyn RuntimeError',
+/// there is a way to downcast the 'dyn RuntimeError' object to a specified type, e.g.
+///
+/// let some_error:T = unsafe {
+///     &*(runtime_error as *const dyn RuntimeError as *const T)
+/// };
+///
+/// the 'runtime_error' is a 'fat' pointer, it consists of a pointer to the data and
+/// a another pointer to the 'vtable'. the slice object is also a 'fat' pointer, e.g.
+///
+/// let v:Vec<u8> = vec![1,2,3];
+/// let p_fat = &v[..] as *const _;     // this is a fat pointer
+/// let p_thin = p_fat as *const ();    // obtains the first pointer and discard the second pointer
+/// let addr = p_thin as usize;         // check the address in memory
+///
+/// for simplicity, 'RuntimeError' provides function 'as_any' for downcasing, e.g.
+///
+/// let some_error = runtime_error
+///     .as_any
+///     .downcast_ref::<T>()
+///     .expect("...");
+///
+/// ref:
+/// - https://alschwalm.com/blog/static/2017/03/07/exploring-dynamic-dispatch-in-rust/
+/// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
+/// - https://doc.rust-lang.org/std/any/
+/// - https://bennett.dev/rust/downcast-trait-object/
 pub trait RuntimeError: Debug + Display {
     fn get_message(&self) -> &str;
     fn as_any(&self) -> &dyn Any;

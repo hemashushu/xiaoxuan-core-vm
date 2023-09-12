@@ -8,7 +8,7 @@ use crate::thread::Thread;
 
 use super::InterpretResult;
 
-pub fn nop(_: &mut Thread) -> InterpretResult {
+pub fn nop(_thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 

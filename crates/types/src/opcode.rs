@@ -234,12 +234,21 @@ pub enum Opcode {
     // heap_grow,              //                                  (operand pages:i64)
 
     //
+    // shared-memory loading and storing
+    // (UNDECIDED)
+    //
+    // share_load = 0x600,     // load
+    // ...
+    // share_store,
+    // ...
+
+    //
     // conversion
     //
 
     // demote i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_demote_i64 = 0x600,
+    i32_demote_i64 = 0x700,
 
     // promote i32 to i64
     i64_promote_i32_s,
@@ -324,7 +333,7 @@ pub enum Opcode {
     // ;; \----/
     // ```
 
-    i32_eqz = 0x700,
+    i32_eqz = 0x800,
     i32_eq,
     i32_nez,
     i32_ne,
@@ -368,7 +377,7 @@ pub enum Opcode {
     // arithmetic
     //
 
-    i32_add = 0x800,
+    i32_add = 0x900,
     i32_sub,
     i32_mul,
     i32_div_s,
@@ -458,7 +467,7 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0x900,    // bitwise AND
+    i32_and = 0xa00,    // bitwise AND
     i32_or,             // bitwise OR
     i32_xor,            // bitwise XOR
     i32_not,            // bitwise NOT
@@ -523,7 +532,7 @@ pub enum Opcode {
     // math functions
     //
 
-    f32_abs = 0xa00,
+    f32_abs = 0xb00,
     f32_neg,
     f32_ceil,
     f32_floor,
@@ -591,7 +600,7 @@ pub enum Opcode {
     // control flow
     //
 
-    end = 0xb00,        // finish a block or a function.
+    end = 0xc00,        // finish a block or a function.
     // when the 'end' instruction is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
@@ -885,7 +894,7 @@ pub enum Opcode {
     // function
     //
 
-    call = 0xc00,           // general function call            (param func_index:i32)
+    call = 0xd00,           // general function call            (param func_index:i32)
     dcall,                  // closure/dynamic function call    (operand func_index:i64)
 
     // call a function which is specified at runtime.
@@ -973,7 +982,7 @@ pub enum Opcode {
     // VM status
     //
 
-    sp = 0x0d00,            // get stack pointer
+    sp = 0x0e00,            // get stack pointer
     fp,                     // get frame pointer (function stack frame only)
     pc,                     // get program counter (the position of instruction and the current module index)
                             //
@@ -983,26 +992,28 @@ pub enum Opcode {
                             // \------------/
                             //
 
-                                // get the host address of memory
-    host_addr_local = 0xe00,    // (param local_variable_index:i32)
-    host_addr_data,             // (param data_index:i32)
-    host_addr_heap,             // (param addr_low:i32, addr_high: i32)
+    // get the host address of memory
+
+    host_addr_local,        // (param local_variable_index:i32)
+    host_addr_data,         // (param data_index:i32)
+    host_addr_heap,         // (param addr_low:i32, addr_high: i32)
 
 
     //
     // atomic
     // only available in shared-memory
+    // (UNDECIDED)
     //
     //
-    // i32_cas = 0xe00,     // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
-                            //
-                            //  |                 |
-                            //  | new_for_set     |
-                            //  | old_for_compare |
-                            //  | addr            |
-                            //  \-----------------/
-    //
-    // i64_cas,             // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
+    // i32_cas = 0xf00,        // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
+                             //
+                             //  |                 |
+                             //  | new_for_set     |
+                             //  | old_for_compare |
+                             //  | addr            |
+                             //  \-----------------/
+                             //
+    // i64_cas,                // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
 
 
     // TODO: MOVE TO ECALL

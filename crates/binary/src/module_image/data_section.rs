@@ -115,7 +115,10 @@ pub struct UninitDataEntry {
 }
 
 impl DataEntry {
-    pub fn from_i32(value: i32) -> Self {
+    /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
+    /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
+    /// the same applies to the i8, i16 and i64.
+    pub fn from_i32(value: u32) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
 
@@ -127,7 +130,7 @@ impl DataEntry {
         }
     }
 
-    pub fn from_i64(value: i64) -> Self {
+    pub fn from_i64(value: u64) -> Self {
         let mut data: Vec<u8> = Vec::with_capacity(8);
         data.extend(value.to_le_bytes().iter());
 
@@ -289,7 +292,19 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
     }
 }
 
-pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+impl ReadOnlyDataSection<'_> {
+    pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+        convert_from_data_entries(entries)
+    }
+}
+
+impl ReadWriteDataSection<'_> {
+    pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+        convert_from_data_entries(entries)
+    }
+}
+
+fn convert_from_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     // | type  | size | alignment |
     // |-------|------|-----------|
     // | i32   | 4    | 4         |
@@ -317,12 +332,12 @@ pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
             next_offset = data_offset + data_length;
             (padding, data_offset, data_length)
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<(u32, u32, u32)>>();
 
     let items = entries
         .iter()
         .zip(&positions)
-        .map(|(entry, (_, data_offset, data_length))| {
+        .map(|(entry, (_padding, data_offset, data_length))| {
             DataItem::new(
                 *data_offset,
                 *data_length,
@@ -335,7 +350,7 @@ pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     let datas_data = entries
         .iter()
         .zip(&positions)
-        .flat_map(|(entry, (padding, _, _))| {
+        .flat_map(|(entry, (padding, _data_offset, _data_length))| {
             let mut data = vec![0u8; *padding as usize];
             data.extend(entry.data.iter());
             data
@@ -345,50 +360,52 @@ pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     (items, datas_data)
 }
 
-pub fn convert_from_uninit_entries(entries: &[UninitDataEntry]) -> Vec<DataItem> {
-    // | type  | size | alignment |
-    // |-------|------|-----------|
-    // | i32   | 4    | 4         |
-    // | i64   | 8    | 8         |
-    // | f32   | 4    | 4         |
-    // | f64   | 8    | 8         |
-    // | bytes | -    | -         |
+impl UninitDataSection<'_> {
+    pub fn convert_from_entries(entries: &[UninitDataEntry]) -> Vec<DataItem> {
+        // | type  | size | alignment |
+        // |-------|------|-----------|
+        // | i32   | 4    | 4         |
+        // | i64   | 8    | 8         |
+        // | f32   | 4    | 4         |
+        // | f64   | 8    | 8         |
+        // | bytes | -    | -         |
 
-    let mut next_offset: u32 = 0;
+        let mut next_offset: u32 = 0;
 
-    // get the position '(padding, data_offset, data_length)'
+        // get the position '(padding, data_offset, data_length)'
 
-    let positions = entries
-        .iter()
-        .map(|entry| {
-            let remainder = next_offset % (entry.align as u32); // remainder
-            let padding = if remainder != 0 {
-                (entry.align as u32) - remainder
-            } else {
-                0
-            };
+        let positions = entries
+            .iter()
+            .map(|entry| {
+                let remainder = next_offset % (entry.align as u32); // remainder
+                let padding = if remainder != 0 {
+                    (entry.align as u32) - remainder
+                } else {
+                    0
+                };
 
-            let data_offset = next_offset + padding; // the data offset after aligning
-            let data_length = entry.length;
-            next_offset = data_offset + data_length;
-            (padding, data_offset, data_length)
-        })
-        .collect::<Vec<_>>();
+                let data_offset = next_offset + padding; // the data offset after aligning
+                let data_length = entry.length;
+                next_offset = data_offset + data_length;
+                (padding, data_offset, data_length)
+            })
+            .collect::<Vec<(u32,u32,u32)>>();
 
-    let items = entries
-        .iter()
-        .zip(&positions)
-        .map(|(entry, (_, data_offset, data_length))| {
-            DataItem::new(
-                *data_offset,
-                *data_length,
-                entry.memory_data_type,
-                entry.align,
-            )
-        })
-        .collect::<Vec<DataItem>>();
+        let items = entries
+            .iter()
+            .zip(&positions)
+            .map(|(entry, (_padding, data_offset, data_length))| {
+                DataItem::new(
+                    *data_offset,
+                    *data_length,
+                    entry.memory_data_type,
+                    entry.align,
+                )
+            })
+            .collect::<Vec<DataItem>>();
 
-    items
+        items
+    }
 }
 
 #[cfg(test)]
@@ -396,13 +413,11 @@ mod tests {
     use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
-        data_section::{
-            convert_from_uninit_entries, DataEntry, DataItem, UninitDataEntry, UninitDataSection,
-        },
+        data_section::{DataEntry, DataItem, UninitDataEntry, UninitDataSection},
         SectionEntry,
     };
 
-    use super::{convert_from_entries, ReadWriteDataSection};
+    use super::ReadWriteDataSection;
 
     #[test]
     fn test_read_write_data_section() {
@@ -415,7 +430,7 @@ mod tests {
         let data_entry6 = DataEntry::from_i64(17);
         let data_entry7 = DataEntry::from_i32(19);
 
-        let (items, datas) = convert_from_entries(&vec![
+        let (items, datas) = ReadWriteDataSection::convert_from_entries(&vec![
             data_entry0,
             data_entry1,
             data_entry2,
@@ -557,7 +572,7 @@ mod tests {
         let data_entry6 = UninitDataEntry::from_i64();
         let data_entry7 = UninitDataEntry::from_i32();
 
-        let items = convert_from_uninit_entries(&vec![
+        let items = UninitDataSection::convert_from_entries(&vec![
             data_entry0,
             data_entry1,
             data_entry2,

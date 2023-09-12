@@ -265,7 +265,7 @@ impl<'a> LocalVariableSection<'a> {
         // make data
         let list_data = list_vec
             .iter()
-            .flat_map(|(list, _)| {
+            .flat_map(|(list, _list_allocate_bytes)| {
                 let list_item_count = list.len();
                 let total_length_in_bytes = list_item_count * var_item_length_in_bytes;
 

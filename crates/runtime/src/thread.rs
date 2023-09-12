@@ -167,7 +167,7 @@ impl<'a> Thread<'a> {
                 DataType::F32 => ForeignValue::Float32(self.stack.pop_f32()),
                 DataType::F64 => ForeignValue::Float64(self.stack.pop_f64()),
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<ForeignValue>>();
         reversed_results.reverse();
         reversed_results
     }
@@ -211,6 +211,7 @@ impl<'a> Thread<'a> {
         (type_index, code_offset, local_variables_allocate_bytes)
     }
 
+    /// opcode, or
     /// 16 bits instruction
     /// [opcode]
     pub fn get_opcode(&self) -> u16 {
@@ -221,10 +222,10 @@ impl<'a> Thread<'a> {
 
     /// 32 bits instruction
     /// [opcode + i16]
-    pub fn get_param_i16(&self) -> i16 {
+    pub fn get_param_i16(&self) -> u16 {
         let data = self.get_instruction(2, 2);
-        let ptr_i16 = data.as_ptr() as *const i16;
-        unsafe { std::ptr::read(ptr_i16) }
+        let ptr_u16 = data.as_ptr() as *const u16;
+        unsafe { std::ptr::read(ptr_u16) }
     }
 
     /// 64 bits instruction

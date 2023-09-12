@@ -53,7 +53,7 @@ impl<'a> Context<'a> {
         let module_index_section = main_module.get_module_index_section();
         let func_index_section = main_module.get_func_index_section();
         let data_index_section =
-            if let Some(_) = main_module.get_section_index_by_id(SectionId::DataIndex) {
+            if let Some(_idx) = main_module.get_section_index_by_id(SectionId::DataIndex) {
                 main_module.get_data_index_section()
             } else {
                 DataIndexSection {
@@ -74,7 +74,7 @@ impl<'a> Context<'a> {
 impl<'a> Module<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
         let (read_only_data_items, read_only_datas_data) =
-            if let Some(_) = module_image.get_section_index_by_id(SectionId::ReadOnlyData) {
+            if let Some(_idx) = module_image.get_section_index_by_id(SectionId::ReadOnlyData) {
                 let section = module_image.get_read_only_data_section();
                 (section.items, section.datas_data)
             } else {
@@ -82,7 +82,7 @@ impl<'a> Module<'a> {
             };
 
         let (read_write_data_items, read_write_datas_data) =
-            if let Some(_) = module_image.get_section_index_by_id(SectionId::ReadWriteData) {
+            if let Some(_idx) = module_image.get_section_index_by_id(SectionId::ReadWriteData) {
                 let section = module_image.get_read_write_data_section();
                 (section.items, section.datas_data.to_vec())
             } else {
@@ -90,7 +90,7 @@ impl<'a> Module<'a> {
             };
 
         let (uninit_data_items, uninit_datas_data) =
-            if let Some(_) = module_image.get_section_index_by_id(SectionId::UninitData) {
+            if let Some(_idx) = module_image.get_section_index_by_id(SectionId::UninitData) {
                 let section = module_image.get_uninit_data_section();
                 // calculate the total data size of this section.
                 let length = section
