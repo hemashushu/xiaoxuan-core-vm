@@ -112,18 +112,20 @@
 // - 16 bits:
 //   instructions without parameters, such as `i32_eq`, `i32_add`.
 // - 32 bits:
-//   instructions with one parameter, such as `i32_shl`.
+//   instructions with 1 parameter, such as `i32_shl`.
 //   16 bits opcode + 16 bits parameter
 // - 64 bits:
-//   instructions with one parameter, such as `i32_imm`, `f32_imm`, `block`, `call`.
+//   instructions with 1 parameter, such as `i32_imm`, `f32_imm`, `block`, `call`.
 //   16 bits opcode + 16 bits padding + 32 bits parameter (4-byte alignment require)
 // - 64 bits:
-//   instructions with two parameters, such as `local_load`, `data_load`, `break`, `recur`.
-//   16 bits opcode + 16 bits parameter + 32 bits parameter (4-byte alignment require)
+//   instructions with 2 parameters, such as `local_load`, `data_load`, `break`, `recur`.
+//   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
 // - 96 bits
-//   instructions with two parameters, such as `i64_imm`, `f64_imm`, `block_nez`,
-//   `host_addr_memory`, `host_addr_shared_memory`.
-//   16 bits opcode + 16 bits padding + 32 bits parameter 1 + 32 bits parameter 2 (4-byte alignment require)
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_nez`,
+//   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
+// - 96 bits
+//   instructions with 3 parameters, such as `head_load`, `host_addr_memory`
+//   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 + 32 bits parameter 2 (4-byte alignment require)
 //
 // the simplified schemes:
 //
@@ -132,6 +134,7 @@
 // - [opcode i16] - [param i16      ] + [param i32]
 // - [opcode i16] - [padding 16 bits] + [param i32]
 // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
+// - [opcode i16] - [param i16      ] + [param i32] + [param i32]
 //
 // the opcode scheme:
 //
@@ -178,9 +181,15 @@ pub enum Opcode {
 
     //
     // local data/variables loading and storing
+    //
     // load the specified local variable and push onto to the stack, or
     // pop one operand off the stack and set the specified local variable.
     //
+    // note that you CANNOT load/store function arguments using these
+    // instructions.
+    // arguments are at the top of the (operand) stack when a function
+    // starts running, if you need to keep the arguments, you can allocate
+    // local variable slots first and call the 'local_store' instruction multiple times.
 
     local_load = 0x300,     // load local variable              (param offset_bytes:i16 local_variable_index:i32)
     local_load32,           //                                  (param offset_bytes:i16 local_variable_index:i32)
@@ -218,24 +227,18 @@ pub enum Opcode {
     // heap (thread-local memory) loading and storing
     //
 
-    heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_addr:i32)
-    heap_load32,            //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_load32_i16_s,      //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_load32_i16_u,      //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_load32_i8_s,       //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_load32_i8_u,       //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_addr:i32)
-    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_addr:i32)
-    heap_store,             // store heap                       (param offset_bytes:i16 heap_addr:i32)
-    heap_store32,           //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_store16,           //                                  (param offset_bytes:i16 heap_addr:i32)
-    heap_store8,            //                                  (param offset_bytes:i16 heap_addr:i32)
-
-    // TODO: MOVE TO ECALL
-    // heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
-    // heap_copy,              // copy the specified memory region to specified address    (operand src_addr:i64, dst_addr:i64, length:i64)
-    // heap_size,              // the result is the amount of the thread-local memory (i.e. heap) pages, each page is 32 KiB
-    // heap_grow,              //                                  (operand pages:i64)
+    heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32,            //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32_i16_s,      //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32_i16_u,      //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32_i8_s,       //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32_i8_u,       //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_store,             // store heap                       (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_store32,           //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_store16,           //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
+    heap_store8,            //                                  (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
 
     //
     // shared-memory loading and storing
@@ -983,28 +986,33 @@ pub enum Opcode {
                             // the supported feature list can be obtained through the 'ecall' instruction with code 'features'.
 
     //
-    // VM status
+    // host address
     //
 
-    sp = 0x0e00,            // get stack pointer
-    fp,                     // get frame pointer (function stack frame only)
-    pc,                     // get program counter (the position of instruction and the current module index)
-                            //
-                            // |            |
-                            // | module idx |
-                            // | inst addr  |
-                            // \------------/
-                            //
+    // MAYBE USELESS
+    //
+    // sp = 0x0e00,            // get stack pointer
+    // fp,                     // get function stack frame pointer
+    // pc,                     // get program counter (the position of instruction and the current module index)
+    //                         //
+    //                         // |            |
+    //                         // | module idx |
+    //                         // | inst addr  |
+    //                         // \------------/
+    //                         //
 
     // get the host address of memory
+    //
+    // it is currently assumed that the target architecture is 64-bit.
 
-    host_addr_local,        // (param local_variable_index:i32)
-    host_addr_data,         // (param data_index:i32)
-    host_addr_heap,         // (param addr_low:i32, addr_high: i32)
+    host_addr_local = 0x0e00,   // (param offset_bytes:i16 local_variable_index:i32)
+    host_addr_data,             // (param offset_bytes:i16 data_index:i32)
+    host_addr_heap,             // (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
 
 
     //
     // atomic
+    //
     // only available in shared-memory
     // (UNDECIDED)
     //
@@ -1019,13 +1027,6 @@ pub enum Opcode {
                              //
     // i64_cas,                // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
 
-
-    // TODO: MOVE TO ECALL
-    //host_addr_function,         // (param func_index:i32)
-                                // note:
-                                // a host function will be created when `addr_function` is executed, as well as
-                                // the specified VM function will be appended to the "function pointer table" to
-                                // prevent duplicate creation.
 
     //
     // SIMD

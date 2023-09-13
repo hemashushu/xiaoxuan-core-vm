@@ -212,9 +212,6 @@ impl Opcode {
             Opcode::scall => "scall",
             Opcode::ccall => "ccall",
             //
-            Opcode::sp => "sp",
-            Opcode::fp => "fp",
-            Opcode::pc => "pc",
             Opcode::host_addr_local => "host_addr_local",
             Opcode::host_addr_data => "host_addr_data",
             Opcode::host_addr_heap => "host_addr_heap",

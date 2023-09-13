@@ -9,9 +9,8 @@ use std::mem::size_of;
 use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    host_accessable_memory::HostAccessableMemory, memory::Memory,
-    resizeable_memory::ResizeableMemory, type_memory::TypeMemory, MEMORY_PAGE_SIZE_IN_BYTES,
-    STACK_FRAME_SIZE_IN_PAGES,
+    memory::Memory, resizeable_memory::ResizeableMemory, type_memory::TypeMemory,
+    MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
 };
 
 pub struct Stack {
@@ -166,12 +165,12 @@ impl ResizeableMemory for Stack {
     }
 }
 
-impl HostAccessableMemory for Stack {
-    #[inline]
-    fn get_host_address(&self, offset: usize) -> usize {
-        (&self.data[offset..]).as_ptr() as usize
-    }
-}
+// impl HostAccessableMemory for Stack {
+//     #[inline]
+//     fn get_host_address(&self, offset: usize) -> usize {
+//         (&self.data[offset..]).as_ptr() as usize
+//     }
+// }
 
 impl TypeMemory for Stack {
     //
@@ -707,6 +706,7 @@ mod tests {
     use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
     use crate::{
+        memory::Memory,
         resizeable_memory::ResizeableMemory,
         stack::{Frame, Stack},
         type_memory::TypeMemory,
@@ -799,6 +799,37 @@ mod tests {
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3);
 
         assert_eq!(stack.peek_i32(), 19);
+    }
+
+    #[test]
+    fn test_host_address() {
+        let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
+
+        stack.push_i32(11);
+        stack.push_i64(13);
+        stack.push_i32(17);
+        stack.push_i64(19);
+
+        let ptr0 = stack.get_ptr(0) as u64;
+        let ptr1 = stack.get_ptr(8) as u64;
+        let ptr2 = stack.get_ptr(16) as u64;
+        let ptr3 = stack.get_ptr(24) as u64;
+
+        let read_i64 = |addr: u64| -> u64 {
+            let ptr = addr as *const u64;
+            unsafe { std::ptr::read(ptr) }
+        };
+
+        let read_i32 = |addr: u64| -> u32 {
+            let ptr = addr as *const u32;
+            unsafe { std::ptr::read(ptr) }
+        };
+
+        // each operand occurs 8 bytes.
+        assert_eq!(read_i32(ptr0), 11);
+        assert_eq!(read_i64(ptr1), 13);
+        assert_eq!(read_i32(ptr2), 17);
+        assert_eq!(read_i64(ptr3), 19);
     }
 
     #[test]

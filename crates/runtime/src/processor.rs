@@ -17,6 +17,7 @@ type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
 mod control_flow;
 mod data;
+mod host_address;
 mod immediate;
 mod local;
 mod operand;
@@ -28,7 +29,7 @@ pub struct Processor {
 pub enum InterpretResult {
     MoveOn(usize),      // param (increment_in_bytes: usize)
     Jump(usize, usize), // param (module_index: usize, instruction_address: usize)
-    Error(usize),       // param (err_code: usize)
+    EnvError(usize),    // param (err_code: usize)
     End,
 }
 
@@ -38,6 +39,10 @@ fn unreachable(_thread: &mut Thread) -> InterpretResult {
 
 impl Processor {
     pub fn new() -> Processor {
+        // initilize the ecall handlers
+        ecall::init_ecall_handlers();
+
+        // initilize the instruction interpreters
         let mut interpreters: Vec<InterpretFunc> = vec![unreachable; MAX_OPCODE_NUMBER];
 
         // operand
@@ -85,8 +90,12 @@ impl Processor {
         interpreters[Opcode::end as usize] = control_flow::end;
 
         // call
-        ecall::init_ecall_handlers();
         interpreters[Opcode::ecall as usize] = ecall::ecall;
+
+        // host address
+        interpreters[Opcode::host_addr_local as usize] = host_address::host_addr_local;
+        interpreters[Opcode::host_addr_data as usize] = host_address::host_addr_data;
+        interpreters[Opcode::host_addr_heap as usize] = host_address::host_addr_heap;
 
         Self { interpreters }
     }
@@ -107,7 +116,7 @@ impl Processor {
                     thread.pc.module_index = module_index;
                     thread.pc.instruction_address = instruction_address;
                 }
-                InterpretResult::Error(code) => {
+                InterpretResult::EnvError(code) => {
                     panic!("Runtime error, code: {}", code)
                 }
                 InterpretResult::End => break,
@@ -895,5 +904,168 @@ mod tests {
                 ForeignValue::UInt32(0x19171311u32),
             ]
         );
+    }
+
+    #[test]
+    fn test_process_host_address() {
+        //        read-only data section
+        //       |low address    high addr|
+        //       |                        |
+        // index |0              1        |
+        //  type |i32------|    |i32------|
+        //
+        //  data 11 00 00 00    13 00 00 00
+        //
+        //        read write data section
+        //       |low address             high address|
+        //       |                                    |
+        // index |2(0)                       3(1)     |
+        //  type |i64------------------|    |i32------|
+        //
+        //  data 17 00 00 00 00 00 00 00    19 00 00 00
+        //
+        //        uninitialized data section
+        //       |low address             high address|
+        //       |                                    |
+        // index |4(0)           5(1)                 |
+        //  type |i32------|    |i64------------------|
+        //
+        //  data 23 00 00 00    29 00 00 00 00 00 00 00
+        //
+        //        local variable area
+        //       |low address                                       high addr|
+        //       |                                                           |
+        // index |0       1                           2                      |
+        //  type |bytes| |i32------|   |padding--|   |i32------|   |padding--|
+        //
+        //  data 0.....0 31 00 00 00   00 00 00 00   37 00 00 00   00 00 00 00
+        //       ^
+        //       | 64 bytes
+        //       |because the results will overwrite the stack, so leave enough space for results
+        //
+        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+
+        let processor = Processor::new();
+
+        // bytecodes
+        //
+        // 0x0000 i64_imm              0x17 0x0
+        // 0x000c data_store           0 2
+        // 0x0014 i32_imm              0x19
+        // 0x001c data_store32         0 3
+        // 0x0024 i32_imm              0x23
+        // 0x002c data_store32         0 4
+        // 0x0034 i64_imm              0x29 0x0
+        // 0x0040 data_store           0 5
+        // 0x0048 i32_imm              0x31
+        // 0x0050 local_store32        0 1
+        // 0x0058 i32_imm              0x37
+        // 0x0060 local_store32        0 2
+        // 0x0068 host_addr_data       0 0
+        // 0x0070 host_addr_data       0 1
+        // 0x0078 host_addr_data       0 2
+        // 0x0080 host_addr_data       0 3
+        // 0x0088 host_addr_data       0 4
+        // 0x0090 host_addr_data       0 5
+        // 0x0098 host_addr_local      0 1
+        // 0x00a0 host_addr_local      0 2
+        // 0x00a8 end
+        //
+        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
+            .write_opcode_i16_i32(Opcode::data_store, 0, 2)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0x19)
+            .write_opcode_i16_i32(Opcode::data_store32, 0, 3)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0x23)
+            .write_opcode_i16_i32(Opcode::data_store32, 0, 4)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x29)
+            .write_opcode_i16_i32(Opcode::data_store, 0, 5)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0x31)
+            .write_opcode_i16_i32(Opcode::local_store32, 0, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0x37)
+            .write_opcode_i16_i32(Opcode::local_store32, 0, 2)
+            //
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 1)
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 2)
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 3)
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 4)
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 5)
+            //
+            .write_opcode_i16_i32(Opcode::host_addr_local, 0, 1)
+            .write_opcode_i16_i32(Opcode::host_addr_local, 0, 2)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
+            vec![
+                DataEntry::from_i64(0xee), // init data
+                DataEntry::from_i32(0xff), // init data
+            ],
+            vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+            ], // results
+            code0,
+            vec![
+                VariableItemEntry::from_bytes(64, 8), // space
+                VariableItemEntry::from_i32(),
+                VariableItemEntry::from_i32(),
+            ], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        let fvs = result0.unwrap();
+
+        // it is currently assumed that the target architecture is 64-bit.
+
+        let read_i64 = |fv: ForeignValue| -> u64 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u64;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        let read_i32 = |fv: ForeignValue| -> u32 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u32;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        assert_eq!(read_i32(fvs[0]), 0x11);
+        assert_eq!(read_i32(fvs[1]), 0x13);
+        assert_eq!(read_i64(fvs[2]), 0x17);
+        assert_eq!(read_i32(fvs[3]), 0x19);
+        assert_eq!(read_i32(fvs[4]), 0x23);
+        assert_eq!(read_i64(fvs[5]), 0x29);
+
+        assert_eq!(read_i32(fvs[6]), 0x31);
+        assert_eq!(read_i32(fvs[7]), 0x37);
     }
 }

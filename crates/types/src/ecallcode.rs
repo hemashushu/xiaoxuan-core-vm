@@ -15,10 +15,11 @@ pub enum ECallCode {
     // info
 
     runtime_name = 0x100,   // get the VM runtime code name
-                            // (buf_ptr: u64) -> name_len:u32
+                            // `fn (buf_ptr: i64) -> name_len:i32`
                             //
     runtime_version,        // get the VM runtime version
-                            // () -> version:u64
+                            // `fn () -> version:i64`
+                            //
                             // 0x0000_0000_0000_0000
                             //        |    |    |
                             //        |    |    |patch version
@@ -27,16 +28,23 @@ pub enum ECallCode {
                             //
     runtime_features,       // get a list of feature names separated by commas, e.g.
                             // "scall,ccall,shared_memory"
-                            // (buf_ptr: u64) -> feature_list_len:u32
+                            //
+                            // `fn (buf_ptr: i64) -> feature_list_len:i32`
 
     // heap memory
 
-    heap_fill,          // fill the specified memory region with specified value    (param start_addr:i64, count:i64, value:i8)
-    heap_copy,          // copy the specified memory region to specified address    (param src_addr:i64, dst_addr:i64, length:i64)
-    heap_size,          // return the amount of the thread-local
-                        // memory (i.e. heap) pages, each page is 32 KiB by default
-    heap_grow,          // increase the heap size                                   (param pages:i64)
-                        // return the new size (in pages)
+    heap_fill,              // fill the specified memory region with the specified (i8) value
+                            // `fn (start_heap_offset:i64, value:i8, count:i64)`
+                            //
+    heap_copy,              // copy the specified memory region to the specified location
+                            // `fn (dst_heap_offset:i64, src_heap_offset:i64, length:i64)`
+                            //
+    heap_capacity,          // return the amount of pages of the thread-local
+                            // memory (i.e. heap), each page is 32 KiB by default
+                            //
+    heap_resize,            // increase or decrease the heap size
+                            // return the new capacity (in pages)
+                            // `fn (pages:i64) -> new_pages:i64`
 
     // thread
 
@@ -91,15 +99,16 @@ pub enum ECallCode {
     //
     // 'backpack' is a thread-local data hash map
 
-    backpack_add,            // (param is_ref_type:i8, data:bytes)   add a data item to the backpack
-    backpack_get,            // (param bag_item_id:i32)
-    backpack_remove,         // (param bag_item_id:i32)
+    backpack_add,           // add a data item to backpack
+                            // `fn (is_ref_type:i8, data:bytes)`
+    backpack_get,           // `fn (bag_item_id:i32)`
+    backpack_remove,        // `fn (bag_item_id:i32)`
 
     // foreign function call
 
     create_host_function,
                         // create a new host function and map it to a module function.
-                        // (param module_index:i32 func_index:i32)
+                        // `fn (module_index:i32 func_index:i32)`
                         //
                         // it's commonly used for creating a callback function pointer for external C function.
                         //
@@ -120,10 +129,14 @@ pub enum ECallCode {
     // I/O functions
     //
 
-    write_char = 0x200, // (param fd:i32 char:i32)
-    write_bytes,        // (param fd:i32 addr:i64 length:i64)
-    write_i32,          // (param fd:i32 value:i32)
-    write_i64,          // (param fd:i32 value:i64)
+    print_char = 0x200, // `fn (fd:i32 char:i32)`
+    print_i32,          // `fn (fd:i32 value:i32)`
+    print_i64,          // `fn (fd:i32 value:i64)`
+
+    //
+    // delegate to syscall
+    //
+    write,              // `fn (fd:i32 addr:i64 length:i64)`
 }
 
 pub const MAX_ECALLCODE_NUMBER:usize = 0x300;

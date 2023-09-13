@@ -6,9 +6,7 @@
 
 use ancvm_binary::module_image::data_section::DataItem;
 
-use crate::{
-    host_accessable_memory::HostAccessableMemory, indexed_memory::IndexedMemory, memory::Memory,
-};
+use crate::{indexed_memory::IndexedMemory, memory::Memory};
 
 pub struct ReadOnlyDatas<'a> {
     data_items: &'a [DataItem],
@@ -63,12 +61,12 @@ impl IndexedMemory for ReadOnlyDatas<'_> {
     }
 }
 
-impl HostAccessableMemory for ReadOnlyDatas<'_> {
-    #[inline]
-    fn get_host_address(&self, offset: usize) -> usize {
-        (&self.datas[offset..]).as_ptr() as usize
-    }
-}
+// impl HostAccessableMemory for ReadOnlyDatas<'_> {
+//     #[inline]
+//     fn get_host_address(&self, offset: usize) -> usize {
+//         (&self.datas[offset..]).as_ptr() as usize
+//     }
+// }
 
 impl Memory for ReadWriteDatas<'_> {
     #[inline]
@@ -90,12 +88,12 @@ impl IndexedMemory for ReadWriteDatas<'_> {
     }
 }
 
-impl HostAccessableMemory for ReadWriteDatas<'_> {
-    #[inline]
-    fn get_host_address(&self, offset: usize) -> usize {
-        (&self.datas[offset..]).as_ptr() as usize
-    }
-}
+// impl HostAccessableMemory for ReadWriteDatas<'_> {
+//     #[inline]
+//     fn get_host_address(&self, offset: usize) -> usize {
+//         (&self.datas[offset..]).as_ptr() as usize
+//     }
+// }
 
 impl Memory for UninitDatas<'_> {
     #[inline]
@@ -117,9 +115,9 @@ impl IndexedMemory for UninitDatas<'_> {
     }
 }
 
-impl HostAccessableMemory for UninitDatas<'_> {
-    #[inline]
-    fn get_host_address(&self, offset: usize) -> usize {
-        (&self.datas[offset..]).as_ptr() as usize
-    }
-}
+// impl HostAccessableMemory for UninitDatas<'_> {
+//     #[inline]
+//     fn get_host_address(&self, offset: usize) -> usize {
+//         (&self.datas[offset..]).as_ptr() as usize
+//     }
+// }

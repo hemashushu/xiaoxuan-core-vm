@@ -4,10 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use crate::{
-    host_accessable_memory::HostAccessableMemory, memory::Memory,
-    resizeable_memory::ResizeableMemory, MEMORY_PAGE_SIZE_IN_BYTES,
-};
+use crate::{memory::Memory, resizeable_memory::ResizeableMemory, MEMORY_PAGE_SIZE_IN_BYTES};
 
 pub struct Heap {
     data: Vec<u8>,
@@ -44,9 +41,9 @@ impl ResizeableMemory for Heap {
     }
 }
 
-impl HostAccessableMemory for Heap {
-    #[inline]
-    fn get_host_address(&self, offset: usize) -> usize {
-        (&self.data[offset..]).as_ptr() as usize
-    }
-}
+// impl HostAccessableMemory for Heap {
+//     #[inline]
+//     fn get_host_address(&self, offset: usize) -> usize {
+//         (&self.data[offset..]).as_ptr() as usize
+//     }
+// }

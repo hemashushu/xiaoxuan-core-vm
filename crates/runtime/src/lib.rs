@@ -15,7 +15,6 @@ pub mod context;
 pub mod datas;
 pub mod ecall;
 pub mod heap;
-pub mod host_accessable_memory;
 pub mod indexed_memory;
 pub mod memory;
 pub mod processor;
@@ -30,7 +29,7 @@ const STACK_FRAME_SIZE_IN_PAGES: usize = 1;
 const INIT_STACK_SIZE_IN_PAGES: usize = STACK_FRAME_SIZE_IN_PAGES;
 const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
 
-const RUNTIME_CODE_NAME: &[u8; 6] = b"selina";
+const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 
 // Semantic Versioning
 // - https://semver.org/

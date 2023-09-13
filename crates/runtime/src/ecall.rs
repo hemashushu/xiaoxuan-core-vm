@@ -40,7 +40,7 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
 
     match result {
         Ok(_) => InterpretResult::MoveOn(8),
-        Err(err_code) => InterpretResult::Error(err_code),
+        Err(err_code) => InterpretResult::EnvError(err_code),
     }
 }
 
