@@ -211,17 +211,18 @@ impl<'a> BytecodeReader<'a> {
             let mut line = format!("0x{:04x} {:20} ", offset, opcode.get_name());
 
             match opcode {
+                // operand
                 Opcode::nop | Opcode::drop | Opcode::duplicate => {}
-                //
+                // immediate
                 Opcode::i32_imm | Opcode::f32_imm => {
-                    let p = self.read_param_i32();
-                    line.push_str(&format!("0x{:x}", p));
+                    let v = self.read_param_i32();
+                    line.push_str(&format!("0x{:x}", v));
                 }
                 Opcode::i64_imm | Opcode::f64_imm => {
-                    let (p_low, p_high) = self.read_param_i32_i32();
-                    line.push_str(&format!("0x{:x} 0x{:x}", p_low, p_high));
+                    let (v_low, v_high) = self.read_param_i32_i32();
+                    line.push_str(&format!("0x{:x} 0x{:x}", v_low, v_high));
                 }
-                //
+                // local load/store
                 Opcode::local_load
                 | Opcode::local_load32
                 | Opcode::local_load32_i16_s
@@ -237,7 +238,7 @@ impl<'a> BytecodeReader<'a> {
                     let (offset, index) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, index));
                 }
-                //
+                // data load/store
                 Opcode::data_load
                 | Opcode::data_load32
                 | Opcode::data_load32_i16_s
@@ -253,10 +254,195 @@ impl<'a> BytecodeReader<'a> {
                     let (offset, index) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, index));
                 }
-                //
+                // heap load/store
+                Opcode::heap_load
+                | Opcode::heap_load32
+                | Opcode::heap_load32_i16_s
+                | Opcode::heap_load32_i16_u
+                | Opcode::heap_load32_i8_s
+                | Opcode::heap_load32_i8_u
+                | Opcode::heap_load_f64
+                | Opcode::heap_load32_f32
+                | Opcode::heap_store
+                | Opcode::heap_store32
+                | Opcode::heap_store16
+                | Opcode::heap_store8 => {
+                    let (offset, addr) = self.read_param_i16_i32();
+                    line.push_str(&format!("{} 0x{:x}", offset, addr));
+                }
+                // conversion
+                Opcode::i32_demote_i64
+                | Opcode::i64_promote_i32_s
+                | Opcode::i64_promote_i32_u
+                | Opcode::f32_demote_f64
+                | Opcode::f64_promote_f32
+                | Opcode::i32_trunc_f32_s
+                | Opcode::i32_trunc_f32_u
+                | Opcode::i32_trunc_f64_s
+                | Opcode::i32_trunc_f64_u
+                | Opcode::i64_trunc_f32_s
+                | Opcode::i64_trunc_f32_u
+                | Opcode::i64_trunc_f64_s
+                | Opcode::i64_trunc_f64_u
+                | Opcode::f32_convert_i32_s
+                | Opcode::f32_convert_i32_u
+                | Opcode::f32_convert_i64_s
+                | Opcode::f32_convert_i64_u
+                | Opcode::f64_convert_i32_s
+                | Opcode::f64_convert_i32_u
+                | Opcode::f64_convert_i64_s
+                | Opcode::f64_convert_i64_u => {}
+                // comparsion
+                Opcode::i32_eqz
+                | Opcode::i32_eq
+                | Opcode::i32_nez
+                | Opcode::i32_ne
+                | Opcode::i32_lt_s
+                | Opcode::i32_lt_u
+                | Opcode::i32_gt_s
+                | Opcode::i32_gt_u
+                | Opcode::i32_le_s
+                | Opcode::i32_le_u
+                | Opcode::i32_ge_s
+                | Opcode::i32_ge_u
+                | Opcode::i64_eqz
+                | Opcode::i64_eq
+                | Opcode::i64_nez
+                | Opcode::i64_ne
+                | Opcode::i64_lt_s
+                | Opcode::i64_lt_u
+                | Opcode::i64_gt_s
+                | Opcode::i64_gt_u
+                | Opcode::i64_le_s
+                | Opcode::i64_le_u
+                | Opcode::i64_ge_s
+                | Opcode::i64_ge_u
+                | Opcode::f32_eq
+                | Opcode::f32_ne
+                | Opcode::f32_lt
+                | Opcode::f32_gt
+                | Opcode::f32_le
+                | Opcode::f32_ge
+                | Opcode::f64_eq
+                | Opcode::f64_ne
+                | Opcode::f64_lt
+                | Opcode::f64_gt
+                | Opcode::f64_le
+                | Opcode::f64_ge => {}
+                // arithmetic
+                Opcode::i32_add
+                | Opcode::i32_sub
+                | Opcode::i32_mul
+                | Opcode::i32_div_s
+                | Opcode::i32_div_u
+                | Opcode::i32_rem_s
+                | Opcode::i32_rem_u
+                | Opcode::i64_add
+                | Opcode::i64_sub
+                | Opcode::i64_mul
+                | Opcode::i64_div_s
+                | Opcode::i64_div_u
+                | Opcode::i64_rem_s
+                | Opcode::i64_rem_u
+                | Opcode::f32_add
+                | Opcode::f32_sub
+                | Opcode::f32_mul
+                | Opcode::f32_div
+                | Opcode::f64_add
+                | Opcode::f64_sub
+                | Opcode::f64_mul
+                | Opcode::f64_div => {}
+                // bitwise
+                Opcode::i32_and
+                | Opcode::i32_or
+                | Opcode::i32_xor
+                | Opcode::i32_not
+                | Opcode::i32_clz
+                | Opcode::i32_ctz
+                | Opcode::i32_popcnt
+                | Opcode::i64_and
+                | Opcode::i64_or
+                | Opcode::i64_xor
+                | Opcode::i64_not
+                | Opcode::i64_clz
+                | Opcode::i64_ctz
+                | Opcode::i64_popcnt => {}
+                Opcode::i32_shl
+                | Opcode::i32_shr_s
+                | Opcode::i32_shr_u
+                | Opcode::i32_rotl
+                | Opcode::i32_rotr
+                | Opcode::i64_shl
+                | Opcode::i64_shr_s
+                | Opcode::i64_shr_u
+                | Opcode::i64_rotl
+                | Opcode::i64_rotr => {
+                    let bits = self.read_param_i16();
+                    line.push_str(&format!("{}", bits));
+                }
+                // math
+                Opcode::f32_abs
+                | Opcode::f32_neg
+                | Opcode::f32_ceil
+                | Opcode::f32_floor
+                | Opcode::f32_trunc
+                | Opcode::f32_round_half_to_even
+                | Opcode::f32_sqrt
+                | Opcode::f32_pow
+                | Opcode::f32_exp
+                | Opcode::f32_sin
+                | Opcode::f32_cos
+                | Opcode::f32_tan
+                | Opcode::f32_asin
+                | Opcode::f32_acos
+                | Opcode::f32_atan
+                | Opcode::f32_copysign
+                | Opcode::f64_abs
+                | Opcode::f64_neg
+                | Opcode::f64_ceil
+                | Opcode::f64_floor
+                | Opcode::f64_trunc
+                | Opcode::f64_round_half_to_even
+                | Opcode::f64_sqrt
+                | Opcode::f64_pow
+                | Opcode::f64_exp
+                | Opcode::f64_sin
+                | Opcode::f64_cos
+                | Opcode::f64_tan
+                | Opcode::f64_asin
+                | Opcode::f64_acos
+                | Opcode::f64_atan
+                | Opcode::f64_copysign => {}
+                // control flow
                 Opcode::end => {}
-                //
-                _ => unreachable!(),
+                Opcode::block => {
+                    let type_idx = self.read_param_i32();
+                    line.push_str(&format!("{}", type_idx));
+                }
+                Opcode::block_nez => {
+                    let (type_idx, offset) = self.read_param_i32_i32();
+                    line.push_str(&format!("{} {}", type_idx, offset));
+                }
+                Opcode::return_ | Opcode::recur | Opcode::recur_nez => {
+                    let (deepth, offset) = self.read_param_i16_i32();
+                    line.push_str(&format!("{} {}", deepth, offset));
+                }
+                // function
+                Opcode::call | Opcode::ecall | Opcode::scall | Opcode::ccall => {
+                    let idx = self.read_param_i32();
+                    line.push_str(&format!("{}", idx));
+                }
+                Opcode::dcall => {}
+                // status
+                Opcode::sp | Opcode::fp | Opcode::pc => {}
+                Opcode::host_addr_local | Opcode::host_addr_data => {
+                    let idx = self.read_param_i32();
+                    line.push_str(&format!("{}", idx));
+                }
+                Opcode::host_addr_heap => {
+                    let (addr_low, addr_high) = self.read_param_i32_i32();
+                    line.push_str(&format!("0x{:x} 0x{:x}", addr_low, addr_high));
+                }
             }
 
             let line_clear = line.trim_end().to_string();
@@ -491,7 +677,7 @@ mod tests {
         INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
     };
 
-    use super::BytecodeWriter;
+    use super::{BytecodeReader, BytecodeWriter};
 
     #[test]
     fn test_build_single_function_module_binary_and_data_sections() {
@@ -843,5 +1029,58 @@ mod tests {
                 0x61, 0x00, 0x00, 0x00, //
             ]
         );
+    }
+
+    #[test]
+    fn test_bytecode_reader() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16(Opcode::i32_shl, 5)
+            .write_opcode_i16(Opcode::i32_shr_s, 7)
+            // padding
+            .write_opcode_i16_i32(Opcode::local_load, 11, 13)
+            .write_opcode_i16_i32(Opcode::local_store, 17, 19)
+            .write_opcode(Opcode::i32_sub)
+            .write_opcode(Opcode::i32_mul)
+            .write_opcode_i16_i32(Opcode::local_load, 23, 29)
+            .write_opcode_i16_i32(Opcode::local_store, 31, 37)
+            .write_opcode(Opcode::i32_div_s)
+            // padding
+            .write_opcode_i32(Opcode::block, 41)
+            .write_opcode_i32(Opcode::call, 43)
+            .write_opcode(Opcode::i32_div_u)
+            // padding
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
+            .write_opcode_i32_i32(Opcode::block_nez, 59, 61)
+            .to_bytes();
+
+        let text = BytecodeReader::new(&code0).to_text();
+
+        assert_eq!(
+            text,
+            "
+            0x0000 i32_add
+            0x0002 i32_shl              5
+            0x0006 i32_shr_s            7
+            0x000a nop
+            0x000c local_load           11 13
+            0x0014 local_store          17 19
+            0x001c i32_sub
+            0x001e i32_mul
+            0x0020 local_load           23 29
+            0x0028 local_store          31 37
+            0x0030 i32_div_s
+            0x0032 nop
+            0x0034 block                41
+            0x003c call                 43
+            0x0044 i32_div_u
+            0x0046 nop
+            0x0048 i64_imm              0x47 0x53
+            0x0054 block_nez            59 61"
+                .split('\n')
+                .map(|line| line.trim_start().to_string())
+                .collect::<Vec<String>>()[1..]
+                .join("\n")
+        )
     }
 }

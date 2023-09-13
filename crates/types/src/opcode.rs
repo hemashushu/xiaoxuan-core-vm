@@ -147,6 +147,10 @@
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum Opcode {
+    //
+    // start and operand
+    //
+
     nop = 0x100,        // instruction to do nothing,
                         // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     drop,               // drop one operand (the top most operand)
@@ -214,18 +218,18 @@ pub enum Opcode {
     // heap (thread-local memory) loading and storing
     //
 
-    heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_index:i32)
-    heap_load32,            //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load32_i16_s,      //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load32_i16_u,      //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load32_i8_s,       //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load32_i8_u,       //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
-    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_index:i32)
-    heap_store,             // store heap                       (param offset_bytes:i16 heap_index:i32)
-    heap_store32,           //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_store16,           //                                  (param offset_bytes:i16 heap_index:i32)
-    heap_store8,            //                                  (param offset_bytes:i16 heap_index:i32)
+    heap_load = 0x500,      // load heap                        (param offset_bytes:i16 heap_addr:i32)
+    heap_load32,            //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_load32_i16_s,      //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_load32_i16_u,      //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_load32_i8_s,       //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_load32_i8_u,       //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16 heap_addr:i32)
+    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16 heap_addr:i32)
+    heap_store,             // store heap                       (param offset_bytes:i16 heap_addr:i32)
+    heap_store32,           //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_store16,           //                                  (param offset_bytes:i16 heap_addr:i32)
+    heap_store8,            //                                  (param offset_bytes:i16 heap_addr:i32)
 
     // TODO: MOVE TO ECALL
     // heap_fill,              // fill the specified memory region with specified value    (operand start_addr:i64, count:i64, value:i8)
@@ -895,7 +899,7 @@ pub enum Opcode {
     //
 
     call = 0xd00,           // general function call            (param func_index:i32)
-    dcall,                  // closure/dynamic function call    (operand func_index:i64)
+    dcall,                  // closure/dynamic function call    (param VOID) (operand func_index:i64)
 
     // call a function which is specified at runtime.
     //

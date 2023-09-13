@@ -110,9 +110,9 @@ use self::{
 //              | ...                                                                      |
 //              |--------------------------------------------------------------------------|
 
-const MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // for "ANCS module"
-const MAJOR_VERSION: u16 = 1;
-const MINOR_VERSION: u16 = 0;
+const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // for "ANCS module"
+const IMAGE_MAJOR_VERSION: u16 = 1;
+const IMAGE_MINOR_VERSION: u16 = 0;
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
@@ -208,7 +208,7 @@ pub trait SectionEntry<'a> {
 impl<'a> ModuleImage<'a> {
     pub fn load(image_data: &'a [u8]) -> Result<Self, BinaryError> {
         let magic_slice = &image_data[0..8];
-        if magic_slice != MAGIC_NUMBER {
+        if magic_slice != IMAGE_MAGIC_NUMBER {
             return Err(BinaryError {
                 message: "Not a module image file.".to_owned(),
             });
@@ -224,7 +224,7 @@ impl<'a> ModuleImage<'a> {
         let ptr_version = unsafe { ptr.offset(8) };
         let version = unsafe { std::ptr::read(ptr_version as *const u32) };
 
-        let runtime_version = ((MAJOR_VERSION as u32) << 16) | (MINOR_VERSION as u32);
+        let runtime_version = ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32);
         if version > runtime_version {
             return Err(BinaryError {
                 message: "The module requires a newer version of the runtime.".to_owned(),
@@ -249,9 +249,9 @@ impl<'a> ModuleImage<'a> {
 
     pub fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         // write header
-        writer.write_all(MAGIC_NUMBER)?;
-        writer.write_all(&MINOR_VERSION.to_le_bytes())?;
-        writer.write_all(&MAJOR_VERSION.to_le_bytes())?;
+        writer.write_all(IMAGE_MAGIC_NUMBER)?;
+        writer.write_all(&IMAGE_MINOR_VERSION.to_le_bytes())?;
+        writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
         writer.write_all(&vec![0u8, 0, 0, 0])?; // padding, 4 bytes
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
@@ -407,7 +407,7 @@ mod tests {
         local_variable_section::{LocalVariableSection, VariableItem, VariableItemEntry},
         module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
         type_section::{TypeEntry, TypeSection},
-        ModuleImage, RangeItem, SectionEntry, MAGIC_NUMBER,
+        ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
     };
 
     #[test]
@@ -492,7 +492,7 @@ mod tests {
         let mut image_data: Vec<u8> = Vec::new();
         module_image.save(&mut image_data).unwrap();
 
-        assert_eq!(&image_data[0..8], MAGIC_NUMBER);
+        assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
         assert_eq!(&image_data[8..10], &vec![0, 0]); // minor version number, little endian
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
@@ -732,7 +732,7 @@ mod tests {
         let mut image_data: Vec<u8> = Vec::new();
         module_image.save(&mut image_data).unwrap();
 
-        assert_eq!(&image_data[0..8], MAGIC_NUMBER);
+        assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
         assert_eq!(&image_data[8..10], &vec![0, 0]); // minor version number, little endian
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);

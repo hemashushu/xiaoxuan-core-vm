@@ -15,7 +15,6 @@ pub fn local_load(thread: &mut Thread) -> InterpretResult {
     // (param offset_bytes:i16 local_variable_index:i32)
 
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     // there are two ways to transfer data from memory to stack, one way
     // is to read data from memory to a (integer) variable and then
@@ -31,6 +30,7 @@ pub fn local_load(thread: &mut Thread) -> InterpretResult {
     // so the second method is adopted.
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_64(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -38,9 +38,9 @@ pub fn local_load(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -48,9 +48,9 @@ pub fn local_load32(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32_i16_s(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i16(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -58,9 +58,9 @@ pub fn local_load32_i16_s(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32_i16_u(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_u16(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -68,9 +68,9 @@ pub fn local_load32_i16_u(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32_i8_s(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i8(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -78,9 +78,9 @@ pub fn local_load32_i8_s(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32_i8_u(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_u8(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -88,9 +88,9 @@ pub fn local_load32_i8_u(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load32_f32(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_32_with_float_check(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -98,9 +98,9 @@ pub fn local_load32_f32(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_load_f64(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let dst_ptr = thread.stack.push_from_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.load_64_with_float_check(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -110,9 +110,9 @@ pub fn local_store(thread: &mut Thread) -> InterpretResult {
     // (param offset_bytes:i16 local_variable_index:i32)
 
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let src_ptr = thread.stack.pop_to_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.store_64(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -120,9 +120,9 @@ pub fn local_store(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_store32(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let src_ptr = thread.stack.pop_to_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.store_32(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -130,9 +130,9 @@ pub fn local_store32(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_store16(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let src_ptr = thread.stack.pop_to_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.store_16(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -140,9 +140,9 @@ pub fn local_store16(thread: &mut Thread) -> InterpretResult {
 
 pub fn local_store8(thread: &mut Thread) -> InterpretResult {
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
 
     let src_ptr = thread.stack.pop_to_memory();
+    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
     thread.stack.store_8(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)

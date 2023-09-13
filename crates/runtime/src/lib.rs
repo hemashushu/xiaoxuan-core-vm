@@ -13,6 +13,7 @@ use ancvm_types::RuntimeError;
 
 pub mod context;
 pub mod datas;
+pub mod ecall;
 pub mod heap;
 pub mod host_accessable_memory;
 pub mod indexed_memory;
@@ -24,10 +25,18 @@ pub mod thread;
 pub mod type_memory;
 pub mod utils;
 
-pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
-pub const STACK_FRAME_SIZE_IN_PAGES: usize = 1;
-pub const INIT_STACK_SIZE_IN_PAGES: usize = STACK_FRAME_SIZE_IN_PAGES;
-pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
+const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
+const STACK_FRAME_SIZE_IN_PAGES: usize = 1;
+const INIT_STACK_SIZE_IN_PAGES: usize = STACK_FRAME_SIZE_IN_PAGES;
+const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
+
+const RUNTIME_CODE_NAME: &[u8; 6] = b"selina";
+
+// Semantic Versioning
+// - https://semver.org/
+const RUNTIME_MAJOR_VERSION: u16 = 1;
+const RUNTIME_MINOR_VERSION: u16 = 0;
+const RUNTIME_PATCH_VERSION: u16 = 0;
 
 #[derive(Debug)]
 pub struct VMError {

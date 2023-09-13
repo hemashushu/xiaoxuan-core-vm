@@ -11,7 +11,7 @@ use ancvm_types::{
     ForeignValue,
 };
 
-use crate::{thread::Thread, VMError};
+use crate::{ecall, thread::Thread, VMError};
 
 type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
@@ -26,13 +26,14 @@ pub struct Processor {
 }
 
 pub enum InterpretResult {
-    MoveOn(usize),      // PARAM (increment_in_bytes: usize)
-    Jump(usize, usize), // PARAM (module_index: usize, instruction_address: usize)
+    MoveOn(usize),      // param (increment_in_bytes: usize)
+    Jump(usize, usize), // param (module_index: usize, instruction_address: usize)
+    Error(usize),       // param (err_code: usize)
     End,
 }
 
 fn unreachable(_thread: &mut Thread) -> InterpretResult {
-    unreachable!("Invalid instruction.")
+    unreachable!("Invalid opcode.")
 }
 
 impl Processor {
@@ -78,8 +79,14 @@ impl Processor {
         interpreters[Opcode::data_store16 as usize] = data::data_store16;
         interpreters[Opcode::data_store8 as usize] = data::data_store8;
 
+        // heap
+
         // control flow
         interpreters[Opcode::end as usize] = control_flow::end;
+
+        // call
+        ecall::init_ecall_handlers();
+        interpreters[Opcode::ecall as usize] = ecall::ecall;
 
         Self { interpreters }
     }
@@ -99,6 +106,9 @@ impl Processor {
                 InterpretResult::Jump(module_index, instruction_address) => {
                     thread.pc.module_index = module_index;
                     thread.pc.instruction_address = instruction_address;
+                }
+                InterpretResult::Error(code) => {
+                    panic!("Runtime error, code: {}", code)
                 }
                 InterpretResult::End => break,
             }
@@ -207,6 +217,11 @@ mod tests {
             .write_opcode(Opcode::nop)
             .write_opcode(Opcode::end)
             .to_bytes();
+
+        assert_eq!(
+            BytecodeReader::new(&code0).to_text(),
+            "0x0000 nop\n0x0002 end"
+        );
 
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
@@ -814,8 +829,6 @@ mod tests {
             //
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![

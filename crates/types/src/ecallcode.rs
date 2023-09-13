@@ -12,11 +12,22 @@ pub enum ECallCode {
     // runtime functions
     //
 
-    // environment
+    // info
 
-    runtime = 0x100,    // get the VM runtime code name
-    version,            // get the VM runtime version
-    features,           // get the feature list
+    runtime_name = 0x100,   // get the VM runtime code name
+                            // (buf_ptr: u64) -> name_len:u32
+                            //
+    runtime_version,        // get the VM runtime version
+                            // () -> version:u64
+                            // 0x0000_0000_0000_0000
+                            //        |    |    |
+                            //        |    |    |patch version
+                            //        |    |minor
+                            //        |major
+                            //
+    runtime_features,       // get a list of feature names separated by commas, e.g.
+                            // "scall,ccall,shared_memory"
+                            // (buf_ptr: u64) -> feature_list_len:u32
 
     // heap memory
 
