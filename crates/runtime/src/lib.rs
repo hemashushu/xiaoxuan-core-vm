@@ -10,14 +10,16 @@ use std::{
 };
 
 use ancvm_types::RuntimeError;
+use ecall::init_ecall_handlers;
+use interpreter::init_interpreters;
 
 pub mod context;
 pub mod datas;
 pub mod ecall;
 pub mod heap;
 pub mod indexed_memory;
+pub mod interpreter;
 pub mod memory;
-pub mod processor;
 pub mod resizeable_memory;
 pub mod stack;
 pub mod thread;
@@ -36,6 +38,11 @@ const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 const RUNTIME_MAJOR_VERSION: u16 = 1;
 const RUNTIME_MINOR_VERSION: u16 = 0;
 const RUNTIME_PATCH_VERSION: u16 = 0;
+
+pub fn init_runtime() {
+    init_interpreters();
+    init_ecall_handlers();
+}
 
 #[derive(Debug)]
 pub struct VMError {

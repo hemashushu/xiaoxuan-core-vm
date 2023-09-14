@@ -6,7 +6,7 @@
 
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
-use crate::{processor::InterpretResult, thread::Thread};
+use crate::{interpreter::InterpretResult, thread::Thread};
 
 pub mod heap;
 pub mod info;
@@ -17,25 +17,26 @@ fn unreachable(_thread: &mut Thread) -> Result<(), usize> {
     unreachable!("Invalid environment call number.")
 }
 
-pub static mut HANDLERS: Vec<EnvCallHandlerFunc> = vec![];
+static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
+    [unreachable; MAX_ECALLCODE_NUMBER];
 
 pub fn init_ecall_handlers() {
-    let placehold: Vec<EnvCallHandlerFunc> = vec![unreachable; MAX_ECALLCODE_NUMBER];
+    let handlers = unsafe { &mut HANDLERS };
 
-    unsafe {
-        HANDLERS.extend(placehold.iter());
-
-        //
-        HANDLERS[ECallCode::runtime_name as usize] = info::runtime_name;
-        HANDLERS[ECallCode::runtime_version as usize] = info::runtime_version;
+    if handlers[ECallCode::runtime_name as usize] == info::runtime_name {
+        // the initialization can only be called once
+        return;
     }
+
+    handlers[ECallCode::runtime_name as usize] = info::runtime_name;
+    handlers[ECallCode::runtime_version as usize] = info::runtime_version;
 }
 
 pub fn ecall(thread: &mut Thread) -> InterpretResult {
     // (param env_func_num:i32)
 
     let env_func_num = thread.get_param_i32();
-    let func = unsafe { HANDLERS[env_func_num as usize] };
+    let func = unsafe { &HANDLERS[env_func_num as usize] };
     let result = func(thread);
 
     match result {
@@ -50,7 +51,8 @@ mod tests {
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        processor::Processor,
+        init_runtime,
+        interpreter::process_function,
         thread::Thread,
         utils::{
             test_helper::{
@@ -64,8 +66,6 @@ mod tests {
 
     #[test]
     fn test_ecall_runtime_info() {
-        let processor = Processor::new();
-
         // bytecodes
         //
         // 0x0000 ecall                257
@@ -91,7 +91,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
 
         let expect_version_number = RUNTIME_PATCH_VERSION as u64
             | (RUNTIME_MINOR_VERSION as u64) << 16
@@ -137,7 +138,7 @@ mod tests {
         let image1 = load_modules_binary(vec![&binary1]).unwrap();
         let mut thread1 = Thread::new(&image1);
 
-        let result1 = processor.process_function(&mut thread1, 0, 0, &vec![]);
+        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
         let fvs1 = result1.unwrap();
         let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
             i

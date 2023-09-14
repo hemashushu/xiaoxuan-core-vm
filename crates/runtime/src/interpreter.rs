@@ -4,8 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-// processor
-
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
     ForeignValue,
@@ -22,10 +20,6 @@ mod immediate;
 mod local;
 mod operand;
 
-pub struct Processor {
-    pub interpreters: Vec<InterpretFunc>,
-}
-
 pub enum InterpretResult {
     MoveOn(usize),      // param (increment_in_bytes: usize)
     Jump(usize, usize), // param (module_index: usize, instruction_address: usize)
@@ -37,182 +31,184 @@ fn unreachable(_thread: &mut Thread) -> InterpretResult {
     unreachable!("Invalid opcode.")
 }
 
-impl Processor {
-    pub fn new() -> Processor {
-        // initilize the ecall handlers
-        ecall::init_ecall_handlers();
+static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
-        // initilize the instruction interpreters
-        let mut interpreters: Vec<InterpretFunc> = vec![unreachable; MAX_OPCODE_NUMBER];
+/// initilize the instruction interpreters
+pub fn init_interpreters() {
+    let interpreters = unsafe { &mut INTERPRETERS };
 
-        // operand
-        interpreters[Opcode::nop as usize] = operand::nop;
-        interpreters[Opcode::drop as usize] = operand::drop;
-        interpreters[Opcode::duplicate as usize] = operand::duplicate;
-
-        // immediate
-        interpreters[Opcode::i32_imm as usize] = immediate::i32_imm;
-        interpreters[Opcode::i64_imm as usize] = immediate::i64_imm;
-        interpreters[Opcode::f32_imm as usize] = immediate::f32_imm;
-        interpreters[Opcode::f64_imm as usize] = immediate::f64_imm;
-
-        // local variables
-        interpreters[Opcode::local_load as usize] = local::local_load;
-        interpreters[Opcode::local_load32 as usize] = local::local_load32;
-        interpreters[Opcode::local_load32_i16_s as usize] = local::local_load32_i16_s;
-        interpreters[Opcode::local_load32_i16_u as usize] = local::local_load32_i16_u;
-        interpreters[Opcode::local_load32_i8_s as usize] = local::local_load32_i8_s;
-        interpreters[Opcode::local_load32_i8_u as usize] = local::local_load32_i8_u;
-        interpreters[Opcode::local_load32_f32 as usize] = local::local_load32_f32;
-        interpreters[Opcode::local_load_f64 as usize] = local::local_load_f64;
-        interpreters[Opcode::local_store as usize] = local::local_store;
-        interpreters[Opcode::local_store32 as usize] = local::local_store32;
-        interpreters[Opcode::local_store16 as usize] = local::local_store16;
-        interpreters[Opcode::local_store8 as usize] = local::local_store8;
-
-        interpreters[Opcode::local_long_load as usize] = local::local_long_load;
-        interpreters[Opcode::local_long_load32 as usize] = local::local_long_load32;
-        interpreters[Opcode::local_long_load32_i16_s as usize] = local::local_long_load32_i16_s;
-        interpreters[Opcode::local_long_load32_i16_u as usize] = local::local_long_load32_i16_u;
-        interpreters[Opcode::local_long_load32_i8_s as usize] = local::local_long_load32_i8_s;
-        interpreters[Opcode::local_long_load32_i8_u as usize] = local::local_long_load32_i8_u;
-        interpreters[Opcode::local_long_load32_f32 as usize] = local::local_long_load32_f32;
-        interpreters[Opcode::local_long_load_f64 as usize] = local::local_long_load_f64;
-        interpreters[Opcode::local_long_store as usize] = local::local_long_store;
-        interpreters[Opcode::local_long_store32 as usize] = local::local_long_store32;
-        interpreters[Opcode::local_long_store16 as usize] = local::local_long_store16;
-        interpreters[Opcode::local_long_store8 as usize] = local::local_long_store8;
-
-        // data sections
-        interpreters[Opcode::data_load as usize] = data::data_load;
-        interpreters[Opcode::data_load32 as usize] = data::data_load32;
-        interpreters[Opcode::data_load32_i16_s as usize] = data::data_load32_i16_s;
-        interpreters[Opcode::data_load32_i16_u as usize] = data::data_load32_i16_u;
-        interpreters[Opcode::data_load32_i8_s as usize] = data::data_load32_i8_s;
-        interpreters[Opcode::data_load32_i8_u as usize] = data::data_load32_i8_u;
-        interpreters[Opcode::data_load32_f32 as usize] = data::data_load32_f32;
-        interpreters[Opcode::data_load_f64 as usize] = data::data_load_f64;
-        interpreters[Opcode::data_store as usize] = data::data_store;
-        interpreters[Opcode::data_store32 as usize] = data::data_store32;
-        interpreters[Opcode::data_store16 as usize] = data::data_store16;
-        interpreters[Opcode::data_store8 as usize] = data::data_store8;
-
-        interpreters[Opcode::data_long_load as usize] = data::data_long_load;
-        interpreters[Opcode::data_long_load32 as usize] = data::data_long_load32;
-        interpreters[Opcode::data_long_load32_i16_s as usize] = data::data_long_load32_i16_s;
-        interpreters[Opcode::data_long_load32_i16_u as usize] = data::data_long_load32_i16_u;
-        interpreters[Opcode::data_long_load32_i8_s as usize] = data::data_long_load32_i8_s;
-        interpreters[Opcode::data_long_load32_i8_u as usize] = data::data_long_load32_i8_u;
-        interpreters[Opcode::data_long_load32_f32 as usize] = data::data_long_load32_f32;
-        interpreters[Opcode::data_long_load_f64 as usize] = data::data_long_load_f64;
-        interpreters[Opcode::data_long_store as usize] = data::data_long_store;
-        interpreters[Opcode::data_long_store32 as usize] = data::data_long_store32;
-        interpreters[Opcode::data_long_store16 as usize] = data::data_long_store16;
-        interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
-
-        // heap
-
-        // control flow
-        interpreters[Opcode::end as usize] = control_flow::end;
-
-        // call
-        interpreters[Opcode::ecall as usize] = ecall::ecall;
-
-        // host address
-        interpreters[Opcode::host_addr_local as usize] = host_address::host_addr_local;
-        interpreters[Opcode::host_addr_local_long as usize] = host_address::host_addr_local_long;
-        interpreters[Opcode::host_addr_data as usize] = host_address::host_addr_data;
-        interpreters[Opcode::host_addr_data_long as usize] = host_address::host_addr_data_long;
-        interpreters[Opcode::host_addr_heap as usize] = host_address::host_addr_heap;
-
-        Self { interpreters }
+    if interpreters[Opcode::nop as usize] == operand::nop {
+        // the initialization can only be called once
+        return;
     }
 
-    pub fn process_next_instruction(&self, thread: &mut Thread) -> InterpretResult {
-        let opcode = thread.get_opcode();
-        self.interpreters[opcode as usize](thread)
-    }
+    // operand
+    interpreters[Opcode::nop as usize] = operand::nop;
+    interpreters[Opcode::drop as usize] = operand::drop;
+    interpreters[Opcode::duplicate as usize] = operand::duplicate;
 
-    pub fn process_continuous_instructions(&self, thread: &mut Thread) {
-        loop {
-            let result = self.process_next_instruction(thread);
-            match result {
-                InterpretResult::MoveOn(increment) => {
-                    thread.pc.instruction_address += increment;
-                }
-                InterpretResult::Jump(module_index, instruction_address) => {
-                    thread.pc.module_index = module_index;
-                    thread.pc.instruction_address = instruction_address;
-                }
-                InterpretResult::EnvError(code) => {
-                    panic!("Runtime error, code: {}", code)
-                }
-                InterpretResult::End => break,
+    // immediate
+    interpreters[Opcode::i32_imm as usize] = immediate::i32_imm;
+    interpreters[Opcode::i64_imm as usize] = immediate::i64_imm;
+    interpreters[Opcode::f32_imm as usize] = immediate::f32_imm;
+    interpreters[Opcode::f64_imm as usize] = immediate::f64_imm;
+
+    // local variables
+    interpreters[Opcode::local_load as usize] = local::local_load;
+    interpreters[Opcode::local_load32 as usize] = local::local_load32;
+    interpreters[Opcode::local_load32_i16_s as usize] = local::local_load32_i16_s;
+    interpreters[Opcode::local_load32_i16_u as usize] = local::local_load32_i16_u;
+    interpreters[Opcode::local_load32_i8_s as usize] = local::local_load32_i8_s;
+    interpreters[Opcode::local_load32_i8_u as usize] = local::local_load32_i8_u;
+    interpreters[Opcode::local_load32_f32 as usize] = local::local_load32_f32;
+    interpreters[Opcode::local_load_f64 as usize] = local::local_load_f64;
+    interpreters[Opcode::local_store as usize] = local::local_store;
+    interpreters[Opcode::local_store32 as usize] = local::local_store32;
+    interpreters[Opcode::local_store16 as usize] = local::local_store16;
+    interpreters[Opcode::local_store8 as usize] = local::local_store8;
+
+    interpreters[Opcode::local_long_load as usize] = local::local_long_load;
+    interpreters[Opcode::local_long_load32 as usize] = local::local_long_load32;
+    interpreters[Opcode::local_long_load32_i16_s as usize] = local::local_long_load32_i16_s;
+    interpreters[Opcode::local_long_load32_i16_u as usize] = local::local_long_load32_i16_u;
+    interpreters[Opcode::local_long_load32_i8_s as usize] = local::local_long_load32_i8_s;
+    interpreters[Opcode::local_long_load32_i8_u as usize] = local::local_long_load32_i8_u;
+    interpreters[Opcode::local_long_load32_f32 as usize] = local::local_long_load32_f32;
+    interpreters[Opcode::local_long_load_f64 as usize] = local::local_long_load_f64;
+    interpreters[Opcode::local_long_store as usize] = local::local_long_store;
+    interpreters[Opcode::local_long_store32 as usize] = local::local_long_store32;
+    interpreters[Opcode::local_long_store16 as usize] = local::local_long_store16;
+    interpreters[Opcode::local_long_store8 as usize] = local::local_long_store8;
+
+    // data sections
+    interpreters[Opcode::data_load as usize] = data::data_load;
+    interpreters[Opcode::data_load32 as usize] = data::data_load32;
+    interpreters[Opcode::data_load32_i16_s as usize] = data::data_load32_i16_s;
+    interpreters[Opcode::data_load32_i16_u as usize] = data::data_load32_i16_u;
+    interpreters[Opcode::data_load32_i8_s as usize] = data::data_load32_i8_s;
+    interpreters[Opcode::data_load32_i8_u as usize] = data::data_load32_i8_u;
+    interpreters[Opcode::data_load32_f32 as usize] = data::data_load32_f32;
+    interpreters[Opcode::data_load_f64 as usize] = data::data_load_f64;
+    interpreters[Opcode::data_store as usize] = data::data_store;
+    interpreters[Opcode::data_store32 as usize] = data::data_store32;
+    interpreters[Opcode::data_store16 as usize] = data::data_store16;
+    interpreters[Opcode::data_store8 as usize] = data::data_store8;
+
+    interpreters[Opcode::data_long_load as usize] = data::data_long_load;
+    interpreters[Opcode::data_long_load32 as usize] = data::data_long_load32;
+    interpreters[Opcode::data_long_load32_i16_s as usize] = data::data_long_load32_i16_s;
+    interpreters[Opcode::data_long_load32_i16_u as usize] = data::data_long_load32_i16_u;
+    interpreters[Opcode::data_long_load32_i8_s as usize] = data::data_long_load32_i8_s;
+    interpreters[Opcode::data_long_load32_i8_u as usize] = data::data_long_load32_i8_u;
+    interpreters[Opcode::data_long_load32_f32 as usize] = data::data_long_load32_f32;
+    interpreters[Opcode::data_long_load_f64 as usize] = data::data_long_load_f64;
+    interpreters[Opcode::data_long_store as usize] = data::data_long_store;
+    interpreters[Opcode::data_long_store32 as usize] = data::data_long_store32;
+    interpreters[Opcode::data_long_store16 as usize] = data::data_long_store16;
+    interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
+
+    // heap
+
+    // control flow
+    interpreters[Opcode::end as usize] = control_flow::end;
+
+    // call
+    interpreters[Opcode::ecall as usize] = ecall::ecall;
+
+    // host address
+    interpreters[Opcode::host_addr_local as usize] = host_address::host_addr_local;
+    interpreters[Opcode::host_addr_local_long as usize] = host_address::host_addr_local_long;
+    interpreters[Opcode::host_addr_data as usize] = host_address::host_addr_data;
+    interpreters[Opcode::host_addr_data_long as usize] = host_address::host_addr_data_long;
+    interpreters[Opcode::host_addr_heap as usize] = host_address::host_addr_heap;
+}
+
+pub fn process_next_instruction(thread: &mut Thread) -> InterpretResult {
+    let opcode_num = thread.get_opcode();
+    let func = unsafe { &INTERPRETERS[opcode_num as usize] };
+    func(thread)
+}
+
+pub fn process_continuous_instructions(thread: &mut Thread) {
+    loop {
+        let result = //self.
+                process_next_instruction(thread);
+        match result {
+            InterpretResult::MoveOn(increment) => {
+                thread.pc.instruction_address += increment;
             }
+            InterpretResult::Jump(module_index, instruction_address) => {
+                thread.pc.module_index = module_index;
+                thread.pc.instruction_address = instruction_address;
+            }
+            InterpretResult::EnvError(code) => {
+                panic!("Runtime error, code: {}", code)
+            }
+            InterpretResult::End => break,
         }
     }
+}
 
-    pub fn process_function(
-        &self,
-        thread: &mut Thread,
-        module_index: u32,
-        func_index: u32, // this index includes the imported functions
-        arguments: &[ForeignValue],
-    ) -> Result<Vec<ForeignValue>, VMError> {
-        // find the code start address
+pub fn process_function(
+    thread: &mut Thread,
+    module_index: u32,
+    func_index: u32, // this index includes the imported functions
+    arguments: &[ForeignValue],
+) -> Result<Vec<ForeignValue>, VMError> {
+    // find the code start address
 
-        let (target_module_index, target_internal_function_index) =
-            thread.get_target_function_module_index_and_internal_index(module_index, func_index);
-        let (type_index, codeset, local_variables_allocate_bytes) = thread
-            .get_internal_function_type_code_and_local_variables_allocate_bytes(
-                target_module_index,
-                target_internal_function_index,
-            );
-
-        let type_entry = thread.context.modules[target_module_index as usize]
-            .type_section
-            .get_entry(type_index);
-
-        if type_entry.params.len() != arguments.len() {
-            return Err(VMError::new(
-                "The number of arguments does not match the specified funcion.",
-            ));
-        }
-
-        // for simplicity, does not check the data type of arguments for now.
-
-        // push arguments
-        thread.push_values(arguments);
-
-        // create function statck frame
-        thread.stack.create_function_frame(
-            local_variables_allocate_bytes,
-            type_entry.params.len() as u16,
-            type_entry.results.len() as u16,
+    let (target_module_index, target_internal_function_index) =
+        thread.get_target_function_module_index_and_internal_index(module_index, func_index);
+    let (type_index, codeset, local_variables_allocate_bytes) = thread
+        .get_internal_function_type_code_and_local_variables_allocate_bytes(
             target_module_index,
             target_internal_function_index,
-            0,
-            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
-            //
-            // the function stack frame is created only by 'call' instruction or
-            // thread beginning, the 'call' instruction will set the 'return instruction address' to
-            // the instruction next to 'call', which can't be '0'.
-            // so when a stack frame exits and the 'return address' is zero, it can only
-            // be the end of a thread.
-            0,
         );
 
-        // set new PC
-        thread.pc.module_index = target_module_index as usize;
-        thread.pc.instruction_address = codeset as usize;
+    let type_entry = thread.context.modules[target_module_index as usize]
+        .type_section
+        .get_entry(type_index);
 
-        self.process_continuous_instructions(thread);
-
-        // pop results off the stack
-        let results = thread.pop_values(&type_entry.results);
-
-        Ok(results)
+    if type_entry.params.len() != arguments.len() {
+        return Err(VMError::new(
+            "The number of arguments does not match the specified funcion.",
+        ));
     }
+
+    // for simplicity, does not check the data type of arguments for now.
+
+    // push arguments
+    thread.push_values(arguments);
+
+    // create function statck frame
+    thread.stack.create_function_frame(
+        local_variables_allocate_bytes,
+        type_entry.params.len() as u16,
+        type_entry.results.len() as u16,
+        target_module_index,
+        target_internal_function_index,
+        0,
+        // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
+        //
+        // the function stack frame is created only by 'call' instruction or
+        // thread beginning, the 'call' instruction will set the 'return instruction address' to
+        // the instruction next to 'call', which can't be '0'.
+        // so when a stack frame exits and the 'return address' is zero, it can only
+        // be the end of a thread.
+        0,
+    );
+
+    // set new PC
+    thread.pc.module_index = target_module_index as usize;
+    thread.pc.instruction_address = codeset as usize;
+
+    // self.
+    process_continuous_instructions(thread);
+
+    // pop results off the stack
+    let results = thread.pop_values(&type_entry.results);
+
+    Ok(results)
 }
 
 #[cfg(test)]
@@ -227,6 +223,8 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
+        init_runtime,
+        interpreter::process_function,
         thread::Thread,
         utils::{
             test_helper::{
@@ -237,12 +235,8 @@ mod tests {
         },
     };
 
-    use super::Processor;
-
     #[test]
     fn test_process_operand() {
-        let processor = Processor::new();
-
         // bytecodes
         //
         // 0x0000 nop
@@ -270,7 +264,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(
+        init_runtime();
+        let result0 = process_function(
             &mut thread0,
             0,
             0,
@@ -302,7 +297,7 @@ mod tests {
         let image1 = load_modules_binary(vec![&binary1]).unwrap();
         let mut thread1 = Thread::new(&image1);
 
-        let result1 = processor.process_function(
+        let result1 = process_function(
             &mut thread1,
             0,
             0,
@@ -331,8 +326,7 @@ mod tests {
         let image2 = load_modules_binary(vec![&binary2]).unwrap();
         let mut thread2 = Thread::new(&image2);
 
-        let result2 =
-            processor.process_function(&mut thread2, 0, 0, &vec![ForeignValue::UInt32(19)]);
+        let result2 = process_function(&mut thread2, 0, 0, &vec![ForeignValue::UInt32(19)]);
         assert_eq!(
             result2.unwrap(),
             vec![ForeignValue::UInt32(19), ForeignValue::UInt32(19)]
@@ -341,8 +335,6 @@ mod tests {
 
     #[test]
     fn test_process_immediate() {
-        let processor = Processor::new();
-
         // bytecodes
         //
         // 0x0000 i32_imm              0x17
@@ -369,7 +361,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -407,7 +400,7 @@ mod tests {
         let image1 = load_modules_binary(vec![&binary1]).unwrap();
         let mut thread1 = Thread::new(&image1);
 
-        let result1 = processor.process_function(&mut thread1, 0, 0, &vec![]);
+        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
         assert_eq!(
             result1.unwrap(),
             vec![
@@ -445,8 +438,6 @@ mod tests {
         //       |load64     |load32
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -544,7 +535,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(
+        init_runtime();
+        let result0 = process_function(
             &mut thread0,
             0,
             0,
@@ -598,8 +590,6 @@ mod tests {
         //       |load64     |load32
         //
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -714,7 +704,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -773,8 +764,6 @@ mod tests {
         //       |load64     |load32
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -885,7 +874,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(
+        init_runtime();
+        let result0 = process_function(
             &mut thread0,
             0,
             0,
@@ -953,8 +943,6 @@ mod tests {
         //       |load64     |load32
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -1065,7 +1053,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(
+        init_runtime();
+        let result0 = process_function(
             &mut thread0,
             0,
             0,
@@ -1119,8 +1108,6 @@ mod tests {
         //       |load64     |load32
         //
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -1240,7 +1227,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1297,8 +1285,6 @@ mod tests {
         //       |because the results will overwrite the stack, so leave enough space for results
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
-
-        let processor = Processor::new();
 
         // bytecodes
         //
@@ -1386,7 +1372,8 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
         // it is currently assumed that the target architecture is 64-bit.
@@ -1418,11 +1405,150 @@ mod tests {
 
         // note:
         // depending on the implementation of the stack (the stack frame and local variables),
-        // the following 2 'assert_eq' may fail,
+        // the following 'assert_eq' may fail,
         // because the local variables (as well as their host addresses) will no longer valid
         // when a function exits.
 
         assert_eq!(read_i32(fvs[6]), 0x31);
         assert_eq!(read_i32(fvs[7]), 0x37);
+    }
+
+    #[test]
+    fn test_process_host_address_long() {
+        //        read-only data section
+        //       |low address  high addr|
+        //       |                      |
+        // index |0            1        |
+        //  type |bytes----|  |byte-----|
+        //
+        //  data 02 03 05 07  11 13 17 19
+        //       |     |            |  |
+        //       |0    |1           |2 |3
+        //
+        //        local variable area
+        //       |low address         high addr|
+        //       |                             |
+        // index |0       1                    |
+        //  type |bytes| |bytes----------------|
+        //
+        //  data 0.....0 23 29 31 37 41 43 47 53
+        //       ^       |        |        |  |
+        //       |       |4       |5       |6 |7
+        //       |
+        //       | 64 bytes
+        //       |because the results will overwrite the stack, so leave enough space for results
+        //
+        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+
+        // bytecodes
+        //
+        // 0x0000 i64_imm              0x37312923 0x53474341
+        // 0x000c local_store          0 1
+        //
+        // 0x0014 i32_imm              0x19
+        // 0x001c data_store32         0 3
+        // 0x0024 i32_imm              0x23
+        // 0x002c data_store32         0 4
+        // 0x0034 i64_imm              0x29 0x0
+        // 0x0040 data_store           0 5
+        // 0x0048 i32_imm              0x31
+        // 0x0050 local_store32        0 1
+        // 0x0058 i32_imm              0x37
+        // 0x0060 local_store32        0 2
+        // 0x0068 host_addr_data       0 0
+        // 0x0070 host_addr_data       0 1
+        // 0x0078 host_addr_data       0 2
+        // 0x0080 host_addr_data       0 3
+        // 0x0088 host_addr_data       0 4
+        // 0x0090 host_addr_data       0 5
+        // 0x0098 host_addr_local      0 1
+        // 0x00a0 host_addr_local      0 2
+        // 0x00a8 end
+        //
+        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
+            .write_opcode_i16_i32(Opcode::local_store, 0, 1)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::host_addr_data_long, 0)
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode_i32(Opcode::host_addr_data_long, 0)
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode_i32(Opcode::host_addr_data_long, 1)
+            .write_opcode_i32(Opcode::i32_imm, 3)
+            .write_opcode_i32(Opcode::host_addr_data_long, 1)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            .write_opcode_i32(Opcode::i32_imm, 3)
+            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![
+                DataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                DataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+            ], // init data
+            vec![],
+            vec![],
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+            ], // results
+            code0,
+            vec![
+                VariableItemEntry::from_bytes(64, 8), // space
+                VariableItemEntry::from_bytes(8, 8),
+            ], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let fvs = result0.unwrap();
+
+        // it is currently assumed that the target architecture is 64-bit.
+
+        let read_i8 = |fv: ForeignValue| -> u8 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u8;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        assert_eq!(read_i8(fvs[0]), 0x02);
+        assert_eq!(read_i8(fvs[1]), 0x05);
+        assert_eq!(read_i8(fvs[2]), 0x17);
+        assert_eq!(read_i8(fvs[3]), 0x19);
+
+        // note:
+        // depending on the implementation of the stack (the stack frame and local variables),
+        // the following 'assert_eq' may fail,
+        // because the local variables (as well as their host addresses) will no longer valid
+        // when a function exits.
+
+        assert_eq!(read_i8(fvs[4]), 0x23);
+        assert_eq!(read_i8(fvs[5]), 0x37);
+        assert_eq!(read_i8(fvs[6]), 0x47);
+        assert_eq!(read_i8(fvs[7]), 0x53);
     }
 }
