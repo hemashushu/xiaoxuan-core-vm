@@ -28,8 +28,15 @@ pub fn init_ecall_handlers() {
         return;
     }
 
+    // info
     handlers[ECallCode::runtime_name as usize] = info::runtime_name;
     handlers[ECallCode::runtime_version as usize] = info::runtime_version;
+    handlers[ECallCode::runtime_features as usize] = info::runtime_features;
+    // heap
+    handlers[ECallCode::heap_fill as usize] = heap::heap_fill;
+    handlers[ECallCode::heap_copy as usize] = heap::heap_copy;
+    handlers[ECallCode::heap_capacity as usize] = heap::heap_capacity;
+    handlers[ECallCode::heap_resize as usize] = heap::heap_resize;
 }
 
 pub fn ecall(thread: &mut Thread) -> InterpretResult {
@@ -65,6 +72,72 @@ mod tests {
     };
 
     #[test]
+    fn test_ecall_heap_capacity() {
+        // bytecodes
+        //
+        // 0x0000 ecall                261
+        // 0x0008 i32_imm              0x2
+        // 0x0010 ecall                262
+        // 0x0018 i32_imm              0x4
+        // 0x0020 ecall                262
+        // 0x0028 i32_imm              0x1
+        // 0x0030 ecall                262
+        // 0x0038 ecall                261
+        // 0x0040 end
+        //
+        // () -> (i64, i64, i64, i64, i64)
+
+        let code0 = BytecodeWriter::new()
+            // get the capacity
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_capacity as u32)
+            // resize - increase
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            // resize - increase
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            // resize - decrease
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            // get the capcity
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_capacity as u32)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+            ], // results
+            code0,
+            vec![], // local varslist which
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0),
+                ForeignValue::UInt64(2),
+                ForeignValue::UInt64(4),
+                ForeignValue::UInt64(1),
+                ForeignValue::UInt64(1),
+            ]
+        );
+    }
+
+    #[test]
     fn test_ecall_runtime_info() {
         // bytecodes
         //
@@ -78,8 +151,7 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // let text = BytecodeReader::new(&code0).to_text();
-        // println!("{}", text);
+        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![],              // params

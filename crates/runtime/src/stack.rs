@@ -159,18 +159,12 @@ impl ResizeableMemory for Stack {
         self.data.len() / MEMORY_PAGE_SIZE_IN_BYTES
     }
 
-    fn resize(&mut self, new_size_in_pages: usize) {
+    fn resize(&mut self, new_size_in_pages: usize) -> usize {
         let new_len = new_size_in_pages * MEMORY_PAGE_SIZE_IN_BYTES;
         self.data.resize(new_len, 0);
+        new_size_in_pages
     }
 }
-
-// impl HostAccessableMemory for Stack {
-//     #[inline]
-//     fn get_host_address(&self, offset: usize) -> usize {
-//         (&self.data[offset..]).as_ptr() as usize
-//     }
-// }
 
 impl TypeMemory for Stack {
     //
@@ -196,23 +190,23 @@ impl Stack {
         }
     }
 
-    pub fn push_i32(&mut self, value: i32) {
-        self.write_i32(self.sp, value);
+    pub fn push_i32_s(&mut self, value: i32) {
+        self.write_i32_s(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    pub fn push_u32(&mut self, value: u32) {
-        self.write_u32(self.sp, value);
+    pub fn push_i32_u(&mut self, value: u32) {
+        self.write_i32_u(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    pub fn push_i64(&mut self, value: i64) {
-        self.write_i64(self.sp, value);
+    pub fn push_i64_s(&mut self, value: i64) {
+        self.write_i64_s(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    pub fn push_u64(&mut self, value: u64) {
-        self.write_u64(self.sp, value);
+    pub fn push_i64_u(&mut self, value: u64) {
+        self.write_i64_u(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
@@ -226,20 +220,20 @@ impl Stack {
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    pub fn peek_i32(&self) -> i32 {
-        self.read_i32(self.sp - OPERAND_SIZE_IN_BYTES)
+    pub fn peek_i32_s(&self) -> i32 {
+        self.read_i32_s(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    pub fn peek_u32(&self) -> u32 {
-        self.read_u32(self.sp - OPERAND_SIZE_IN_BYTES)
+    pub fn peek_i32_u(&self) -> u32 {
+        self.read_i32_u(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    pub fn peek_i64(&self) -> i64 {
-        self.read_i64(self.sp - OPERAND_SIZE_IN_BYTES)
+    pub fn peek_i64_s(&self) -> i64 {
+        self.read_i64_s(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    pub fn peek_u64(&self) -> u64 {
-        self.read_u64(self.sp - OPERAND_SIZE_IN_BYTES)
+    pub fn peek_i64_u(&self) -> u64 {
+        self.read_i64_u(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
     pub fn peek_f32(&self) -> f32 {
@@ -250,24 +244,24 @@ impl Stack {
         self.read_f64(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    pub fn pop_i32(&mut self) -> i32 {
+    pub fn pop_i32_s(&mut self) -> i32 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i32(self.sp)
+        self.read_i32_s(self.sp)
     }
 
-    pub fn pop_u32(&mut self) -> u32 {
+    pub fn pop_i32_u(&mut self) -> u32 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_u32(self.sp)
+        self.read_i32_u(self.sp)
     }
 
-    pub fn pop_i64(&mut self) -> i64 {
+    pub fn pop_i64_s(&mut self) -> i64 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i64(self.sp)
+        self.read_i64_s(self.sp)
     }
 
-    pub fn pop_u64(&mut self) -> u64 {
+    pub fn pop_i64_u(&mut self) -> u64 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_u64(self.sp)
+        self.read_i64_u(self.sp)
     }
 
     pub fn pop_f32(&mut self) -> f32 {
@@ -715,11 +709,11 @@ mod tests {
 
     impl Stack {
         fn read_local_by_offset_i32(&self, offset: usize) -> i32 {
-            self.read_i32(self.get_local_variables_start_address() + offset)
+            self.read_i32_s(self.get_local_variables_start_address() + offset)
         }
 
         fn write_local_by_offset_i32(&mut self, offset: usize, value: i32) {
-            self.write_i32(self.get_local_variables_start_address() + offset, value)
+            self.write_i32_s(self.get_local_variables_start_address() + offset, value)
         }
     }
 
@@ -735,19 +729,19 @@ mod tests {
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES);
 
         // add one operand
-        stack.push_i32(11);
+        stack.push_i32_s(11);
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES);
         stack.ensure_stack_space();
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 2);
 
         // clear
-        assert_eq!(stack.pop_i32(), 11);
+        assert_eq!(stack.pop_i32_s(), 11);
         assert_eq!(stack.sp, 0);
 
         // fill up one frame
         for i in 0..(STACK_FRAME_SIZE_IN_PAGES * MEMORY_PAGE_SIZE_IN_BYTES / OPERAND_SIZE_IN_BYTES)
         {
-            stack.push_i64(i as i64);
+            stack.push_i64_s(i as i64);
         }
 
         assert_eq!(
@@ -756,7 +750,7 @@ mod tests {
         );
 
         // add one operand
-        stack.push_i32(11);
+        stack.push_i32_s(11);
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 2);
         stack.ensure_stack_space();
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 3);
@@ -767,8 +761,8 @@ mod tests {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
 
         // check push, peek and pop
-        stack.push_i32(11);
-        stack.push_i64(13);
+        stack.push_i32_s(11);
+        stack.push_i64_s(13);
         stack.push_f32(3.14);
         stack.push_f64(2.9979e8);
 
@@ -777,38 +771,38 @@ mod tests {
         assert_eq!(stack.pop_f64(), 2.9979e8);
         assert_eq!(stack.pop_f32(), 3.14);
 
-        assert_eq!(stack.peek_i64(), 13);
-        assert_eq!(stack.pop_i64(), 13);
-        assert_eq!(stack.pop_i32(), 11);
+        assert_eq!(stack.peek_i64_s(), 13);
+        assert_eq!(stack.pop_i64_s(), 13);
+        assert_eq!(stack.pop_i32_s(), 11);
         assert_eq!(stack.sp, 0);
 
         // check duplicate
-        stack.push_i32(17);
+        stack.push_i32_s(17);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES);
 
         stack.duplicate();
-        assert_eq!(stack.peek_i32(), 17);
+        assert_eq!(stack.peek_i32_s(), 17);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 2);
 
         // check drop
-        stack.push_i32(19);
-        stack.push_i32(23);
+        stack.push_i32_s(19);
+        stack.push_i32_s(23);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4);
 
         stack.drop();
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3);
 
-        assert_eq!(stack.peek_i32(), 19);
+        assert_eq!(stack.peek_i32_s(), 19);
     }
 
     #[test]
     fn test_host_address() {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
 
-        stack.push_i32(11);
-        stack.push_i64(13);
-        stack.push_i32(17);
-        stack.push_i64(19);
+        stack.push_i32_s(11);
+        stack.push_i64_s(13);
+        stack.push_i32_s(17);
+        stack.push_i64_s(19);
 
         let ptr0 = stack.get_ptr(0) as u64;
         let ptr1 = stack.get_ptr(8) as u64;
@@ -836,10 +830,10 @@ mod tests {
     fn test_create_frames() {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
 
-        stack.push_i32(23);
-        stack.push_i32(29);
-        stack.push_i32(31);
-        stack.push_i32(37);
+        stack.push_i32_s(23);
+        stack.push_i32_s(29);
+        stack.push_i32_s(31);
+        stack.push_i32_s(37);
 
         // the current layout
         //
@@ -883,23 +877,23 @@ mod tests {
         //              \--------/
 
         // check raw data
-        assert_eq!(stack.read_i64(0), 23);
-        assert_eq!(stack.read_i64(8), 29);
+        assert_eq!(stack.read_i64_s(0), 23);
+        assert_eq!(stack.read_i64_s(8), 29);
 
-        assert_eq!(stack.read_i32(16), 0);
-        assert_eq!(stack.read_i32(20), 16);
-        assert_eq!(stack.read_i32(24), 0 << 16 | 2); // results count << 16 | params count
-        assert_eq!(stack.read_i32(28), 73);
-        assert_eq!(stack.read_i32(32), 79);
-        assert_eq!(stack.read_i32(36), 16);
-        assert_eq!(stack.read_i32(40), 83);
-        assert_eq!(stack.read_i32(44), 89);
+        assert_eq!(stack.read_i32_s(16), 0);
+        assert_eq!(stack.read_i32_s(20), 16);
+        assert_eq!(stack.read_i32_s(24), 0 << 16 | 2); // results count << 16 | params count
+        assert_eq!(stack.read_i32_s(28), 73);
+        assert_eq!(stack.read_i32_s(32), 79);
+        assert_eq!(stack.read_i32_s(36), 16);
+        assert_eq!(stack.read_i32_s(40), 83);
+        assert_eq!(stack.read_i32_s(44), 89);
 
-        assert_eq!(stack.read_i64(48), 0);
-        assert_eq!(stack.read_i64(56), 0);
+        assert_eq!(stack.read_i64_s(48), 0);
+        assert_eq!(stack.read_i64_s(56), 0);
 
-        assert_eq!(stack.read_i64(64), 31);
-        assert_eq!(stack.read_i64(72), 37);
+        assert_eq!(stack.read_i64_s(64), 31);
+        assert_eq!(stack.read_i64_s(72), 37);
 
         // check status
         assert_eq!(stack.sp, 80);
@@ -959,9 +953,9 @@ mod tests {
 
         // add more operands
 
-        stack.push_i32(41);
-        stack.push_i32(43);
-        stack.push_i32(47);
+        stack.push_i32_s(41);
+        stack.push_i32_s(43);
+        stack.push_i32_s(47);
 
         // the current layout (partial)
         //
@@ -1009,8 +1003,8 @@ mod tests {
         //
         assert_eq!(stack.fp, 96);
         assert_eq!(stack.sp, 136);
-        assert_eq!(stack.read_i32(128), 47); // one operand has been moved
-        assert_eq!(stack.read_i32(88), 43); // the old operand has no change
+        assert_eq!(stack.read_i32_s(128), 47); // one operand has been moved
+        assert_eq!(stack.read_i32_s(88), 43); // the old operand has no change
 
         let f1 = stack.get_frame(0);
         assert_eq!(f1.address, 96);
@@ -1066,7 +1060,7 @@ mod tests {
 
         assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, fp2 + size_of::<Frame>());
-        assert_eq!(stack.read_i32(fp2 - 8), 47); // the old operand has no change
+        assert_eq!(stack.read_i32_s(fp2 - 8), 47); // the old operand has no change
 
         let f2 = stack.get_frame(0);
         assert_eq!(f2.address, fp2);
@@ -1100,8 +1094,8 @@ mod tests {
         assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // add operands
-        stack.push_i32(239);
-        stack.push_i32(241);
+        stack.push_i32_s(239);
+        stack.push_i32_s(241);
 
         // create func frame
         stack.create_function_frame(
@@ -1176,8 +1170,8 @@ mod tests {
         // remove the current frame
 
         // push some oparnds first
-        stack.push_i32(251);
-        stack.push_i32(257);
+        stack.push_i32_s(251);
+        stack.push_i32_s(257);
 
         // the current layout
         //
@@ -1210,10 +1204,10 @@ mod tests {
         //  block frame | frame 2  |
         //              |----------| <-- fp2
 
-        assert_eq!(stack.read_i32(stack.sp - 8), 257);
-        assert_eq!(stack.read_i32(stack.sp - 16), 251);
-        assert_eq!(stack.read_i32(stack.sp - 24), 241);
-        assert_eq!(stack.read_i32(stack.sp - 32), 239);
+        assert_eq!(stack.read_i32_s(stack.sp - 8), 257);
+        assert_eq!(stack.read_i32_s(stack.sp - 16), 251);
+        assert_eq!(stack.read_i32_s(stack.sp - 24), 241);
+        assert_eq!(stack.read_i32_s(stack.sp - 32), 239);
 
         // check local variables
 
@@ -1256,10 +1250,10 @@ mod tests {
         assert_eq!(stack.sp, 112);
 
         // check operands
-        assert_eq!(stack.read_i32(104), 257);
-        assert_eq!(stack.read_i32(96), 251);
-        assert_eq!(stack.read_i32(88), 43);
-        assert_eq!(stack.read_i32(80), 41);
+        assert_eq!(stack.read_i32_s(104), 257);
+        assert_eq!(stack.read_i32_s(96), 251);
+        assert_eq!(stack.read_i32_s(88), 43);
+        assert_eq!(stack.read_i32_s(80), 41);
 
         // remove the last frame
         let (is_function_frame2, ret_module_idx2, ret_inst_addr2) = stack.exit_frames(0);
@@ -1281,10 +1275,10 @@ mod tests {
     fn test_reset_frame() {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
 
-        stack.push_i32(23);
-        stack.push_i32(29);
-        stack.push_i32(31);
-        stack.push_i32(37);
+        stack.push_i32_s(23);
+        stack.push_i32_s(29);
+        stack.push_i32_s(31);
+        stack.push_i32_s(37);
 
         // the current layout
         //
@@ -1339,10 +1333,10 @@ mod tests {
         assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // push some operands
-        stack.push_i32(107);
-        stack.push_i32(109);
-        stack.push_i32(113);
-        stack.push_i32(127);
+        stack.push_i32_s(107);
+        stack.push_i32_s(109);
+        stack.push_i32_s(113);
+        stack.push_i32_s(127);
 
         // the current layout (partial)
         //
@@ -1361,7 +1355,7 @@ mod tests {
 
         // check SP
         assert_eq!(stack.sp, 112);
-        assert_eq!(stack.peek_i32(), 127);
+        assert_eq!(stack.peek_i32_s(), 127);
 
         // reset the frame
         stack.reset_to_frame(0);
@@ -1418,7 +1412,7 @@ mod tests {
 
         stack.write_local_by_offset_i32(0, 131);
         stack.write_local_by_offset_i32(8, 137);
-        stack.push_i32(139);
+        stack.push_i32_s(139);
 
         // the current layout (partial)
         //
@@ -1470,11 +1464,11 @@ mod tests {
         assert_eq!(stack.fp, 80);
         assert_eq!(stack.sp, 120);
 
-        assert_eq!(stack.peek_i32(), 139);
+        assert_eq!(stack.peek_i32_s(), 139);
 
         // add operands
-        stack.push_i32(149);
-        stack.push_i32(151);
+        stack.push_i32_s(149);
+        stack.push_i32_s(151);
 
         // the current layout (partial)
         //
@@ -1504,7 +1498,7 @@ mod tests {
 
         assert_eq!(stack.fp, 80);
         assert_eq!(stack.sp, 120);
-        assert_eq!(stack.peek_i32(), 151);
+        assert_eq!(stack.peek_i32_s(), 151);
 
         // check frame
         let f1 = stack.get_frame(0);
@@ -1531,12 +1525,12 @@ mod tests {
         // nothings has changed
         assert_eq!(stack.fp, 80);
         assert_eq!(stack.sp, 120);
-        assert_eq!(stack.peek_i32(), 151);
+        assert_eq!(stack.peek_i32_s(), 151);
 
         // create block frame
 
         // add some operands for preparing for the next reset
-        stack.push_i32(157);
+        stack.push_i32_s(157);
 
         stack.create_block_frame(0, 0);
 
@@ -1570,8 +1564,8 @@ mod tests {
         assert_eq!(stack.sp, 160);
 
         // add two operands
-        stack.push_i32(167);
-        stack.push_i32(173);
+        stack.push_i32_s(167);
+        stack.push_i32_s(173);
 
         // the current layout (partial)
         //
@@ -1607,13 +1601,13 @@ mod tests {
         assert_eq!(stack.sp, 120);
 
         // check args
-        assert_eq!(stack.read_i32(stack.sp - 8), 173);
+        assert_eq!(stack.read_i32_s(stack.sp - 8), 173);
 
         // crossing reset
 
         // add two operands
-        stack.push_i32(181);
-        stack.push_i32(191);
+        stack.push_i32_s(181);
+        stack.push_i32_s(191);
 
         // the current layout (partial)
         //

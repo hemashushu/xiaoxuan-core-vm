@@ -62,20 +62,20 @@ pub trait IndexedMemory: Memory {
         self.load_32_with_float_check(self.get_idx_address(idx, offset), dst_ptr);
     }
 
-    fn load_idx_32_extend_from_i8(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i8(self.get_idx_address(idx, offset), dst_ptr)
+    fn load_idx_32_extend_from_i8_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i8_s(self.get_idx_address(idx, offset), dst_ptr)
     }
 
-    fn load_idx_32_extend_from_u8(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_u8(self.get_idx_address(idx, offset), dst_ptr)
+    fn load_idx_32_extend_from_i8_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i8_u(self.get_idx_address(idx, offset), dst_ptr)
     }
 
-    fn load_idx_32_extend_from_i16(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i16(self.get_idx_address(idx, offset), dst_ptr)
+    fn load_idx_32_extend_from_i16_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i16_s(self.get_idx_address(idx, offset), dst_ptr)
     }
 
-    fn load_idx_32_extend_from_u16(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_u16(self.get_idx_address(idx, offset), dst_ptr)
+    fn load_idx_32_extend_from_i16_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+        self.load_32_extend_from_i16_u(self.get_idx_address(idx, offset), dst_ptr)
     }
 
     fn store_idx_64(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {

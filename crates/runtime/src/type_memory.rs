@@ -11,22 +11,22 @@ use crate::memory::Memory;
 ///
 /// in XiaoXuan VM, only the Stack implement this trait.
 pub trait TypeMemory: Memory {
-    fn read_i32(&self, address: usize) -> i32 {
+    fn read_i32_s(&self, address: usize) -> i32 {
         let tp = self.get_ptr(address) as *const i32;
         unsafe { std::ptr::read(tp) }
     }
 
-    fn read_u32(&self, address: usize) -> u32 {
+    fn read_i32_u(&self, address: usize) -> u32 {
         let tp = self.get_ptr(address) as *const u32;
         unsafe { std::ptr::read(tp) }
     }
 
-    fn read_i64(&self, address: usize) -> i64 {
+    fn read_i64_s(&self, address: usize) -> i64 {
         let tp = self.get_ptr(address) as *const i64;
         unsafe { std::ptr::read(tp) }
     }
 
-    fn read_u64(&self, address: usize) -> u64 {
+    fn read_i64_u(&self, address: usize) -> u64 {
         let tp = self.get_ptr(address) as *const u64;
         unsafe { std::ptr::read(tp) }
     }
@@ -41,7 +41,7 @@ pub trait TypeMemory: Memory {
         unsafe { std::ptr::read(tp) }
     }
 
-    fn write_i32(&mut self, address: usize, value: i32) {
+    fn write_i32_s(&mut self, address: usize, value: i32) {
         let tp = self.get_mut_ptr(address) as *mut i32;
         unsafe { std::ptr::write(tp, value) }
     }
@@ -49,17 +49,17 @@ pub trait TypeMemory: Memory {
     // although unsigned-integers and signed-integers are stored in the
     // same way in memory, two different naming functions are still provided
     // here for the name consisstency.
-    fn write_u32(&mut self, address: usize, value: u32) {
+    fn write_i32_u(&mut self, address: usize, value: u32) {
         let tp = self.get_mut_ptr(address) as *mut u32;
         unsafe { std::ptr::write(tp, value) }
     }
 
-    fn write_i64(&mut self, address: usize, value: i64) {
+    fn write_i64_s(&mut self, address: usize, value: i64) {
         let tp = self.get_mut_ptr(address) as *mut i64;
         unsafe { std::ptr::write(tp, value) }
     }
 
-    fn write_u64(&mut self, address: usize, value: u64) {
+    fn write_i64_u(&mut self, address: usize, value: u64) {
         let tp = self.get_mut_ptr(address) as *mut u64;
         unsafe { std::ptr::write(tp, value) }
     }

@@ -35,15 +35,36 @@ impl ResizeableMemory for Heap {
         self.data.len() / MEMORY_PAGE_SIZE_IN_BYTES
     }
 
-    fn resize(&mut self, new_size_in_pages: usize) {
+    fn resize(&mut self, new_size_in_pages: usize) -> usize {
         let new_len = new_size_in_pages * MEMORY_PAGE_SIZE_IN_BYTES;
         self.data.resize(new_len, 0);
+        new_size_in_pages
     }
 }
 
-// impl HostAccessableMemory for Heap {
-//     #[inline]
-//     fn get_host_address(&self, offset: usize) -> usize {
-//         (&self.data[offset..]).as_ptr() as usize
-//     }
-// }
+impl Heap {
+    pub fn fill(&mut self, address: usize, value: u8, count: usize) {
+        self.data[address..(address + count)].fill(value);
+    }
+
+    pub fn copy(&mut self, dst_address: usize, src_address: usize, length_in_bytes: usize) {
+        let (src, dst) = self.data.split_at_mut(dst_address);
+
+        // depending on the location of src_offset and dst_offset, there are 2 situations:
+        //
+        // index: 0 1 2 3 4 5 | 6 7 8 9
+        //            ^       | ^
+        //            src     | dst
+        //
+        // index: 0 1 2 3   | 4 5 6 7 8 9
+        //            ^     |     ^
+        //            dst   |     src (the value of index 'src' has been changed)
+
+        if src_address < dst_address {
+            dst.copy_from_slice(&src[src_address..(src_address + length_in_bytes)]);
+        } else {
+            let offset = src_address - dst_address;
+            dst.copy_from_slice(&src[offset..(offset + length_in_bytes)]);
+        }
+    }
+}

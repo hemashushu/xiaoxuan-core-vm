@@ -6,5 +6,5 @@
 
 pub trait ResizeableMemory {
     fn get_capacity_in_pages(&self) -> usize;
-    fn resize(&mut self, new_size_in_pages: usize);
+    fn resize(&mut self, new_size_in_pages: usize) -> usize;
 }

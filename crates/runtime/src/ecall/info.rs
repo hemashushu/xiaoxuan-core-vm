@@ -10,8 +10,9 @@ use crate::{
 };
 
 pub fn runtime_name(thread: &mut Thread) -> Result<(), usize> {
-    // runtime_name(buf_ptr: u64) -> name_len:u32
-    let buf_ptr_value = thread.stack.pop_u64();
+    // `fn (buf_ptr: u64) -> name_len:u32`
+
+    let buf_ptr_value = thread.stack.pop_i64_u();
 
     let name_len = RUNTIME_CODE_NAME.len();
 
@@ -21,12 +22,13 @@ pub fn runtime_name(thread: &mut Thread) -> Result<(), usize> {
         std::ptr::copy(src_ptr, dst_ptr, name_len);
     }
 
-    thread.stack.push_u32(name_len as u32);
+    thread.stack.push_i32_u(name_len as u32);
     Ok(())
 }
 
 pub fn runtime_version(thread: &mut Thread) -> Result<(), usize> {
-    // runtime_version() -> version:u64
+    // `fn () -> version:u64`
+    //
     // 0x0000_0000_0000_0000
     //        |    |    |
     //        |    |    |patch version
@@ -37,6 +39,11 @@ pub fn runtime_version(thread: &mut Thread) -> Result<(), usize> {
         | (RUNTIME_MINOR_VERSION as u64) << 16
         | (RUNTIME_MAJOR_VERSION as u64) << 32;
 
-    thread.stack.push_u64(version_number);
+    thread.stack.push_i64_u(version_number);
     Ok(())
+}
+
+pub fn runtime_features(_thread: &mut Thread) -> Result<(), usize> {
+    // `fn (buf_ptr: i64) -> feature_list_len:i32`
+    unimplemented!()
 }

@@ -10,7 +10,7 @@ use super::InterpretResult;
 
 pub fn i32_imm(thread: &mut Thread) -> InterpretResult {
     let value = thread.get_param_i32();
-    thread.stack.push_u32(value);
+    thread.stack.push_i32_u(value);
     InterpretResult::MoveOn(8)
 }
 
@@ -20,7 +20,7 @@ pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
     value = value << 32;
     value = value | (low as u64);
 
-    thread.stack.push_u64(value);
+    thread.stack.push_i64_u(value);
     InterpretResult::MoveOn(12)
 }
 

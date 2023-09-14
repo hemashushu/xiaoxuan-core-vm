@@ -20,7 +20,7 @@ pub fn data_load(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -41,7 +41,7 @@ pub fn data_load32(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -62,7 +62,7 @@ pub fn data_load32_i16_s(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32_i16_s(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32_i16_s(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -73,7 +73,7 @@ fn do_data_load32_i16_s(
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, internal_data_idx) = get_internal_datas_and_index(thread, data_index);
-    datas.load_idx_32_extend_from_i16(internal_data_idx, offset_bytes, dst_ptr);
+    datas.load_idx_32_extend_from_i16_s(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::MoveOn(8)
 }
@@ -87,7 +87,7 @@ pub fn data_load32_i16_u(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32_i16_u(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32_i16_u(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -98,7 +98,7 @@ fn do_data_load32_i16_u(
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, internal_data_idx) = get_internal_datas_and_index(thread, data_index);
-    datas.load_idx_32_extend_from_u16(internal_data_idx, offset_bytes, dst_ptr);
+    datas.load_idx_32_extend_from_i16_u(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::MoveOn(8)
 }
@@ -112,7 +112,7 @@ pub fn data_load32_i8_s(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32_i8_s(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32_i8_s(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -123,7 +123,7 @@ fn do_data_load32_i8_s(
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, internal_data_idx) = get_internal_datas_and_index(thread, data_index);
-    datas.load_idx_32_extend_from_i8(internal_data_idx, offset_bytes, dst_ptr);
+    datas.load_idx_32_extend_from_i8_s(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::MoveOn(8)
 }
@@ -137,7 +137,7 @@ pub fn data_load32_i8_u(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32_i8_u(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32_i8_u(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -148,7 +148,7 @@ fn do_data_load32_i8_u(
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, internal_data_idx) = get_internal_datas_and_index(thread, data_index);
-    datas.load_idx_32_extend_from_u8(internal_data_idx, offset_bytes, dst_ptr);
+    datas.load_idx_32_extend_from_i8_u(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::MoveOn(8)
 }
@@ -162,7 +162,7 @@ pub fn data_load32_f32(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load32_f32(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load32_f32(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -187,7 +187,7 @@ pub fn data_load_f64(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_load_f64(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_load_f64(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -212,7 +212,7 @@ pub fn data_store(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_store(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_store(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -233,7 +233,7 @@ pub fn data_store32(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_store32(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_store32(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -254,7 +254,7 @@ pub fn data_store16(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_store16(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_store16(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -275,7 +275,7 @@ pub fn data_store8(thread: &mut Thread) -> InterpretResult {
 pub fn data_long_store8(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_data_store8(thread, data_index as usize, offset_bytes as usize)
 }
 

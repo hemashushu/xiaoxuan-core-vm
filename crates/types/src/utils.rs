@@ -10,6 +10,7 @@ impl Opcode {
     pub fn get_name(&self) -> &'static str {
         match self {
             Opcode::nop => "nop",
+            Opcode::break_=> "break",
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
             //

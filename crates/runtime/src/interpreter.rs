@@ -15,6 +15,7 @@ type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
 mod control_flow;
 mod data;
+mod heap;
 mod host_address;
 mod immediate;
 mod local;
@@ -22,6 +23,7 @@ mod operand;
 
 pub enum InterpretResult {
     MoveOn(usize),      // param (increment_in_bytes: usize)
+    Break,              // VM debug
     Jump(usize, usize), // param (module_index: usize, instruction_address: usize)
     EnvError(usize),    // param (err_code: usize)
     End,
@@ -44,6 +46,7 @@ pub fn init_interpreters() {
 
     // operand
     interpreters[Opcode::nop as usize] = operand::nop;
+    interpreters[Opcode::break_ as usize] = operand::break_;
     interpreters[Opcode::drop as usize] = operand::drop;
     interpreters[Opcode::duplicate as usize] = operand::duplicate;
 
@@ -108,6 +111,18 @@ pub fn init_interpreters() {
     interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
 
     // heap
+    interpreters[Opcode::heap_load as usize] = heap::heap_load;
+    interpreters[Opcode::heap_load32 as usize] = heap::heap_load32;
+    interpreters[Opcode::heap_load32_i16_s as usize] = heap::heap_load32_i16_s;
+    interpreters[Opcode::heap_load32_i16_u as usize] = heap::heap_load32_i16_u;
+    interpreters[Opcode::heap_load32_i8_s as usize] = heap::heap_load32_i8_s;
+    interpreters[Opcode::heap_load32_i8_u as usize] = heap::heap_load32_i8_u;
+    interpreters[Opcode::heap_load32_f32 as usize] = heap::heap_load32_f32;
+    interpreters[Opcode::heap_load_f64 as usize] = heap::heap_load_f64;
+    interpreters[Opcode::heap_store as usize] = heap::heap_store;
+    interpreters[Opcode::heap_store32 as usize] = heap::heap_store32;
+    interpreters[Opcode::heap_store16 as usize] = heap::heap_store16;
+    interpreters[Opcode::heap_store8 as usize] = heap::heap_store8;
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;
@@ -124,7 +139,7 @@ pub fn init_interpreters() {
 }
 
 pub fn process_next_instruction(thread: &mut Thread) -> InterpretResult {
-    let opcode_num = thread.get_opcode();
+    let opcode_num = thread.get_opcode_num();
     let func = unsafe { &INTERPRETERS[opcode_num as usize] };
     func(thread)
 }
@@ -136,6 +151,9 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
         match result {
             InterpretResult::MoveOn(increment) => {
                 thread.pc.instruction_address += increment;
+            }
+            InterpretResult::Break => {
+                thread.pc.instruction_address += 2;
             }
             InterpretResult::Jump(module_index, instruction_address) => {
                 thread.pc.module_index = module_index;
@@ -220,7 +238,7 @@ mod tests {
             local_variable_section::VariableItemEntry,
         },
     };
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
         init_runtime,
@@ -483,8 +501,8 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, 0xf0)
             .write_opcode_i16_i32(Opcode::local_store8, 7, 0)
             //
-            .write_opcode_i16_i32(Opcode::local_store, 0, 2)
-            .write_opcode_i16_i32(Opcode::local_store32, 0, 1)
+            .write_opcode_i16_i32(Opcode::local_store, 0, 2) // store f64
+            .write_opcode_i16_i32(Opcode::local_store32, 0, 1) // store f32
             //
             .write_opcode_i16_i32(Opcode::local_load, 0, 0)
             .write_opcode_i16_i32(Opcode::local_store, 0, 3)
@@ -810,8 +828,8 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .write_opcode_i16_i32(Opcode::data_store, 0, 4)
-            .write_opcode_i16_i32(Opcode::data_store32, 0, 3)
+            .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
+            .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
             .write_opcode_i16_i32(Opcode::data_store, 0, 5)
@@ -989,8 +1007,8 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .write_opcode_i16_i32(Opcode::data_store, 0, 4)
-            .write_opcode_i16_i32(Opcode::data_store32, 0, 3)
+            .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
+            .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
             .write_opcode_i16_i32(Opcode::data_store, 0, 5)
@@ -1197,8 +1215,6 @@ mod tests {
             //
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![],
@@ -1444,26 +1460,23 @@ mod tests {
         //
         // 0x0000 i64_imm              0x37312923 0x53474341
         // 0x000c local_store          0 1
-        //
-        // 0x0014 i32_imm              0x19
-        // 0x001c data_store32         0 3
-        // 0x0024 i32_imm              0x23
-        // 0x002c data_store32         0 4
-        // 0x0034 i64_imm              0x29 0x0
-        // 0x0040 data_store           0 5
-        // 0x0048 i32_imm              0x31
-        // 0x0050 local_store32        0 1
-        // 0x0058 i32_imm              0x37
-        // 0x0060 local_store32        0 2
-        // 0x0068 host_addr_data       0 0
-        // 0x0070 host_addr_data       0 1
-        // 0x0078 host_addr_data       0 2
-        // 0x0080 host_addr_data       0 3
-        // 0x0088 host_addr_data       0 4
-        // 0x0090 host_addr_data       0 5
-        // 0x0098 host_addr_local      0 1
-        // 0x00a0 host_addr_local      0 2
-        // 0x00a8 end
+        // 0x0014 i32_imm              0x0
+        // 0x001c host_addr_data_long  0
+        // 0x0024 i32_imm              0x2
+        // 0x002c host_addr_data_long  0
+        // 0x0034 i32_imm              0x2
+        // 0x003c host_addr_data_long  1
+        // 0x0044 i32_imm              0x3
+        // 0x004c host_addr_data_long  1
+        // 0x0054 i32_imm              0x0
+        // 0x005c host_addr_local_long 1
+        // 0x0064 i32_imm              0x3
+        // 0x006c host_addr_local_long 1
+        // 0x0074 i32_imm              0x6
+        // 0x007c host_addr_local_long 1
+        // 0x0084 i32_imm              0x7
+        // 0x008c host_addr_local_long 1
+        // 0x0094 end
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
@@ -1550,5 +1563,341 @@ mod tests {
         assert_eq!(read_i8(fvs[5]), 0x37);
         assert_eq!(read_i8(fvs[6]), 0x47);
         assert_eq!(read_i8(fvs[7]), 0x53);
+    }
+
+    #[test]
+    fn test_process_heap_load_store() {
+        //       |low address                                                              high address|
+        //       |                                                                                     |
+        // index |0x100                              0x200  0x300  0x400                     0x500     |
+        //  type |bytes-------------------|         |f32|  |f64|  |i64------------------|   |i32-------|
+        //
+        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //       |           |        |  |          |      |      ^                          ^
+        //       |store32    |store16 |  |          |sf32  |sf64  |                          |
+        //        step0       step1   |  |          |step5 |step4 |                          |
+        //                      store8|  |          |      |      |                          |
+        //       |              step2    |store8    |      |      |store64                   |store32
+        //       |                        step3     |      |      |                          |
+        //       \----->--load64-->---------------------------->--/-->-------------------->--/
+        //
+        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //       |           |        |  |load8u    |      |      |                          |
+        //       |           |        |  |load8s  loadf32  |      |                          |
+        //       |           |        |                  loadf64  |                          |
+        //       |           |        |load16u                    |                          |
+        //       |           |        |load16s                 load64                      load32
+        //       |           |
+        //       |load64     |load32
+        //
+        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
+
+        // bytecodes
+        //
+        // 0x0000 i32_imm              0x1
+        // 0x0008 ecall                262
+        // 0x0010 drop
+        // 0x0012 nop
+        // 0x0014 i32_imm              0x19171311
+        // 0x001c i64_imm              0x100 0x0
+        // 0x0028 heap_store32         0
+        // 0x002c i32_imm              0xd0c0
+        // 0x0034 i64_imm              0x100 0x0
+        // 0x0040 heap_store16         4
+        // 0x0044 i32_imm              0xe0
+        // 0x004c i64_imm              0x100 0x0
+        // 0x0058 heap_store32         6
+        // 0x005c i32_imm              0xf0
+        // 0x0064 i64_imm              0x100 0x0
+        // 0x0070 heap_store32         7
+        // 0x0074 i64_imm              0x300 0x0
+        // 0x0080 heap_store           0
+        // 0x0084 i64_imm              0x200 0x0
+        // 0x0090 heap_store32         0
+        // 0x0094 i64_imm              0x100 0x0
+        // 0x00a0 heap_load            0
+        // 0x00a4 i64_imm              0x400 0x0
+        // 0x00b0 heap_store           0
+        // 0x00b4 i64_imm              0x100 0x0
+        // 0x00c0 heap_load            0
+        // 0x00c4 i64_imm              0x500 0x0
+        // 0x00d0 heap_store32         0
+        // 0x00d4 i64_imm              0x100 0x0
+        // 0x00e0 heap_load            0
+        // 0x00e4 i64_imm              0x100 0x0
+        // 0x00f0 heap_load32          4
+        // 0x00f4 i64_imm              0x100 0x0
+        // 0x0100 heap_load32_i16_u    6
+        // 0x0104 i64_imm              0x100 0x0
+        // 0x0110 heap_load32_i16_s    6
+        // 0x0114 i64_imm              0x100 0x0
+        // 0x0120 heap_load32_i8_u     7
+        // 0x0124 i64_imm              0x100 0x0
+        // 0x0130 heap_load32_i8_s     7
+        // 0x0134 i64_imm              0x200 0x0
+        // 0x0140 heap_load32_f32      0
+        // 0x0144 i64_imm              0x300 0x0
+        // 0x0150 heap_load_f64        0
+        // 0x0154 i64_imm              0x400 0x0
+        // 0x0160 heap_load            0
+        // 0x0164 i64_imm              0x500 0x0
+        // 0x0170 heap_load32          0
+        // 0x0174 end
+        //
+        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
+
+        let code0 = BytecodeWriter::new()
+            // note that the init size of heap is 0
+            // change the capacity of heap before test
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            .write_opcode(Opcode::drop)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_store32, 0)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_store16, 4)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xe0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_store32, 6)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xf0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_store32, 7)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .write_opcode_i16(Opcode::heap_store, 0) // store f64
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::heap_store32, 0) // store f32
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
+            .write_opcode_i16(Opcode::heap_store, 0)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
+            .write_opcode_i16(Opcode::heap_store32, 0)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load32, 4)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load32_i16_u, 6)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load32_i16_s, 6)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load32_i8_u, 7)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_load32_i8_s, 7)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::heap_load32_f32, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .write_opcode_i16(Opcode::heap_load_f64, 0)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
+            .write_opcode_i16(Opcode::heap_load, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
+            .write_opcode_i16(Opcode::heap_load32, 0)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![DataType::F32, DataType::F64], // params
+            vec![
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::F32,
+                DataType::F64,
+                DataType::I64,
+                DataType::I32,
+            ], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![
+                // https://baseconvert.com/ieee-754-floating-point
+                // https://www.binaryconvert.com/convert_float.html
+                ForeignValue::Float32(3.1415926f32),
+                // 0x40490FDA
+                // 218,15,73,64
+                ForeignValue::Float64(2.9979e8f64),
+                // 0x41B1DE6EB0000000
+                // 0,0,0,176,110,222,177,65
+            ],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0xf0e0d0c0u32),
+                ForeignValue::UInt32(0xf0e0u32),
+                ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
+                ForeignValue::UInt32(0xf0u32),
+                ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
+                //
+                ForeignValue::Float32(3.1415926f32),
+                ForeignValue::Float64(2.9979e8f64),
+                //
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0x19171311u32),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_process_host_address_heap() {
+        //
+        //        heap
+        //       |low address                high addr|
+        //       |                                    |
+        //  addr |0x100         0x200                 |
+        //  type |i32-------|   |i64------------------|
+        //
+        //  data  02 03 05 07   11 13 17 19 23 29 31 37
+        //        ^     ^       ^           ^        ^
+        //        |0    |1      |2          |3       |4
+        // () -> (i64,i64,i64,i64,i64)
+
+        // bytecodes
+        //
+        // 0x0000 i32_imm              0x1
+        // 0x0008 ecall                262
+        // 0x0010 drop
+        // 0x0012 nop
+        // 0x0014 i32_imm              0x7050302
+        // 0x001c i64_imm              0x100 0x0
+        // 0x0028 heap_store32         0
+        // 0x002c i64_imm              0x19171311 0x37312923
+        // 0x0038 i64_imm              0x200 0x0
+        // 0x0044 heap_store           0
+        // 0x0048 i64_imm              0x100 0x0
+        // 0x0054 host_addr_heap       0
+        // 0x0058 i64_imm              0x100 0x0
+        // 0x0064 host_addr_heap       2
+        // 0x0068 i64_imm              0x200 0x0
+        // 0x0074 host_addr_heap       0
+        // 0x0078 i64_imm              0x200 0x0
+        // 0x0084 host_addr_heap       4
+        // 0x0088 i64_imm              0x200 0x0
+        // 0x0094 host_addr_heap       7
+        // 0x0098 end
+        //
+        // () -> (i64,i64,i64,i64,i64)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            .write_opcode(Opcode::drop)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0x07050302)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::heap_store32, 0)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::heap_store, 0)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::host_addr_heap, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16(Opcode::host_addr_heap, 2)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::host_addr_heap, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::host_addr_heap, 4)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_i16(Opcode::host_addr_heap, 7)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+            ], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let fvs = result0.unwrap();
+
+        // it is currently assumed that the target architecture is 64-bit.
+
+        let read_i64 = |fv: ForeignValue| -> u64 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u64;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        let read_i32 = |fv: ForeignValue| -> u32 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u32;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        let read_i16 = |fv: ForeignValue| -> u16 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u16;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        let read_i8 = |fv: ForeignValue| -> u8 {
+            if let ForeignValue::UInt64(addr) = fv {
+                let ptr = addr as *const u8;
+                unsafe { std::ptr::read(ptr) }
+            } else {
+                0
+            }
+        };
+
+        assert_eq!(read_i32(fvs[0]), 0x07050302);
+        assert_eq!(read_i16(fvs[1]), 0x0705);
+        assert_eq!(read_i64(fvs[2]), 0x3731292319171311);
+        assert_eq!(read_i32(fvs[3]), 0x37312923);
+        assert_eq!(read_i8(fvs[4]), 0x37);
     }
 }

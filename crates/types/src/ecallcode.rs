@@ -34,13 +34,14 @@ pub enum ECallCode {
     // heap memory
 
     heap_fill,              // fill the specified memory region with the specified (i8) value
-                            // `fn (start_heap_offset:i64, value:i8, count:i64)`
+                            // `fn (offset:i64, value:i8, count:i64)`
                             //
     heap_copy,              // copy the specified memory region to the specified location
-                            // `fn (dst_heap_offset:i64, src_heap_offset:i64, length:i64)`
+                            // `fn (dst_offset:i64, src_offset:i64, length_in_bytes:i64)`
                             //
     heap_capacity,          // return the amount of pages of the thread-local
                             // memory (i.e. heap), each page is 32 KiB by default
+                            // `fn () -> pages:i64`
                             //
     heap_resize,            // increase or decrease the heap size
                             // return the new capacity (in pages)

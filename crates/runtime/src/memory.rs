@@ -36,13 +36,6 @@ pub trait Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
     fn get_mut_ptr(&mut self, address: usize) -> *mut u8;
 
-    fn fill(&mut self, address: usize, value: u8, length_in_bytes: usize) {
-        let dst = self.get_mut_ptr(address);
-        unsafe {
-            std::ptr::write_bytes(dst, value, length_in_bytes);
-        }
-    }
-
     #[inline]
     fn load_to(&self, src_address: usize, dst_ptr: *mut u8, length_in_bytes: usize) {
         let src = self.get_ptr(src_address);
@@ -85,7 +78,7 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_i8(&self, src_address: usize, dst_ptr: *mut u8) {
+    fn load_32_extend_from_i8_s(&self, src_address: usize, dst_ptr: *mut u8) {
         let tp_src = self.get_ptr(src_address) as *const i8;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as i32;
@@ -94,7 +87,7 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_u8(&self, src_address: usize, dst_ptr: *mut u8) {
+    fn load_32_extend_from_i8_u(&self, src_address: usize, dst_ptr: *mut u8) {
         let tp_src = self.get_ptr(src_address) as *const u8;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as u32;
@@ -103,7 +96,7 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_i16(&self, src_address: usize, dst_ptr: *mut u8) {
+    fn load_32_extend_from_i16_s(&self, src_address: usize, dst_ptr: *mut u8) {
         let tp_src = self.get_ptr(src_address) as *const i16;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as i32;
@@ -112,7 +105,7 @@ pub trait Memory {
         }
     }
 
-    fn load_32_extend_from_u16(&self, src_address: usize, dst_ptr: *mut u8) {
+    fn load_32_extend_from_i16_u(&self, src_address: usize, dst_ptr: *mut u8) {
         let tp_src = self.get_ptr(src_address) as *const u16;
         unsafe {
             let val_32 = std::ptr::read(tp_src) as u32;

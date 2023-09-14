@@ -12,6 +12,10 @@ pub fn nop(_thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
+pub fn break_(_thread: &mut Thread) -> InterpretResult {
+    InterpretResult::Break
+}
+
 pub fn drop(thread: &mut Thread) -> InterpretResult {
     thread.stack.drop();
     InterpretResult::MoveOn(2)

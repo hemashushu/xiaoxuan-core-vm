@@ -61,13 +61,6 @@ impl IndexedMemory for ReadOnlyDatas<'_> {
     }
 }
 
-// impl HostAccessableMemory for ReadOnlyDatas<'_> {
-//     #[inline]
-//     fn get_host_address(&self, offset: usize) -> usize {
-//         (&self.datas[offset..]).as_ptr() as usize
-//     }
-// }
-
 impl Memory for ReadWriteDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
@@ -88,13 +81,6 @@ impl IndexedMemory for ReadWriteDatas<'_> {
     }
 }
 
-// impl HostAccessableMemory for ReadWriteDatas<'_> {
-//     #[inline]
-//     fn get_host_address(&self, offset: usize) -> usize {
-//         (&self.datas[offset..]).as_ptr() as usize
-//     }
-// }
-
 impl Memory for UninitDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
@@ -114,10 +100,3 @@ impl IndexedMemory for UninitDatas<'_> {
         (item.data_offset as usize, item.data_length as usize)
     }
 }
-
-// impl HostAccessableMemory for UninitDatas<'_> {
-//     #[inline]
-//     fn get_host_address(&self, offset: usize) -> usize {
-//         (&self.datas[offset..]).as_ptr() as usize
-//     }
-// }

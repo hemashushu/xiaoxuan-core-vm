@@ -22,7 +22,7 @@ pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
 pub fn host_addr_local_long(thread: &mut Thread) -> InterpretResult {
     // (param local_variable_index:i32) (operand offset_bytes:i32)
     let local_variable_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_host_addr_local(thread, local_variable_index as usize, offset_bytes as usize)
 }
 
@@ -53,7 +53,7 @@ fn do_host_addr_local(
     let ptr = thread.stack.get_ptr(total_offset);
     let address = ptr as u64;
 
-    thread.stack.push_u64(address);
+    thread.stack.push_i64_u(address);
 
     InterpretResult::MoveOn(8)
 }
@@ -67,7 +67,7 @@ pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
 pub fn host_addr_data_long(thread: &mut Thread) -> InterpretResult {
     // (param data_index:i32) (operand offset_bytes:i32)
     let data_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_u32();
+    let offset_bytes = thread.stack.pop_i32_u();
     do_host_addr_data(thread, data_index as usize, offset_bytes as usize)
 }
 
@@ -93,13 +93,21 @@ fn do_host_addr_data(
     let ptr = datas.get_ptr(total_offset);
     let address = ptr as u64;
 
-    thread.stack.push_u64(address);
+    thread.stack.push_i64_u(address);
 
     InterpretResult::MoveOn(8)
 }
 
-pub fn host_addr_heap(_thread: &mut Thread) -> InterpretResult {
-    // (param offset_bytes:i16)
-    // InterpretResult::MoveOn(4);
-    unimplemented!()
+pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
+    // (param offset_bytes:i16) (operand heap_addr:i64)
+    let offset_bytes = thread.get_param_i16();
+    let heap_address = thread.stack.pop_i64_u();
+
+    let total_offset = heap_address as usize + offset_bytes as usize;
+    let ptr = thread.heap.get_ptr(total_offset);
+
+    let address = ptr as u64;
+
+    thread.stack.push_i64_u(address);
+    InterpretResult::MoveOn(4)
 }

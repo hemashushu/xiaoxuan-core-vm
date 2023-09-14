@@ -28,17 +28,18 @@
 //    |-------|-------|-------|----|----|
 //    |               i64               | <-- native data type
 //    |---------------------------------|
-//    |000000000000000|        i32      |
+//    |???????????????|        i32      |
 //    |---------------------------------|
-//    |000000000000000|-sign--|   i16   |
+//    |???????????????|-sign--|   i16   |
 //    |---------------------------------|
-//    |000000000000000|-sign-extend| i8 |
+//    |???????????????|-sign-extend| i8 |
 //    |---------------------------------|
 //    |               f64               | <-- native data type
 //    |---------------------------------|
-//    |000000000000000|        f32      |
+//    |???????????????|        f32      |
 //    |---------------------------------|
 //
+// the value of the high end part of operand is undefined.
 
 // note:
 //
@@ -152,6 +153,7 @@ pub enum Opcode {
 
     nop = 0x100,        // instruction to do nothing,
                         // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
+    break_,             // for VM debug
     drop,               // drop one operand (the top most operand)
     duplicate,          // duplicate one operand (the top most operand)
 
@@ -200,11 +202,6 @@ pub enum Opcode {
     local_store16,              //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_store8,               //                                  (param offset_bytes:i16 local_variable_index:i32)
 
-    // there are 2 sets of local load/store instructions, one set is the
-    // local_load.../local_store.., they are designed to access primitive type data
-    // and struct data, the other set is the local_long_load.../local_long_store..., they
-    // are designed to access long byte-type data.
-
     local_long_load = 0x380,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_load32,          //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_load32_i16_s,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
@@ -217,6 +214,14 @@ pub enum Opcode {
     local_long_store32,         //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_store16,         //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_store8,          //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
+
+    // note:
+    // - there are 2 sets of local load/store instructions, one set is the
+    //   local_load.../local_store.., they are designed to access primitive type data
+    //   and struct data, the other set is the local_long_load.../local_long_store..., they
+    //   are designed to access long byte-type data.
+    // - the local_(long_)load32* instructions will leave the value of the high part of
+    //   operand (on the stack) undefined/unpredictable.
 
     //
     // data (thread-local variables) loading and storing
@@ -258,6 +263,13 @@ pub enum Opcode {
     //
     // heap (thread-local memory) loading and storing
     //
+
+    // note that the address of heap is a 64-bit integer number, which means that you
+    // must write the target address (to stack) using the
+    // 'i64_imm', 'local_(long_)load' or 'data_(long_)load' instructions.
+    // do NOT use the 'i32_imm', 'local_(long_)load32' or 'data_(long_)load32', because
+    // the latter instructions leave the value of the high part of
+    // operand (on the stack) undefined/unpredictable.
 
     heap_load = 0x500,      // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
     heap_load32,            //                                  (param offset_bytes:i16) (operand heap_addr:i64)

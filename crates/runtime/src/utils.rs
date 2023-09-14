@@ -212,7 +212,7 @@ impl<'a> BytecodeReader<'a> {
 
             match opcode {
                 // operand
-                Opcode::nop | Opcode::drop | Opcode::duplicate => {}
+                Opcode::nop | Opcode::break_ | Opcode::drop | Opcode::duplicate => {}
                 // immediate
                 Opcode::i32_imm | Opcode::f32_imm => {
                     let v = self.read_param_i32();
@@ -819,7 +819,7 @@ mod tests {
         let rw_datas = &module.datas[1];
         rw_datas.load_idx_32(0, 0, dst_ptr);
         assert_eq!(&data[0..4], &[0x17u8, 0x19, 0x23, 0x29]);
-        rw_datas.load_idx_32_extend_from_u16(0, 4, dst_ptr);
+        rw_datas.load_idx_32_extend_from_i16_u(0, 4, dst_ptr);
         assert_eq!(&data[0..2], &[0x31u8, 0x37]);
 
         let uninit_datas = &module.datas[2];

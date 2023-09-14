@@ -140,8 +140,8 @@ impl<'a> Thread<'a> {
     pub fn push_values(&mut self, values: &[ForeignValue]) {
         for value in values {
             match value {
-                ForeignValue::UInt32(value) => self.stack.push_u32(*value),
-                ForeignValue::UInt64(value) => self.stack.push_u64(*value),
+                ForeignValue::UInt32(value) => self.stack.push_i32_u(*value),
+                ForeignValue::UInt64(value) => self.stack.push_i64_u(*value),
                 ForeignValue::Float32(value) => self.stack.push_f32(*value),
                 ForeignValue::Float64(value) => self.stack.push_f64(*value),
             }
@@ -162,8 +162,8 @@ impl<'a> Thread<'a> {
             .iter()
             .rev()
             .map(|data_type| match data_type {
-                DataType::I32 => ForeignValue::UInt32(self.stack.pop_u32()),
-                DataType::I64 => ForeignValue::UInt64(self.stack.pop_u64()),
+                DataType::I32 => ForeignValue::UInt32(self.stack.pop_i32_u()),
+                DataType::I64 => ForeignValue::UInt64(self.stack.pop_i64_u()),
                 DataType::F32 => ForeignValue::Float32(self.stack.pop_f32()),
                 DataType::F64 => ForeignValue::Float64(self.stack.pop_f64()),
             })
@@ -214,7 +214,7 @@ impl<'a> Thread<'a> {
     /// opcode, or
     /// 16 bits instruction
     /// [opcode]
-    pub fn get_opcode(&self) -> u16 {
+    pub fn get_opcode_num(&self) -> u16 {
         let data = self.get_instruction(0, 2);
         let ptr_u16 = data.as_ptr() as *const u16;
         unsafe { std::ptr::read(ptr_u16) }
