@@ -54,21 +54,19 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{load_modules_binary, module_image::data_section::UninitDataEntry};
+    use ancvm_binary::{
+        load_modules_binary,
+        module_image::data_section::UninitDataEntry,
+        utils::{
+            build_module_binary_with_single_function,
+            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+        },
+    };
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        init_runtime,
-        interpreter::process_function,
-        thread::Thread,
-        utils::{
-            test_helper::{
-                build_module_binary_with_single_function,
-                build_module_binary_with_single_function_and_data_sections,
-            },
-            BytecodeReader, BytecodeWriter,
-        },
-        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        init_runtime, interpreter::process_function, thread::Thread, RUNTIME_CODE_NAME,
+        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     #[test]
@@ -103,8 +101,6 @@ mod tests {
             .write_opcode_i32(Opcode::ecall, ECallCode::heap_capacity as u32)
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![], // params
@@ -193,9 +189,6 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_load, 0, 0)
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        let text = BytecodeReader::new(&code1).to_text();
-        println!("{}", text);
 
         let binary1 = build_module_binary_with_single_function_and_data_sections(
             vec![],

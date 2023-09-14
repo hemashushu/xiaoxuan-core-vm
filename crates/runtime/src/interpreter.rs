@@ -237,21 +237,15 @@ mod tests {
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::VariableItemEntry,
         },
+        utils::{
+            build_module_binary_with_single_function,
+            build_module_binary_with_single_function_and_data_sections, BytecodeReader,
+            BytecodeWriter,
+        },
     };
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{
-        init_runtime,
-        interpreter::process_function,
-        thread::Thread,
-        utils::{
-            test_helper::{
-                build_module_binary_with_single_function,
-                build_module_binary_with_single_function_and_data_sections,
-            },
-            BytecodeReader, BytecodeWriter,
-        },
-    };
+    use crate::{init_runtime, interpreter::process_function, thread::Thread};
 
     #[test]
     fn test_process_operand() {
