@@ -87,20 +87,6 @@ impl BytecodeWriter {
     }
 
     /// 96-bit instruction
-    pub fn write_opcode_i16_i32_i32(
-        self,
-        opcode: Opcode,
-        param0: u16,
-        param1: u32,
-        param2: u32,
-    ) -> Self {
-        self.require_4bytes_padding()
-            .start_opcode_with_i16(opcode, param0)
-            .append_i32(param1)
-            .append_i32(param2)
-    }
-
-    /// 96-bit instruction
     pub fn write_opcode_pesudo_i64(self, opcode: Opcode, value: u64) -> Self {
         let data = value.to_le_bytes();
         let mut new_self = self
@@ -208,21 +194,6 @@ impl<'a> BytecodeReader<'a> {
         )
     }
 
-    /// 96 bits instruction
-    /// [opcode + i16 + i32 + i32]
-    fn read_param_i16_i32_i32(&mut self) -> (u16, u32, u32) {
-        let param_data0 = &self.codes[self.offset..self.offset + 2];
-        let param_data1 = &self.codes[self.offset + 2..self.offset + 2 + 4];
-        let param_data2 = &self.codes[self.offset + 2 + 4..self.offset + 2 + 4 + 4];
-        self.offset += 10;
-
-        (
-            u16::from_le_bytes(param_data0.try_into().unwrap()),
-            u32::from_le_bytes(param_data1.try_into().unwrap()),
-            u32::from_le_bytes(param_data2.try_into().unwrap()),
-        )
-    }
-
     pub fn to_text(&mut self) -> String {
         let mut lines: Vec<String> = Vec::new();
 
@@ -267,6 +238,22 @@ impl<'a> BytecodeReader<'a> {
                     let (offset, index) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, index));
                 }
+                //
+                Opcode::local_long_load
+                | Opcode::local_long_load32
+                | Opcode::local_long_load32_i16_s
+                | Opcode::local_long_load32_i16_u
+                | Opcode::local_long_load32_i8_s
+                | Opcode::local_long_load32_i8_u
+                | Opcode::local_long_load_f64
+                | Opcode::local_long_load32_f32
+                | Opcode::local_long_store
+                | Opcode::local_long_store32
+                | Opcode::local_long_store16
+                | Opcode::local_long_store8 => {
+                    let index = self.read_param_i32();
+                    line.push_str(&format!("{}", index));
+                }
                 // data load/store
                 Opcode::data_load
                 | Opcode::data_load32
@@ -283,6 +270,22 @@ impl<'a> BytecodeReader<'a> {
                     let (offset, index) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, index));
                 }
+                //
+                Opcode::data_long_load
+                | Opcode::data_long_load32
+                | Opcode::data_long_load32_i16_s
+                | Opcode::data_long_load32_i16_u
+                | Opcode::data_long_load32_i8_s
+                | Opcode::data_long_load32_i8_u
+                | Opcode::data_long_load_f64
+                | Opcode::data_long_load32_f32
+                | Opcode::data_long_store
+                | Opcode::data_long_store32
+                | Opcode::data_long_store16
+                | Opcode::data_long_store8 => {
+                    let index = self.read_param_i32();
+                    line.push_str(&format!("{}", index));
+                }
                 // heap load/store
                 Opcode::heap_load
                 | Opcode::heap_load32
@@ -296,8 +299,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::heap_store32
                 | Opcode::heap_store16
                 | Opcode::heap_store8 => {
-                    let (offset, addr_low, addr_high) = self.read_param_i16_i32_i32();
-                    line.push_str(&format!("{} 0x{:x} 0x{:x}", offset, addr_low, addr_high));
+                    let offset = self.read_param_i16();
+                    line.push_str(&format!("{}", offset));
                 }
                 // conversion
                 Opcode::i32_demote_i64
@@ -467,9 +470,13 @@ impl<'a> BytecodeReader<'a> {
                     let (offset, idx) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, idx));
                 }
+                Opcode::host_addr_local_long | Opcode::host_addr_data_long => {
+                    let idx = self.read_param_i32();
+                    line.push_str(&format!("{}", idx));
+                }
                 Opcode::host_addr_heap => {
-                    let (offset, addr_low, addr_high) = self.read_param_i16_i32_i32();
-                    line.push_str(&format!("{} 0x{:x} 0x{:x}", offset, addr_low, addr_high));
+                    let offset = self.read_param_i16();
+                    line.push_str(&format!("{}", offset));
                 }
             }
 

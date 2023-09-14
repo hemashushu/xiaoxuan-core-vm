@@ -78,9 +78,9 @@ pub struct Thread<'a> {
     //
     // 4. returned
     //
-    // |         |
-    // | resul 1 | <-- the results are copied to the position immediately following the
-    // | resul 0 |     function 1 operands, all data between the results and FP 2 will be removed.
+    // |         |     the results are copied to the position immediately following the
+    // | resul 1 | <-- function 1 operands, all data between the results and FP 2 will be removed or overwrited.
+    // | resul 0 |     i.e., the frame info, local variables and operands (and their host address) after this frame will no longer valid.
     // |---------|
     // |   ###   | <-- other operands of function 1
     // |---------| <-- FP of function 1
@@ -264,19 +264,6 @@ impl<'a> Thread<'a> {
         }
     }
 
-    /// 96 bits instruction
-    /// [opcode + i16 + i32 + i32]
-    pub fn get_param_i16_i32_i32(&self) -> (u16, u32, u32) {
-        let data = self.get_instruction(2, 10);
-
-        unsafe {
-            let p0 = std::ptr::read(data.as_ptr() as *const u16);
-            let p1 = std::ptr::read((&data[2..]).as_ptr() as *const u32);
-            let p2 = std::ptr::read((&data[6..]).as_ptr() as *const u32);
-            (p0, p1, p2)
-        }
-    }
-
     #[inline]
     pub fn get_instruction(&self, offset: usize, len_in_bytes: usize) -> &[u8] {
         // the instruction schemes:
@@ -286,7 +273,6 @@ impl<'a> Thread<'a> {
         // - [opcode i16] - [param i16      ] + [param i32]
         // - [opcode i16] - [padding 16 bits] + [param i32]
         // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
-        // - [opcode i16] - [param i16      ] + [param i32] + [param i32]
 
         let ProgramCounter {
             instruction_address,

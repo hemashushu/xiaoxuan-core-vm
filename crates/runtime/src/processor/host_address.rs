@@ -16,7 +16,21 @@ use super::InterpretResult;
 pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
     // (param offset_bytes:i16 local_variable_index:i32)
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
+    do_host_addr_local(thread, local_variable_index as usize, offset_bytes as usize)
+}
 
+pub fn host_addr_local_long(thread: &mut Thread) -> InterpretResult {
+    // (param local_variable_index:i32) (operand offset_bytes:i32)
+    let local_variable_index = thread.get_param_i32();
+    let offset_bytes = thread.stack.pop_u32();
+    do_host_addr_local(thread, local_variable_index as usize, offset_bytes as usize)
+}
+
+fn do_host_addr_local(
+    thread: &mut Thread,
+    local_variable_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let local_start_address = thread.stack.get_local_variables_start_address();
 
     // get the local variable info
@@ -33,10 +47,10 @@ pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
 
     let variable_item = &thread.context.modules[module_index]
         .local_variable_section
-        .get_variable_list(internal_function_index)[local_variable_index as usize];
+        .get_variable_list(internal_function_index)[local_variable_index];
 
-    let offset = local_start_address + variable_item.var_offset as usize + offset_bytes as usize;
-    let ptr = thread.stack.get_ptr(offset);
+    let total_offset = local_start_address + variable_item.var_offset as usize + offset_bytes;
+    let ptr = thread.stack.get_ptr(total_offset);
     let address = ptr as u64;
 
     thread.stack.push_u64(address);
@@ -46,9 +60,22 @@ pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
 
 pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
     // (param offset_bytes:i16 data_index:i32)
-
     let (offset_bytes, data_index) = thread.get_param_i16_i32();
+    do_host_addr_data(thread, data_index as usize, offset_bytes as usize)
+}
 
+pub fn host_addr_data_long(thread: &mut Thread) -> InterpretResult {
+    // (param data_index:i32) (operand offset_bytes:i32)
+    let data_index = thread.get_param_i32();
+    let offset_bytes = thread.stack.pop_u32();
+    do_host_addr_data(thread, data_index as usize, offset_bytes as usize)
+}
+
+fn do_host_addr_data(
+    thread: &mut Thread,
+    data_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     // get the target data item
     let ProgramCounter {
         instruction_address: _instruction_address,
@@ -57,13 +84,13 @@ pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
 
     let range = &thread.context.data_index_section.ranges[module_index];
     let data_index_item =
-        &thread.context.data_index_section.items[(range.offset + data_index) as usize];
+        &thread.context.data_index_section.items[range.offset as usize + data_index];
     let target_module = &mut thread.context.modules[data_index_item.target_module_index as usize];
     let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
     let internal_data_index = data_index_item.target_data_internal_index;
 
-    let offset = datas.get_idx_address(internal_data_index as usize, offset_bytes as usize);
-    let ptr = datas.get_ptr(offset);
+    let total_offset = datas.get_idx_address(internal_data_index as usize, offset_bytes);
+    let ptr = datas.get_ptr(total_offset);
     let address = ptr as u64;
 
     thread.stack.push_u64(address);
@@ -71,9 +98,8 @@ pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(8)
 }
 
-pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
-    // (param offset_bytes:i16 heap_addr_low:i32 heap_addr_high:i32)
-
-    InterpretResult::MoveOn(12);
+pub fn host_addr_heap(_thread: &mut Thread) -> InterpretResult {
+    // (param offset_bytes:i16)
+    // InterpretResult::MoveOn(4);
     unimplemented!()
 }

@@ -31,6 +31,19 @@ impl Opcode {
             Opcode::local_store16 => "local_store16",
             Opcode::local_store8 => "local_store8",
             //
+            Opcode::local_long_load => "local_long_load",
+            Opcode::local_long_load32 => "local_long_load32",
+            Opcode::local_long_load32_i16_s => "local_long_load32_i16_s",
+            Opcode::local_long_load32_i16_u => "local_long_load32_i16_u",
+            Opcode::local_long_load32_i8_s => "local_long_load32_i8_s",
+            Opcode::local_long_load32_i8_u => "local_long_load32_i8_u",
+            Opcode::local_long_load_f64 => "local_long_load_f64",
+            Opcode::local_long_load32_f32 => "local_long_load32_f32",
+            Opcode::local_long_store => "local_long_store",
+            Opcode::local_long_store32 => "local_long_store32",
+            Opcode::local_long_store16 => "local_long_store16",
+            Opcode::local_long_store8 => "local_long_store8",
+            //
             Opcode::data_load => "data_load",
             Opcode::data_load32 => "data_load32",
             Opcode::data_load32_i16_s => "data_load32_i16_s",
@@ -43,6 +56,19 @@ impl Opcode {
             Opcode::data_store32 => "data_store32",
             Opcode::data_store16 => "data_store16",
             Opcode::data_store8 => "data_store8",
+            //
+            Opcode::data_long_load => "data_long_load",
+            Opcode::data_long_load32 => "data_long_load32",
+            Opcode::data_long_load32_i16_s => "data_long_load32_i16_s",
+            Opcode::data_long_load32_i16_u => "data_long_load32_i16_u",
+            Opcode::data_long_load32_i8_s => "data_long_load32_i8_s",
+            Opcode::data_long_load32_i8_u => "data_long_load32_i8_u",
+            Opcode::data_long_load_f64 => "data_long_load_f64",
+            Opcode::data_long_load32_f32 => "data_long_load32_f32",
+            Opcode::data_long_store => "data_long_store",
+            Opcode::data_long_store32 => "data_long_store32",
+            Opcode::data_long_store16 => "data_long_store16",
+            Opcode::data_long_store8 => "data_long_store8",
             //
             Opcode::heap_load => "heap_load",
             Opcode::heap_load32 => "heap_load32",
@@ -213,7 +239,9 @@ impl Opcode {
             Opcode::ccall => "ccall",
             //
             Opcode::host_addr_local => "host_addr_local",
+            Opcode::host_addr_local_long => "host_addr_local_long",
             Opcode::host_addr_data => "host_addr_data",
+            Opcode::host_addr_data_long => "host_addr_data_long",
             Opcode::host_addr_heap => "host_addr_heap",
         }
     }

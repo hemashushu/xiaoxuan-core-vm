@@ -70,6 +70,19 @@ impl Processor {
         interpreters[Opcode::local_store16 as usize] = local::local_store16;
         interpreters[Opcode::local_store8 as usize] = local::local_store8;
 
+        interpreters[Opcode::local_long_load as usize] = local::local_long_load;
+        interpreters[Opcode::local_long_load32 as usize] = local::local_long_load32;
+        interpreters[Opcode::local_long_load32_i16_s as usize] = local::local_long_load32_i16_s;
+        interpreters[Opcode::local_long_load32_i16_u as usize] = local::local_long_load32_i16_u;
+        interpreters[Opcode::local_long_load32_i8_s as usize] = local::local_long_load32_i8_s;
+        interpreters[Opcode::local_long_load32_i8_u as usize] = local::local_long_load32_i8_u;
+        interpreters[Opcode::local_long_load32_f32 as usize] = local::local_long_load32_f32;
+        interpreters[Opcode::local_long_load_f64 as usize] = local::local_long_load_f64;
+        interpreters[Opcode::local_long_store as usize] = local::local_long_store;
+        interpreters[Opcode::local_long_store32 as usize] = local::local_long_store32;
+        interpreters[Opcode::local_long_store16 as usize] = local::local_long_store16;
+        interpreters[Opcode::local_long_store8 as usize] = local::local_long_store8;
+
         // data sections
         interpreters[Opcode::data_load as usize] = data::data_load;
         interpreters[Opcode::data_load32 as usize] = data::data_load32;
@@ -84,6 +97,19 @@ impl Processor {
         interpreters[Opcode::data_store16 as usize] = data::data_store16;
         interpreters[Opcode::data_store8 as usize] = data::data_store8;
 
+        interpreters[Opcode::data_long_load as usize] = data::data_long_load;
+        interpreters[Opcode::data_long_load32 as usize] = data::data_long_load32;
+        interpreters[Opcode::data_long_load32_i16_s as usize] = data::data_long_load32_i16_s;
+        interpreters[Opcode::data_long_load32_i16_u as usize] = data::data_long_load32_i16_u;
+        interpreters[Opcode::data_long_load32_i8_s as usize] = data::data_long_load32_i8_s;
+        interpreters[Opcode::data_long_load32_i8_u as usize] = data::data_long_load32_i8_u;
+        interpreters[Opcode::data_long_load32_f32 as usize] = data::data_long_load32_f32;
+        interpreters[Opcode::data_long_load_f64 as usize] = data::data_long_load_f64;
+        interpreters[Opcode::data_long_store as usize] = data::data_long_store;
+        interpreters[Opcode::data_long_store32 as usize] = data::data_long_store32;
+        interpreters[Opcode::data_long_store16 as usize] = data::data_long_store16;
+        interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
+
         // heap
 
         // control flow
@@ -94,7 +120,9 @@ impl Processor {
 
         // host address
         interpreters[Opcode::host_addr_local as usize] = host_address::host_addr_local;
+        interpreters[Opcode::host_addr_local_long as usize] = host_address::host_addr_local_long;
         interpreters[Opcode::host_addr_data as usize] = host_address::host_addr_data;
+        interpreters[Opcode::host_addr_data_long as usize] = host_address::host_addr_data_long;
         interpreters[Opcode::host_addr_heap as usize] = host_address::host_addr_heap;
 
         Self { interpreters }
@@ -135,7 +163,7 @@ impl Processor {
 
         let (target_module_index, target_internal_function_index) =
             thread.get_target_function_module_index_and_internal_index(module_index, func_index);
-        let (type_index, code_offset, local_variables_allocate_bytes) = thread
+        let (type_index, codeset, local_variables_allocate_bytes) = thread
             .get_internal_function_type_code_and_local_variables_allocate_bytes(
                 target_module_index,
                 target_internal_function_index,
@@ -176,7 +204,7 @@ impl Processor {
 
         // set new PC
         thread.pc.module_index = target_module_index as usize;
-        thread.pc.instruction_address = code_offset as usize;
+        thread.pc.instruction_address = codeset as usize;
 
         self.process_continuous_instructions(thread);
 
@@ -545,6 +573,167 @@ mod tests {
     }
 
     #[test]
+    fn test_process_local_load_store_long() {
+        //       |low address                                 high address|
+        //       |                                                        |
+        // index |0                                  1                    |
+        //  type |bytes-------------------|         |bytes----------------|
+        //
+        //  data 11 13 17 19 c0 d0    e0 f0         11 13 17 19 c0 d0 e0 f0
+        //       |           |        |  |          ^
+        //       |store32    |store16 |  |          |
+        //        step0       step1   |  |          |
+        //                      store8|  |          |
+        //       |              step2    |store8    |store64
+        //       |                        step3     |
+        //       \----->--load64-->-----------------/
+        //
+        //       11 13 17 19 c0 d0    e0 f0         11 13 17 19 c0 d0 e0 f0
+        //       |           |        |  |load8u    |
+        //       |           |        |  |load8s    |load64
+        //       |           |        |             |load32
+        //       |           |        |load16u      |load16u
+        //       |           |        |load16s      |load8u
+        //       |           |
+        //       |load64     |load32
+        //
+        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
+
+        let processor = Processor::new();
+
+        // bytecodes
+        //
+        // 0x0000 i32_imm              0x19171311
+        // 0x0008 i32_imm              0x0
+        // 0x0010 local_long_store32   0
+        // 0x0018 i32_imm              0xd0c0
+        // 0x0020 i32_imm              0x4
+        // 0x0028 local_long_store16   0
+        // 0x0030 i32_imm              0xe0
+        // 0x0038 i32_imm              0x6
+        // 0x0040 local_long_store8    0
+        // 0x0048 i32_imm              0xf0
+        // 0x0050 i32_imm              0x7
+        // 0x0058 local_long_store8    0
+        // 0x0060 i32_imm              0x0
+        // 0x0068 local_long_load      0
+        // 0x0070 i32_imm              0x0
+        // 0x0078 local_long_store     1
+        // 0x0080 i32_imm              0x0
+        // 0x0088 local_long_load      0
+        // 0x0090 i32_imm              0x4
+        // 0x0098 local_long_load32    0
+        // 0x00a0 i32_imm              0x6
+        // 0x00a8 local_long_load32_i16_u 0
+        // 0x00b0 i32_imm              0x6
+        // 0x00b8 local_long_load32_i16_s 0
+        // 0x00c0 i32_imm              0x7
+        // 0x00c8 local_long_load32_i8_u 0
+        // 0x00d0 i32_imm              0x7
+        // 0x00d8 local_long_load32_i8_s 0
+        // 0x00e0 i32_imm              0x0
+        // 0x00e8 local_long_load      1
+        // 0x00f0 i32_imm              0x0
+        // 0x00f8 local_long_load32    1
+        // 0x0100 i32_imm              0x0
+        // 0x0108 local_long_load32_i16_u 1
+        // 0x0110 i32_imm              0x0
+        // 0x0118 local_long_load32_i8_u 1
+        // 0x0120 end
+        //
+        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_store32, 0) // store 32
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::local_long_store16, 0) // store 16
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xe0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::local_long_store8, 0) // store 8
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xf0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::local_long_store8, 0) // store 8
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load, 0) // load 64
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_store, 1) // store 64
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load, 0)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::local_long_load32, 0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::local_long_load32_i16_u, 0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::local_long_load32_i16_s, 0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::local_long_load32_i8_u, 0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::local_long_load32_i8_s, 0)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load32, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load32_i16_u, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::local_long_load32_i8_u, 1)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+            ], // results
+            code0,
+            vec![
+                VariableItemEntry::from_bytes(8, 8),
+                VariableItemEntry::from_bytes(8, 8),
+            ], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0xf0e0d0c0u32),
+                ForeignValue::UInt32(0xf0e0u32),
+                ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
+                ForeignValue::UInt32(0xf0u32),
+                ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
+                //
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0x19171311u32),
+                ForeignValue::UInt32(0x00001311u32), // extend from i16 to i32
+                ForeignValue::UInt32(0x00000011u32), // extend from i8 to i32
+            ]
+        );
+    }
+
+    #[test]
     fn test_process_data_load_store() {
         //        read-only data section
         //       |low address    high addr|
@@ -656,8 +845,6 @@ mod tests {
             //
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![
@@ -907,6 +1094,172 @@ mod tests {
     }
 
     #[test]
+    fn test_process_data_load_store_long() {
+        //       |low address                                 high address|
+        //       |                                                        |
+        // index |0                                  1                    |
+        //  type |bytes-------------------|         |bytes----------------|
+        //
+        //  data 11 13 17 19 c0 d0    e0 f0         11 13 17 19 c0 d0 e0 f0
+        //       |           |        |  |          ^
+        //       |store32    |store16 |  |          |
+        //        step0       step1   |  |          |
+        //                      store8|  |          |
+        //       |              step2    |store8    |store64
+        //       |                        step3     |
+        //       \----->--load64-->-----------------/
+        //
+        //       11 13 17 19 c0 d0    e0 f0         11 13 17 19 c0 d0 e0 f0
+        //       |           |        |  |load8u    |
+        //       |           |        |  |load8s    |load64
+        //       |           |        |             |load32
+        //       |           |        |load16u      |load16u
+        //       |           |        |load16s      |load8u
+        //       |           |
+        //       |load64     |load32
+        //
+        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
+
+        let processor = Processor::new();
+
+        // bytecodes
+        //
+        // 0x0000 i32_imm              0x19171311
+        // 0x0008 i32_imm              0x0
+        // 0x0010 data_long_store32    0
+        // 0x0018 i32_imm              0xd0c0
+        // 0x0020 i32_imm              0x4
+        // 0x0028 data_long_store16    0
+        // 0x0030 i32_imm              0xe0
+        // 0x0038 i32_imm              0x6
+        // 0x0040 data_long_store8     0
+        // 0x0048 i32_imm              0xf0
+        // 0x0050 i32_imm              0x7
+        // 0x0058 data_long_store8     0
+        // 0x0060 i32_imm              0x0
+        // 0x0068 data_long_load       0
+        // 0x0070 i32_imm              0x0
+        // 0x0078 data_long_store      1
+        // 0x0080 i32_imm              0x0
+        // 0x0088 data_long_load       0
+        // 0x0090 i32_imm              0x4
+        // 0x0098 data_long_load32     0
+        // 0x00a0 i32_imm              0x6
+        // 0x00a8 data_long_load32_i16_u 0
+        // 0x00b0 i32_imm              0x6
+        // 0x00b8 data_long_load32_i16_s 0
+        // 0x00c0 i32_imm              0x7
+        // 0x00c8 data_long_load32_i8_u 0
+        // 0x00d0 i32_imm              0x7
+        // 0x00d8 data_long_load32_i8_s 0
+        // 0x00e0 i32_imm              0x0
+        // 0x00e8 data_long_load       1
+        // 0x00f0 i32_imm              0x0
+        // 0x00f8 data_long_load32     1
+        // 0x0100 i32_imm              0x0
+        // 0x0108 data_long_load32_i16_u 1
+        // 0x0110 i32_imm              0x0
+        // 0x0118 data_long_load32_i8_u 1
+        // 0x0120 end
+        //
+        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_store32, 0) // store 32
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::data_long_store16, 0) // store 16
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xe0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::data_long_store8, 0) // store 8
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0xf0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::data_long_store8, 0) // store 8
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load, 0) // load 64
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_store, 1) // store 64
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load, 0)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::data_long_load32, 0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::data_long_load32_i16_u, 0)
+            .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::data_long_load32_i16_s, 0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::data_long_load32_i8_u, 0)
+            .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::data_long_load32_i8_s, 0)
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load32, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load32_i16_u, 1)
+            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::data_long_load32_i8_u, 1)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![],
+            vec![],
+            vec![
+                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_bytes(8, 8),
+            ],
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+            ], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = processor.process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0xf0e0d0c0u32),
+                ForeignValue::UInt32(0xf0e0u32),
+                ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
+                ForeignValue::UInt32(0xf0u32),
+                ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
+                //
+                ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
+                ForeignValue::UInt32(0x19171311u32),
+                ForeignValue::UInt32(0x00001311u32), // extend from i16 to i32
+                ForeignValue::UInt32(0x00000011u32), // extend from i8 to i32
+            ]
+        );
+    }
+
+    #[test]
     fn test_process_host_address() {
         //        read-only data section
         //       |low address    high addr|
@@ -1004,8 +1357,6 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", BytecodeReader::new(&code0).to_text());
-
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
             vec![
@@ -1064,6 +1415,12 @@ mod tests {
         assert_eq!(read_i32(fvs[3]), 0x19);
         assert_eq!(read_i32(fvs[4]), 0x23);
         assert_eq!(read_i64(fvs[5]), 0x29);
+
+        // note:
+        // depending on the implementation of the stack (the stack frame and local variables),
+        // the following 2 'assert_eq' may fail,
+        // because the local variables (as well as their host addresses) will no longer valid
+        // when a function exits.
 
         assert_eq!(read_i32(fvs[6]), 0x31);
         assert_eq!(read_i32(fvs[7]), 0x37);

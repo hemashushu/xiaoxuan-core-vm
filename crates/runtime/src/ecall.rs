@@ -17,17 +17,17 @@ fn unreachable(_thread: &mut Thread) -> Result<(), usize> {
     unreachable!("Invalid environment call number.")
 }
 
-pub static mut handlers: Vec<EnvCallHandlerFunc> = vec![];
+pub static mut HANDLERS: Vec<EnvCallHandlerFunc> = vec![];
 
 pub fn init_ecall_handlers() {
     let placehold: Vec<EnvCallHandlerFunc> = vec![unreachable; MAX_ECALLCODE_NUMBER];
 
     unsafe {
-        handlers.extend(placehold.iter());
+        HANDLERS.extend(placehold.iter());
 
         //
-        handlers[ECallCode::runtime_name as usize] = info::runtime_name;
-        handlers[ECallCode::runtime_version as usize] = info::runtime_version;
+        HANDLERS[ECallCode::runtime_name as usize] = info::runtime_name;
+        HANDLERS[ECallCode::runtime_version as usize] = info::runtime_version;
     }
 }
 
@@ -35,7 +35,7 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
     // (param env_func_num:i32)
 
     let env_func_num = thread.get_param_i32();
-    let func = unsafe { handlers[env_func_num as usize] };
+    let func = unsafe { HANDLERS[env_func_num as usize] };
     let result = func(thread);
 
     match result {
@@ -46,14 +46,20 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::load_modules_binary;
+    use ancvm_binary::{load_modules_binary, module_image::data_section::UninitDataEntry};
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
         processor::Processor,
         thread::Thread,
-        utils::{test_helper::build_module_binary_with_single_function, BytecodeWriter, BytecodeReader},
-        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        utils::{
+            test_helper::{
+                build_module_binary_with_single_function,
+                build_module_binary_with_single_function_and_data_sections,
+            },
+            BytecodeReader, BytecodeWriter,
+        },
+        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     #[test]
@@ -95,5 +101,56 @@ mod tests {
             result0.unwrap(),
             vec![ForeignValue::UInt64(expect_version_number)]
         );
+
+        // bytecodes
+        //
+        // 0x0000 host_addr_data       0 0
+        // 0x0008 ecall                256
+        // 0x0010 data_load            0 0
+        // 0x0018 end
+        //
+        // () -> (i32, i64)
+        //        ^    ^
+        //        |    |name buffer (8 bytes)
+        //        |name length
+
+        let code1 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .write_opcode_i32(Opcode::ecall, ECallCode::runtime_name as u32)
+            .write_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let text = BytecodeReader::new(&code1).to_text();
+        println!("{}", text);
+
+        let binary1 = build_module_binary_with_single_function_and_data_sections(
+            vec![],
+            vec![],
+            vec![UninitDataEntry::from_i64()],
+            vec![],                             // params
+            vec![DataType::I32, DataType::I64], // results
+            code1,
+            vec![], // local varslist which
+        );
+
+        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let mut thread1 = Thread::new(&image1);
+
+        let result1 = processor.process_function(&mut thread1, 0, 0, &vec![]);
+        let fvs1 = result1.unwrap();
+        let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
+            i
+        } else {
+            0
+        };
+        let name_u64 = if let ForeignValue::UInt64(i) = fvs1[1] {
+            i
+        } else {
+            0
+        };
+
+        let name_data = name_u64.to_le_bytes();
+        assert_eq!(&RUNTIME_CODE_NAME[..], &name_data[0..name_len as usize]);
     }
 }
