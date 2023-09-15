@@ -464,6 +464,9 @@ mod tests {
 
         // build LocalVariableSection instance
 
+        // note:
+        // the local variable list should include the function arguments, but
+        // it's ok in this unit test scenario.
         let mut local_var_entries: Vec<Vec<VariableItemEntry>> = Vec::new();
         local_var_entries.push(vec![
             VariableItemEntry::from_i32(),

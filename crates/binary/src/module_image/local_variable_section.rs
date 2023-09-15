@@ -27,16 +27,19 @@
 //              | ...                                                                                                             |
 //              |-----------------------------------------------------------------------------------------------------------------|
 //
-// note that all variables in the 'local variable area' MUST be 8-byte aligned,
-// and their size are padded to a multiple of 8.
-// for example, an i32 will be padded to 8 bytes, and a struct which is 12 bytes will
-// be padded to 16 (= 8 * 2) bytes.
-// this is because the current VM allocates 'local variable area' on the stack frame,
-// and the stack address is 8-byte aligned.
+// note:
+// - all variables in the 'local variable area' MUST be 8-byte aligned,
+//   and their size are padded to a multiple of 8.
+//   for example, an i32 will be padded to 8 bytes, and a struct which is 12 bytes will
+//   be padded to 16 (= 8 * 2) bytes.
+//   this is because the current VM allocates 'local variable area' on the stack frame,
+//   and the stack address is 8-byte aligned.
+// - the local variable list also includes the functions arguments. the compiler will
+//   append arguments to the end of the list as local variables automatically.
 
 use std::mem::size_of;
 
-use ancvm_types::{MemoryDataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_types::{DataType, MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -145,6 +148,15 @@ impl VariableItemEntry {
             memory_data_type: MemoryDataType::BYTES,
             length,
             align,
+        }
+    }
+
+    pub fn from_datatype(datatype: DataType) -> Self {
+        match datatype {
+            DataType::I32 => Self::from_i32(),
+            DataType::I64 => Self::from_i64(),
+            DataType::F32 => Self::from_f32(),
+            DataType::F64 => Self::from_f64(),
         }
     }
 }

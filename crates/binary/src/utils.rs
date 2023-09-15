@@ -754,12 +754,12 @@ impl<'a> BytecodeReader<'a> {
     }
 }
 
-/// test-support function
+/// test-helping function
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
     codes: Vec<u8>,
-    local_variable_item_entries: Vec<VariableItemEntry>,
+    local_variable_item_entries_without_args: Vec<VariableItemEntry>,
 ) -> Vec<u8> {
     build_module_binary_with_single_function_and_data_sections(
         vec![],
@@ -768,11 +768,11 @@ pub fn build_module_binary_with_single_function(
         param_datatypes,
         result_datatypes,
         codes,
-        local_variable_item_entries,
+        local_variable_item_entries_without_args,
     )
 }
 
-/// test-support function
+/// test-helping function
 pub fn build_module_binary_with_single_function_and_data_sections(
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
@@ -780,8 +780,13 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
     codes: Vec<u8>,
-    local_variable_item_entries: Vec<VariableItemEntry>,
+    mut local_variable_item_entries_without_args: Vec<VariableItemEntry>,
 ) -> Vec<u8> {
+    let mut params_as_local_variable_item_entries = param_datatypes
+        .iter()
+        .map(|dt| VariableItemEntry::from_datatype(*dt))
+        .collect::<Vec<_>>();
+
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
     let ro_data_section = ReadOnlyDataSection {
@@ -827,6 +832,11 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     // build local variable section
+    let mut local_variable_item_entries: Vec<VariableItemEntry> = Vec::new();
+
+    local_variable_item_entries.append(&mut local_variable_item_entries_without_args);
+    local_variable_item_entries.append(&mut params_as_local_variable_item_entries);
+
     let mut local_var_entries: Vec<Vec<VariableItemEntry>> = Vec::new();
     local_var_entries.push(local_variable_item_entries);
 
@@ -971,8 +981,8 @@ mod tests {
                 UninitDataEntry::from_i64(),
                 UninitDataEntry::from_i32(),
             ],
-            vec![DataType::I32, DataType::I32],
-            vec![DataType::I64],
+            vec![DataType::I64, DataType::I64],
+            vec![DataType::I32],
             vec![0u8],
             vec![VariableItemEntry::from_i32()],
         );
@@ -1075,8 +1085,8 @@ mod tests {
         assert_eq!(
             type_section.get_entry(0),
             TypeEntry {
-                params: vec![DataType::I32, DataType::I32],
-                results: vec![DataType::I64]
+                params: vec![DataType::I64, DataType::I64],
+                results: vec![DataType::I32]
             }
         );
 
@@ -1096,7 +1106,11 @@ mod tests {
         assert_eq!(local_variable_section.lists.len(), 1);
         assert_eq!(
             local_variable_section.get_variable_list(0),
-            &vec![VariableItem::new(0, 4, MemoryDataType::I32, 4)]
+            &vec![
+                VariableItem::new(0, 4, MemoryDataType::I32, 4),
+                VariableItem::new(8, 8, MemoryDataType::I64, 8),
+                VariableItem::new(16, 8, MemoryDataType::I64, 8),
+            ]
         );
     }
 

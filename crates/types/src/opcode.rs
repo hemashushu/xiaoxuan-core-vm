@@ -148,7 +148,7 @@
 #[allow(non_camel_case_types)]
 pub enum Opcode {
     //
-    // start and operand
+    // fundamental
     //
 
     nop = 0x100,        // instruction to do nothing,
@@ -158,7 +158,7 @@ pub enum Opcode {
     duplicate,          // duplicate one operand (the top most operand)
 
     //
-    // immediate number
+    // immediate
     //
 
     i32_imm = 0x200,    // (param immediate_number:i32)
@@ -178,16 +178,20 @@ pub enum Opcode {
     // | f64       | 8             |
 
     //
-    // local data/variables loading and storing
+    // local variables loading and storing
     //
     // load the specified local variable and push onto to the stack, or
     // pop one operand off the stack and set the specified local variable.
     //
-    // note that you CANNOT load/store function arguments using these
-    // instructions.
-    // arguments are at the top of the (operand) stack when a function
-    // starts running, if you need to keep the arguments, you can allocate
-    // local variable slots first and call the 'local_store' instruction multiple times.
+    // note that you CAN ALSO load/store function arguments using these
+    // instructions. the index of arguments are follow the local variables, e.g.
+    //
+    //     local variable      arguments
+    //     [i32 i32 i64 i64]  [i32 i32]
+    // idx  0   1   2   3      4   5
+    //
+    // also note that the arguments are at the top of the (operand) stack when a function
+    // starts running, so you can also access these operands directly.
 
     local_load = 0x300,         // load local variable              (param offset_bytes:i16 local_variable_index:i32)
     local_load32,               //                                  (param offset_bytes:i16 local_variable_index:i32)
@@ -225,6 +229,7 @@ pub enum Opcode {
 
     //
     // data (thread-local variables) loading and storing
+    //
     // load the specified data and push onto to the stack, or
     // pop one operand off the stack and set the specified data
     //
@@ -314,13 +319,13 @@ pub enum Opcode {
     // convert float to int
     // truncate fractional part
     i32_trunc_f32_s,
-    i32_trunc_f32_u,
+    i32_trunc_f32_u,        // note -x.xx(float) -> 0(int)
     i32_trunc_f64_s,
-    i32_trunc_f64_u,
+    i32_trunc_f64_u,        // note -x.xx(float) -> 0(int)
     i64_trunc_f32_s,
-    i64_trunc_f32_u,
+    i64_trunc_f32_u,        // note -x.xx(float) -> 0(int)
     i64_trunc_f64_s,
-    i64_trunc_f64_u,
+    i64_trunc_f64_u,        // note -x.xx(float) -> 0(int)
 
     // convert int to float
     f32_convert_i32_s,

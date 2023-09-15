@@ -48,8 +48,8 @@ pub struct Stack {
 // | operand 1             |                                   | ...                    |
 // | operand 0             | <-- operands                      |========================|
 // |-----------------------|                                   | operand N              |
-// | arg 1                 |                                   | operand 1              |
-// | arg 0                 | <-- args from caller              | operand 0              |
+// | arg 1 (local 3)       |                                   | operand 1              |
+// | arg 0 (local 2)       | <-- args from caller              | operand 0              |
 // |-----------------------|                                   |------------------------|
 // | local 1               |                                   | arg 1                  |
 // | local 0               | <-- local variable area           | arg 0                  |
@@ -72,6 +72,18 @@ pub struct Stack {
 // - block has arguments but has NO local variables.
 // - block arguments can NOT be read/write as local variables.
 //
+// |                 |
+// |-----------------| <------
+// | arg 1 (local 5) |     ^
+// | arg 0 (local 4) |     |
+// |-----------------|     |
+// | local 3         | local vars area
+// | local 2         |     |
+// | local 1         |     v
+// |-----------------| <------
+// |                 |
+// \-----------------/ <-- stack start
+
 // the chain of frames
 //
 //             |             |
@@ -519,7 +531,24 @@ impl Stack {
         self.fp = fp;
 
         // allocate local variable area
-        self.sp += local_variables_allocate_bytes as usize;
+        //
+        // note that 'local_variables_allocate_bytes' includes the size of arguments
+        //
+        //  |                 |
+        //  |-----------------| <-----
+        //  | arg 1 (local 5) |    ^
+        //  | arg 0 (local 4) |    |
+        //  |-----------------|    | <----------
+        //  | local 3         |  vars local  ^
+        //  | local 2         |    | area    |  'local_variables_allocate_bytes -
+        //  | local 1         |    v         v   params_count * OPERAND_SIZE_IN_BYTES'
+        //  |-----------------| <---------------
+        //  |                 |
+        //  \-----------------/ <-- stack start
+
+        let local_variables_allocate_bytes_without_args =
+            local_variables_allocate_bytes as usize - params_count as usize * OPERAND_SIZE_IN_BYTES;
+        self.sp += local_variables_allocate_bytes_without_args;
 
         // restore the arguments from swap
         self.restore_operands_from_swap(params_count);
@@ -605,7 +634,7 @@ impl Stack {
         )
     }
 
-    /// reset the specified frame:
+    /// reset the specified (function or block) frame:
     /// - initialize all local variable area (if present) to value 0
     /// - remove all oprands which follow the local variable area
     /// - remove all frames which follow the current frame
@@ -613,7 +642,7 @@ impl Stack {
     ///
     /// this function is commonly used for 'loop' structure or 'tail call' statement.
     pub fn reset_to_frame(&mut self, reversed_index: usize) {
-        let (frame_addr, params_count, frame_func_fp, frame_local_vars_len_in_bytes) = {
+        let (frame_addr, params_count, frame_func_fp, local_variables_allocate_bytes) = {
             let frame_item = self.get_frame(reversed_index);
             (
                 frame_item.address,
@@ -661,12 +690,29 @@ impl Stack {
             self.fp = frame_addr;
 
             let local_vars_addr_start = frame_addr + size_of::<Frame>();
-            self.sp = local_vars_addr_start + frame_local_vars_len_in_bytes;
+
+            // note that 'local_variables_allocate_bytes' includes the size of arguments
+            //
+            //  |                 |
+            //  |-----------------| <-----
+            //  | arg 1 (local 5) |    ^
+            //  | arg 0 (local 4) |    |
+            //  |-----------------|    | <----------
+            //  | local 3         |  vars local  ^
+            //  | local 2         |    | area    |  'local_variables_allocate_bytes -
+            //  | local 1         |    v         v   params_count * OPERAND_SIZE_IN_BYTES'
+            //  |-----------------| <---------------
+            //  |                 |
+            //  \-----------------/ <-- stack start
+
+            let local_variables_allocate_bytes_without_args =
+                local_variables_allocate_bytes - params_count as usize * OPERAND_SIZE_IN_BYTES;
+            self.sp = local_vars_addr_start + local_variables_allocate_bytes_without_args;
 
             // re-initialize the local variable area
             let dst = self.data[local_vars_addr_start..].as_mut_ptr();
             unsafe {
-                std::ptr::write_bytes(dst, 0, frame_local_vars_len_in_bytes);
+                std::ptr::write_bytes(dst, 0, local_variables_allocate_bytes_without_args);
             }
 
             // restore parameters from swap
@@ -707,6 +753,7 @@ mod tests {
         MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
     };
 
+    /// private functions for helping unit test
     impl Stack {
         fn read_local_by_offset_i32(&self, offset: usize) -> i32 {
             self.read_i32_s(self.get_local_variables_start_address() + offset)
@@ -845,7 +892,7 @@ mod tests {
         //              \--------/
 
         stack.create_function_frame(
-            16, // local vars len
+            16 + 16, // local vars len
             2,  // params count
             0,  // results count
             73, // mod idx
@@ -865,7 +912,7 @@ mod tests {
         //              |--------|
         //       0d0044 | 89     | return inst addr
         //       0d0040 | 83     | return module idx
-        //       0d0036 | 16     | local vars len
+        //       0d0036 | 32     | local vars len
         //       0d0032 | 79     | func idx
         //       0d0028 | 73     | module idx
         //       0d0024 | 2/0    | params/results count
@@ -885,7 +932,7 @@ mod tests {
         assert_eq!(stack.read_i32_s(24), 0 << 16 | 2); // results count << 16 | params count
         assert_eq!(stack.read_i32_s(28), 73);
         assert_eq!(stack.read_i32_s(32), 79);
-        assert_eq!(stack.read_i32_s(36), 16);
+        assert_eq!(stack.read_i32_s(36), 32);
         assert_eq!(stack.read_i32_s(40), 83);
         assert_eq!(stack.read_i32_s(44), 89);
 
@@ -909,10 +956,9 @@ mod tests {
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                // type_index: 71,
                 module_index: 73,
                 internal_function_index: 79,
-                local_variables_allocate_bytes: 16,
+                local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_instruction_address: 89
             }
@@ -1013,7 +1059,6 @@ mod tests {
             &Frame {
                 previous_frame_address: 16,
                 function_frame_address: 16,
-                // type_index: 97,
                 params_count: 1,
                 results_count: 2,
                 module_index: 73,
@@ -1069,7 +1114,6 @@ mod tests {
             &Frame {
                 previous_frame_address: fp1 as u32,
                 function_frame_address: fp0 as u32,
-                // type_index: 101,
                 params_count: 0,
                 results_count: 0,
                 module_index: 73,
@@ -1099,10 +1143,9 @@ mod tests {
 
         // create func frame
         stack.create_function_frame(
-            0, // local vars len
+            0 + 8, // local vars len
             1, // params count
             3, // results count
-            // 103, // func type
             107, // mod idx
             109, // func idx
             113, // ret mod idx
@@ -1140,12 +1183,11 @@ mod tests {
             &Frame {
                 previous_frame_address: fp2 as u32,
                 function_frame_address: fp3 as u32,
-                // type_index: 103,
                 params_count: 1,
                 results_count: 3,
                 module_index: 107,
                 internal_function_index: 109,
-                local_variables_allocate_bytes: 0,
+                local_variables_allocate_bytes: 8,
                 return_module_index: 113,
                 return_instruction_address: 127
             }
@@ -1290,9 +1332,8 @@ mod tests {
         //              \--------/
 
         stack.create_function_frame(
-            16, // local vars len
+            16 + 16, // local vars len
             2,  // params count
-            // 71, // func type
             0,  // results count
             73, // mod idx
             79, // func idx
@@ -1311,7 +1352,7 @@ mod tests {
         //              |--------|
         //       0d0044 | 89     | return inst addr
         //       0d0040 | 83     | return module idx
-        //       0d0036 | 16     | local vars len
+        //       0d0036 | 32     | local vars len
         //       0d0032 | 79     | func idx
         //       0d0028 | 73     | module idx
         //       0d0024 | 2/0    | params/results count
@@ -1371,7 +1412,7 @@ mod tests {
         //              |--------|
         //       0d0044 | 89     | return inst addr
         //       0d0040 | 83     | return module idx
-        //       0d0036 | 16     | local vars len
+        //       0d0036 | 32     | local vars len
         //       0d0032 | 79     | func idx
         //       0d0028 | 73     | module idx
         //       0d0024 | 2/0    | params/results count
@@ -1390,12 +1431,11 @@ mod tests {
             &Frame {
                 previous_frame_address: 0,
                 function_frame_address: 16,
-                // type_index: 71,
                 params_count: 2,
                 results_count: 0,
                 module_index: 73,
                 internal_function_index: 79,
-                local_variables_allocate_bytes: 16,
+                local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_instruction_address: 89
             }
@@ -1508,7 +1548,6 @@ mod tests {
             &Frame {
                 previous_frame_address: 16,
                 function_frame_address: 16,
-                // type_index: 149,
                 params_count: 1,
                 results_count: 2,
                 module_index: 73,
