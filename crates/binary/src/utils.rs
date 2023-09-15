@@ -477,8 +477,13 @@ impl<'a> BytecodeReader<'a> {
             let mut line = format!("0x{:04x} {:20} ", offset, opcode.get_name());
 
             match opcode {
-                // operand
-                Opcode::nop | Opcode::break_ | Opcode::drop | Opcode::duplicate => {}
+                // fundemental
+                Opcode::nop
+                | Opcode::break_
+                | Opcode::drop
+                | Opcode::duplicate
+                | Opcode::swap
+                | Opcode::zero => {}
                 // immediate
                 Opcode::i32_imm | Opcode::f32_imm => {
                     let v = self.read_param_i32();
@@ -592,8 +597,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f64_convert_i64_u => {}
                 // comparsion
                 Opcode::i32_eqz
-                | Opcode::i32_eq
                 | Opcode::i32_nez
+                | Opcode::i32_eq
                 | Opcode::i32_ne
                 | Opcode::i32_lt_s
                 | Opcode::i32_lt_u
@@ -604,8 +609,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_ge_s
                 | Opcode::i32_ge_u
                 | Opcode::i64_eqz
-                | Opcode::i64_eq
                 | Opcode::i64_nez
+                | Opcode::i64_eq
                 | Opcode::i64_ne
                 | Opcode::i64_lt_s
                 | Opcode::i64_lt_u

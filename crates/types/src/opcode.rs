@@ -156,6 +156,8 @@ pub enum Opcode {
     break_,             // for VM debug
     drop,               // drop one operand (the top most operand)
     duplicate,          // duplicate one operand (the top most operand)
+    swap,               // swap the top two operands
+    zero,               // push 0 (i64) onto stack
 
     //
     // immediate
@@ -341,8 +343,8 @@ pub enum Opcode {
     // comparsion
     //
 
-    // for the binary operations, the first one popped up from the
-    // stack is the right-hand-side value, e.g.
+    // for the binary operations, the first one pops up from the
+    // stack is the right-hand-side-value, e.g.
     //
     // |                 | --> stack end
     // | right hand side | --> 1st pop: RHS
@@ -390,30 +392,30 @@ pub enum Opcode {
     // ```
 
     i32_eqz = 0x800,
-    i32_eq,
     i32_nez,
+    i32_eq,
     i32_ne,
     i32_lt_s,
     i32_lt_u,
     i32_gt_s,
     i32_gt_u,
-    i32_le_s,
-    i32_le_u,
-    i32_ge_s,
-    i32_ge_u,
+    i32_le_s,   // redundant
+    i32_le_u,   // redundant
+    i32_ge_s,   // redundant
+    i32_ge_u,   // redundant
 
     i64_eqz,
-    i64_eq,
     i64_nez,
+    i64_eq,
     i64_ne,
     i64_lt_s,
     i64_lt_u,
     i64_gt_s,
     i64_gt_u,
-    i64_le_s,
-    i64_le_u,
-    i64_ge_s,
-    i64_ge_u,
+    i64_le_s,   // redundant
+    i64_le_u,   // redundant
+    i64_ge_s,   // redundant
+    i64_ge_u,   // redundant
 
     f32_eq,
     f32_ne,
@@ -585,7 +587,7 @@ pub enum Opcode {
 
 
     //
-    // math functions
+    // math
     //
 
     f32_abs = 0xb00,

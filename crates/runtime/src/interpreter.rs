@@ -13,6 +13,9 @@ use crate::{ecall, thread::Thread, VMError};
 
 type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
+mod arithmetic;
+mod bitwise;
+mod comparison;
 mod control_flow;
 mod conversion;
 mod data;
@@ -21,6 +24,7 @@ mod heap;
 mod host_address;
 mod immediate;
 mod local;
+mod math;
 
 pub enum InterpretResult {
     MoveOn(usize),      // param (increment_in_bytes: usize)
@@ -50,6 +54,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::break_ as usize] = fundamental::break_;
     interpreters[Opcode::drop as usize] = fundamental::drop;
     interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
+    interpreters[Opcode::swap as usize] = fundamental::swap;
+    interpreters[Opcode::zero as usize] = fundamental::zero;
 
     // immediate
     interpreters[Opcode::i32_imm as usize] = immediate::i32_imm;
@@ -147,6 +153,128 @@ pub fn init_interpreters() {
     interpreters[Opcode::f64_convert_i32_u as usize] = conversion::f64_convert_i32_u;
     interpreters[Opcode::f64_convert_i64_s as usize] = conversion::f64_convert_i64_s;
     interpreters[Opcode::f64_convert_i64_u as usize] = conversion::f64_convert_i64_u;
+
+    // comparison
+    interpreters[Opcode::i32_eqz as usize] = comparison::i32_eqz;
+    interpreters[Opcode::i32_eq as usize] = comparison::i32_eq;
+    interpreters[Opcode::i32_nez as usize] = comparison::i32_nez;
+    interpreters[Opcode::i32_ne as usize] = comparison::i32_ne;
+    interpreters[Opcode::i32_lt_s as usize] = comparison::i32_lt_s;
+    interpreters[Opcode::i32_lt_u as usize] = comparison::i32_lt_u;
+    interpreters[Opcode::i32_gt_s as usize] = comparison::i32_gt_s;
+    interpreters[Opcode::i32_gt_u as usize] = comparison::i32_gt_u;
+    interpreters[Opcode::i32_le_s as usize] = comparison::i32_le_s;
+    interpreters[Opcode::i32_le_u as usize] = comparison::i32_le_u;
+    interpreters[Opcode::i32_ge_s as usize] = comparison::i32_ge_s;
+    interpreters[Opcode::i32_ge_u as usize] = comparison::i32_ge_u;
+    interpreters[Opcode::i64_eqz as usize] = comparison::i64_eqz;
+    interpreters[Opcode::i64_eq as usize] = comparison::i64_eq;
+    interpreters[Opcode::i64_nez as usize] = comparison::i64_nez;
+    interpreters[Opcode::i64_ne as usize] = comparison::i64_ne;
+    interpreters[Opcode::i64_lt_s as usize] = comparison::i64_lt_s;
+    interpreters[Opcode::i64_lt_u as usize] = comparison::i64_lt_u;
+    interpreters[Opcode::i64_gt_s as usize] = comparison::i64_gt_s;
+    interpreters[Opcode::i64_gt_u as usize] = comparison::i64_gt_u;
+    interpreters[Opcode::i64_le_s as usize] = comparison::i64_le_s;
+    interpreters[Opcode::i64_le_u as usize] = comparison::i64_le_u;
+    interpreters[Opcode::i64_ge_s as usize] = comparison::i64_ge_s;
+    interpreters[Opcode::i64_ge_u as usize] = comparison::i64_ge_u;
+    interpreters[Opcode::f32_eq as usize] = comparison::f32_eq;
+    interpreters[Opcode::f32_ne as usize] = comparison::f32_ne;
+    interpreters[Opcode::f32_lt as usize] = comparison::f32_lt;
+    interpreters[Opcode::f32_gt as usize] = comparison::f32_gt;
+    interpreters[Opcode::f32_le as usize] = comparison::f32_le;
+    interpreters[Opcode::f32_ge as usize] = comparison::f32_ge;
+    interpreters[Opcode::f64_eq as usize] = comparison::f64_eq;
+    interpreters[Opcode::f64_ne as usize] = comparison::f64_ne;
+    interpreters[Opcode::f64_lt as usize] = comparison::f64_lt;
+    interpreters[Opcode::f64_gt as usize] = comparison::f64_gt;
+    interpreters[Opcode::f64_le as usize] = comparison::f64_le;
+    interpreters[Opcode::f64_ge as usize] = comparison::f64_ge;
+
+    // arithmetic
+    interpreters[Opcode::i32_add as usize] = arithmetic::i32_add;
+    interpreters[Opcode::i32_sub as usize] = arithmetic::i32_sub;
+    interpreters[Opcode::i32_mul as usize] = arithmetic::i32_mul;
+    interpreters[Opcode::i32_div_s as usize] = arithmetic::i32_div_s;
+    interpreters[Opcode::i32_div_u as usize] = arithmetic::i32_div_u;
+    interpreters[Opcode::i32_rem_s as usize] = arithmetic::i32_rem_s;
+    interpreters[Opcode::i32_rem_u as usize] = arithmetic::i32_rem_u;
+    interpreters[Opcode::i64_add as usize] = arithmetic::i64_add;
+    interpreters[Opcode::i64_sub as usize] = arithmetic::i64_sub;
+    interpreters[Opcode::i64_mul as usize] = arithmetic::i64_mul;
+    interpreters[Opcode::i64_div_s as usize] = arithmetic::i64_div_s;
+    interpreters[Opcode::i64_div_u as usize] = arithmetic::i64_div_u;
+    interpreters[Opcode::i64_rem_s as usize] = arithmetic::i64_rem_s;
+    interpreters[Opcode::i64_rem_u as usize] = arithmetic::i64_rem_u;
+    interpreters[Opcode::f32_add as usize] = arithmetic::f32_add;
+    interpreters[Opcode::f32_sub as usize] = arithmetic::f32_sub;
+    interpreters[Opcode::f32_mul as usize] = arithmetic::f32_mul;
+    interpreters[Opcode::f32_div as usize] = arithmetic::f32_div;
+    interpreters[Opcode::f64_add as usize] = arithmetic::f64_add;
+    interpreters[Opcode::f64_sub as usize] = arithmetic::f64_sub;
+    interpreters[Opcode::f64_mul as usize] = arithmetic::f64_mul;
+    interpreters[Opcode::f64_div as usize] = arithmetic::f64_div;
+
+    // bitwise
+    interpreters[Opcode::i32_and as usize] = bitwise::i32_and;
+    interpreters[Opcode::i32_or as usize] = bitwise::i32_or;
+    interpreters[Opcode::i32_xor as usize] = bitwise::i32_xor;
+    interpreters[Opcode::i32_not as usize] = bitwise::i32_not;
+    interpreters[Opcode::i32_clz as usize] = bitwise::i32_clz;
+    interpreters[Opcode::i32_ctz as usize] = bitwise::i32_ctz;
+    interpreters[Opcode::i32_popcnt as usize] = bitwise::i32_popcnt;
+    interpreters[Opcode::i32_shl as usize] = bitwise::i32_shl;
+    interpreters[Opcode::i32_shr_s as usize] = bitwise::i32_shr_s;
+    interpreters[Opcode::i32_shr_u as usize] = bitwise::i32_shr_u;
+    interpreters[Opcode::i32_rotl as usize] = bitwise::i32_rotl;
+    interpreters[Opcode::i32_rotr as usize] = bitwise::i32_rotr;
+    interpreters[Opcode::i64_and as usize] = bitwise::i64_and;
+    interpreters[Opcode::i64_or as usize] = bitwise::i64_or;
+    interpreters[Opcode::i64_xor as usize] = bitwise::i64_xor;
+    interpreters[Opcode::i64_not as usize] = bitwise::i64_not;
+    interpreters[Opcode::i64_clz as usize] = bitwise::i64_clz;
+    interpreters[Opcode::i64_ctz as usize] = bitwise::i64_ctz;
+    interpreters[Opcode::i64_popcnt as usize] = bitwise::i64_popcnt;
+    interpreters[Opcode::i64_shl as usize] = bitwise::i64_shl;
+    interpreters[Opcode::i64_shr_s as usize] = bitwise::i64_shr_s;
+    interpreters[Opcode::i64_shr_u as usize] = bitwise::i64_shr_u;
+    interpreters[Opcode::i64_rotl as usize] = bitwise::i64_rotl;
+    interpreters[Opcode::i64_rotr as usize] = bitwise::i64_rotr;
+
+    // math
+    interpreters[Opcode::f32_abs as usize] = math::f32_abs;
+    interpreters[Opcode::f32_neg as usize] = math::f32_neg;
+    interpreters[Opcode::f32_ceil as usize] = math::f32_ceil;
+    interpreters[Opcode::f32_floor as usize] = math::f32_floor;
+    interpreters[Opcode::f32_trunc as usize] = math::f32_trunc;
+    interpreters[Opcode::f32_round_half_to_even as usize] = math::f32_round_half_to_even;
+    interpreters[Opcode::f32_sqrt as usize] = math::f32_sqrt;
+    interpreters[Opcode::f32_pow as usize] = math::f32_pow;
+    interpreters[Opcode::f32_exp as usize] = math::f32_exp;
+    interpreters[Opcode::f32_sin as usize] = math::f32_sin;
+    interpreters[Opcode::f32_cos as usize] = math::f32_cos;
+    interpreters[Opcode::f32_tan as usize] = math::f32_tan;
+    interpreters[Opcode::f32_asin as usize] = math::f32_asin;
+    interpreters[Opcode::f32_acos as usize] = math::f32_acos;
+    interpreters[Opcode::f32_atan as usize] = math::f32_atan;
+    interpreters[Opcode::f32_copysign as usize] = math::f32_copysign;
+    interpreters[Opcode::f64_abs as usize] = math::f64_abs;
+    interpreters[Opcode::f64_neg as usize] = math::f64_neg;
+    interpreters[Opcode::f64_ceil as usize] = math::f64_ceil;
+    interpreters[Opcode::f64_floor as usize] = math::f64_floor;
+    interpreters[Opcode::f64_trunc as usize] = math::f64_trunc;
+    interpreters[Opcode::f64_round_half_to_even as usize] = math::f64_round_half_to_even;
+    interpreters[Opcode::f64_sqrt as usize] = math::f64_sqrt;
+    interpreters[Opcode::f64_pow as usize] = math::f64_pow;
+    interpreters[Opcode::f64_exp as usize] = math::f64_exp;
+    interpreters[Opcode::f64_sin as usize] = math::f64_sin;
+    interpreters[Opcode::f64_cos as usize] = math::f64_cos;
+    interpreters[Opcode::f64_tan as usize] = math::f64_tan;
+    interpreters[Opcode::f64_asin as usize] = math::f64_asin;
+    interpreters[Opcode::f64_acos as usize] = math::f64_acos;
+    interpreters[Opcode::f64_atan as usize] = math::f64_atan;
+    interpreters[Opcode::f64_copysign as usize] = math::f64_copysign;
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;

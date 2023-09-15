@@ -183,7 +183,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I64, DataType::I32],                // params
+            vec![DataType::I64, DataType::I32], // params
             vec![DataType::I64, DataType::I64, DataType::I32], // results
             code0,
             vec![], // local vars

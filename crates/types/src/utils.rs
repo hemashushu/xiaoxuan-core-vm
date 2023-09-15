@@ -13,6 +13,8 @@ impl Opcode {
             Opcode::break_=> "break",
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
+            Opcode::swap => "swap",
+            Opcode::zero => "zero",
             //
             Opcode::i32_imm => "i32_imm",
             Opcode::i64_imm => "i64_imm",
@@ -109,8 +111,8 @@ impl Opcode {
             Opcode::f64_convert_i64_u => "f64_convert_i64_u",
             //
             Opcode::i32_eqz => "i32_eqz",
-            Opcode::i32_eq => "i32_eq",
             Opcode::i32_nez => "i32_nez",
+            Opcode::i32_eq => "i32_eq",
             Opcode::i32_ne => "i32_ne",
             Opcode::i32_lt_s => "i32_lt_s",
             Opcode::i32_lt_u => "i32_lt_u",
@@ -121,8 +123,8 @@ impl Opcode {
             Opcode::i32_ge_s => "i32_ge_s",
             Opcode::i32_ge_u => "i32_ge_u",
             Opcode::i64_eqz => "i64_eqz",
-            Opcode::i64_eq => "i64_eq",
             Opcode::i64_nez => "i64_nez",
+            Opcode::i64_eq => "i64_eq",
             Opcode::i64_ne => "i64_ne",
             Opcode::i64_lt_s => "i64_lt_s",
             Opcode::i64_lt_u => "i64_lt_u",

@@ -26,6 +26,19 @@ pub fn duplicate(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
+pub fn swap(thread: &mut Thread) -> InterpretResult {
+    let a = thread.stack.pop_i64_u();
+    let b = thread.stack.pop_i64_u();
+    thread.stack.push_i64_u(a);
+    thread.stack.push_i64_u(b);
+    InterpretResult::MoveOn(2)
+}
+
+pub fn zero(thread: &mut Thread) -> InterpretResult {
+    thread.stack.push_i64_u(0);
+    InterpretResult::MoveOn(2)
+}
+
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
@@ -131,6 +144,67 @@ mod tests {
         assert_eq!(
             result2.unwrap(),
             vec![ForeignValue::UInt32(19), ForeignValue::UInt32(19)]
+        );
+
+        // bytecodes
+        //
+        // 0x0000 swap
+        // 0x0002 end
+        //
+        // (i32) -> (i32, i32)
+
+        let code3 = BytecodeWriter::new()
+            .write_opcode(Opcode::swap)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary3 = build_module_binary_with_single_function(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32, DataType::I32], // results
+            code3,
+            vec![], // local vars
+        );
+
+        let image3 = load_modules_binary(vec![&binary3]).unwrap();
+        let mut thread3 = Thread::new(&image3);
+
+        let result3 = process_function(
+            &mut thread3,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
+        );
+        assert_eq!(
+            result3.unwrap(),
+            vec![ForeignValue::UInt32(223), ForeignValue::UInt32(211)]
+        );
+
+        // bytecodes
+        //
+        // 0x0000 zero
+        // 0x0002 end
+        //
+        // (i32) -> (i32, i32)
+
+        let code4 = BytecodeWriter::new()
+            .write_opcode(Opcode::zero)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary4 = build_module_binary_with_single_function(
+            vec![DataType::I32],                // params
+            vec![DataType::I32, DataType::I32], // results
+            code4,
+            vec![], // local vars
+        );
+
+        let image4 = load_modules_binary(vec![&binary4]).unwrap();
+        let mut thread4 = Thread::new(&image4);
+
+        let result4 = process_function(&mut thread4, 0, 0, &vec![ForeignValue::UInt32(233)]);
+        assert_eq!(
+            result4.unwrap(),
+            vec![ForeignValue::UInt32(233), ForeignValue::UInt32(0)]
         );
     }
 }
