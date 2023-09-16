@@ -224,42 +224,49 @@ pub fn f64_ge(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
+#[inline]
 fn load_operands_i32_s(thread: &mut Thread) -> (i32, i32) {
     let right = thread.stack.pop_i32_s();
     let left = thread.stack.pop_i32_s();
     (left, right)
 }
 
+#[inline]
 fn load_operands_i32_u(thread: &mut Thread) -> (u32, u32) {
     let right = thread.stack.pop_i32_u();
     let left = thread.stack.pop_i32_u();
     (left, right)
 }
 
+#[inline]
 fn load_operands_i64_s(thread: &mut Thread) -> (i64, i64) {
     let right = thread.stack.pop_i64_s();
     let left = thread.stack.pop_i64_s();
     (left, right)
 }
 
+#[inline]
 fn load_operands_i64_u(thread: &mut Thread) -> (u64, u64) {
     let right = thread.stack.pop_i64_u();
     let left = thread.stack.pop_i64_u();
     (left, right)
 }
 
+#[inline]
 fn load_operands_f32(thread: &mut Thread) -> (f32, f32) {
     let right = thread.stack.pop_f32();
     let left = thread.stack.pop_f32();
     (left, right)
 }
 
+#[inline]
 fn load_operands_f64(thread: &mut Thread) -> (f64, f64) {
     let right = thread.stack.pop_f64();
     let left = thread.stack.pop_f64();
     (left, right)
 }
 
+#[inline]
 fn store_bool(thread: &mut Thread, b: bool) {
     let v = if b { 1u32 } else { 0u32 };
     thread.stack.push_i32_u(v);

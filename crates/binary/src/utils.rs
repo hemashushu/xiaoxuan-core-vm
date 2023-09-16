@@ -6,6 +6,7 @@
 
 use ancvm_types::opcode::Opcode;
 use ancvm_types::DataType;
+use std::fmt::format;
 use std::io::Write;
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -660,39 +661,43 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_or
                 | Opcode::i32_xor
                 | Opcode::i32_not
-                | Opcode::i32_clz
-                | Opcode::i32_ctz
-                | Opcode::i32_popcnt
-                | Opcode::i64_and
-                | Opcode::i64_or
-                | Opcode::i64_xor
-                | Opcode::i64_not
-                | Opcode::i64_clz
-                | Opcode::i64_ctz
-                | Opcode::i64_popcnt => {}
-                Opcode::i32_shl
+                | Opcode::i32_leading_zeros
+                | Opcode::i32_trailing_zeros
+                | Opcode::i32_count_ones
+                | Opcode::i32_shl
                 | Opcode::i32_shr_s
                 | Opcode::i32_shr_u
                 | Opcode::i32_rotl
                 | Opcode::i32_rotr
+                | Opcode::i64_and
+                | Opcode::i64_or
+                | Opcode::i64_xor
+                | Opcode::i64_not
+                | Opcode::i64_leading_zeros
+                | Opcode::i64_trailing_zeros
+                | Opcode::i64_count_ones
                 | Opcode::i64_shl
                 | Opcode::i64_shr_s
                 | Opcode::i64_shr_u
                 | Opcode::i64_rotl
-                | Opcode::i64_rotr => {
-                    let bits = self.read_param_i16();
-                    line.push_str(&format!("{}", bits));
-                }
+                | Opcode::i64_rotr => {}
                 // math
                 Opcode::f32_abs
                 | Opcode::f32_neg
                 | Opcode::f32_ceil
                 | Opcode::f32_floor
+                | Opcode::f32_round_half_away_from_zero
                 | Opcode::f32_trunc
-                | Opcode::f32_round_half_to_even
+                | Opcode::f32_fract
                 | Opcode::f32_sqrt
+                | Opcode::f32_cbrt
                 | Opcode::f32_pow
                 | Opcode::f32_exp
+                | Opcode::f32_exp2
+                | Opcode::f32_ln
+                | Opcode::f32_log
+                | Opcode::f32_log2
+                | Opcode::f32_log10
                 | Opcode::f32_sin
                 | Opcode::f32_cos
                 | Opcode::f32_tan
@@ -704,11 +709,18 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f64_neg
                 | Opcode::f64_ceil
                 | Opcode::f64_floor
+                | Opcode::f64_round_half_away_from_zero
                 | Opcode::f64_trunc
-                | Opcode::f64_round_half_to_even
+                | Opcode::f64_fract
                 | Opcode::f64_sqrt
+                | Opcode::f64_cbrt
                 | Opcode::f64_pow
                 | Opcode::f64_exp
+                | Opcode::f64_exp2
+                | Opcode::f64_ln
+                | Opcode::f64_log
+                | Opcode::f64_log2
+                | Opcode::f64_log10
                 | Opcode::f64_sin
                 | Opcode::f64_cos
                 | Opcode::f64_tan
@@ -757,6 +769,35 @@ impl<'a> BytecodeReader<'a> {
 
         lines.join("\n")
     }
+}
+
+pub fn print_bytecodes(codes: &[u8]) -> String {
+    // display the bytecode as the following format:
+    //
+    // 0x0008  00 11 22 33  44 55 66 77
+    // 0x0000  88 99 aa bb  cc dd ee ff
+    //
+    codes
+        .iter()
+        .enumerate()
+        .map(|(idx, data)| {
+            if idx % 8 == 0 {
+                if idx == 0 {
+                    // first line
+                    format!("0x{:04x}  {:02x}", idx, data)
+                } else {
+                    // new line
+                    format!("\n0x{:04x}  {:02x}", idx, data)
+                }
+            } else if idx % 4 == 0 {
+                // middle
+                format!("  {:02x}", data)
+            } else {
+                format!(" {:02x}", data)
+            }
+        })
+        .collect::<Vec<String>>()
+        .join("")
 }
 
 /// test-helping function
@@ -972,6 +1013,8 @@ mod tests {
             BytecodeWriter,
         },
     };
+
+    use super::print_bytecodes;
 
     #[test]
     fn test_build_single_function_module_binary_and_data_sections() {
@@ -1214,8 +1257,8 @@ mod tests {
     fn test_bytecode_writer_padding() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::i32_shl, 0x5)
-            .write_opcode_i16(Opcode::i32_shr_s, 0x7)
+            .write_opcode_i16(Opcode::heap_load, 0x5)
+            .write_opcode_i16(Opcode::heap_store, 0x7)
             // padding
             .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
             .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
@@ -1238,11 +1281,11 @@ mod tests {
             vec![
                 // i32_add
                 0x00, 0x09, //
-                // i32_shl 0x5
-                0x07, 0x0a, //
+                // heap load 0x5
+                0x00, 0x05, //
                 0x5, 0, //
-                // i32_shr_s 0x7
-                0x08, 0x0a, //
+                // heap store 0x7
+                0x08, 0x05, //
                 0x7, 0, //
                 // padding nop
                 0x00, 0x01, //
@@ -1300,8 +1343,8 @@ mod tests {
     fn test_bytecode_reader() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::i32_shl, 5)
-            .write_opcode_i16(Opcode::i32_shr_s, 7)
+            .write_opcode_i16(Opcode::heap_load, 5)
+            .write_opcode_i16(Opcode::heap_store, 7)
             // padding
             .write_opcode_i16_i32(Opcode::local_load, 11, 13)
             .write_opcode_i16_i32(Opcode::local_store, 17, 19)
@@ -1325,8 +1368,8 @@ mod tests {
             text,
             "
             0x0000 i32_add
-            0x0002 i32_shl              5
-            0x0006 i32_shr_s            7
+            0x0002 heap_load            5
+            0x0006 heap_store           7
             0x000a nop
             0x000c local_load           11 13
             0x0014 local_store          17 19
@@ -1347,5 +1390,51 @@ mod tests {
                 .collect::<Vec<String>>()[1..]
                 .join("\n")
         )
+    }
+
+    #[test]
+    fn test_bytecode_print() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16(Opcode::heap_load, 0x5)
+            .write_opcode_i16(Opcode::heap_store, 0x7)
+            // padding
+            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
+            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
+            .write_opcode(Opcode::i32_sub)
+            .write_opcode(Opcode::i32_mul)
+            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
+            .write_opcode(Opcode::i32_div_s)
+            // padding
+            .write_opcode_i32(Opcode::block, 0x41)
+            .write_opcode_i32(Opcode::call, 0x43)
+            .write_opcode(Opcode::i32_div_u)
+            // padding
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
+            .write_opcode_i32_i32(Opcode::block_nez, 0x59, 0x61)
+            .to_bytes();
+
+        let text = print_bytecodes(&code0);
+        assert_eq!(
+            text,
+            "
+            0x0000  00 09 00 05  05 00 08 05
+            0x0008  07 00 00 01  00 03 11 00
+            0x0010  13 00 00 00  08 03 17 00
+            0x0018  19 00 00 00  01 09 02 09
+            0x0020  00 03 23 00  29 00 00 00
+            0x0028  08 03 31 00  37 00 00 00
+            0x0030  03 09 00 01  01 0c 00 00
+            0x0038  41 00 00 00  00 0d 00 00
+            0x0040  43 00 00 00  04 09 00 01
+            0x0048  01 02 00 00  47 00 00 00
+            0x0050  53 00 00 00  04 0c 00 00
+            0x0058  59 00 00 00  61 00 00 00"
+                .split('\n')
+                .map(|line| line.trim_start().to_string())
+                .collect::<Vec<String>>()[1..]
+                .join("\n")
+        );
     }
 }

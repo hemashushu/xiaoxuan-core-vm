@@ -113,7 +113,7 @@
 // - 16 bits:
 //   instructions without parameters, such as `i32_eq`, `i32_add`.
 // - 32 bits:
-//   instructions with 1 parameter, such as `i32_shl`.
+//   instructions with 1 parameter, such as `heap_load`, `heap_store`.
 //   16 bits opcode + 16 bits parameter
 // - 64 bits:
 //   instructions with 1 parameter, such as `i32_imm`, `f32_imm`, `block`, `call`.
@@ -529,14 +529,14 @@ pub enum Opcode {
     i32_or,             // bitwise OR
     i32_xor,            // bitwise XOR
     i32_not,            // bitwise NOT
-    i32_clz,            // count leading zeros
-    i32_ctz,            // count trailing zeros
-    i32_popcnt,         // count the total amount of value `1` bits
-    i32_shl,            // shift left                   (param move_bits:i16)
-    i32_shr_s,          // arithmetic right shift       (param move_bits:i16)
-    i32_shr_u,          // logical right shift          (param move_bits:i16)
-    i32_rotl,           // left rotate                  (param move_bits:i16)
-    i32_rotr,           // right rotate                 (param move_bits:i16)
+    i32_leading_zeros,  // count leading zeros          (number:i64) -> i32
+    i32_trailing_zeros, // count trailing zeros         (number:i64) -> i32
+    i32_count_ones,     // count the number of ones in the binary representation     (number:i64) -> i32
+    i32_shl,            // shift left                   (operand number:i32 move_bits:i32) -> i32
+    i32_shr_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32
+    i32_shr_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32
+    i32_rotl,           // left rotate                  (operand number:i32 move_bits:i32) -> i32
+    i32_rotr,           // right rotate                 (operand number:i32 move_bits:i32) -> i32
 
 
     // instruction `i32.shl` example:
@@ -576,14 +576,14 @@ pub enum Opcode {
     i64_or,
     i64_xor,
     i64_not,
-    i64_clz,
-    i64_ctz,
-    i64_popcnt,
-    i64_shl,            // shift left                   (param move_bits:i16)
-    i64_shr_s,          // arithmetic right shift       (param move_bits:i16)
-    i64_shr_u,          // logical right shift          (param move_bits:i16)
-    i64_rotl,           // left rotate                  (param move_bits:i16)
-    i64_rotr,           // right rotate                 (param move_bits:i16)
+    i64_leading_zeros,  // (number:i64) -> i32
+    i64_trailing_zeros, // (number:i64) -> i32
+    i64_count_ones,     // (number:i64) -> i32
+    i64_shl,            // shift left                   (operand number:i64 move_bits:i32) -> i64
+    i64_shr_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64
+    i64_shr_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64
+    i64_rotl,           // left rotate                  (operand number:i64 move_bits:i32) -> i64
+    i64_rotr,           // right rotate                 (operand number:i64 move_bits:i32) -> i64
 
 
     //
@@ -594,18 +594,35 @@ pub enum Opcode {
     f32_neg,
     f32_ceil,
     f32_floor,
-    f32_trunc,
-    f32_round_half_to_even,
-    f32_sqrt,
-    f32_pow,    // x^y
-    f32_exp,    // e^x
+    f32_round_half_away_from_zero,
+    // f32_round_half_to_even,
+    f32_trunc,          // the integer part of x
+    f32_fract,          // the fractional part of  x
+    f32_sqrt,           // sqrt(x)
+    f32_cbrt,           // cbrt(x), the cube root of x
+    f32_pow,            // left^right
+    f32_exp,            // e^x
+    f32_exp2,           // 2^x
+    f32_ln,             // log_e(x)
+    f32_log,            // log_right(left)
+    f32_log2,           // log_2(x)
+    f32_log10,          // log_10(x)
     f32_sin,
     f32_cos,
     f32_tan,
     f32_asin,
     f32_acos,
     f32_atan,
-    f32_copysign, // copy sign
+    f32_copysign,       // sign(right) * |left|, copy the sign of right to left
+
+    // examples of 'round_half_away_from_zero':
+    // round(2.4) = 2.0
+    // round(2.6) = 3.0
+    // round(2.5) = 3.0
+    // round(-2.5) = -3.0
+    //
+    // ref:
+    // https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero
 
     // instruction `f32_copy_sign` example:
     //
@@ -641,11 +658,19 @@ pub enum Opcode {
     f64_neg,
     f64_ceil,
     f64_floor,
+    f64_round_half_away_from_zero,
+    // f64_round_half_to_even,
     f64_trunc,
-    f64_round_half_to_even,
+    f64_fract,
     f64_sqrt,
-    f64_pow,    // x^y
-    f64_exp,    // e^x
+    f64_cbrt,
+    f64_pow,
+    f64_exp,
+    f64_exp2,
+    f64_ln,
+    f64_log,
+    f64_log2,
+    f64_log10,
     f64_sin,
     f64_cos,
     f64_tan,
