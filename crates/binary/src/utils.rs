@@ -698,7 +698,7 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f32_asin
                 | Opcode::f32_acos
                 | Opcode::f32_atan
-                | Opcode::f32_copysign
+                // | Opcode::f32_copysign
                 | Opcode::f64_abs
                 | Opcode::f64_neg
                 | Opcode::f64_ceil
@@ -720,8 +720,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f64_tan
                 | Opcode::f64_asin
                 | Opcode::f64_acos
-                | Opcode::f64_atan
-                | Opcode::f64_copysign => {}
+                | Opcode::f64_atan => {}
+                // | Opcode::f64_copysign => {}
                 // control flow
                 Opcode::end => {}
                 Opcode::block => {

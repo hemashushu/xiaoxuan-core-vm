@@ -441,6 +441,10 @@ pub enum Opcode {
     // For the operation n % d, n is called the dividend and d is called the divisor.
     //
     // (13 % 5) = 3
+    //  ^    ^
+    //  |    |divisor
+    //  |dividend <--------- the result always takes the sign of the dividend.
+    //
     // (-13 % 5) = -3
     // (4 % 2) = 0
     // (-4 % 2) = -0
@@ -523,11 +527,11 @@ pub enum Opcode {
     i32_leading_zeros,  // count leading zeros          (number:i64) -> i32
     i32_trailing_zeros, // count trailing zeros         (number:i64) -> i32
     i32_count_ones,     // count the number of ones in the binary representation     (number:i64) -> i32
-    i32_shift_left,     // left shift                   (operand number:i32 move_bits:i32) -> i32
-    i32_shift_right_s,  // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32
-    i32_shift_right_u,  // logical right shift          (operand number:i32 move_bits:i32) -> i32
-    i32_rotate_left,    // left rotate                  (operand number:i32 move_bits:i32) -> i32
-    i32_rotate_right,   // right rotate                 (operand number:i32 move_bits:i32) -> i32
+    i32_shift_left,     // left shift                   (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_shift_right_s,  // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_shift_right_u,  // logical right shift          (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_rotate_left,    // left rotate                  (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_rotate_right,   // right rotate                 (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
 
 
     // instruction `i32.shl` example:
@@ -570,11 +574,11 @@ pub enum Opcode {
     i64_leading_zeros,  // (number:i64) -> i32
     i64_trailing_zeros, // (number:i64) -> i32
     i64_count_ones,     // (number:i64) -> i32
-    i64_shift_left,     // left shift                   (operand number:i64 move_bits:i32) -> i64
-    i64_shift_right_s,  // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64
-    i64_shift_right_u,  // logical right shift          (operand number:i64 move_bits:i32) -> i64
-    i64_rotate_left,    // left rotate                  (operand number:i64 move_bits:i32) -> i64
-    i64_rotate_right,   // right rotate                 (operand number:i64 move_bits:i32) -> i64
+    i64_shift_left,     // left shift                   (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_shift_right_s,  // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_shift_right_u,  // logical right shift          (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_rotate_left,    // left rotate                  (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_rotate_right,   // right rotate                 (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
 
 
     //
@@ -604,7 +608,7 @@ pub enum Opcode {
     f32_asin,
     f32_acos,
     f32_atan,
-    f32_copysign,       // sign(right) * |left|, copy the sign of right to left
+    // f32_copysign,       // sign(right) * |left|, copy the sign of right to left
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -668,7 +672,7 @@ pub enum Opcode {
     f64_asin,
     f64_acos,
     f64_atan,
-    f64_copysign, // copy sign
+    // f64_copysign, // copy sign
 
     //
     // control flow

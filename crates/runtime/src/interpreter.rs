@@ -291,7 +291,7 @@ pub fn init_interpreters() {
     interpreters[Opcode::f32_asin as usize] = math::f32_asin;
     interpreters[Opcode::f32_acos as usize] = math::f32_acos;
     interpreters[Opcode::f32_atan as usize] = math::f32_atan;
-    interpreters[Opcode::f32_copysign as usize] = math::f32_copysign;
+    // interpreters[Opcode::f32_copysign as usize] = math::f32_copysign;
     interpreters[Opcode::f64_abs as usize] = math::f64_abs;
     interpreters[Opcode::f64_neg as usize] = math::f64_neg;
     interpreters[Opcode::f64_ceil as usize] = math::f64_ceil;
@@ -315,7 +315,7 @@ pub fn init_interpreters() {
     interpreters[Opcode::f64_asin as usize] = math::f64_asin;
     interpreters[Opcode::f64_acos as usize] = math::f64_acos;
     interpreters[Opcode::f64_atan as usize] = math::f64_atan;
-    interpreters[Opcode::f64_copysign as usize] = math::f64_copysign;
+    // interpreters[Opcode::f64_copysign as usize] = math::f64_copysign;
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;

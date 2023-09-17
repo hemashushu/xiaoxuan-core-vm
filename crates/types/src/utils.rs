@@ -217,7 +217,7 @@ impl Opcode {
             Opcode::f32_asin => "f32_asin",
             Opcode::f32_acos => "f32_acos",
             Opcode::f32_atan => "f32_atan",
-            Opcode::f32_copysign => "f32_copysign",
+            // Opcode::f32_copysign => "f32_copysign",
             Opcode::f64_abs => "f64_abs",
             Opcode::f64_neg => "f64_neg",
             Opcode::f64_ceil => "f64_ceil",
@@ -240,7 +240,7 @@ impl Opcode {
             Opcode::f64_asin => "f64_asin",
             Opcode::f64_acos => "f64_acos",
             Opcode::f64_atan => "f64_atan",
-            Opcode::f64_copysign => "f64_copysign",
+            // Opcode::f64_copysign => "f64_copysign",
             //
             Opcode::end => "end",
             Opcode::block => "block",

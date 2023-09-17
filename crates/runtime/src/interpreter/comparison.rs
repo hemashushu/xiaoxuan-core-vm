@@ -276,7 +276,7 @@ fn store_bool(thread: &mut Thread, b: bool) {
 mod tests {
     use ancvm_binary::{
         load_modules_binary,
-        utils::{build_module_binary_with_single_function, BytecodeReader, BytecodeWriter},
+        utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
@@ -290,14 +290,14 @@ mod tests {
         //   - 2: 13
         //   - 3: -7
         // comparison:
-        //   - eqz 0          -> 1
-        //   - eqz 11         -> 0
-        //   - nez 0          -> 0
-        //   - nez 11         -> 1
-        //   - eq 11 13       -> 0
-        //   - ne 11 13       -> 1
-        //   - eq 11 11       -> 1
-        //   - ne 11 11       -> 0
+        //   - eqz  0         -> 1
+        //   - eqz  11        -> 0
+        //   - nez  0         -> 0
+        //   - nez  11        -> 1
+        //   - eq   11 13     -> 0
+        //   - ne   11 13     -> 1
+        //   - eq   11 11     -> 1
+        //   - ne   11 11     -> 0
         //   - lt_s 13 -7     -> 0
         //   - lt_u 13 -7     -> 1
         //   - gt_s 13 -7     -> 1
@@ -533,14 +533,14 @@ mod tests {
         //   - 2: 13
         //   - 3: -7
         // comparison:
-        //   - eqz 0          -> 1
-        //   - eqz 11         -> 0
-        //   - nez 0          -> 0
-        //   - nez 11         -> 1
-        //   - eq 11 13       -> 0
-        //   - ne 11 13       -> 1
-        //   - eq 11 11       -> 1
-        //   - ne 11 11       -> 0
+        //   - eqz  0         -> 1
+        //   - eqz  11        -> 0
+        //   - nez  0         -> 0
+        //   - nez  11        -> 1
+        //   - eq   11 13     -> 0
+        //   - ne   11 13     -> 1
+        //   - eq   11 11     -> 1
+        //   - ne   11 11     -> 0
         //   - lt_s 13 -7     -> 0
         //   - lt_u 13 -7     -> 1
         //   - gt_s 13 -7     -> 1

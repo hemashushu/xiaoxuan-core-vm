@@ -51,36 +51,36 @@ pub fn i32_count_ones(thread: &mut Thread) -> InterpretResult {
 }
 
 pub fn i32_shift_left(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
-    store_i32_u(thread, number << (bits & 32));
+    let number = load_operand_i32_u(thread);
+    store_i32_u(thread, number << bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i32_shift_right_s(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i32_s(thread);
     let bits = load_operand_i32_u(thread);
-    store_i32_s(thread, number >> (bits & 32));
+    let number = load_operand_i32_s(thread);
+    store_i32_s(thread, number >> bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i32_shift_right_u(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
-    store_i32_u(thread, number >> (bits & 32));
+    let number = load_operand_i32_u(thread);
+    store_i32_u(thread, number >> bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i32_rotate_left(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
+    let number = load_operand_i32_u(thread);
     store_i32_u(thread, number.rotate_left(bits));
     InterpretResult::MoveOn(2)
 }
 
 pub fn i32_rotate_right(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
+    let number = load_operand_i32_u(thread);
     store_i32_u(thread, number.rotate_right(bits));
     InterpretResult::MoveOn(2)
 }
@@ -128,36 +128,36 @@ pub fn i64_count_ones(thread: &mut Thread) -> InterpretResult {
 }
 
 pub fn i64_shift_left(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
-    store_i64_u(thread, number << (bits & 32));
+    let number = load_operand_i64_u(thread);
+    store_i64_u(thread, number << bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i64_shift_right_s(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i64_s(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
-    store_i64_s(thread, number >> (bits & 32));
+    let number = load_operand_i64_s(thread);
+    store_i64_s(thread, number >> bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i64_shift_right_u(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
-    store_i64_u(thread, number >> (bits & 32));
+    let number = load_operand_i64_u(thread);
+    store_i64_u(thread, number >> bits);
     InterpretResult::MoveOn(2)
 }
 
 pub fn i64_rotate_left(thread: &mut Thread) -> InterpretResult {
-    let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
+    let number = load_operand_i64_u(thread);
     store_i64_u(thread, number.rotate_left(bits));
     InterpretResult::MoveOn(2)
 }
 
 pub fn i64_rotate_right(thread: &mut Thread) -> InterpretResult {
+    let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
     let number = load_operand_i64_u(thread);
-    let bits = load_operand_i32_u(thread);  // the type of 'bits' is u32
     store_i64_u(thread, number.rotate_right(bits));
     InterpretResult::MoveOn(2)
 }
@@ -218,4 +218,405 @@ fn store_i64_s(thread: &mut Thread, v: i64) {
 #[inline]
 fn store_i64_u(thread: &mut Thread, v: u64) {
     thread.stack.push_i64_u(v);
+}
+
+#[cfg(test)]
+mod tests {
+    use ancvm_binary::{
+        load_modules_binary,
+        utils::{build_module_binary_with_single_function, BytecodeWriter},
+    };
+    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+
+    use crate::{init_runtime, interpreter::process_function, thread::Thread};
+
+    #[test]
+    fn test_process_bitwise_i32() {
+        // numbers:
+        //   - 0: 0xff0000ff
+        //   - 1: 0xf0f000ff
+        //   - 2: 0x00f00000
+        //   - 3: 0x80000000
+
+        // arithemtic:
+        //   - and       0 1      -> 0xf00000ff
+        //   - or        0 1      -> 0xfff000ff
+        //   - xor       0 1      -> 0x0ff00000
+        //   - not       0        -> 0x00ffff00
+        //
+        //   - lz        2        -> 8
+        //   - tz        2        -> 20
+        //   - ones      2        -> 4
+        //
+        //   - shift_l   2 4      -> 0x0f000000
+        //   - shift_r_s 3 16     -> 0xffff8000
+        //   - shift_r_u 3 16     -> 0x00008000
+        //
+        //   - shift_l   2 24     -> 0x00000000
+        //   - rotate_l  2 24     -> 0x0000f000
+        //   - shift_r_u 2 28     -> 0x00000000
+        //   - rotate_r  2 28     -> 0x0f000000
+
+        // bytecode:
+        //
+        // 0x0000 local_load           0 0
+        // 0x0008 local_load           0 1
+        // 0x0010 i32_and
+        // 0x0012 nop
+        // 0x0014 local_load           0 1
+        // 0x001c local_load           0 0
+        // 0x0024 i32_or
+        // 0x0026 nop
+        // 0x0028 local_load           0 0
+        // 0x0030 local_load           0 1
+        // 0x0038 i32_xor
+        // 0x003a nop
+        // 0x003c local_load           0 0
+        // 0x0044 i32_not
+        // 0x0046 nop
+        // 0x0048 local_load           0 2
+        // 0x0050 i32_leading_zeros
+        // 0x0052 nop
+        // 0x0054 local_load           0 2
+        // 0x005c i32_trailing_zeros
+        // 0x005e nop
+        // 0x0060 local_load           0 2
+        // 0x0068 i32_count_ones
+        // 0x006a nop
+        // 0x006c local_load           0 2
+        // 0x0074 i32_imm              0x4
+        // 0x007c i32_shift_left
+        // 0x007e nop
+        // 0x0080 local_load           0 3
+        // 0x0088 i32_imm              0x10
+        // 0x0090 i32_shift_right_s
+        // 0x0092 nop
+        // 0x0094 local_load           0 3
+        // 0x009c i32_imm              0x10
+        // 0x00a4 i32_shift_right_u
+        // 0x00a6 nop
+        // 0x00a8 local_load           0 2
+        // 0x00b0 i32_imm              0x18
+        // 0x00b8 i32_shift_left
+        // 0x00ba nop
+        // 0x00bc local_load           0 2
+        // 0x00c4 i32_imm              0x18
+        // 0x00cc i32_rotate_left
+        // 0x00ce nop
+        // 0x00d0 local_load           0 2
+        // 0x00d8 i32_imm              0x1c
+        // 0x00e0 i32_shift_right_u
+        // 0x00e2 nop
+        // 0x00e4 local_load           0 2
+        // 0x00ec i32_imm              0x1c
+        // 0x00f4 i32_rotate_right
+        // 0x00f6 end
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode(Opcode::i32_and)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode(Opcode::i32_or)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode(Opcode::i32_xor)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode(Opcode::i32_not)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i32_leading_zeros)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i32_trailing_zeros)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i32_count_ones)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode(Opcode::i32_shift_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 3)
+            .write_opcode_i32(Opcode::i32_imm, 16)
+            .write_opcode(Opcode::i32_shift_right_s)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 3)
+            .write_opcode_i32(Opcode::i32_imm, 16)
+            .write_opcode(Opcode::i32_shift_right_u)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 24)
+            .write_opcode(Opcode::i32_shift_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 24)
+            .write_opcode(Opcode::i32_rotate_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 28)
+            .write_opcode(Opcode::i32_shift_right_u)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 28)
+            .write_opcode(Opcode::i32_rotate_right)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // params
+            vec![
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
+            ], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![
+                ForeignValue::UInt32(0xff0000ff),
+                ForeignValue::UInt32(0xf0f000ff),
+                ForeignValue::UInt32(0x00f00000),
+                ForeignValue::UInt32(0x80000000),
+            ],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt32(0xf00000ff),
+                ForeignValue::UInt32(0xfff000ff),
+                ForeignValue::UInt32(0x0ff00000),
+                ForeignValue::UInt32(0x00ffff00),
+                //
+                ForeignValue::UInt32(8),
+                ForeignValue::UInt32(20),
+                ForeignValue::UInt32(4),
+                //
+                ForeignValue::UInt32(0x0f000000),
+                ForeignValue::UInt32(0xffff8000),
+                ForeignValue::UInt32(0x00008000),
+                //
+                ForeignValue::UInt32(0x00000000),
+                ForeignValue::UInt32(0x0000f000),
+                ForeignValue::UInt32(0x00000000),
+                ForeignValue::UInt32(0x0f000000),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_process_bitwise_i64() {
+        // numbers:
+        //   - 0: 0xff00ff00_00ff00ff
+        //   - 1: 0xf0f00f0f_00ff00ff
+        //   - 2: 0x0000ff00_00000000
+        //   - 3: 0x80000000_00000000
+
+        // arithemtic:
+        //   - and       0 1      -> 0xf0000f00_00ff00ff
+        //   - or        0 1      -> 0xfff0ff0f_00ff00ff
+        //   - xor       0 1      -> 0x0ff0f00f_00000000
+        //   - not       0        -> 0x00ff00ff_ff00ff00
+        //
+        //   - lz        2        -> 16
+        //   - tz        2        -> 40
+        //   - ones      2        -> 8
+        //
+        //   - shift_l   2 8      -> 0x00ff0000_00000000
+        //   - shift_r_s 3 16     -> 0xffff8000_00000000
+        //   - shift_r_u 3 16     -> 0x00008000_00000000
+        //
+        //   - shift_l   2 32     -> 0x00000000_00000000
+        //   - rotate_l  2 32     -> 0x00000000_0000ff00
+        //   - shift_r_u 2 56     -> 0x00000000_00000000
+        //   - rotate_r  2 56     -> 0x00ff0000_00000000
+
+        // bytecode:
+        //
+        // 0x0000 local_load           0 0
+        // 0x0008 local_load           0 1
+        // 0x0010 i64_and
+        // 0x0012 nop
+        // 0x0014 local_load           0 1
+        // 0x001c local_load           0 0
+        // 0x0024 i64_or
+        // 0x0026 nop
+        // 0x0028 local_load           0 0
+        // 0x0030 local_load           0 1
+        // 0x0038 i64_xor
+        // 0x003a nop
+        // 0x003c local_load           0 0
+        // 0x0044 i64_not
+        // 0x0046 nop
+        // 0x0048 local_load           0 2
+        // 0x0050 i64_leading_zeros
+        // 0x0052 nop
+        // 0x0054 local_load           0 2
+        // 0x005c i64_trailing_zeros
+        // 0x005e nop
+        // 0x0060 local_load           0 2
+        // 0x0068 i64_count_ones
+        // 0x006a nop
+        // 0x006c local_load           0 2
+        // 0x0074 i32_imm              0x8
+        // 0x007c i64_shift_left
+        // 0x007e nop
+        // 0x0080 local_load           0 3
+        // 0x0088 i32_imm              0x10
+        // 0x0090 i64_shift_right_s
+        // 0x0092 nop
+        // 0x0094 local_load           0 3
+        // 0x009c i32_imm              0x10
+        // 0x00a4 i64_shift_right_u
+        // 0x00a6 nop
+        // 0x00a8 local_load           0 2
+        // 0x00b0 i32_imm              0x20
+        // 0x00b8 i64_shift_left
+        // 0x00ba nop
+        // 0x00bc local_load           0 2
+        // 0x00c4 i32_imm              0x20
+        // 0x00cc i64_rotate_left
+        // 0x00ce nop
+        // 0x00d0 local_load           0 2
+        // 0x00d8 i32_imm              0x38
+        // 0x00e0 i64_shift_right_u
+        // 0x00e2 nop
+        // 0x00e4 local_load           0 2
+        // 0x00ec i32_imm              0x38
+        // 0x00f4 i64_rotate_right
+        // 0x00f6 end
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode(Opcode::i64_and)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode(Opcode::i64_or)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 1)
+            .write_opcode(Opcode::i64_xor)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode(Opcode::i64_not)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i64_leading_zeros)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i64_trailing_zeros)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode(Opcode::i64_count_ones)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 8)
+            .write_opcode(Opcode::i64_shift_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 3)
+            .write_opcode_i32(Opcode::i32_imm, 16)
+            .write_opcode(Opcode::i64_shift_right_s)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 3)
+            .write_opcode_i32(Opcode::i32_imm, 16)
+            .write_opcode(Opcode::i64_shift_right_u)
+            //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 32)
+            .write_opcode(Opcode::i64_shift_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 32)
+            .write_opcode(Opcode::i64_rotate_left)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 56)
+            .write_opcode(Opcode::i64_shift_right_u)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i32(Opcode::i32_imm, 56)
+            .write_opcode(Opcode::i64_rotate_right)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![DataType::I64, DataType::I64, DataType::I64, DataType::I64], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                //
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                //
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                //
+            ], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![
+                ForeignValue::UInt64(0xff00ff00_00ff00ff),
+                ForeignValue::UInt64(0xf0f00f0f_00ff00ff),
+                ForeignValue::UInt64(0x0000ff00_00000000),
+                ForeignValue::UInt64(0x80000000_00000000),
+            ],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0xf0000f00_00ff00ff),
+                ForeignValue::UInt64(0xfff0ff0f_00ff00ff),
+                ForeignValue::UInt64(0x0ff0f00f_00000000),
+                ForeignValue::UInt64(0x00ff00ff_ff00ff00),
+                //
+                ForeignValue::UInt32(16),
+                ForeignValue::UInt32(40),
+                ForeignValue::UInt32(8),
+                //
+                ForeignValue::UInt64(0x00ff0000_00000000),
+                ForeignValue::UInt64(0xffff8000_00000000),
+                ForeignValue::UInt64(0x00008000_00000000),
+                //
+                ForeignValue::UInt64(0x00000000_00000000),
+                ForeignValue::UInt64(0x00000000_0000ff00),
+                ForeignValue::UInt64(0x00000000_00000000),
+                ForeignValue::UInt64(0x00ff0000_00000000),
+            ]
+        );
+    }
 }
