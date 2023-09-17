@@ -50,35 +50,35 @@ pub fn i32_count_ones(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
-pub fn i32_shl(thread: &mut Thread) -> InterpretResult {
+pub fn i32_shift_left(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
     store_i32_u(thread, number << (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i32_shr_s(thread: &mut Thread) -> InterpretResult {
+pub fn i32_shift_right_s(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i32_s(thread);
     let bits = load_operand_i32_u(thread);
     store_i32_s(thread, number >> (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i32_shr_u(thread: &mut Thread) -> InterpretResult {
+pub fn i32_shift_right_u(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
     store_i32_u(thread, number >> (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i32_rotl(thread: &mut Thread) -> InterpretResult {
+pub fn i32_rotate_left(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
     store_i32_u(thread, number.rotate_left(bits));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i32_rotr(thread: &mut Thread) -> InterpretResult {
+pub fn i32_rotate_right(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i32_u(thread);
     let bits = load_operand_i32_u(thread);
     store_i32_u(thread, number.rotate_right(bits));
@@ -127,35 +127,35 @@ pub fn i64_count_ones(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
-pub fn i64_shl(thread: &mut Thread) -> InterpretResult {
+pub fn i64_shift_left(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
     store_i64_u(thread, number << (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i64_shr_s(thread: &mut Thread) -> InterpretResult {
+pub fn i64_shift_right_s(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i64_s(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
     store_i64_s(thread, number >> (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i64_shr_u(thread: &mut Thread) -> InterpretResult {
+pub fn i64_shift_right_u(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
     store_i64_u(thread, number >> (bits & 32));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i64_rotl(thread: &mut Thread) -> InterpretResult {
+pub fn i64_rotate_left(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread); // the type of 'bits' is u32
     store_i64_u(thread, number.rotate_left(bits));
     InterpretResult::MoveOn(2)
 }
 
-pub fn i64_rotr(thread: &mut Thread) -> InterpretResult {
+pub fn i64_rotate_right(thread: &mut Thread) -> InterpretResult {
     let number = load_operand_i64_u(thread);
     let bits = load_operand_i32_u(thread);  // the type of 'bits' is u32
     store_i64_u(thread, number.rotate_right(bits));

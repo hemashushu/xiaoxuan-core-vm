@@ -426,14 +426,14 @@ mod tests {
                 ForeignValue::UInt64(3),
                 ForeignValue::UInt64(3),
                 //
-                ForeignValue::UInt32((0 - 5) as u32),
+                ForeignValue::UInt32(-5i32 as u32),
                 ForeignValue::UInt32(0),
-                ForeignValue::UInt64((0 - 5) as u64),
+                ForeignValue::UInt64(-5i64 as u64),
                 ForeignValue::UInt64(0),
                 //
-                ForeignValue::UInt32((0 - 7) as u32),
+                ForeignValue::UInt32(-7i32 as u32),
                 ForeignValue::UInt32(0),
-                ForeignValue::UInt64((0 - 7) as u64),
+                ForeignValue::UInt64(-7i64 as u64),
                 ForeignValue::UInt64(0),
                 //
             ]
@@ -576,17 +576,17 @@ mod tests {
             &vec![
                 ForeignValue::UInt32(11),
                 ForeignValue::UInt64(13),
-                ForeignValue::UInt32((0 - 17) as u32),
-                ForeignValue::UInt64((0 - 19) as u64),
+                ForeignValue::UInt32(-17i32 as u32),
+                ForeignValue::UInt64(-19i64 as u64),
             ],
         );
 
         // -11 -> 0xffffffef (u32)
         // -19 -> 0xffffffffffffffed (u64)
-        let exp0 = (0 - 17) as u32 as f32;
-        let exp1 = (0 - 17) as u32 as f64;
-        let exp2 = (0 - 19) as u64 as f32;
-        let exp3 = (0 - 19) as u64 as f64;
+        let exp0 = -17i32 as u32 as f32;
+        let exp1 = -17i32 as u32 as f64;
+        let exp2 = -19i64 as u64 as f32;
+        let exp3 = -19i64 as u64 as f64;
 
         assert_eq!(
             result1.unwrap(),

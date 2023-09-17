@@ -13,6 +13,14 @@ use crate::{
 
 use super::InterpretResult;
 
+pub fn nop(_thread: &mut Thread) -> InterpretResult {
+    InterpretResult::MoveOn(2)
+}
+
+pub fn break_(_thread: &mut Thread) -> InterpretResult {
+    InterpretResult::Break
+}
+
 pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
     // (param offset_bytes:i16 local_variable_index:i32)
     let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
@@ -123,12 +131,55 @@ mod tests {
         },
         utils::{
             build_module_binary_with_single_function,
-            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            build_module_binary_with_single_function_and_data_sections, BytecodeReader,
+            BytecodeWriter,
         },
     };
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{init_runtime, interpreter::process_function, thread::Thread};
+
+    #[test]
+    fn test_process_machine() {
+        // bytecodes
+        //
+        // 0x0000 nop
+        // 0x0002 end
+        //
+        // (i32, i32) -> (i32, i32)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode(Opcode::nop)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        assert_eq!(
+            BytecodeReader::new(&code0).to_text(),
+            "0x0000 nop\n0x0002 end"
+        );
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32, DataType::I32], // results
+            code0,
+            vec![], // local vars
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
+        );
+    }
 
     #[test]
     fn test_process_host_address() {

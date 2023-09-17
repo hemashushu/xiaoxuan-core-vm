@@ -4,6 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use std::sync::Mutex;
+
 use ancvm_binary::utils::print_bytecodes;
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
@@ -22,9 +24,8 @@ mod conversion;
 mod data;
 mod fundamental;
 mod heap;
-mod host_address;
-mod immediate;
 mod local;
+mod machine;
 mod math;
 
 pub enum InterpretResult {
@@ -61,30 +62,31 @@ Bytecode:
     );
 }
 
+static INIT_LOCK: Mutex<i32> = Mutex::new(0);
 static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
 /// initilize the instruction interpreters
 pub fn init_interpreters() {
+    let _lock = INIT_LOCK.lock().unwrap();
+
     let interpreters = unsafe { &mut INTERPRETERS };
 
-    if interpreters[Opcode::nop as usize] == fundamental::nop {
-        // the initialization can only be called once
+    // the initialization can only be called once
+    // in the unit test environment (`$ cargo test`), the init procedure
+    // runs in parallel.
+    if interpreters[Opcode::zero as usize] == fundamental::zero {
         return;
     }
 
-    // operand
-    interpreters[Opcode::nop as usize] = fundamental::nop;
-    interpreters[Opcode::break_ as usize] = fundamental::break_;
+    // fundamental
+    interpreters[Opcode::zero as usize] = fundamental::zero;
     interpreters[Opcode::drop as usize] = fundamental::drop;
     interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
     interpreters[Opcode::swap as usize] = fundamental::swap;
-    interpreters[Opcode::zero as usize] = fundamental::zero;
-
-    // immediate
-    interpreters[Opcode::i32_imm as usize] = immediate::i32_imm;
-    interpreters[Opcode::i64_imm as usize] = immediate::i64_imm;
-    interpreters[Opcode::f32_imm as usize] = immediate::f32_imm;
-    interpreters[Opcode::f64_imm as usize] = immediate::f64_imm;
+    interpreters[Opcode::i32_imm as usize] = fundamental::i32_imm;
+    interpreters[Opcode::i64_imm as usize] = fundamental::i64_imm;
+    interpreters[Opcode::f32_imm as usize] = fundamental::f32_imm;
+    interpreters[Opcode::f64_imm as usize] = fundamental::f64_imm;
 
     // local variables
     interpreters[Opcode::local_load as usize] = local::local_load;
@@ -247,11 +249,11 @@ pub fn init_interpreters() {
     interpreters[Opcode::i32_leading_zeros as usize] = bitwise::i32_leading_zeros;
     interpreters[Opcode::i32_trailing_zeros as usize] = bitwise::i32_trailing_zeros;
     interpreters[Opcode::i32_count_ones as usize] = bitwise::i32_count_ones;
-    interpreters[Opcode::i32_shl as usize] = bitwise::i32_shl;
-    interpreters[Opcode::i32_shr_s as usize] = bitwise::i32_shr_s;
-    interpreters[Opcode::i32_shr_u as usize] = bitwise::i32_shr_u;
-    interpreters[Opcode::i32_rotl as usize] = bitwise::i32_rotl;
-    interpreters[Opcode::i32_rotr as usize] = bitwise::i32_rotr;
+    interpreters[Opcode::i32_shift_left as usize] = bitwise::i32_shift_left;
+    interpreters[Opcode::i32_shift_right_s as usize] = bitwise::i32_shift_right_s;
+    interpreters[Opcode::i32_shift_right_u as usize] = bitwise::i32_shift_right_u;
+    interpreters[Opcode::i32_rotate_left as usize] = bitwise::i32_rotate_left;
+    interpreters[Opcode::i32_rotate_right as usize] = bitwise::i32_rotate_right;
     interpreters[Opcode::i64_and as usize] = bitwise::i64_and;
     interpreters[Opcode::i64_or as usize] = bitwise::i64_or;
     interpreters[Opcode::i64_xor as usize] = bitwise::i64_xor;
@@ -259,11 +261,11 @@ pub fn init_interpreters() {
     interpreters[Opcode::i64_leading_zeros as usize] = bitwise::i64_leading_zeros;
     interpreters[Opcode::i64_trailing_zeros as usize] = bitwise::i64_trailing_zeros;
     interpreters[Opcode::i64_count_ones as usize] = bitwise::i64_count_ones;
-    interpreters[Opcode::i64_shl as usize] = bitwise::i64_shl;
-    interpreters[Opcode::i64_shr_s as usize] = bitwise::i64_shr_s;
-    interpreters[Opcode::i64_shr_u as usize] = bitwise::i64_shr_u;
-    interpreters[Opcode::i64_rotl as usize] = bitwise::i64_rotl;
-    interpreters[Opcode::i64_rotr as usize] = bitwise::i64_rotr;
+    interpreters[Opcode::i64_shift_left as usize] = bitwise::i64_shift_left;
+    interpreters[Opcode::i64_shift_right_s as usize] = bitwise::i64_shift_right_s;
+    interpreters[Opcode::i64_shift_right_u as usize] = bitwise::i64_shift_right_u;
+    interpreters[Opcode::i64_rotate_left as usize] = bitwise::i64_rotate_left;
+    interpreters[Opcode::i64_rotate_right as usize] = bitwise::i64_rotate_right;
 
     // math
     interpreters[Opcode::f32_abs as usize] = math::f32_abs;
@@ -317,16 +319,16 @@ pub fn init_interpreters() {
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;
-
-    // call
     interpreters[Opcode::ecall as usize] = ecall::ecall;
 
-    // host address
-    interpreters[Opcode::host_addr_local as usize] = host_address::host_addr_local;
-    interpreters[Opcode::host_addr_local_long as usize] = host_address::host_addr_local_long;
-    interpreters[Opcode::host_addr_data as usize] = host_address::host_addr_data;
-    interpreters[Opcode::host_addr_data_long as usize] = host_address::host_addr_data_long;
-    interpreters[Opcode::host_addr_heap as usize] = host_address::host_addr_heap;
+    // machine
+    interpreters[Opcode::nop as usize] = machine::nop;
+    interpreters[Opcode::break_ as usize] = machine::break_;
+    interpreters[Opcode::host_addr_local as usize] = machine::host_addr_local;
+    interpreters[Opcode::host_addr_local_long as usize] = machine::host_addr_local_long;
+    interpreters[Opcode::host_addr_data as usize] = machine::host_addr_data;
+    interpreters[Opcode::host_addr_data_long as usize] = machine::host_addr_data_long;
+    interpreters[Opcode::host_addr_heap as usize] = machine::host_addr_heap;
 }
 
 pub fn process_next_instruction(thread: &mut Thread) -> InterpretResult {

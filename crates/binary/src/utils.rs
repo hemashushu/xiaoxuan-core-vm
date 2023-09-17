@@ -6,7 +6,7 @@
 
 use ancvm_types::opcode::Opcode;
 use ancvm_types::DataType;
-use std::fmt::format;
+
 use std::io::Write;
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -479,13 +479,7 @@ impl<'a> BytecodeReader<'a> {
 
             match opcode {
                 // fundemental
-                Opcode::nop
-                | Opcode::break_
-                | Opcode::drop
-                | Opcode::duplicate
-                | Opcode::swap
-                | Opcode::zero => {}
-                // immediate
+                Opcode::zero | Opcode::drop | Opcode::duplicate | Opcode::swap => {}
                 Opcode::i32_imm | Opcode::f32_imm => {
                     let v = self.read_param_i32();
                     line.push_str(&format!("0x{:x}", v));
@@ -664,11 +658,11 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_leading_zeros
                 | Opcode::i32_trailing_zeros
                 | Opcode::i32_count_ones
-                | Opcode::i32_shl
-                | Opcode::i32_shr_s
-                | Opcode::i32_shr_u
-                | Opcode::i32_rotl
-                | Opcode::i32_rotr
+                | Opcode::i32_shift_left
+                | Opcode::i32_shift_right_s
+                | Opcode::i32_shift_right_u
+                | Opcode::i32_rotate_left
+                | Opcode::i32_rotate_right
                 | Opcode::i64_and
                 | Opcode::i64_or
                 | Opcode::i64_xor
@@ -676,11 +670,11 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i64_leading_zeros
                 | Opcode::i64_trailing_zeros
                 | Opcode::i64_count_ones
-                | Opcode::i64_shl
-                | Opcode::i64_shr_s
-                | Opcode::i64_shr_u
-                | Opcode::i64_rotl
-                | Opcode::i64_rotr => {}
+                | Opcode::i64_shift_left
+                | Opcode::i64_shift_right_s
+                | Opcode::i64_shift_right_u
+                | Opcode::i64_rotate_left
+                | Opcode::i64_rotate_right => {}
                 // math
                 Opcode::f32_abs
                 | Opcode::f32_neg
@@ -742,13 +736,13 @@ impl<'a> BytecodeReader<'a> {
                     let (deepth, offset) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", deepth, offset));
                 }
-                // function
                 Opcode::call | Opcode::ecall | Opcode::scall | Opcode::ccall => {
                     let idx = self.read_param_i32();
                     line.push_str(&format!("{}", idx));
                 }
                 Opcode::dcall => {}
-                // status
+                // machine
+                Opcode::nop | Opcode::break_ => {}
                 Opcode::host_addr_local | Opcode::host_addr_data => {
                     let (offset, idx) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, idx));
@@ -781,6 +775,8 @@ pub fn print_bytecodes(codes: &[u8]) -> String {
         .iter()
         .enumerate()
         .map(|(idx, data)| {
+            // Rust std format!()
+            // https://doc.rust-lang.org/std/fmt/
             if idx % 8 == 0 {
                 if idx == 0 {
                     // first line
@@ -1168,16 +1164,16 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             .to_bytes();
 
-        assert_eq!(code0, vec![0x00, 0x09]);
+        assert_eq!(code0, vec![0x00, 0x07]);
 
         let code1 = BytecodeWriter::new()
-            .write_opcode_i16(Opcode::i32_shl, 7)
+            .write_opcode_i16(Opcode::heap_load, 7)
             .to_bytes();
 
         assert_eq!(
             code1,
             vec![
-                0x07, 0x0a, // opcode
+                0x00, 0x04, // opcode
                 07, 0, // param
             ]
         );
@@ -1189,7 +1185,7 @@ mod tests {
         assert_eq!(
             code2,
             vec![
-                0x01, 0x0c, // opcode
+                0x01, 0x0a, // opcode
                 0, 0, // padding
                 11, 0, 0, 0 // param
             ]
@@ -1202,7 +1198,7 @@ mod tests {
         assert_eq!(
             code3,
             vec![
-                0x02, 0x0c, // opcode
+                0x02, 0x0a, // opcode
                 13, 0, // param 0
                 17, 0, 0, 0 // param 1
             ]
@@ -1215,7 +1211,7 @@ mod tests {
         assert_eq!(
             code4,
             vec![
-                0x04, 0x0c, // opcode
+                0x04, 0x0a, // opcode
                 0, 0, // padding
                 19, 0, 0, 0, // param 0
                 23, 0, 0, 0 // param 1
@@ -1229,7 +1225,7 @@ mod tests {
         assert_eq!(
             code5,
             vec![
-                0x01, 0x02, // opcode
+                0x05, 0x01, // opcode
                 0, 0, // padding
                 0x88, 0x77, 0x66, 0x55, // param 0
                 0x44, 0x33, 0x22, 0x11 // param 1
@@ -1245,7 +1241,7 @@ mod tests {
         assert_eq!(
             code6,
             vec![
-                0x03, 0x02, // opcode
+                0x07, 0x01, // opcode
                 0, 0, // padding
                 0x11, 0x31, 0x02, 0xde, // param 0
                 0x0b, 0x86, 0x0b, 0x39, // param 1
@@ -1280,58 +1276,58 @@ mod tests {
             code0,
             vec![
                 // i32_add
-                0x00, 0x09, //
+                0x00, 0x07, //
                 // heap load 0x5
-                0x00, 0x05, //
+                0x00, 0x04, //
                 0x5, 0, //
                 // heap store 0x7
-                0x08, 0x05, //
+                0x08, 0x04, //
                 0x7, 0, //
                 // padding nop
-                0x00, 0x01, //
+                0x00, 0x0b, //
                 // local_load 0x11 0x13
-                0x00, 0x03, //
+                0x00, 0x02, //
                 0x11, 0x00, //
                 0x13, 0x00, 0x00, 0x00, //
                 // local_store 0x17 0x19
-                0x08, 0x03, //
+                0x08, 0x02, //
                 0x17, 0x00, //
                 0x19, 0x00, 0x00, 0x00, //
                 // i32_sub
-                0x01, 0x09, //
+                0x01, 0x07, //
                 // i32_mul
-                0x02, 0x09, //
+                0x02, 0x07, //
                 // local_load 0x23 0x29
-                0x00, 0x03, //
+                0x00, 0x02, //
                 0x23, 0x00, //
                 0x29, 0x00, 0x00, 0x00, //
                 // local_store 0x31 0x37
-                0x08, 0x03, //
+                0x08, 0x02, //
                 0x31, 0x00, //
                 0x37, 0x00, 0x00, 0x00, //
                 // i32_div_s
-                0x03, 0x09, //
+                0x03, 0x07, //
                 // padding nop
-                0x00, 0x01, //
+                0x00, 0x0b, //
                 // block 0x41
-                0x01, 0x0c, //
+                0x01, 0x0a, //
                 0x00, 0x00, //
                 0x41, 0x00, 0x00, 0x00, //
                 // call 0x43
-                0x00, 0x0d, //
+                0x06, 0x0a, //
                 0x00, 0x00, //
                 0x43, 0x00, 0x00, 0x00, //
                 // i32_div_u
-                0x04, 0x09, //
+                0x04, 0x07, //
                 // padding nop
-                0x00, 0x01, //
+                0x00, 0x0b, //
                 // i64_imm 0x47 0x53
-                0x01, 0x02, //
+                0x05, 0x01, //
                 0x00, 0x00, //
                 0x47, 0x00, 0x00, 0x00, //
                 0x53, 0x00, 0x00, 0x00, //
                 // block_nez 0x59 0x61
-                0x04, 0x0c, //
+                0x04, 0x0a, //
                 0x00, 0x00, //
                 0x59, 0x00, 0x00, 0x00, //
                 0x61, 0x00, 0x00, 0x00, //
@@ -1416,20 +1412,21 @@ mod tests {
             .to_bytes();
 
         let text = print_bytecodes(&code0);
+
         assert_eq!(
             text,
             "
-            0x0000  00 09 00 05  05 00 08 05
-            0x0008  07 00 00 01  00 03 11 00
-            0x0010  13 00 00 00  08 03 17 00
-            0x0018  19 00 00 00  01 09 02 09
-            0x0020  00 03 23 00  29 00 00 00
-            0x0028  08 03 31 00  37 00 00 00
-            0x0030  03 09 00 01  01 0c 00 00
-            0x0038  41 00 00 00  00 0d 00 00
-            0x0040  43 00 00 00  04 09 00 01
-            0x0048  01 02 00 00  47 00 00 00
-            0x0050  53 00 00 00  04 0c 00 00
+            0x0000  00 07 00 04  05 00 08 04
+            0x0008  07 00 00 0b  00 02 11 00
+            0x0010  13 00 00 00  08 02 17 00
+            0x0018  19 00 00 00  01 07 02 07
+            0x0020  00 02 23 00  29 00 00 00
+            0x0028  08 02 31 00  37 00 00 00
+            0x0030  03 07 00 0b  01 0a 00 00
+            0x0038  41 00 00 00  06 0a 00 00
+            0x0040  43 00 00 00  04 07 00 0b
+            0x0048  05 01 00 00  47 00 00 00
+            0x0050  53 00 00 00  04 0a 00 00
             0x0058  59 00 00 00  61 00 00 00"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())

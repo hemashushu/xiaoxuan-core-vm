@@ -211,3 +211,12 @@ fn store_f32(thread: &mut Thread, v: f32) {
 fn store_f64(thread: &mut Thread, v: f64) {
     thread.stack.push_f64(v);
 }
+
+#[cfg(test)]
+mod tests {
+
+    fn test_process_arithmetic_i32() {
+
+    }
+
+}

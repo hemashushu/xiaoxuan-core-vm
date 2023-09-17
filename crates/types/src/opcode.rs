@@ -150,20 +150,11 @@ pub enum Opcode {
     //
     // fundamental
     //
-
-    nop = 0x100,        // instruction to do nothing,
-                        // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    break_,             // for VM debug
+    zero = 0x100,       // push 0 (i64) onto stack
     drop,               // drop one operand (the top most operand)
     duplicate,          // duplicate one operand (the top most operand)
     swap,               // swap the top two operands
-    zero,               // push 0 (i64) onto stack
-
-    //
-    // immediate
-    //
-
-    i32_imm = 0x200,    // (param immediate_number:i32)
+    i32_imm,            // (param immediate_number:i32)
     i64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
     f32_imm,            // (param immediate_number:i32)
     f64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
@@ -195,7 +186,7 @@ pub enum Opcode {
     // also note that the arguments are at the top of the (operand) stack when a function
     // starts running, so you can also access these operands directly.
 
-    local_load = 0x300,         // load local variable              (param offset_bytes:i16 local_variable_index:i32)
+    local_load = 0x200,         // load local variable              (param offset_bytes:i16 local_variable_index:i32)
     local_load32,               //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_load32_i16_s,         //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_load32_i16_u,         //                                  (param offset_bytes:i16 local_variable_index:i32)
@@ -208,7 +199,7 @@ pub enum Opcode {
     local_store16,              //                                  (param offset_bytes:i16 local_variable_index:i32)
     local_store8,               //                                  (param offset_bytes:i16 local_variable_index:i32)
 
-    local_long_load = 0x380,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load = 0x280,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_load32,          //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_load32_i16_s,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
     local_long_load32_i16_u,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
@@ -236,7 +227,7 @@ pub enum Opcode {
     // pop one operand off the stack and set the specified data
     //
 
-    data_load = 0x400,          // load data                        (param offset_bytes:i16 data_index:i32)
+    data_load = 0x300,          // load data                        (param offset_bytes:i16 data_index:i32)
     data_load32,                //                                  (param offset_bytes:i16 data_index:i32)
     data_load32_i16_s,          //                                  (param offset_bytes:i16 data_index:i32)
     data_load32_i16_u,          //                                  (param offset_bytes:i16 data_index:i32)
@@ -254,7 +245,7 @@ pub enum Opcode {
     // and struct data, the other set is the data_long_load.../data_long_store..., they
     // are designed to access long byte-type data.
 
-    data_long_load = 0x480,     //                                  (param data_index:i32) (operand offset_bytes:i32)
+    data_long_load = 0x380,     //                                  (param data_index:i32) (operand offset_bytes:i32)
     data_long_load32,           //                                  (param data_index:i32) (operand offset_bytes:i32)
     data_long_load32_i16_s,     //                                  (param data_index:i32) (operand offset_bytes:i32)
     data_long_load32_i16_u,     //                                  (param data_index:i32) (operand offset_bytes:i32)
@@ -278,7 +269,7 @@ pub enum Opcode {
     // the latter instructions leave the value of the high part of
     // operand (on the stack) undefined/unpredictable.
 
-    heap_load = 0x500,      // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load = 0x400,      // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
     heap_load32,            //                                  (param offset_bytes:i16) (operand heap_addr:i64)
     heap_load32_i16_s,      //                                  (param offset_bytes:i16) (operand heap_addr:i64)
     heap_load32_i16_u,      //                                  (param offset_bytes:i16) (operand heap_addr:i64)
@@ -306,7 +297,7 @@ pub enum Opcode {
 
     // demote i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_demote_i64 = 0x700,
+    i32_demote_i64 = 0x500,
 
     // promote i32 to i64
     i64_promote_i32_s,
@@ -391,7 +382,7 @@ pub enum Opcode {
     // ;; \----/
     // ```
 
-    i32_eqz = 0x800,
+    i32_eqz = 0x600,
     i32_nez,
     i32_eq,
     i32_ne,
@@ -435,7 +426,7 @@ pub enum Opcode {
     // arithmetic
     //
 
-    i32_add = 0x900,
+    i32_add = 0x700,
     i32_sub,
     i32_mul,
     i32_div_s,
@@ -525,18 +516,18 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0xa00,    // bitwise AND
+    i32_and = 0x800,    // bitwise AND
     i32_or,             // bitwise OR
     i32_xor,            // bitwise XOR
     i32_not,            // bitwise NOT
     i32_leading_zeros,  // count leading zeros          (number:i64) -> i32
     i32_trailing_zeros, // count trailing zeros         (number:i64) -> i32
     i32_count_ones,     // count the number of ones in the binary representation     (number:i64) -> i32
-    i32_shl,            // shift left                   (operand number:i32 move_bits:i32) -> i32
-    i32_shr_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32
-    i32_shr_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32
-    i32_rotl,           // left rotate                  (operand number:i32 move_bits:i32) -> i32
-    i32_rotr,           // right rotate                 (operand number:i32 move_bits:i32) -> i32
+    i32_shift_left,     // left shift                   (operand number:i32 move_bits:i32) -> i32
+    i32_shift_right_s,  // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32
+    i32_shift_right_u,  // logical right shift          (operand number:i32 move_bits:i32) -> i32
+    i32_rotate_left,    // left rotate                  (operand number:i32 move_bits:i32) -> i32
+    i32_rotate_right,   // right rotate                 (operand number:i32 move_bits:i32) -> i32
 
 
     // instruction `i32.shl` example:
@@ -579,18 +570,18 @@ pub enum Opcode {
     i64_leading_zeros,  // (number:i64) -> i32
     i64_trailing_zeros, // (number:i64) -> i32
     i64_count_ones,     // (number:i64) -> i32
-    i64_shl,            // shift left                   (operand number:i64 move_bits:i32) -> i64
-    i64_shr_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64
-    i64_shr_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64
-    i64_rotl,           // left rotate                  (operand number:i64 move_bits:i32) -> i64
-    i64_rotr,           // right rotate                 (operand number:i64 move_bits:i32) -> i64
+    i64_shift_left,     // left shift                   (operand number:i64 move_bits:i32) -> i64
+    i64_shift_right_s,  // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64
+    i64_shift_right_u,  // logical right shift          (operand number:i64 move_bits:i32) -> i64
+    i64_rotate_left,    // left rotate                  (operand number:i64 move_bits:i32) -> i64
+    i64_rotate_right,   // right rotate                 (operand number:i64 move_bits:i32) -> i64
 
 
     //
     // math
     //
 
-    f32_abs = 0xb00,
+    f32_abs = 0x900,
     f32_neg,
     f32_ceil,
     f32_floor,
@@ -683,7 +674,7 @@ pub enum Opcode {
     // control flow
     //
 
-    end = 0xc00,        // finish a block or a function.
+    end = 0xa00,        // finish a block or a function.
     // when the 'end' instruction is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
@@ -977,7 +968,7 @@ pub enum Opcode {
     // function
     //
 
-    call = 0xd00,           // general function call            (param func_index:i32)
+    call,                   // general function call            (param func_index:i32)
     dcall,                  // closure/dynamic function call    (param VOID) (operand func_index:i64)
 
     // call a function which is specified at runtime.
@@ -1062,8 +1053,12 @@ pub enum Opcode {
                             // the supported feature list can be obtained through the 'ecall' instruction with code 'features'.
 
     //
-    // host address
+    // machine
     //
+
+    nop = 0xb00,        // instruction to do nothing,
+                        // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
+    break_,             // for VM debug
 
     // MAYBE USELESS
     //
@@ -1081,7 +1076,7 @@ pub enum Opcode {
     //
     // it is currently assumed that the target architecture is 64-bit.
 
-    host_addr_local = 0x0e00,   // (param offset_bytes:i16 local_variable_index:i32)
+    host_addr_local,            // (param offset_bytes:i16 local_variable_index:i32)
                                 // note that the host address only valid in the current function and
                                 // in its sub-functions. when a function exited, the function stack frame
                                 // will be destroied (or modified), as well as the local variables.

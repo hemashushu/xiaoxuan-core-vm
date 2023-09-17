@@ -4,6 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use std::sync::Mutex;
+
+use ancvm_binary::utils::print_bytecodes;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::{interpreter::InterpretResult, thread::Thread};
@@ -13,18 +16,45 @@ pub mod info;
 
 type EnvCallHandlerFunc = fn(&mut Thread) -> Result<(), usize>;
 
-fn unreachable(_thread: &mut Thread) -> Result<(), usize> {
-    unreachable!("Invalid environment call number.")
+fn unreachable(thread: &mut Thread) -> Result<(), usize> {
+    let pc = &thread.pc;
+    let func_frame = thread.stack.get_function_frame();
+    let func_idx = func_frame.frame.internal_function_index;
+    let func_item = &thread.context.modules[pc.module_index].func_section.items[func_idx as usize];
+    let codes = &thread.context.modules[pc.module_index]
+        .func_section
+        .codes_data
+        [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
+    let code_text = print_bytecodes(codes);
+
+    unreachable!(
+        "Invalid environment call number: 0x{:04x}
+Module index: {}
+Function index: {}
+Instruction address: 0x{:04x}
+Bytecode:
+{}",
+        thread.get_param_i32(),
+        pc.module_index,
+        func_idx,
+        pc.instruction_address,
+        code_text
+    );
 }
 
+static INIT_LOCK: Mutex<i32> = Mutex::new(0);
 static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
     [unreachable; MAX_ECALLCODE_NUMBER];
 
 pub fn init_ecall_handlers() {
+    let _lock = INIT_LOCK.lock().unwrap();
+
     let handlers = unsafe { &mut HANDLERS };
 
+    // the initialization can only be called once
+    // in the unit test environment (`$ cargo test`), the init procedure
+    // runs in parallel.
     if handlers[ECallCode::runtime_name as usize] == info::runtime_name {
-        // the initialization can only be called once
         return;
     }
 
