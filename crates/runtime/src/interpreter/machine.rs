@@ -95,7 +95,7 @@ mod tests {
         load_modules_binary,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::VariableItemEntry,
+            local_variable_section::LocalVariableEntry,
         },
         utils::{
             build_module_binary_with_single_function,
@@ -265,9 +265,9 @@ mod tests {
             ], // results
             code0,
             vec![
-                VariableItemEntry::from_bytes(64, 8), // space
-                VariableItemEntry::from_i32(),
-                VariableItemEntry::from_i32(),
+                LocalVariableEntry::from_bytes(64, 8), // space
+                LocalVariableEntry::from_i32(),
+                LocalVariableEntry::from_i32(),
             ], // local vars
         );
 
@@ -411,8 +411,8 @@ mod tests {
             ], // results
             code0,
             vec![
-                VariableItemEntry::from_bytes(64, 8), // space
-                VariableItemEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_bytes(64, 8), // space
+                LocalVariableEntry::from_bytes(8, 8),
             ], // local vars
         );
 

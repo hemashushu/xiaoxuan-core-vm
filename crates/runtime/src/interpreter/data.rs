@@ -291,7 +291,7 @@ mod tests {
         load_modules_binary,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::VariableItemEntry,
+            local_variable_section::LocalVariableEntry,
         },
         utils::{build_module_binary_with_single_function_and_data_sections, BytecodeWriter},
     };
@@ -443,7 +443,7 @@ mod tests {
                 DataType::I32,
             ], // results
             code0,
-            vec![VariableItemEntry::from_i32(), VariableItemEntry::from_i64()], // local vars
+            vec![LocalVariableEntry::from_i32(), LocalVariableEntry::from_i64()], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -617,11 +617,11 @@ mod tests {
             ], // results
             code0,
             vec![
-                VariableItemEntry::from_bytes(8, 8),
-                VariableItemEntry::from_f32(),
-                VariableItemEntry::from_f64(),
-                VariableItemEntry::from_i64(),
-                VariableItemEntry::from_i32(),
+                LocalVariableEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_f32(),
+                LocalVariableEntry::from_f64(),
+                LocalVariableEntry::from_i64(),
+                LocalVariableEntry::from_i32(),
             ], // local vars
         );
 

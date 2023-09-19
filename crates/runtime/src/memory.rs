@@ -37,6 +37,7 @@ pub trait Memory {
     fn get_mut_ptr(&mut self, address: usize) -> *mut u8;
 
     #[inline]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn load_to(&self, src_address: usize, dst_ptr: *mut u8, length_in_bytes: usize) {
         let src = self.get_ptr(src_address);
         unsafe {
@@ -115,6 +116,7 @@ pub trait Memory {
     }
 
     #[inline]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn store_from(&mut self, src_ptr: *const u8, dst_address: usize, length_in_bytes: usize) {
         let dst = self.get_mut_ptr(dst_address);
         unsafe {

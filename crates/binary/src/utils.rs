@@ -18,7 +18,7 @@ use crate::module_image::{
     },
     func_index_section::{FuncIndexItem, FuncIndexSection},
     func_section::{FuncEntry, FuncSection},
-    local_variable_section::{LocalVariableSection, VariableItemEntry},
+    local_variable_section::{LocalVariableEntry, LocalVariableSection},
     module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
     type_section::{TypeEntry, TypeSection},
     ModuleImage, RangeItem, SectionEntry,
@@ -805,12 +805,19 @@ pub fn print_bytecodes(codes: &[u8]) -> String {
         .join("")
 }
 
-/// test-helping function
+/// testing-helper
+pub struct FuncWithLocalVariableItemsEntry {
+    pub type_index: usize,
+    pub code: Vec<u8>,
+    pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+}
+
+/// testing-helper
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
     codes: Vec<u8>,
-    local_variable_item_entries_without_args: Vec<VariableItemEntry>,
+    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 ) -> Vec<u8> {
     build_module_binary_with_single_function_and_data_sections(
         vec![],
@@ -823,7 +830,7 @@ pub fn build_module_binary_with_single_function(
     )
 }
 
-/// test-helping function
+/// testing-helper
 pub fn build_module_binary_with_single_function_and_data_sections(
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
@@ -831,13 +838,50 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
     codes: Vec<u8>,
-    mut local_variable_item_entries_without_args: Vec<VariableItemEntry>,
+    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 ) -> Vec<u8> {
-    let mut params_as_local_variable_item_entries = param_datatypes
-        .iter()
-        .map(|dt| VariableItemEntry::from_datatype(*dt))
-        .collect::<Vec<_>>();
+    let type_entries = vec![TypeEntry {
+        params: param_datatypes,
+        results: result_datatypes,
+    }];
 
+    let func_with_local_vars_entries = vec![FuncWithLocalVariableItemsEntry {
+        type_index: 0,
+        code: codes,
+        local_variable_item_entries_without_args,
+    }];
+
+    build_module_binary(
+        read_only_data_entries,
+        read_write_data_entries,
+        uninit_uninit_data_entries,
+        type_entries,
+        func_with_local_vars_entries,
+    )
+}
+
+/// testing-helper
+pub fn build_module_binary_with_single_function_and_blocks(
+    type_entries: Vec<TypeEntry>,
+    func_with_local_vars_entry: FuncWithLocalVariableItemsEntry,
+) -> Vec<u8> {
+    build_module_binary(
+        vec![],
+        vec![],
+        vec![],
+        type_entries,
+        vec![func_with_local_vars_entry],
+    )
+}
+
+/// testing-helper
+pub fn build_module_binary(
+    read_only_data_entries: Vec<DataEntry>,
+    read_write_data_entries: Vec<DataEntry>,
+    uninit_uninit_data_entries: Vec<UninitDataEntry>,
+    type_entries: Vec<TypeEntry>,
+    func_with_local_vars_entries: Vec<FuncWithLocalVariableItemsEntry>,
+) -> Vec<u8> {
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
     let ro_data_section = ReadOnlyDataSection {
@@ -858,12 +902,27 @@ pub fn build_module_binary_with_single_function_and_data_sections(
         items: &uninit_items,
     };
 
+    // build local variable list section
+    let local_var_entries = func_with_local_vars_entries
+        .iter()
+        .map(|fv| {
+            let param_datatypes = &type_entries[fv.type_index].params;
+            let params_as_local_variable_item_entries = param_datatypes
+                .iter()
+                .map(|dt| LocalVariableEntry::from_datatype(*dt))
+                .collect::<Vec<_>>();
+
+            let mut local_variable_item_entries: Vec<LocalVariableEntry> = Vec::new();
+
+            local_variable_item_entries
+                .extend_from_slice(&fv.local_variable_item_entries_without_args);
+            local_variable_item_entries.extend_from_slice(&params_as_local_variable_item_entries);
+
+            local_variable_item_entries
+        })
+        .collect::<Vec<Vec<LocalVariableEntry>>>();
+
     // build type section
-    let mut type_entries: Vec<TypeEntry> = Vec::new();
-    type_entries.push(TypeEntry {
-        params: param_datatypes,
-        results: result_datatypes,
-    });
     let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
     let type_section = TypeSection {
         items: &type_items,
@@ -871,11 +930,14 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     // build function section
-    let mut func_entries: Vec<FuncEntry> = Vec::new();
-    func_entries.push(FuncEntry {
-        type_index: 0,
-        code: codes,
-    });
+    let func_entries = func_with_local_vars_entries
+        .iter()
+        .map(|fv| FuncEntry {
+            type_index: fv.type_index,
+            code: fv.code.clone(),
+        })
+        .collect::<Vec<FuncEntry>>();
+
     let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
     let func_section = FuncSection {
         items: &func_items,
@@ -883,27 +945,20 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     // build local variable section
-    let mut local_variable_item_entries: Vec<VariableItemEntry> = Vec::new();
-
-    local_variable_item_entries.append(&mut local_variable_item_entries_without_args);
-    local_variable_item_entries.append(&mut params_as_local_variable_item_entries);
-
-    let mut local_var_entries: Vec<Vec<VariableItemEntry>> = Vec::new();
-    local_var_entries.push(local_variable_item_entries);
-
+    let local_var_ref_entries = local_var_entries.iter().map(|e| &e[..]).collect::<Vec<_>>();
     let (local_var_lists, local_var_list_data) =
-        LocalVariableSection::convert_from_entries(&local_var_entries);
+        LocalVariableSection::convert_from_entries(&local_var_ref_entries);
     let local_var_section = LocalVariableSection {
         lists: &local_var_lists,
         list_data: &local_var_list_data,
     };
 
     // build module index
-    let mut mod_index_entries: Vec<ModuleIndexEntry> = Vec::new();
-    mod_index_entries.push(ModuleIndexEntry::new(
+    let mod_index_entries: Vec<ModuleIndexEntry> = vec![ModuleIndexEntry::new(
         ModuleShareType::Local,
         "main".to_string(),
-    ));
+    )];
+
     let (module_index_items, names_data) =
         ModuleIndexSection::convert_from_entries(&mod_index_entries);
     let mod_index_section = ModuleIndexSection {
@@ -920,13 +975,12 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     // 4. rw data
     // 5. imported uninit data
     // 6. uninit data
-    let mut data_ranges: Vec<RangeItem> = Vec::new();
-    let mut data_index_items: Vec<DataIndexItem> = Vec::new();
-
-    data_ranges.push(RangeItem {
+    let data_ranges: Vec<RangeItem> = vec![RangeItem {
         offset: 0,
         count: (ro_items.len() + rw_items.len() + uninit_items.len()) as u32,
-    });
+    }];
+
+    let mut data_index_items: Vec<DataIndexItem> = Vec::new();
 
     let ro_iter = ro_items
         .iter()
@@ -957,16 +1011,12 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     // build function index
-    let mut func_ranges: Vec<RangeItem> = Vec::new();
-    let mut func_index_items: Vec<FuncIndexItem> = Vec::new();
-
-    func_ranges.push(RangeItem {
+    let func_ranges: Vec<RangeItem> = vec![RangeItem {
         offset: 0,
         count: 1,
-    });
+    }];
 
-    func_index_items.push(FuncIndexItem::new(0, 0, 0));
-
+    let func_index_items: Vec<FuncIndexItem> = vec![FuncIndexItem::new(0, 0, 0)];
     let func_index_section = FuncIndexSection {
         ranges: &func_ranges,
         items: &func_index_items,
@@ -1008,7 +1058,7 @@ mod tests {
             data_section::{DataEntry, DataItem, DataSectionType, UninitDataEntry},
             func_index_section::FuncIndexItem,
             func_section::FuncEntry,
-            local_variable_section::{VariableItem, VariableItemEntry},
+            local_variable_section::{LocalVariableEntry, LocalVariableItem},
             module_index_section::ModuleShareType,
             type_section::TypeEntry,
             RangeItem,
@@ -1037,7 +1087,7 @@ mod tests {
             vec![DataType::I64, DataType::I64],
             vec![DataType::I32],
             vec![0u8],
-            vec![VariableItemEntry::from_i32()],
+            vec![LocalVariableEntry::from_i32()],
         );
 
         let module_images = load_modules_binary(vec![&binary]).unwrap();
@@ -1160,9 +1210,9 @@ mod tests {
         assert_eq!(
             local_variable_section.get_variable_list(0),
             &vec![
-                VariableItem::new(0, 4, MemoryDataType::I32, 4),
-                VariableItem::new(8, 8, MemoryDataType::I64, 8),
-                VariableItem::new(16, 8, MemoryDataType::I64, 8),
+                LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
+                LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
+                LocalVariableItem::new(16, 8, MemoryDataType::I64, 8),
             ]
         );
     }

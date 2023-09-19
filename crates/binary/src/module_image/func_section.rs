@@ -38,7 +38,7 @@ pub struct FuncItem {
 
 #[derive(Debug, PartialEq)]
 pub struct FuncEntry {
-    pub type_index: u32,
+    pub type_index: usize,
     pub code: Vec<u8>,
 }
 
@@ -67,7 +67,7 @@ impl<'a> FuncSection<'a> {
             &codes_data[item.code_offset as usize..(item.code_offset + item.code_length) as usize];
 
         FuncEntry {
-            type_index: item.type_index,
+            type_index: item.type_index as usize,
             code: code_data.to_vec(),
         }
     }
@@ -87,7 +87,7 @@ impl<'a> FuncSection<'a> {
                 let code_offset = next_offset;
                 let code_length = entry.code.len() as u32;
                 next_offset += code_length; // for next offset
-                FuncItem::new(code_offset, code_length, entry.type_index)
+                FuncItem::new(code_offset, code_length, entry.type_index as u32)
             })
             .collect::<Vec<FuncItem>>();
 

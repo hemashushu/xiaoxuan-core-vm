@@ -341,7 +341,7 @@ fn do_local_store8(
 mod tests {
     use ancvm_binary::{
         load_modules_binary,
-        module_image::local_variable_section::VariableItemEntry,
+        module_image::local_variable_section::LocalVariableEntry,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
@@ -462,11 +462,11 @@ mod tests {
             ], // results
             code0,
             vec![
-                VariableItemEntry::from_bytes(8, 8),
-                VariableItemEntry::from_f32(),
-                VariableItemEntry::from_f64(),
-                VariableItemEntry::from_i64(),
-                VariableItemEntry::from_i32(),
+                LocalVariableEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_f32(),
+                LocalVariableEntry::from_f64(),
+                LocalVariableEntry::from_i64(),
+                LocalVariableEntry::from_i32(),
             ], // local vars
         );
 
@@ -634,8 +634,8 @@ mod tests {
             ], // results
             code0,
             vec![
-                VariableItemEntry::from_bytes(8, 8),
-                VariableItemEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_bytes(8, 8),
             ], // local vars
         );
 

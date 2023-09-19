@@ -359,7 +359,7 @@ mod tests {
         load_modules_binary,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::VariableItemEntry,
+            local_variable_section::LocalVariableEntry,
         },
         utils::build_module_binary_with_single_function_and_data_sections,
     };
@@ -387,7 +387,7 @@ mod tests {
             vec![DataType::I32, DataType::I32],
             vec![DataType::I64],
             vec![0u8],
-            vec![VariableItemEntry::from_i32()],
+            vec![LocalVariableEntry::from_i32()],
         );
 
         let binaries = vec![&binary[..]];
