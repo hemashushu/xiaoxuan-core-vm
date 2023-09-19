@@ -9,9 +9,10 @@ use ancvm_binary::module_image::{
     data_section::DataItem,
     func_index_section::FuncIndexSection,
     func_section::FuncSection,
+    local_variable_section::LocalVariableSection,
     module_index_section::ModuleIndexSection,
     type_section::TypeSection,
-    ModuleImage, SectionId, RangeItem, local_variable_section::LocalVariableSection,
+    ModuleImage, RangeItem, SectionId,
 };
 
 use crate::{
@@ -45,7 +46,7 @@ impl<'a> Context<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let modules = module_images
             .iter()
-            .map(|image| Module::new(image))
+            .map(Module::new)
             .collect::<Vec<Module>>();
 
         let main_module = &module_images[0];

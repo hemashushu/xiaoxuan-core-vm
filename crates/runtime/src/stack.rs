@@ -9,8 +9,8 @@ use std::mem::size_of;
 use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    memory::Memory, resizeable_memory::ResizeableMemory, type_memory::TypeMemory,
-    MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
+    memory::Memory, resizeable_memory::ResizeableMemory, thread::ProgramCounter,
+    type_memory::TypeMemory, MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
 };
 
 pub struct Stack {
@@ -55,10 +55,9 @@ pub struct Stack {
 // | local 0               | <-- local variable area           | arg 0                  |
 // |-----------------------| <-------------------------------> |------------------------|
 // | return inst addr      |                                   | 0                      |
+// | return func idx       |                                   | 0                      |
 // | return module idx     |                                   | 0                      |
 // | local var alloc bytes |                                   | 0                      |
-// | internal func idx     |                                   | 0                      |
-// | current module index  |                                   | current module index   |
 // | params/results count  |                                   | params/results count   |
 // | function FP           |     func                block     | function FP            |
 // | previous FP           | <-- frame info     frame info --> | previous FP            |
@@ -113,30 +112,30 @@ pub struct Stack {
 
 #[derive(Debug, PartialEq)]
 #[repr(C)]
-pub struct Frame {
-    pub previous_frame_address: u32, //--\
-    pub function_frame_address: u32, //--/-- 8 bytes <-- addr low
-
-    pub params_count: u16,  //--\
-    pub results_count: u16, //--|
-    pub module_index: u32,  //--/-- 8 bytes
-
-    pub internal_function_index: u32,        //--\
-    pub local_variables_allocate_bytes: u32, //--/-- 8 bytes
-
-    pub return_module_index: u32,        //--\
-    pub return_instruction_address: u32, //--/-- 8 bytes <-- addr high
+pub struct FrameInfo {
+    pub previous_frame_address: u32,         //--\  <-- addr low
+    pub function_frame_address: u32,         //--/  8 bytes
+    pub params_count: u16,                   //--\
+    pub results_count: u16,                  //  |  8 bytes
+    _padding0: u32,                          //--/
+    pub local_variables_allocate_bytes: u32, //--\
+    pub return_module_index: u32,            //--/  8 bytes
+    pub return_internal_function_index: u32, //--\  8 bytes
+    pub return_instruction_address: u32,     //--/  <-- addr high
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FrameItem<'a> {
+pub struct FramePack<'a> {
     pub address: usize,
-    pub frame: &'a Frame,
+    pub frame_info: &'a FrameInfo,
 }
 
-impl<'a> FrameItem<'a> {
-    pub fn new(address: usize, frame: &'a Frame) -> Self {
-        Self { address, frame }
+impl<'a> FramePack<'a> {
+    pub fn new(address: usize, frame_info: &'a FrameInfo) -> Self {
+        Self {
+            address,
+            frame_info,
+        }
     }
 }
 
@@ -157,12 +156,12 @@ impl Stack {
 impl Memory for Stack {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
-        (&self.data[address..]).as_ptr()
+        self.data[address..].as_ptr()
     }
 
     #[inline]
     fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        (&mut self.data[address..]).as_mut_ptr()
+        self.data[address..].as_mut_ptr()
     }
 }
 
@@ -286,7 +285,7 @@ impl Stack {
         self.read_f64(self.sp)
     }
 
-    pub fn drop(&mut self) {
+    pub fn drop_(&mut self) {
         self.sp -= OPERAND_SIZE_IN_BYTES;
     }
 
@@ -358,7 +357,7 @@ impl Stack {
      *
      * return the FP and BlockFrame.
      */
-    pub fn get_frame(&self, reversed_index: usize) -> FrameItem {
+    pub fn get_frame_pack(&self, reversed_index: usize) -> FramePack {
         // the FP chain:
         //
         //       |         |           |         |           |         |
@@ -373,18 +372,18 @@ impl Stack {
 
         let mut remains = reversed_index;
         let mut fp = self.fp;
-        let mut frame = self.read_frame(fp);
+        let mut frame_info = self.read_frame_info(fp);
 
         while remains > 0 {
-            fp = frame.previous_frame_address as usize;
+            fp = frame_info.previous_frame_address as usize;
             if fp == 0 {
                 panic!("The index is out of bounds.")
             }
-            frame = self.read_frame(fp);
+            frame_info = self.read_frame_info(fp);
             remains -= 1;
         }
 
-        FrameItem::new(fp, frame)
+        FramePack::new(fp, frame_info)
     }
 
     /**
@@ -392,7 +391,7 @@ impl Stack {
      *
      * return the FFP (FP of function) and FuncFrame.
      */
-    pub fn get_function_frame(&self) -> FrameItem {
+    pub fn get_function_frame_pack(&self) -> FramePack {
         // the FFP pointer:
         //
         //       |         |           |         |
@@ -407,15 +406,15 @@ impl Stack {
         // the function FP sometimes point to the frame itself when the frame
         // is "function stack frame".
 
-        let frame = self.read_frame(self.fp);
-        if frame.function_frame_address as usize == self.fp {
+        let frame_info = self.read_frame_info(self.fp);
+        if frame_info.function_frame_address as usize == self.fp {
             // the current frame is function frame
-            FrameItem::new(self.fp, frame)
+            FramePack::new(self.fp, frame_info)
         } else {
             // the current frame is block frame
-            let func_fp = frame.function_frame_address as usize;
-            let func_frame = self.read_frame(func_fp);
-            FrameItem::new(func_fp, func_frame)
+            let func_fp = frame_info.function_frame_address as usize;
+            let func_frame_info = self.read_frame_info(func_fp);
+            FramePack::new(func_fp, func_frame_info)
         }
     }
 
@@ -435,23 +434,21 @@ impl Stack {
         // | ...        |
         // \------------/
 
-        let frame = self.read_frame(self.fp);
-        let func_fp = frame.function_frame_address;
-        func_fp as usize + size_of::<Frame>()
+        let frame_info = self.read_frame_info(self.fp);
+        let func_fp = frame_info.function_frame_address;
+        func_fp as usize + size_of::<FrameInfo>()
     }
 
-    fn read_frame(&self, addr: usize) -> &Frame {
-        let ptr = (&self.data[addr..]).as_ptr();
-        let obj = unsafe { &*(ptr as *const Frame) };
-        obj
+    fn read_frame_info(&self, addr: usize) -> &FrameInfo {
+        let ptr = self.data[addr..].as_ptr();
+        unsafe { &*(ptr as *const FrameInfo) }
     }
 
     /// mapping a structure to the specified address.
     /// the caller must write value of each field through the return object.
-    fn write_frame(&mut self, addr: usize) -> &mut Frame {
-        let ptr = (&mut self.data[addr..]).as_mut_ptr();
-        let obj = unsafe { &mut *(ptr as *mut Frame) };
-        obj
+    fn write_frame_info(&mut self, addr: usize) -> &mut FrameInfo {
+        let ptr = self.data[addr..].as_mut_ptr();
+        unsafe { &mut *(ptr as *mut FrameInfo) }
     }
 
     /// move the specified number of operands to the swap are
@@ -464,7 +461,7 @@ impl Stack {
         let offset = self.sp - count_in_bytes;
 
         // memory copy
-        let src = (&self.data[offset..]).as_ptr();
+        let src = self.data[offset..].as_ptr();
         let dst = self.swap.as_mut_ptr();
         unsafe {
             std::ptr::copy(src, dst, count_in_bytes);
@@ -483,7 +480,7 @@ impl Stack {
 
         // memory copy
         let src = self.swap.as_ptr();
-        let dst = (&mut self.data[self.sp..]).as_mut_ptr();
+        let dst = self.data[self.sp..].as_mut_ptr();
         unsafe {
             std::ptr::copy(src, dst, count_in_bytes);
         }
@@ -494,13 +491,15 @@ impl Stack {
 
     pub fn create_function_frame(
         &mut self,
-        local_variables_allocate_bytes: u32,
         params_count: u16,
         results_count: u16,
-        module_index: u32,
-        internal_function_index: u32,
-        return_module_index: u32,
-        return_instruction_address: u32,
+        // module_index: u32,
+        // internal_function_index: u32,
+        local_variables_allocate_bytes: u32,
+        // return_module_index: u32,
+        // return_internal_function_index: u32,
+        // return_instruction_address: u32,
+        return_pc: ProgramCounter,
     ) {
         let previous_fp = self.fp;
 
@@ -512,22 +511,22 @@ impl Stack {
 
         // create new block frame at the current position (it's the value of SP)
         let fp = self.sp;
-        let mut func_frame = self.write_frame(fp);
+        let func_frame_info = self.write_frame_info(fp);
 
         // write values
-        func_frame.previous_frame_address = previous_fp as u32;
-        func_frame.function_frame_address = fp as u32; // the function FP point to the current frame itself.
-        func_frame.params_count = params_count;
-        func_frame.results_count = results_count;
-        func_frame.module_index = module_index;
+        func_frame_info.previous_frame_address = previous_fp as u32;
+        func_frame_info.function_frame_address = fp as u32; // the function FP point to the current frame itself.
+        func_frame_info.params_count = params_count;
+        func_frame_info.results_count = results_count;
+        func_frame_info._padding0 = 0;
 
-        func_frame.internal_function_index = internal_function_index;
-        func_frame.local_variables_allocate_bytes = local_variables_allocate_bytes;
-        func_frame.return_module_index = return_module_index;
-        func_frame.return_instruction_address = return_instruction_address;
+        func_frame_info.local_variables_allocate_bytes = local_variables_allocate_bytes;
+        func_frame_info.return_module_index = return_pc.module_index as u32;
+        func_frame_info.return_internal_function_index = return_pc.internal_function_index as u32;
+        func_frame_info.return_instruction_address = return_pc.instruction_address as u32;
 
         // update sp and fp
-        self.sp += size_of::<Frame>();
+        self.sp += size_of::<FrameInfo>();
         self.fp = fp;
 
         // allocate local variable area
@@ -557,13 +556,10 @@ impl Stack {
     pub fn create_block_frame(&mut self, params_count: u16, results_count: u16) {
         let previous_fp = self.fp;
 
-        // the 'func_fp' and 'module_index' are inherited from the previous frame
-        let (func_fp, module_index) = {
-            let frame_item = self.get_frame(0);
-            let frame = frame_item.frame;
-            let func_fp = frame.function_frame_address;
-            let module_index = frame.module_index;
-            (func_fp, module_index)
+        // the 'func_fp' is inherited from the previous frame
+        let func_fp = {
+            let frame_pack = self.get_frame_pack(0);
+            frame_pack.frame_info.function_frame_address
         };
 
         // move the arguments to swap first
@@ -571,22 +567,23 @@ impl Stack {
 
         // create new block frame at the current position (it's the value of SP)
         let fp = self.sp;
-        let mut block_frame = self.write_frame(fp);
+        let block_frame_info = self.write_frame_info(fp);
 
         // write values
-        block_frame.previous_frame_address = previous_fp as u32; // singly linked list
-        block_frame.function_frame_address = func_fp;
-        block_frame.params_count = params_count;
-        block_frame.results_count = results_count;
-        block_frame.module_index = module_index;
+        block_frame_info.previous_frame_address = previous_fp as u32; // singly linked list
+        block_frame_info.function_frame_address = func_fp;
+        block_frame_info.params_count = params_count;
+        block_frame_info.results_count = results_count;
+        block_frame_info._padding0 = 0;
 
-        block_frame.internal_function_index = 0;
-        block_frame.local_variables_allocate_bytes = 0;
-        block_frame.return_module_index = 0;
-        block_frame.return_instruction_address = 0;
+        // block_frame_info.module_index = 0;
+        block_frame_info.local_variables_allocate_bytes = 0;
+        block_frame_info.return_module_index = 0;
+        block_frame_info.return_internal_function_index = 0;
+        block_frame_info.return_instruction_address = 0;
 
         // update sp and fp
-        self.sp += size_of::<Frame>();
+        self.sp += size_of::<FrameInfo>();
         self.fp = fp;
 
         // restore the arguments from swap
@@ -595,26 +592,25 @@ impl Stack {
 
     /// remove the specified frame and all frames that follows this frame.
     ///
-    /// return (is_function_frame, return_module_index, return_instruction_address)
-    pub fn exit_frames(&mut self, reversed_index: usize) -> (bool, u32, u32) {
-        let (
-            sp,
-            fp,
-            is_function_frame,
-            results_count,
-            return_module_index,
-            return_instruction_address,
-        ) = {
-            let frame_item = self.get_frame(reversed_index);
+    /// return:
+    /// - None for block frame
+    /// - Some(ProgramCounter) for function frame
+    pub fn exit_frames(&mut self, reversed_index: usize) -> Option<ProgramCounter> {
+        let (sp, fp, is_function_frame, results_count, return_pc) = {
+            let frame_pack = self.get_frame_pack(reversed_index);
             let is_function_frame =
-                frame_item.frame.function_frame_address as usize == frame_item.address;
+                frame_pack.frame_info.function_frame_address as usize == frame_pack.address;
             (
-                frame_item.address,                               // current frame start address
-                frame_item.frame.previous_frame_address as usize, // previous FP
+                frame_pack.address, // current frame start address
+                frame_pack.frame_info.previous_frame_address as usize, // previous FP
                 is_function_frame,
-                frame_item.frame.results_count,
-                frame_item.frame.return_module_index,
-                frame_item.frame.return_instruction_address,
+                frame_pack.frame_info.results_count,
+                ProgramCounter {
+                    instruction_address: frame_pack.frame_info.return_instruction_address as usize,
+                    internal_function_index: frame_pack.frame_info.return_internal_function_index
+                        as usize,
+                    module_index: frame_pack.frame_info.return_module_index as usize,
+                },
             )
         };
 
@@ -627,11 +623,11 @@ impl Stack {
         // restore parameters from swap
         self.restore_operands_from_swap(results_count);
 
-        (
-            is_function_frame,
-            return_module_index,
-            return_instruction_address,
-        )
+        if is_function_frame {
+            Some(return_pc)
+        } else {
+            None
+        }
     }
 
     /// reset the specified (function or block) frame:
@@ -643,12 +639,12 @@ impl Stack {
     /// this function is commonly used for 'loop' structure or 'tail call' statement.
     pub fn reset_to_frame(&mut self, reversed_index: usize) {
         let (frame_addr, params_count, frame_func_fp, local_variables_allocate_bytes) = {
-            let frame_item = self.get_frame(reversed_index);
+            let frame_pack = self.get_frame_pack(reversed_index);
             (
-                frame_item.address,
-                frame_item.frame.params_count,
-                frame_item.frame.function_frame_address as usize,
-                frame_item.frame.local_variables_allocate_bytes as usize,
+                frame_pack.address,
+                frame_pack.frame_info.params_count,
+                frame_pack.frame_info.function_frame_address as usize,
+                frame_pack.frame_info.local_variables_allocate_bytes as usize,
             )
         };
 
@@ -664,7 +660,7 @@ impl Stack {
         if (!is_function_frame)
             && (frame_addr == self.fp)
             && (self.sp - params_count as usize * OPERAND_SIZE_IN_BYTES
-                == self.fp + size_of::<Frame>())
+                == self.fp + size_of::<FrameInfo>())
         {
             return;
         }
@@ -689,7 +685,7 @@ impl Stack {
 
             self.fp = frame_addr;
 
-            let local_vars_addr_start = frame_addr + size_of::<Frame>();
+            let local_vars_addr_start = frame_addr + size_of::<FrameInfo>();
 
             // note that 'local_variables_allocate_bytes' includes the size of arguments
             //
@@ -731,7 +727,7 @@ impl Stack {
             // \------------/
 
             self.fp = frame_addr;
-            self.sp = frame_addr + size_of::<Frame>();
+            self.sp = frame_addr + size_of::<FrameInfo>();
 
             // restore parameters from swap
             self.restore_operands_from_swap(params_count);
@@ -748,7 +744,8 @@ mod tests {
     use crate::{
         memory::Memory,
         resizeable_memory::ResizeableMemory,
-        stack::{Frame, Stack},
+        stack::{FrameInfo, Stack},
+        thread::ProgramCounter,
         type_memory::TypeMemory,
         MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
     };
@@ -836,7 +833,7 @@ mod tests {
         stack.push_i32_s(23);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4);
 
-        stack.drop();
+        stack.drop_();
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3);
 
         assert_eq!(stack.peek_i32_s(), 19);
@@ -892,13 +889,15 @@ mod tests {
         //              \--------/
 
         stack.create_function_frame(
+            2, // params count
+            0, // results count
+            // 73,      // mod idx
             16 + 16, // local vars len
-            2,  // params count
-            0,  // results count
-            73, // mod idx
-            79, // func idx
-            83, // ret mod idx
-            89, //ret inst addr
+            ProgramCounter {
+                module_index: 83,            // ret mod idx
+                internal_function_index: 79, // func idx
+                instruction_address: 89,     //ret inst addr
+            },
         );
 
         // the current layout
@@ -911,10 +910,10 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 83     | return module idx
-        //       0d0036 | 32     | local vars len
-        //       0d0032 | 79     | func idx
-        //       0d0028 | 73     | module idx
+        //       0d0040 | 79     | return func idx
+        //       0d0036 | 83     | return module idx
+        //       0d0032 | 32     | local vars len
+        //       0d0028 | 0      | padding
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
@@ -930,10 +929,10 @@ mod tests {
         assert_eq!(stack.read_i32_s(16), 0);
         assert_eq!(stack.read_i32_s(20), 16);
         assert_eq!(stack.read_i32_s(24), 0 << 16 | 2); // results count << 16 | params count
-        assert_eq!(stack.read_i32_s(28), 73);
-        assert_eq!(stack.read_i32_s(32), 79);
-        assert_eq!(stack.read_i32_s(36), 32);
-        assert_eq!(stack.read_i32_s(40), 83);
+        assert_eq!(stack.read_i32_s(28), 0);
+        assert_eq!(stack.read_i32_s(32), 32);
+        assert_eq!(stack.read_i32_s(36), 83);
+        assert_eq!(stack.read_i32_s(40), 79);
         assert_eq!(stack.read_i32_s(44), 89);
 
         assert_eq!(stack.read_i64_s(48), 0);
@@ -947,24 +946,24 @@ mod tests {
         assert_eq!(stack.fp, 16);
 
         // check frame
-        let f0 = stack.get_frame(0);
+        let f0 = stack.get_frame_pack(0);
         assert_eq!(f0.address, 16);
         assert_eq!(
-            f0.frame,
-            &Frame {
+            f0.frame_info,
+            &FrameInfo {
                 previous_frame_address: 0,
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                module_index: 73,
-                internal_function_index: 79,
+                _padding0: 0,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
+                return_internal_function_index: 79,
                 return_instruction_address: 89
             }
         );
 
-        let f0b = stack.get_function_frame();
+        let f0b = stack.get_function_frame_pack();
         assert_eq!(f0, f0b);
 
         let fp0 = f0.address;
@@ -982,7 +981,7 @@ mod tests {
 
         assert_eq!(
             stack.get_local_variables_start_address(),
-            fp0 + size_of::<Frame>()
+            fp0 + size_of::<FrameInfo>()
         );
         assert_eq!(stack.read_local_by_offset_i32(0), 0);
         assert_eq!(stack.read_local_by_offset_i32(8), 0);
@@ -1029,10 +1028,10 @@ mod tests {
         //       0d0128 | 47     | <-- args 1
         //              |--------|
         //       0d0124 | 0      | return inst addr
-        //       0d0120 | 0      | return module idx
-        //       0d0116 | 0      | local vars len
-        //       0d0112 | 0      | func idx
-        //       0d0108 | 73     | module idx
+        //       0d0120 | 0      | return func idx
+        //       0d0116 | 0      | return module idx
+        //       0d0112 | 0      | local vars len
+        //       0d0108 | 0      | padding
         //       0d0104 | 1/2    | params/results count
         //       0d0100 | 16     | func FP
         // FP--> 0d0096 | 16     | prev FP
@@ -1052,25 +1051,25 @@ mod tests {
         assert_eq!(stack.read_i32_s(128), 47); // one operand has been moved
         assert_eq!(stack.read_i32_s(88), 43); // the old operand has no change
 
-        let f1 = stack.get_frame(0);
+        let f1 = stack.get_frame_pack(0);
         assert_eq!(f1.address, 96);
         assert_eq!(
-            f1.frame,
-            &Frame {
+            f1.frame_info,
+            &FrameInfo {
                 previous_frame_address: 16,
                 function_frame_address: 16,
                 params_count: 1,
                 results_count: 2,
-                module_index: 73,
-                internal_function_index: 0,
+                _padding0: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
+                return_internal_function_index: 0,
                 return_instruction_address: 0
             }
         );
 
-        assert_eq!(stack.get_frame(1).address, fp0);
-        assert_eq!(stack.get_function_frame(), stack.get_frame(1));
+        assert_eq!(stack.get_frame_pack(1).address, fp0);
+        assert_eq!(stack.get_function_frame_pack(), stack.get_frame_pack(1));
 
         let fp1 = f1.address;
 
@@ -1085,7 +1084,7 @@ mod tests {
         // create block frame
         stack.create_block_frame(0, 0);
 
-        let fp2 = fp1 + size_of::<Frame>() + 8; // 1 args in the 1st block frame
+        let fp2 = fp1 + size_of::<FrameInfo>() + 8; // 1 args in the 1st block frame
 
         // the current layout
         //
@@ -1104,29 +1103,29 @@ mod tests {
         //              \------------/
 
         assert_eq!(stack.fp, fp2);
-        assert_eq!(stack.sp, fp2 + size_of::<Frame>());
+        assert_eq!(stack.sp, fp2 + size_of::<FrameInfo>());
         assert_eq!(stack.read_i32_s(fp2 - 8), 47); // the old operand has no change
 
-        let f2 = stack.get_frame(0);
+        let f2 = stack.get_frame_pack(0);
         assert_eq!(f2.address, fp2);
         assert_eq!(
-            f2.frame,
-            &Frame {
+            f2.frame_info,
+            &FrameInfo {
                 previous_frame_address: fp1 as u32,
                 function_frame_address: fp0 as u32,
                 params_count: 0,
                 results_count: 0,
-                module_index: 73,
-                internal_function_index: 0,
+                _padding0: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
+                return_internal_function_index: 0,
                 return_instruction_address: 0
             }
         );
 
-        assert_eq!(stack.get_frame(1).address, fp1);
-        assert_eq!(stack.get_frame(2).address, fp0);
-        assert_eq!(stack.get_function_frame(), stack.get_frame(2));
+        assert_eq!(stack.get_frame_pack(1).address, fp1);
+        assert_eq!(stack.get_frame_pack(2).address, fp0);
+        assert_eq!(stack.get_function_frame_pack(), stack.get_frame_pack(2));
 
         let fp2 = f2.address;
 
@@ -1143,13 +1142,15 @@ mod tests {
 
         // create func frame
         stack.create_function_frame(
-            0 + 8, // local vars len
             1, // params count
             3, // results count
-            107, // mod idx
-            109, // func idx
-            113, // ret mod idx
-            127, // ret inst addr
+            // 107,   // mod idx
+            0 + 8, // local vars len
+            ProgramCounter {
+                module_index: 113,            // ret mod idx
+                internal_function_index: 109, // func idx
+                instruction_address: 127,     // ret inst addr
+            },
         );
 
         // the current layout
@@ -1172,40 +1173,40 @@ mod tests {
         //              | operands   |
         //              \------------/
 
-        let fp3 = fp2 + size_of::<Frame>() + 8; // 1 operand in the 2nd block frame
+        let fp3 = fp2 + size_of::<FrameInfo>() + 8; // 1 operand in the 2nd block frame
         assert_eq!(stack.fp, fp3);
-        assert_eq!(stack.sp, fp3 + size_of::<Frame>() + 8); // 1 args in the current frame
+        assert_eq!(stack.sp, fp3 + size_of::<FrameInfo>() + 8); // 1 args in the current frame
 
-        let f3 = stack.get_frame(0);
+        let f3 = stack.get_frame_pack(0);
         assert_eq!(f3.address, fp3);
         assert_eq!(
-            f3.frame,
-            &Frame {
+            f3.frame_info,
+            &FrameInfo {
                 previous_frame_address: fp2 as u32,
                 function_frame_address: fp3 as u32,
                 params_count: 1,
                 results_count: 3,
-                module_index: 107,
-                internal_function_index: 109,
+                _padding0: 0,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 113,
+                return_internal_function_index: 109,
                 return_instruction_address: 127
             }
         );
 
-        let f3b = stack.get_function_frame();
+        let f3b = stack.get_function_frame_pack();
         assert_eq!(f3, f3b);
 
-        assert_eq!(stack.get_frame(1).address, fp2);
-        assert_eq!(stack.get_frame(2).address, fp1);
-        assert_eq!(stack.get_frame(3).address, fp0);
+        assert_eq!(stack.get_frame_pack(1).address, fp2);
+        assert_eq!(stack.get_frame_pack(2).address, fp1);
+        assert_eq!(stack.get_frame_pack(3).address, fp0);
 
         // check local variables
 
         // because function frame created new local variable area, the address should be updated
         assert_eq!(
             stack.get_local_variables_start_address(),
-            fp3 + size_of::<Frame>()
+            fp3 + size_of::<FrameInfo>()
         );
         assert_eq!(stack.read_local_by_offset_i32(0), 241);
 
@@ -1224,15 +1225,20 @@ mod tests {
         //   func frame | frame 3    |
         //              |------------| <-- fp3
 
-        let (is_function_frame0, ret_module_idx0, ret_inst_addr0) = stack.exit_frames(0);
+        let opt_return_pc0 = stack.exit_frames(0);
 
-        assert_eq!(is_function_frame0, true);
-        assert_eq!(ret_module_idx0, 113);
-        assert_eq!(ret_inst_addr0, 127);
+        assert_eq!(
+            opt_return_pc0,
+            Some(ProgramCounter {
+                module_index: 113,
+                internal_function_index: 109,
+                instruction_address: 127,
+            })
+        );
 
-        assert_eq!(stack.get_frame(0).address, fp2);
-        assert_eq!(stack.get_frame(1).address, fp1);
-        assert_eq!(stack.get_frame(2).address, fp0);
+        assert_eq!(stack.get_frame_pack(0).address, fp2);
+        assert_eq!(stack.get_frame_pack(1).address, fp1);
+        assert_eq!(stack.get_frame_pack(2).address, fp0);
 
         // check operands
 
@@ -1257,7 +1263,7 @@ mod tests {
         // the 1st function frame
         assert_eq!(
             stack.get_local_variables_start_address(),
-            fp0 + size_of::<Frame>()
+            fp0 + size_of::<FrameInfo>()
         );
 
         assert_eq!(stack.read_local_by_offset_i32(0), 211);
@@ -1266,11 +1272,8 @@ mod tests {
         assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // remove the parent frame
-        let (is_function_frame1, ret_module_idx1, ret_inst_addr1) = stack.exit_frames(1);
-
-        assert_eq!(is_function_frame1, false);
-        assert_eq!(ret_module_idx1, 0);
-        assert_eq!(ret_inst_addr1, 0);
+        let opt_return_pc1 = stack.exit_frames(1);
+        assert_eq!(opt_return_pc1, None);
 
         // SP--> 0d0112 |        |
         //       0d0104 | 257    |
@@ -1288,7 +1291,7 @@ mod tests {
         //              |        | <-- operands
         //              \--------/
 
-        assert_eq!(stack.get_frame(0).address, fp0);
+        assert_eq!(stack.get_frame_pack(0).address, fp0);
         assert_eq!(stack.sp, 112);
 
         // check operands
@@ -1298,11 +1301,16 @@ mod tests {
         assert_eq!(stack.read_i32_s(80), 41);
 
         // remove the last frame
-        let (is_function_frame2, ret_module_idx2, ret_inst_addr2) = stack.exit_frames(0);
+        let opt_return_pc2 = stack.exit_frames(0);
 
-        assert_eq!(is_function_frame2, true);
-        assert_eq!(ret_module_idx2, 83);
-        assert_eq!(ret_inst_addr2, 89);
+        assert_eq!(
+            opt_return_pc2,
+            Some(ProgramCounter {
+                module_index: 83,
+                internal_function_index: 79,
+                instruction_address: 89,
+            })
+        );
 
         // SP    0d0016 |        |
         //       0d0008 | 29     |
@@ -1332,13 +1340,15 @@ mod tests {
         //              \--------/
 
         stack.create_function_frame(
+            2, // params count
+            0, // results count
+            // 73,      // mod idx
             16 + 16, // local vars len
-            2,  // params count
-            0,  // results count
-            73, // mod idx
-            79, // func idx
-            83, // ret mod idx
-            89, //ret inst addr
+            ProgramCounter {
+                instruction_address: 89,     //ret inst addr
+                internal_function_index: 79, // func idx
+                module_index: 83,            // ret mod idx
+            },
         );
 
         // the current layout
@@ -1351,10 +1361,10 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 83     | return module idx
-        //       0d0036 | 32     | local vars len
-        //       0d0032 | 79     | func idx
-        //       0d0028 | 73     | module idx
+        //       0d0040 | 79     | func idx
+        //       0d0036 | 83     | return module idx
+        //       0d0032 | 32     | local vars len
+        //       0d0028 | 0      | _padding
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
@@ -1411,10 +1421,10 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0 (reset)
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 83     | return module idx
-        //       0d0036 | 32     | local vars len
-        //       0d0032 | 79     | func idx
-        //       0d0028 | 73     | module idx
+        //       0d0040 | 79     | func idx
+        //       0d0036 | 83     | return module idx
+        //       0d0032 | 32     | local vars len
+        //       0d0028 | 0      | _padding
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
@@ -1424,19 +1434,20 @@ mod tests {
         //              \--------/
 
         // check frame
-        let f0 = stack.get_frame(0);
+        let f0 = stack.get_frame_pack(0);
         assert_eq!(f0.address, 16);
         assert_eq!(
-            f0.frame,
-            &Frame {
+            f0.frame_info,
+            &FrameInfo {
                 previous_frame_address: 0,
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                module_index: 73,
-                internal_function_index: 79,
+                _padding0: 0,
+                // module_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
+                return_internal_function_index: 79,
                 return_instruction_address: 89
             }
         );
@@ -1477,7 +1488,7 @@ mod tests {
         //       0d0104 | 0      |
         //       0d0100 | 0      |
         //       0d0096 | 0      |
-        //       0d0092 | 73     | module idx
+        //       0d0092 | 0      |
         //       0d0088 | 1/2    | params/results count
         //       0d0084 | 16     | func FP
         // FP--> 0d0080 | 16     | prev FP
@@ -1489,10 +1500,10 @@ mod tests {
         //       0d0048 | 131    | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 83     | return module idx
-        //       0d0036 | 16     | local vars len
-        //       0d0032 | 79     | func idx
-        //       0d0028 | 73     | module idx
+        //       0d0040 | 79     | func idx
+        //       0d0036 | 83     | return module idx
+        //       0d0032 | 32     | local vars len
+        //       0d0028 | 0      | _padding
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         //       0d0016 | 0      | prev FP
@@ -1541,19 +1552,20 @@ mod tests {
         assert_eq!(stack.peek_i32_s(), 151);
 
         // check frame
-        let f1 = stack.get_frame(0);
+        let f1 = stack.get_frame_pack(0);
         assert_eq!(f1.address, 80);
         assert_eq!(
-            f1.frame,
-            &Frame {
+            f1.frame_info,
+            &FrameInfo {
                 previous_frame_address: 16,
                 function_frame_address: 16,
                 params_count: 1,
                 results_count: 2,
-                module_index: 73,
-                internal_function_index: 0,
+                _padding0: 0,
+                // module_index: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
+                return_internal_function_index: 0,
                 return_instruction_address: 0
             }
         );
@@ -1581,7 +1593,7 @@ mod tests {
         //       0d0152 | 0      |
         //       0d0148 | 0      |
         //       0d0144 | 0      |
-        //       0d0140 | 73     | module idx
+        //       0d0140 | 0      |
         //       0d0136 | 0/0    | params/results count
         //       0d0132 | 16     | func FP
         // FP--> 0d0128 | 80     | prev FP

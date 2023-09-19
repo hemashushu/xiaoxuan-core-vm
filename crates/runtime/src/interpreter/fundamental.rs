@@ -13,8 +13,8 @@ pub fn zero(thread: &mut Thread) -> InterpretResult {
     InterpretResult::MoveOn(2)
 }
 
-pub fn drop(thread: &mut Thread) -> InterpretResult {
-    thread.stack.drop();
+pub fn drop_(thread: &mut Thread) -> InterpretResult {
+    thread.stack.drop_();
     InterpretResult::MoveOn(2)
 }
 
@@ -40,8 +40,8 @@ pub fn i32_imm(thread: &mut Thread) -> InterpretResult {
 pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
     let (low, high) = thread.get_param_i32_i32();
     let mut value: u64 = high as u64;
-    value = value << 32;
-    value = value | (low as u64);
+    value <<= 32;
+    value |= low as u64;
 
     thread.stack.push_i64_u(value);
     InterpretResult::MoveOn(12)
@@ -49,7 +49,8 @@ pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
 
 pub fn f32_imm(thread: &mut Thread) -> InterpretResult {
     let i32_value = thread.get_param_i32();
-    let value = unsafe { std::mem::transmute::<u32, f32>(i32_value) };
+    // let value = unsafe { std::mem::transmute::<u32, f32>(i32_value) };
+    let value = f32::from_bits(i32_value);
 
     thread.stack.push_f32(value);
     InterpretResult::MoveOn(8)

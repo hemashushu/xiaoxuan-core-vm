@@ -140,4 +140,4 @@ pub enum ECallCode {
     write,              // `fn (fd:i32 addr:i64 length:i64)`
 }
 
-pub const MAX_ECALLCODE_NUMBER:usize = 0x300;
+pub const MAX_ECALLCODE_NUMBER:usize = 0x400;

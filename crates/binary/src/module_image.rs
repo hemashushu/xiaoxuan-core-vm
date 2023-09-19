@@ -252,7 +252,7 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(IMAGE_MAGIC_NUMBER)?;
         writer.write_all(&IMAGE_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
-        writer.write_all(&vec![0u8, 0, 0, 0])?; // padding, 4 bytes
+        writer.write_all(&[0u8, 0, 0, 0])?; // padding, 4 bytes
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
     }

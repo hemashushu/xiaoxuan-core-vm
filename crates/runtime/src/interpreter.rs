@@ -12,7 +12,11 @@ use ancvm_types::{
     ForeignValue,
 };
 
-use crate::{ecall, thread::Thread, VMError};
+use crate::{
+    ecall,
+    thread::{ProgramCounter, Thread},
+    VMError,
+};
 
 type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
@@ -29,18 +33,17 @@ mod machine;
 mod math;
 
 pub enum InterpretResult {
-    MoveOn(usize),      // param (increment_in_bytes: usize)
-    Break,              // VM debug
-    Jump(usize, usize), // param (module_index: usize, instruction_address: usize)
-    EnvError(usize),    // param (err_code: usize)
+    MoveOn(usize),        // param (increment_in_bytes: usize)
+    Break,                // VM debug
+    Jump(ProgramCounter), // param (return_pc: ProgramCounter)
+    EnvError(usize),      // param (err_code: usize)
     End,
 }
 
 fn unreachable(thread: &mut Thread) -> InterpretResult {
     let pc = &thread.pc;
-    let func_frame = thread.stack.get_function_frame();
-    let func_idx = func_frame.frame.internal_function_index;
-    let func_item = &thread.context.modules[pc.module_index].func_section.items[func_idx as usize];
+    let func_item =
+        &thread.context.modules[pc.module_index].func_section.items[pc.internal_function_index];
     let codes = &thread.context.modules[pc.module_index]
         .func_section
         .codes_data
@@ -56,31 +59,39 @@ Bytecode:
 {}",
         thread.get_opcode_num(),
         pc.module_index,
-        func_idx,
+        pc.internal_function_index,
         pc.instruction_address,
         code_text
     );
 }
 
 static INIT_LOCK: Mutex<i32> = Mutex::new(0);
+static mut IS_INIT: bool = false;
 static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
 /// initilize the instruction interpreters
 pub fn init_interpreters() {
     let _lock = INIT_LOCK.lock().unwrap();
 
+    unsafe {
+        if IS_INIT {
+            return;
+        }
+        IS_INIT = true;
+    }
+
     let interpreters = unsafe { &mut INTERPRETERS };
 
     // the initialization can only be called once
     // in the unit test environment (`$ cargo test`), the init procedure
     // runs in parallel.
-    if interpreters[Opcode::zero as usize] == fundamental::zero {
-        return;
-    }
+    // if interpreters[Opcode::zero as usize] == fundamental::zero {
+    //     return;
+    // }
 
     // fundamental
     interpreters[Opcode::zero as usize] = fundamental::zero;
-    interpreters[Opcode::drop as usize] = fundamental::drop;
+    interpreters[Opcode::drop as usize] = fundamental::drop_;
     interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
     interpreters[Opcode::swap as usize] = fundamental::swap;
     interpreters[Opcode::i32_imm as usize] = fundamental::i32_imm;
@@ -348,9 +359,10 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
             InterpretResult::Break => {
                 thread.pc.instruction_address += 2;
             }
-            InterpretResult::Jump(module_index, instruction_address) => {
-                thread.pc.module_index = module_index;
-                thread.pc.instruction_address = instruction_address;
+            InterpretResult::Jump(return_pc) => {
+                thread.pc.module_index = return_pc.module_index;
+                thread.pc.internal_function_index = return_pc.internal_function_index;
+                thread.pc.instruction_address = return_pc.instruction_address;
             }
             InterpretResult::EnvError(code) => {
                 panic!("Runtime error, code: {}", code)
@@ -363,15 +375,15 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
 pub fn process_function(
     thread: &mut Thread,
     module_index: u32,
-    func_index: u32, // this index includes the imported functions
+    func_index: u32, // this index includes the imported functions, is not the internal index
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, VMError> {
     // find the code start address
 
     let (target_module_index, target_internal_function_index) =
-        thread.get_target_function_module_index_and_internal_index(module_index, func_index);
+        thread.get_internal_function_index_and_module_index(module_index, func_index);
     let (type_index, codeset, local_variables_allocate_bytes) = thread
-        .get_internal_function_type_code_and_local_variables_allocate_bytes(
+        .get_internal_function_type_and_code_offset_and_local_variables_allocate_bytes(
             target_module_index,
             target_internal_function_index,
         );
@@ -393,24 +405,28 @@ pub fn process_function(
 
     // create function statck frame
     thread.stack.create_function_frame(
-        local_variables_allocate_bytes,
         type_entry.params.len() as u16,
         type_entry.results.len() as u16,
-        target_module_index,
-        target_internal_function_index,
-        0,
-        // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
-        //
-        // the function stack frame is created only by 'call' instruction or
-        // thread beginning, the 'call' instruction will set the 'return instruction address' to
-        // the instruction next to 'call', which can't be '0'.
-        // so when a stack frame exits and the 'return address' is zero, it can only
-        // be the end of a thread.
-        0,
+        // target_module_index,
+        // target_internal_function_index,
+        local_variables_allocate_bytes,
+        ProgramCounter {
+            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
+            //
+            // the function stack frame is created only by 'call' instruction or
+            // thread beginning, the 'call' instruction will set the 'return instruction address' to
+            // the instruction next to 'call', which can't be '0'.
+            // so when a stack frame exits and the 'return address' is zero, it can only
+            // be the end of a thread.
+            instruction_address: 0,
+            internal_function_index: 0,
+            module_index: 0,
+        },
     );
 
     // set new PC
     thread.pc.module_index = target_module_index as usize;
+    thread.pc.internal_function_index = target_internal_function_index as usize;
     thread.pc.instruction_address = codeset as usize;
 
     // self.

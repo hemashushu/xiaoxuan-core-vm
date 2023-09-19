@@ -16,7 +16,7 @@ pub fn runtime_name(thread: &mut Thread) -> Result<(), usize> {
 
     let name_len = RUNTIME_CODE_NAME.len();
 
-    let src_ptr = RUNTIME_CODE_NAME.as_ptr() as *const u8;
+    let src_ptr = RUNTIME_CODE_NAME.as_ptr();
     let dst_ptr = buf_ptr_value as *mut u8;
     unsafe {
         std::ptr::copy(src_ptr, dst_ptr, name_len);

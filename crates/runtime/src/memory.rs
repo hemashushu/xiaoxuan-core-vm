@@ -88,7 +88,7 @@ pub trait Memory {
     }
 
     fn load_32_extend_from_i8_u(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const u8;
+        let tp_src = self.get_ptr(src_address);
         unsafe {
             let val_32 = std::ptr::read(tp_src) as u32;
             let dst_ptr_32 = dst_ptr as *mut u32;

@@ -183,7 +183,8 @@ pub fn save_section_with_table_and_data_area<T>(
     if remainder != 0 {
         let padding = DATA_ALIGN_BYTES - remainder;
         for _count in 0..padding {
-            writer.write(b"\0")?;
+            // writer.write(b"\0")?;
+            writer.write_all(b"\0")?;
         }
     }
 
@@ -252,9 +253,11 @@ pub fn load_items<T>(items_data: &[u8], item_count: usize) -> &[T] {
 /// save a table
 /// note that record length must be a multiple of 0x4
 pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    let item_count = items.len();
-    let one_record_length_in_bytes = size_of::<T>();
-    let total_length_in_bytes = one_record_length_in_bytes * item_count;
+    // let item_count = items.len();
+    // let one_record_length_in_bytes = size_of::<T>();
+    // let total_length_in_bytes = one_record_length_in_bytes * item_count;
+
+    let total_length_in_bytes = std::mem::size_of_val(items);
 
     let ptr = items.as_ptr() as *const u8;
     let slice = slice_from_raw_parts(ptr, total_length_in_bytes);
@@ -394,6 +397,12 @@ impl BytecodeWriter {
 
     pub fn save_bytecodes(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         writer.write_all(&self.buffer)
+    }
+}
+
+impl Default for BytecodeWriter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

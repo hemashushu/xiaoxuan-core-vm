@@ -4,10 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use crate::{
-    memory::Memory,
-    thread::{ProgramCounter, Thread},
-};
+use crate::{memory::Memory, thread::Thread};
 
 use super::InterpretResult;
 
@@ -43,7 +40,8 @@ fn do_local_load(
     // so the second method is adopted.
 
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_64(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -68,7 +66,8 @@ fn do_local_load32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -93,7 +92,8 @@ fn do_local_load32_i16_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread
         .stack
         .load_32_extend_from_i16_s(data_address, dst_ptr);
@@ -120,7 +120,8 @@ fn do_local_load32_i16_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread
         .stack
         .load_32_extend_from_i16_u(data_address, dst_ptr);
@@ -147,7 +148,8 @@ fn do_local_load32_i8_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i8_s(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -172,7 +174,8 @@ fn do_local_load32_i8_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i8_u(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -197,7 +200,8 @@ fn do_local_load32_f32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_with_float_check(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -222,7 +226,8 @@ fn do_local_load_f64(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_64_with_float_check(data_address, dst_ptr);
 
     InterpretResult::MoveOn(8)
@@ -247,7 +252,8 @@ fn do_local_store(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_64(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -272,7 +278,8 @@ fn do_local_store32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_32(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -297,7 +304,8 @@ fn do_local_store16(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_16(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
@@ -322,36 +330,11 @@ fn do_local_store8(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let data_address = get_data_address_by_index(thread, local_variable_index, offset_bytes);
+    let data_address =
+        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_8(src_ptr, data_address);
 
     InterpretResult::MoveOn(8)
-}
-
-fn get_data_address_by_index(
-    thread: &Thread,
-    local_variable_index: usize,
-    offset_bytes: usize,
-) -> usize {
-    let local_start_address = thread.stack.get_local_variables_start_address();
-
-    // get the local variable info
-    let ProgramCounter {
-        instruction_address: _instruction_address,
-        module_index,
-    } = thread.pc;
-
-    let internal_function_index = thread
-        .stack
-        .get_function_frame()
-        .frame
-        .internal_function_index;
-
-    let variable_item = &thread.context.modules[module_index]
-        .local_variable_section
-        .get_variable_list(internal_function_index)[local_variable_index];
-
-    local_start_address + variable_item.var_offset as usize + offset_bytes
 }
 
 #[cfg(test)]

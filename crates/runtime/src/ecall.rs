@@ -18,9 +18,7 @@ type EnvCallHandlerFunc = fn(&mut Thread) -> Result<(), usize>;
 
 fn unreachable(thread: &mut Thread) -> Result<(), usize> {
     let pc = &thread.pc;
-    let func_frame = thread.stack.get_function_frame();
-    let func_idx = func_frame.frame.internal_function_index;
-    let func_item = &thread.context.modules[pc.module_index].func_section.items[func_idx as usize];
+    let func_item = &thread.context.modules[pc.module_index].func_section.items[pc.internal_function_index];
     let codes = &thread.context.modules[pc.module_index]
         .func_section
         .codes_data
@@ -36,27 +34,35 @@ Bytecode:
 {}",
         thread.get_param_i32(),
         pc.module_index,
-        func_idx,
+        pc.internal_function_index,
         pc.instruction_address,
         code_text
     );
 }
 
 static INIT_LOCK: Mutex<i32> = Mutex::new(0);
+static mut IS_INIT: bool = false;
 static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
     [unreachable; MAX_ECALLCODE_NUMBER];
 
 pub fn init_ecall_handlers() {
     let _lock = INIT_LOCK.lock().unwrap();
 
+    unsafe {
+        if IS_INIT {
+            return;
+        }
+        IS_INIT = true;
+    }
+
     let handlers = unsafe { &mut HANDLERS };
 
     // the initialization can only be called once
     // in the unit test environment (`$ cargo test`), the init procedure
     // runs in parallel.
-    if handlers[ECallCode::runtime_name as usize] == info::runtime_name {
-        return;
-    }
+    // if handlers[ECallCode::runtime_name as usize] == info::runtime_name {
+    //     return;
+    // }
 
     // info
     handlers[ECallCode::runtime_name as usize] = info::runtime_name;

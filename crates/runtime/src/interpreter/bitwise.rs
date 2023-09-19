@@ -164,14 +164,12 @@ pub fn i64_rotate_right(thread: &mut Thread) -> InterpretResult {
 
 #[inline]
 fn load_operand_i32_s(thread: &mut Thread) -> i32 {
-    let v = thread.stack.pop_i32_s();
-    v
+    thread.stack.pop_i32_s()
 }
 
 #[inline]
 fn load_operand_i32_u(thread: &mut Thread) -> u32 {
-    let v = thread.stack.pop_i32_u();
-    v
+    thread.stack.pop_i32_u()
 }
 
 #[inline]
@@ -183,14 +181,12 @@ fn load_operands_i32_u(thread: &mut Thread) -> (u32, u32) {
 
 #[inline]
 fn load_operand_i64_u(thread: &mut Thread) -> u64 {
-    let v = thread.stack.pop_i64_u();
-    v
+    thread.stack.pop_i64_u()
 }
 
 #[inline]
 fn load_operand_i64_s(thread: &mut Thread) -> i64 {
-    let v = thread.stack.pop_i64_s();
-    v
+    thread.stack.pop_i64_s()
 }
 
 #[inline]

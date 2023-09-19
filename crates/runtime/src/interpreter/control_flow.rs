@@ -9,15 +9,15 @@ use crate::thread::Thread;
 use super::InterpretResult;
 
 pub fn end(thread: &mut Thread) -> InterpretResult {
-    let (is_function_frame, return_module_index, return_instruction_address) =
-        thread.stack.exit_frames(0);
+    let opt_return_pc = thread.stack.exit_frames(0);
 
-    if is_function_frame && return_instruction_address == 0 {
-        InterpretResult::End
+    if let Some(pc) = opt_return_pc {
+        if pc.instruction_address == 0 {
+            InterpretResult::End
+        } else {
+            InterpretResult::Jump(pc)
+        }
     } else {
-        InterpretResult::Jump(
-            return_module_index as usize,
-            return_instruction_address as usize,
-        )
+        InterpretResult::MoveOn(2)
     }
 }

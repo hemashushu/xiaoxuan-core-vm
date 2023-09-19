@@ -103,6 +103,17 @@
 
 // note:
 //
+// the boolean type:
+//
+// the boolean value is represented by a i32 number:
+// - TRUE, the number is `1:i32`,
+// - FALSE, the number is `0:i32`.
+//
+// on the other hand, 0:i32 and 0:i64 are both treated as FALSE,
+// and all other i32/i64 non-zero are treated as TRUE.
+
+// note:
+//
 // the instruction schemes:
 //
 // XiaoXuan VM instructions are not fixed-length code. there are
@@ -353,9 +364,9 @@ pub enum Opcode {
     //
     // note that two operands MUST be the same data type.
 
-    // the result of the comparison is a logical TRUE or FALSE, when
-    // the result is TRUE, the number `1:i32` is pushed onto the stack,
-    // and vice versa the number `0:i32` is pushed onto.
+    // the result of the comparison is a logical TRUE or FALSE (i.e., the data type 'boolean'),
+    // when the result is TRUE, the number `1:i32` is pushed onto the stack,
+    // and vice versa the number is `0:i32`.
 
     // instruction `i32_lt_u` example:
     //
@@ -686,45 +697,63 @@ pub enum Opcode {
                         //
                         // create a block region. a block is similar to a function, it also has
                         // parameters and results, it shares the type with function, so the 'block'
-                        // instruction has parameter 'type_index'.
-                        // this instruction will make VM to create a stack frame which is called 'block frame'.
+                        // instruction has a parameter called 'type_index'.
+                        // this instruction leads VM to create a stack frame which is called 'block frame',
+                        // block frame is similar to 'function frame' except it has no local variables.
 
-    return_,            // (param skip_depth:i16, end_inst_offset:i32)
+    return_,            // (param skip_depth:i16, next_inst_offset:i32)
 
-    // the 'return' instruction is similar to the 'end' instruction, it is also
+    // the 'return' instruction is similar to the 'end' instruction, it is
     // used for finishing a block or a function.
-    // for a block, a block stack frame will be removed and jump to the instruction
-    // that next to the 'end' instruction.
-    // for a function, a function stack frame will be removed and return the the
-    // instruction next to the 'call' instruction.
-    // the operands for the amount of the block or function are placed
-    // on the top of stack.
-
-    // the value of the parameter 'end_inst_offset' should be (`addr of end` - `addr of return`)
+    // - for a block:
+    //   a block stack frame will be removed and jump to the instruction
+    //   that NEXT TO THE 'end' instruction.
+    //   the value of the parameter 'next_inst_offset' should be (`addr of next inst to 'end'` - `addr of return`)
+    // - for a function:
+    //   a function stack frame will be removed and return to the the
+    //   instruction next to the 'call' instruction.
+    //   the value of the parameter 'next_inst_offset' is ignored.
+    //
     // e.g.
     //
     // ```bytecode
-    // 0d0000 block 0           ;; the size of 'block' instruction is 8 bytes
+    // 0d0000 block 0         ;; the size of 'block' instruction is 8 bytes
     // 0d0008   nop
-    // 0d0010   return 0 12   ;; the size of 'return' instruction is 8 bytes, (12 = 22 - 10) --\
+    // 0d0010   return 0 14   ;; the size of 'return' instruction is 8 bytes, (14 = 24 - 10) --\
     // 0d0018   nop           ;;                                                               |
     // 0d0020   nop           ;;                                                               |
     // 0d0022 end             ;;                                                               |
-    // 0d0028 nop             ;; <-- jump to here ---------------------------------------------/
+    // 0d0024 nop             ;; <-- jump to here (the instruction that next to the 'end')-----/
     // ```
+    //
+    // instruction 'return' not only just finish a block or a function, but also
+    // brings the operands out of the block or function, e.g.
+    //
+    // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
+    // 0d0008   i32.imm 11
+    // 0d0016   i32.imm 13                                            | 17                 | -----\ operands '17' and '13' were
+    // 0d0024   i32.imm 17    ;; -------------- the stack layout ---> | 13                 | -----\ taken out of the block frame
+    // 0d0032   return 0 14   ;; ---\                                 | 11                 |      |
+    // 0d0040   nop           ;;    |                                 | [block frame info] |      v
+    // 0d0042   nop           ;;    | jump                            | ..                 |    | 17                 |
+    // 0d0044   nop           ;;    |                                 | [func frame info]  |    | 13                 |
+    // 0d0046   nop           ;;    |                                 \____________________/    | ..                 |
+    // 0d0048 end             ;;    |                                                           | [func frame info]  |
+    // 0d0050 nop             ;; <--/ --------- the stack layout -----------------------------> \____________________/
+    //
     //
     // the 'return' instruction can cross over multiple block nested.
     // when the parameter 'skip_depth' is 0, it simply finish the current block.
-    // when the value is greater than 0, multiple block stack frame will be removed and
-    // the operands for the amount of the 'target block results' are placed
-    // on the top of stack. e.g.
+    // when the value is greater than 0, multiple block stack frame will be removed,
+    // as well as the operands will be taken out of the block.
+    // (the amount of the operands is determined by the 'target block type'.
     //
     // ```bytecode
     // 0d0000 block 0
     // 0d0008   block 0
     // 0d0016     block 0
     // 0d0024       nop
-    // 0d0026       return 1 14   ;; (14 = 40 - 26) --------\
+    // 0d0026       return 1 14   ;; (18 = 44 - 26) --------\
     // 0d0034       nop           ;;                        |
     // 0d0036     end             ;;                        |
     // 0d0038     nop             ;;                        |
@@ -735,11 +764,12 @@ pub enum Opcode {
 
     recur,              // (param skip_depth:i16, start_inst_offset:i32)
 
-    // the 'recur' instruction make VM to jump to the instruction next to the 'block' or 'block_nez',
-    // as well as all the operands in the current stack frame will be removed, and the operands
-    // for the amount of the 'target block/function params' are placed on the top of stack.
+    // the 'recur' instruction lets VM to jump to the instruction next to the instruction 'block', 'block_nez'
+    // or the first instruction of the current function,
+    // as well as all the operands in the current stack frame will be removed except
+    // the operands for the 'target block/function params' are reserved and placed on the top of stack.
     // it is commonly used to construct the 'while/for' structures in general programming languages,
-    // it is also used to implement the TCO (tail call optimization).
+    // it is also used to implement the TCO (tail call optimization, see below section).
     //
     // ```bytecode
     // 0d0000 block 0
@@ -759,11 +789,12 @@ pub enum Opcode {
     // but it jumps to the 'alternative instruction' if the operand on the top of stack is
     // equals to ZERO.
     //
+    // note:
     // 0:i32 and 0:i64 are both treated as logic FALSE and
     // all other i32/i64 non-zero are treated as logic TRUE.
-    // so the 'block_nez' instruction means only executes the instructions follows the 'block_nez'
-    // when the logic is TRUE, otherwise, go to the 'alternative instruction'.
     //
+    // so the 'block_nez' instruction means only executes the instructions that follow the instruction 'block_nez'
+    // when the logic is TRUE, otherwise, jump to the 'alternative instruction'.
     //
     // the 'block_nez' instruction is commonly used to construct the 'if' structures
     // in general programming languages.
@@ -793,22 +824,23 @@ pub enum Opcode {
     // ```
     //
     // ```bytecode
-    //                          ;; the TRUE path    the FALSE path
-    //                          ;; |                |
-    // 0d0000 block_nez 0 158   ;; V                V jump to 0d0158 when FALSE
-    // 0d0008 ...               ;; |+               |-
-    // ;; the 'then' part       ;; |+               |-
-    // 0d0150 return 0 200      ;; \-->--\+         |-
-    // 0d0158 ...               ;;       |-   /--<--/+
-    // ;; the 'else' part       ;;       |-   |+
-    // 0d0350 end               ;;       |-   |+
-    // 0d0352 nop               ;; <-----/    |
-    //                          ;;
-    //                          ;; (+ => execute, - => pass)
+    //                          ;; the TRUE path    |                          ;;       the FALSE path
+    //                          ;; |                |                          ;;       |
+    // 0d0000 block_nez 0 158   ;; V                | 0d0000 block_nez 0 158   ;;       V jump to 0d0158 when FALSE
+    // 0d0008 ...               ;; |+               | 0d0008 ...               ;;       |-
+    // ;; the 'then' part       ;; |+               | ;; the 'then' part       ;;       |-
+    // 0d0150 return 0 200      ;; \-->--\+         | 0d0150 return 0 200      ;;       |-
+    // 0d0158 ...               ;;       |-         | 0d0158 ...               ;; /--<--/+
+    // ;; the 'else' part       ;;       |-         | ;; the 'else' part       ;; |+
+    // 0d0350 end               ;;       |-         | 0d0350 end               ;; |+
+    // 0d0352 nop               ;; <-----/          | 0d0352 nop               ;; |
     // ```
+    //
+    // (+ => execute, - => pass)
 
-    // a complete 'loop' structure is actually combined with 'block', 'block_nez', 'recur', 'return'
-    // and 'return_nez' instructions, e.g.
+
+    // a complete 'loop' structure is actually combined with instructions 'block', 'block_nez', 'recur', 'return'
+    // and 'return_nez', e.g.
     //
     // ```rust
     // let i = loop {
@@ -834,7 +866,7 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
     //
-    // the 'block_nez' block above can be optimised as a 'return_nez' instruction, e.g.
+    // the 'block_nez' block above can be optimized by instruction 'return_nez', e.g.
     //
     // ```bytecode
     // 0d0000 block 0

@@ -44,7 +44,7 @@ impl<'a> UninitDatas<'a> {
 impl Memory for ReadOnlyDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
-        (&self.datas[address..]).as_ptr()
+        self.datas[address..].as_ptr()
     }
 
     #[inline]
@@ -64,12 +64,12 @@ impl IndexedMemory for ReadOnlyDatas<'_> {
 impl Memory for ReadWriteDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
-        (&self.datas[address..]).as_ptr()
+        self.datas[address..].as_ptr()
     }
 
     #[inline]
     fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        (&mut self.datas[address..]).as_mut_ptr()
+        self.datas[address..].as_mut_ptr()
     }
 }
 
@@ -84,12 +84,12 @@ impl IndexedMemory for ReadWriteDatas<'_> {
 impl Memory for UninitDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
-        (&self.datas[address..]).as_ptr()
+        self.datas[address..].as_ptr()
     }
 
     #[inline]
     fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        (&mut self.datas[address..]).as_mut_ptr()
+        self.datas[address..].as_mut_ptr()
     }
 }
 

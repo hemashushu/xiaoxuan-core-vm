@@ -200,8 +200,8 @@ impl<'a> SectionEntry<'a> for LocalVariableSection<'a> {
 }
 
 impl<'a> LocalVariableSection<'a> {
-    pub fn get_variable_list(&'a self, idx: u32) -> &'a [VariableItem] {
-        let list = &self.lists[idx as usize];
+    pub fn get_variable_list(&'a self, idx: usize) -> &'a [VariableItem] {
+        let list = &self.lists[idx];
         let offset = list.list_offset as usize;
         let item_count = list.list_item_count as usize;
 
@@ -283,7 +283,7 @@ impl<'a> LocalVariableSection<'a> {
 
                 // let mut buf: Vec<u8> = vec![0u8; total_length_in_bytes];
                 let mut buf: Vec<u8> = Vec::with_capacity(total_length_in_bytes);
-                let dst = buf.as_mut_ptr() as *mut u8;
+                let dst = buf.as_mut_ptr(); // as *mut u8;
                 let src = list.as_ptr() as *const u8;
 
                 unsafe {
