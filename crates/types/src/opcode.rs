@@ -619,7 +619,6 @@ pub enum Opcode {
     f32_asin,
     f32_acos,
     f32_atan,
-    // f32_copysign,       // sign(right) * |left|, copy the sign of right to left
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -629,36 +628,6 @@ pub enum Opcode {
     //
     // ref:
     // https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero
-
-    // instruction `f32_copy_sign` example:
-    //
-    // |           | --> stack end
-    // | sign from |
-    // | sign to   |
-    // \-----------/ --> stack start
-    //
-    // ```
-    // ;; load two numbers onto the stack
-    // (f32.imm 10)
-    // (f32.imm -1)
-    //
-    // ;; now the stack layout is:
-    // ;;
-    // ;; |    |
-    // ;; | -1 |
-    // ;; | 10 |
-    // ;; \----/
-    //
-    // ;; copy the sign of the top most operand.
-    // ;; the top item on the stack will be -10
-    // f32.copysign
-    //
-    // ;; now the stack layout is:
-    // ;;
-    // ;; |     |
-    // ;; | -10 |
-    // ;; \-----/
-    // ```
 
     f64_abs,
     f64_neg,
@@ -683,7 +652,6 @@ pub enum Opcode {
     f64_asin,
     f64_acos,
     f64_atan,
-    // f64_copysign, // copy sign
 
     //
     // control flow
@@ -731,16 +699,16 @@ pub enum Opcode {
     //
     // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
     // 0d0008   i32.imm 11
-    // 0d0016   i32.imm 13                                            | 17                 | -----\ operands '17' and '13' were
-    // 0d0024   i32.imm 17    ;; -------------- the stack layout ---> | 13                 | -----\ taken out of the block frame
-    // 0d0032   return 0 14   ;; ---\                                 | 11                 |      |
-    // 0d0040   nop           ;;    |                                 | [block frame info] |      v
-    // 0d0042   nop           ;;    | jump                            | ..                 |    | 17                 |
-    // 0d0044   nop           ;;    |                                 | [func frame info]  |    | 13                 |
-    // 0d0046   nop           ;;    |                                 \____________________/    | ..                 |
-    // 0d0048 end             ;;    |                                                           | [func frame info]  |
-    // 0d0050 nop             ;; <--/ --------- the stack layout -----------------------------> \____________________/
-    //
+    // 0d0016   i32.imm 13                       | 17                 | -----\ operands '17' and '13' were
+    // 0d0024   i32.imm 17    ;; --------------> | 13                 | -----\ taken out of the block frame
+    // 0d0032   return 0 14   ;; ---\            | 11                 |      |
+    // 0d0040   nop           ;;    |            | [block frame info] |      v
+    // 0d0042   nop           ;;    | jump       | ..                 |    | 17                 |
+    // 0d0044   nop           ;;    |            | [func frame info]  |    | 13                 |
+    // 0d0046   nop           ;;    |            \____________________/    | ..                 |
+    // 0d0048 end             ;;    |               the stack layout       | [func frame info]  |
+    // 0d0050 nop             ;; <--/ -----------------------------------> \____________________/
+    //                                                                        the stack layout
     //
     // the 'return' instruction can cross over multiple block nested.
     // when the parameter 'skip_depth' is 0, it simply finish the current block.
@@ -770,6 +738,22 @@ pub enum Opcode {
     // the operands for the 'target block/function params' are reserved and placed on the top of stack.
     // it is commonly used to construct the 'while/for' structures in general programming languages,
     // it is also used to implement the TCO (tail call optimization, see below section).
+    //
+    // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
+    // 0d0008   i32.imm 11    ;; <------\
+    // 0d0016   i32.imm 13    ;;        |         | 17                 | -----\ operands '17' and '13' were
+    // 0d0024   i32.imm 17    ;; ---------------> | 13                 | -----\ taken out of the block frame
+    // 0d0032   nop           ;;        |         | 11                 |      |
+    // 0d0034   nop           ;;        |         | [block frame info] |      v
+    // 0d0036   nop           ;;        |         | ..                 |    | 17                 |
+    // 0d0038   nop           ;;  jump  |         | [func frame info]  |    | 13                 |
+    // 0d0040   recur 0 14    ;; -------/         \____________________/    | [block frame info] |
+    // 0d0048 end             ;;        |            the stack layout       | ..                 |
+    // 0d0050 nop             ;;        \---------------------------------> | [func frame info]  |
+    //                                                                      \____________________/
+    //                                                                           the stack layout
+
+    // the 'recur' instruction can cross over multiple block nested also.
     //
     // ```bytecode
     // 0d0000 block 0
@@ -838,8 +822,9 @@ pub enum Opcode {
     //
     // (+ => execute, - => pass)
 
+    return_nez,         // (param skip_depth:i16, next_inst_offset:i32)
 
-    // a complete 'loop' structure is actually combined with instructions 'block', 'block_nez', 'recur', 'return'
+    // a complete 'for' structure is actually combined with instructions 'block', 'block_nez', 'recur', 'return'
     // and 'return_nez', e.g.
     //
     // ```rust
@@ -866,7 +851,7 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
     //
-    // the 'block_nez' block above can be optimized by instruction 'return_nez', e.g.
+    // the code above can be optimized by instruction 'return_nez', e.g.
     //
     // ```bytecode
     // 0d0000 block 0
@@ -882,12 +867,11 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
 
-    // P.S.
-    // there is a pesudo instruction 'break' in the text assembly, it is actually
-    // translated to the 'return' instruction.
-
     recur_nez,          // (param skip_depth:i16, start_inst_offset:i32)
 
+    // when the target block is the function itself, the param 'start_inst_offset' is ignore and
+    // all local variables will be reset to 0.
+    //
     // instruction 'recur_nez' is used to implement the TCO (tail call optimization).
     //
     // consider the following function:
@@ -920,6 +904,7 @@ pub enum Opcode {
     //        /--- | <-- | <--------- | <-- | <--------- | <-- | <----/     | <-- |
     //        |    \-----/            \-----/            \-----/            \-----/
     //   6 <--/
+    //
     //
     // the function 'accumulate' is invoked 4 times and 4 stack frames are created.
     // since there is no other operation after statement 'accumulate(new_sum, number - 1)', and
@@ -999,6 +984,55 @@ pub enum Opcode {
     //     }
     // }
     // ```
+
+    // table of control flow structures and control flow instructions:
+    //
+    // | structure         | instruction(s)  |
+    // |-------------------|-----------------|
+    // |                   | ..a..           |
+    // | if ..a.. {        | block_nez       |
+    // |    ..b..          | ..b..           |
+    // | }                 | end             |
+    // |-------------------|-----------------|
+    // |                   | ..a..           |
+    // | if ..a.. {        | block_nez -\    |
+    // |    ..b..          | ..b..      |    |
+    // | } else {          | return     |    |
+    // |    ..c..          | ..c..  <---/    |
+    // | }                 | end             |
+    // |-------------------|-----------------|
+    // |                   | ..a..           |
+    // | if ..a.. {        | block_nez -\    |
+    // |    ..b..          | ..b..      |    |
+    // | } else if ..c.. { | return     |    |
+    // |    ..d..          | ..c..  <---/    |
+    // | } else {          | block_nez -\    |
+    // |    ..e..          | ..d..      |    |
+    // | }                 | return     |    |
+    // |                   | ..e..  <---/    |
+    // | (or switch/case)  | end             |
+    // |-------------------|-----------------|
+
+    // | structure         | instructions(s) |
+    // |-------------------|-----------------|
+    // | loop {            | block <--\      |
+    // |    ..a..          | ..a..    |      |
+    // | }                 | recur ---/      |
+    // |                   | end             |
+    // |-------------------|-----------------|
+    // | while ..a.. {     | block           |
+    // |    ..b..          | ..a..   <--\    |
+    // | }                 | return_nez |    |
+    // |                   | ..b..       |   |
+    // | (or for...)       | recur -----/    |
+    // |                   | end             |
+    // |-------------------|-----------------|
+    // | do {              | block           |
+    // |    ..a..          | ..a..    <--\   |
+    // | }while(..b..)     | ..b..       |   |
+    // |                   | recur_nez --/   |
+    // | (or TCO)          | end             |
+    // |-------------------|-----------------|
 
     //
     // function

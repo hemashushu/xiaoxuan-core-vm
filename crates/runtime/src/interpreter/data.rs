@@ -26,7 +26,7 @@ fn do_data_load(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> 
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_64(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32(thread: &mut Thread) -> InterpretResult {
@@ -47,7 +47,7 @@ fn do_data_load32(thread: &mut Thread, data_index: usize, offset_bytes: usize) -
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32_i16_s(thread: &mut Thread) -> InterpretResult {
@@ -72,7 +72,7 @@ fn do_data_load32_i16_s(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i16_s(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32_i16_u(thread: &mut Thread) -> InterpretResult {
@@ -97,7 +97,7 @@ fn do_data_load32_i16_u(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i16_u(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32_i8_s(thread: &mut Thread) -> InterpretResult {
@@ -122,7 +122,7 @@ fn do_data_load32_i8_s(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i8_s(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32_i8_u(thread: &mut Thread) -> InterpretResult {
@@ -147,7 +147,7 @@ fn do_data_load32_i8_u(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i8_u(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load32_f32(thread: &mut Thread) -> InterpretResult {
@@ -172,7 +172,7 @@ fn do_data_load32_f32(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_with_float_check(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_load_f64(thread: &mut Thread) -> InterpretResult {
@@ -197,7 +197,7 @@ fn do_data_load_f64(
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.load_idx_64_with_float_check(internal_data_idx, offset_bytes, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_store(thread: &mut Thread) -> InterpretResult {
@@ -218,7 +218,7 @@ fn do_data_store(thread: &mut Thread, data_index: usize, offset_bytes: usize) ->
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.store_idx_64(src_ptr, internal_data_idx, offset_bytes);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_store32(thread: &mut Thread) -> InterpretResult {
@@ -239,7 +239,7 @@ fn do_data_store32(thread: &mut Thread, data_index: usize, offset_bytes: usize) 
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.store_idx_32(src_ptr, internal_data_idx, offset_bytes);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_store16(thread: &mut Thread) -> InterpretResult {
@@ -260,7 +260,7 @@ fn do_data_store16(thread: &mut Thread, data_index: usize, offset_bytes: usize) 
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.store_idx_16(src_ptr, internal_data_idx, offset_bytes);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn data_store8(thread: &mut Thread) -> InterpretResult {
@@ -281,7 +281,7 @@ fn do_data_store8(thread: &mut Thread, data_index: usize, offset_bytes: usize) -
     let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
     datas.store_idx_8(src_ptr, internal_data_idx, offset_bytes);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 #[cfg(test)]

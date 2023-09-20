@@ -10,17 +10,17 @@ use super::InterpretResult;
 
 pub fn zero(thread: &mut Thread) -> InterpretResult {
     thread.stack.push_i64_u(0);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn drop_(thread: &mut Thread) -> InterpretResult {
     thread.stack.drop_();
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn duplicate(thread: &mut Thread) -> InterpretResult {
     thread.stack.duplicate();
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn swap(thread: &mut Thread) -> InterpretResult {
@@ -28,13 +28,13 @@ pub fn swap(thread: &mut Thread) -> InterpretResult {
     let b = thread.stack.pop_i64_u();
     thread.stack.push_i64_u(a);
     thread.stack.push_i64_u(b);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_imm(thread: &mut Thread) -> InterpretResult {
     let value = thread.get_param_i32();
     thread.stack.push_i32_u(value);
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
@@ -44,7 +44,7 @@ pub fn i64_imm(thread: &mut Thread) -> InterpretResult {
     value |= low as u64;
 
     thread.stack.push_i64_u(value);
-    InterpretResult::MoveOn(12)
+    InterpretResult::Move(12)
 }
 
 pub fn f32_imm(thread: &mut Thread) -> InterpretResult {
@@ -53,7 +53,7 @@ pub fn f32_imm(thread: &mut Thread) -> InterpretResult {
     let value = f32::from_bits(i32_value);
 
     thread.stack.push_f32(value);
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn f64_imm(thread: &mut Thread) -> InterpretResult {
@@ -69,7 +69,7 @@ pub fn f64_imm(thread: &mut Thread) -> InterpretResult {
     let value = f64::from_le_bytes(bytes);
 
     thread.stack.push_f64(value);
-    InterpretResult::MoveOn(12)
+    InterpretResult::Move(12)
 }
 
 #[cfg(test)]

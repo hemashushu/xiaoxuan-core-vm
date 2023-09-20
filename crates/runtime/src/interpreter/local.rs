@@ -44,7 +44,7 @@ fn do_local_load(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_64(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32(thread: &mut Thread) -> InterpretResult {
@@ -70,7 +70,7 @@ fn do_local_load32(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32_i16_s(thread: &mut Thread) -> InterpretResult {
@@ -98,7 +98,7 @@ fn do_local_load32_i16_s(
         .stack
         .load_32_extend_from_i16_s(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32_i16_u(thread: &mut Thread) -> InterpretResult {
@@ -126,7 +126,7 @@ fn do_local_load32_i16_u(
         .stack
         .load_32_extend_from_i16_u(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32_i8_s(thread: &mut Thread) -> InterpretResult {
@@ -152,7 +152,7 @@ fn do_local_load32_i8_s(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i8_s(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32_i8_u(thread: &mut Thread) -> InterpretResult {
@@ -178,7 +178,7 @@ fn do_local_load32_i8_u(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_extend_from_i8_u(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load32_f32(thread: &mut Thread) -> InterpretResult {
@@ -204,7 +204,7 @@ fn do_local_load32_f32(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_32_with_float_check(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_load_f64(thread: &mut Thread) -> InterpretResult {
@@ -230,7 +230,7 @@ fn do_local_load_f64(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.load_64_with_float_check(data_address, dst_ptr);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_store(thread: &mut Thread) -> InterpretResult {
@@ -256,7 +256,7 @@ fn do_local_store(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_64(src_ptr, data_address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_store32(thread: &mut Thread) -> InterpretResult {
@@ -282,7 +282,7 @@ fn do_local_store32(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_32(src_ptr, data_address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_store16(thread: &mut Thread) -> InterpretResult {
@@ -308,7 +308,7 @@ fn do_local_store16(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_16(src_ptr, data_address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn local_store8(thread: &mut Thread) -> InterpretResult {
@@ -334,7 +334,7 @@ fn do_local_store8(
         thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
     thread.stack.store_8(src_ptr, data_address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 #[cfg(test)]

@@ -33,11 +33,24 @@ mod machine;
 mod math;
 
 pub enum InterpretResult {
-    MoveOn(usize),        // param (increment_in_bytes: usize)
-    Break,                // VM debug
-    Jump(ProgramCounter), // param (return_pc: ProgramCounter)
-    EnvError(usize),      // param (err_code: usize)
+    // move to another address within a function
+    // param (offset_in_bytes: isize)
+    Move(isize),
+
+    // jump to another function
+    // param (return_pc: ProgramCounter)
+    Jump(ProgramCounter),
+
+    // program end
     End,
+
+    // pause the interpreter
+    // for debug the program or the VM itself
+    Break,
+
+    // ecall returns with exception
+    // param (err_code: usize)
+    EnvError(usize),
 }
 
 fn unreachable(thread: &mut Thread) -> InterpretResult {
@@ -302,7 +315,6 @@ pub fn init_interpreters() {
     interpreters[Opcode::f32_asin as usize] = math::f32_asin;
     interpreters[Opcode::f32_acos as usize] = math::f32_acos;
     interpreters[Opcode::f32_atan as usize] = math::f32_atan;
-    // interpreters[Opcode::f32_copysign as usize] = math::f32_copysign;
     interpreters[Opcode::f64_abs as usize] = math::f64_abs;
     interpreters[Opcode::f64_neg as usize] = math::f64_neg;
     interpreters[Opcode::f64_ceil as usize] = math::f64_ceil;
@@ -326,10 +338,16 @@ pub fn init_interpreters() {
     interpreters[Opcode::f64_asin as usize] = math::f64_asin;
     interpreters[Opcode::f64_acos as usize] = math::f64_acos;
     interpreters[Opcode::f64_atan as usize] = math::f64_atan;
-    // interpreters[Opcode::f64_copysign as usize] = math::f64_copysign;
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;
+    interpreters[Opcode::block as usize] = control_flow::block;
+    interpreters[Opcode::return_ as usize] = control_flow::return_;
+    interpreters[Opcode::recur as usize] = control_flow::recur;
+    interpreters[Opcode::block_nez as usize] = control_flow::block_nez;
+    interpreters[Opcode::return_nez as usize] = control_flow::return_nez;
+    interpreters[Opcode::recur_nez as usize] = control_flow::recur_nez;
+
     interpreters[Opcode::ecall as usize] = ecall::ecall;
 
     // machine
@@ -353,21 +371,23 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
         let result = //self.
                 process_next_instruction(thread);
         match result {
-            InterpretResult::MoveOn(increment) => {
-                thread.pc.instruction_address += increment;
+            InterpretResult::Move(offset_in_bytes) => {
+                thread.pc.instruction_address =
+                    (thread.pc.instruction_address as isize + offset_in_bytes) as usize;
             }
-            InterpretResult::Break => {
-                thread.pc.instruction_address += 2;
-            }
+
             InterpretResult::Jump(return_pc) => {
                 thread.pc.module_index = return_pc.module_index;
                 thread.pc.internal_function_index = return_pc.internal_function_index;
                 thread.pc.instruction_address = return_pc.instruction_address;
             }
+            InterpretResult::End => break,
+            InterpretResult::Break => {
+                thread.pc.instruction_address += 2;
+            }
             InterpretResult::EnvError(code) => {
                 panic!("Runtime error, code: {}", code)
             }
-            InterpretResult::End => break,
         }
     }
 }

@@ -11,7 +11,7 @@ use crate::{memory::Memory, thread::Thread};
 use super::InterpretResult;
 
 pub fn nop(_thread: &mut Thread) -> InterpretResult {
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn break_(_thread: &mut Thread) -> InterpretResult {
@@ -43,7 +43,7 @@ fn do_host_addr_local(
 
     thread.stack.push_i64_u(address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
@@ -71,7 +71,7 @@ fn do_host_addr_data(
 
     thread.stack.push_i64_u(address);
 
-    InterpretResult::MoveOn(8)
+    InterpretResult::Move(8)
 }
 
 pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
@@ -85,7 +85,7 @@ pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
     let address = ptr as u64;
 
     thread.stack.push_i64_u(address);
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 #[cfg(test)]

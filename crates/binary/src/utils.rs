@@ -707,7 +707,6 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f32_asin
                 | Opcode::f32_acos
                 | Opcode::f32_atan
-                // | Opcode::f32_copysign
                 | Opcode::f64_abs
                 | Opcode::f64_neg
                 | Opcode::f64_ceil
@@ -730,7 +729,6 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::f64_asin
                 | Opcode::f64_acos
                 | Opcode::f64_atan => {}
-                // | Opcode::f64_copysign => {}
                 // control flow
                 Opcode::end => {}
                 Opcode::block => {
@@ -741,7 +739,7 @@ impl<'a> BytecodeReader<'a> {
                     let (type_idx, offset) = self.read_param_i32_i32();
                     line.push_str(&format!("{} {}", type_idx, offset));
                 }
-                Opcode::return_ | Opcode::recur | Opcode::recur_nez => {
+                Opcode::return_ | Opcode::return_nez | Opcode::recur | Opcode::recur_nez => {
                     let (deepth, offset) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", deepth, offset));
                 }
@@ -1373,7 +1371,7 @@ mod tests {
                 0x00, 0x00, //
                 0x41, 0x00, 0x00, 0x00, //
                 // call 0x43
-                0x06, 0x0a, //
+                0x07, 0x0a, //
                 0x00, 0x00, //
                 0x43, 0x00, 0x00, 0x00, //
                 // i32_div_u
@@ -1482,7 +1480,7 @@ mod tests {
             0x0020  00 02 23 00  29 00 00 00
             0x0028  08 02 31 00  37 00 00 00
             0x0030  03 07 00 0b  01 0a 00 00
-            0x0038  41 00 00 00  06 0a 00 00
+            0x0038  41 00 00 00  07 0a 00 00
             0x0040  43 00 00 00  04 07 00 0b
             0x0048  05 01 00 00  47 00 00 00
             0x0050  53 00 00 00  04 0a 00 00

@@ -593,8 +593,8 @@ impl Stack {
     /// remove the specified frame and all frames that follows this frame.
     ///
     /// return:
-    /// - None for block frame
-    /// - Some(ProgramCounter) for function frame
+    /// - None, when the target block is block frame
+    /// - Some(ProgramCounter), when the target block is function frame
     pub fn exit_frames(&mut self, reversed_index: usize) -> Option<ProgramCounter> {
         let (sp, fp, is_function_frame, results_count, return_pc) = {
             let frame_pack = self.get_frame_pack(reversed_index);
@@ -631,13 +631,15 @@ impl Stack {
     }
 
     /// reset the specified (function or block) frame:
-    /// - initialize all local variable area (if present) to value 0
+    /// - initialize all local variables (if present) to value 0
     /// - remove all oprands which follow the local variable area
     /// - remove all frames which follow the current frame
     /// - moves the specified number of operands to the top of stack
     ///
     /// this function is commonly used for 'loop' structure or 'tail call' statement.
-    pub fn reset_to_frame(&mut self, reversed_index: usize) {
+    ///
+    /// return TRUE if the target block is function frame.
+    pub fn reset_to_frame(&mut self, reversed_index: usize) -> bool{
         let (frame_addr, params_count, frame_func_fp, local_variables_allocate_bytes) = {
             let frame_pack = self.get_frame_pack(reversed_index);
             (
@@ -662,7 +664,7 @@ impl Stack {
             && (self.sp - params_count as usize * OPERAND_SIZE_IN_BYTES
                 == self.fp + size_of::<FrameInfo>())
         {
-            return;
+            return false;
         }
 
         // move the specified number of operands to swap
@@ -713,6 +715,8 @@ impl Stack {
 
             // restore parameters from swap
             self.restore_operands_from_swap(params_count);
+
+            true
         } else {
             // the current frame is block frame
 
@@ -731,6 +735,8 @@ impl Stack {
 
             // restore parameters from swap
             self.restore_operands_from_swap(params_count);
+
+            false
         }
     }
 }
@@ -1361,7 +1367,7 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | func idx
+        //       0d0040 | 79     | return func idx
         //       0d0036 | 83     | return module idx
         //       0d0032 | 32     | local vars len
         //       0d0028 | 0      | _padding
@@ -1409,7 +1415,8 @@ mod tests {
         assert_eq!(stack.peek_i32_s(), 127);
 
         // reset the frame
-        stack.reset_to_frame(0);
+        let isfunc0 = stack.reset_to_frame(0);
+        assert!(isfunc0);
 
         // the current layout
         //
@@ -1421,7 +1428,7 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0 (reset)
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | func idx
+        //       0d0040 | 79     | return func idx
         //       0d0036 | 83     | return module idx
         //       0d0032 | 32     | local vars len
         //       0d0028 | 0      | _padding
@@ -1500,7 +1507,7 @@ mod tests {
         //       0d0048 | 131    | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | func idx
+        //       0d0040 | 79     | return func idx
         //       0d0036 | 83     | return module idx
         //       0d0032 | 32     | local vars len
         //       0d0028 | 0      | _padding
@@ -1530,7 +1537,8 @@ mod tests {
         //              |--------|
 
         // reset the frame
-        stack.reset_to_frame(0);
+        let isfunc1 = stack.reset_to_frame(0);
+        assert!(!isfunc1);
 
         // the current layout (partial)
         //
@@ -1541,7 +1549,7 @@ mod tests {
         //       0d0104 | 0      |
         //       0d0100 | 0      |
         //       0d0096 | 0      |
-        //       0d0092 | 73     | module idx
+        //       0d0092 | 0      |
         //       0d0088 | 1/2    | params/results count
         //       0d0084 | 16     | func FP
         // FP--> 0d0080 | 16     | prev FP
@@ -1571,7 +1579,8 @@ mod tests {
         );
 
         // reset block frame again
-        stack.reset_to_frame(0);
+        let isfunc2 = stack.reset_to_frame(0);
+        assert!(!isfunc2);
 
         // nothings has changed
         assert_eq!(stack.fp, 80);
@@ -1605,7 +1614,7 @@ mod tests {
         //       0d0104 | 0      |
         //       0d0100 | 0      |
         //       0d0096 | 0      |
-        //       0d0092 | 73     | module idx
+        //       0d0092 | 0      |
         //       0d0088 | 1/2    | params/results count
         //       0d0084 | 16     | func FP
         //       0d0080 | 16     | prev FP
@@ -1631,7 +1640,8 @@ mod tests {
         // crossing reset
 
         // the params count of target frame is 1
-        stack.reset_to_frame(1);
+        let isfunc3 = stack.reset_to_frame(1);
+        assert!(!isfunc3);
 
         // the current layout (partial)
         //
@@ -1642,7 +1652,7 @@ mod tests {
         //       0d0104 | 0      |
         //       0d0100 | 0      |
         //       0d0096 | 0      |
-        //       0d0092 | 73     | module idx
+        //       0d0092 | 0      |
         //       0d0088 | 149    | func type
         //       0d0084 | 16     | func FP
         // FP--> 0d0080 | 16     | prev FP
@@ -1669,7 +1679,8 @@ mod tests {
         //              |--------|
 
         // the params count of target frame is 2
-        stack.reset_to_frame(1);
+        let isfunc4 = stack.reset_to_frame(1);
+        assert!(isfunc4);
 
         // the current layout
         //
@@ -1681,10 +1692,10 @@ mod tests {
         //       0d0048 | 0      | <-- local vars 0
         //              |--------|
         //       0d0044 | 89     | return inst addr
-        //       0d0040 | 83     | return module idx
-        //       0d0036 | 16     | local vars len
-        //       0d0032 | 79     | func idx
-        //       0d0028 | 73     | module idx
+        //       0d0040 | 79     | return func idx
+        //       0d0036 | 83     | return module idx
+        //       0d0032 | 16     | local vars len
+        //       0d0028 | 0      |
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP

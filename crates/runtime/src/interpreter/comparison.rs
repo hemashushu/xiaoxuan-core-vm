@@ -11,217 +11,217 @@ use super::InterpretResult;
 pub fn i32_eqz(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i32_u();
     store_bool(thread, value == 0);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_nez(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i32_u();
     store_bool(thread, value != 0);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_eq(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left == right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_ne(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left != right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_lt_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_lt_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_gt_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_gt_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_le_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_le_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_ge_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_ge_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_eqz(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i64_u();
     store_bool(thread, value == 0);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_nez(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i64_u();
     store_bool(thread, value != 0);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_eq(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left == right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_ne(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left != right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_lt_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_lt_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_gt_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_gt_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_le_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_le_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_ge_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_ge_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_eq(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left == right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_ne(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left != right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_lt(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_gt(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_le(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_ge(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_eq(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left == right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_ne(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left != right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_lt(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left < right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_gt(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left > right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_le(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left <= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_ge(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_bool(thread, left >= right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 #[inline]

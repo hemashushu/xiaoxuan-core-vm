@@ -17,7 +17,7 @@ pub fn heap_load(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_64(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32(thread: &mut Thread) -> InterpretResult {
@@ -29,7 +29,7 @@ pub fn heap_load32(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32_i16_s(thread: &mut Thread) -> InterpretResult {
@@ -41,7 +41,7 @@ pub fn heap_load32_i16_s(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32_extend_from_i16_s(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32_i16_u(thread: &mut Thread) -> InterpretResult {
@@ -53,7 +53,7 @@ pub fn heap_load32_i16_u(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32_extend_from_i16_u(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32_i8_s(thread: &mut Thread) -> InterpretResult {
@@ -65,7 +65,7 @@ pub fn heap_load32_i8_s(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32_extend_from_i8_s(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32_i8_u(thread: &mut Thread) -> InterpretResult {
@@ -77,7 +77,7 @@ pub fn heap_load32_i8_u(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32_extend_from_i8_u(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load_f64(thread: &mut Thread) -> InterpretResult {
@@ -89,7 +89,7 @@ pub fn heap_load_f64(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_64_with_float_check(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_load32_f32(thread: &mut Thread) -> InterpretResult {
@@ -101,7 +101,7 @@ pub fn heap_load32_f32(thread: &mut Thread) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     thread.heap.load_32_with_float_check(total_offset, dst_ptr);
 
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_store(thread: &mut Thread) -> InterpretResult {
@@ -113,7 +113,7 @@ pub fn heap_store(thread: &mut Thread) -> InterpretResult {
 
     let src_ptr = thread.stack.pop_to_memory();
     thread.heap.store_64(src_ptr, total_offset);
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_store32(thread: &mut Thread) -> InterpretResult {
@@ -125,7 +125,7 @@ pub fn heap_store32(thread: &mut Thread) -> InterpretResult {
 
     let src_ptr = thread.stack.pop_to_memory();
     thread.heap.store_32(src_ptr, total_offset);
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_store16(thread: &mut Thread) -> InterpretResult {
@@ -137,7 +137,7 @@ pub fn heap_store16(thread: &mut Thread) -> InterpretResult {
 
     let src_ptr = thread.stack.pop_to_memory();
     thread.heap.store_16(src_ptr, total_offset);
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 pub fn heap_store8(thread: &mut Thread) -> InterpretResult {
@@ -149,7 +149,7 @@ pub fn heap_store8(thread: &mut Thread) -> InterpretResult {
 
     let src_ptr = thread.stack.pop_to_memory();
     thread.heap.store_8(src_ptr, total_offset);
-    InterpretResult::MoveOn(4)
+    InterpretResult::Move(4)
 }
 
 #[cfg(test)]

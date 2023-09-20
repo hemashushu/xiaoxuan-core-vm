@@ -231,7 +231,7 @@ import data, variables and functions from external modules.
 ```clojure
 (module
     (data $num (datatype i64) (value 100))      ;; define a data
-    (func $sub                              ;; define a function
+    (func $sub                                  ;; define a function
         (param i32 i32)
         (result i32)
         (code

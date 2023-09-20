@@ -83,7 +83,7 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
     let result = func(thread);
 
     match result {
-        Ok(_) => InterpretResult::MoveOn(8),
+        Ok(_) => InterpretResult::Move(8),
         Err(err_code) => InterpretResult::EnvError(err_code),
     }
 }

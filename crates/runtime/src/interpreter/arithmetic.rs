@@ -11,133 +11,133 @@ use super::InterpretResult;
 pub fn i32_add(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_i32_u(thread, left + right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_sub(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_i32_u(thread, left - right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_mul(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_i32_u(thread, left * right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_div_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_i32_s(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_div_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_i32_u(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_rem_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_s(thread);
     store_i32_s(thread, left % right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i32_rem_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread);
     store_i32_u(thread, left % right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_add(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left + right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_sub(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left - right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_mul(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left * right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_div_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_i64_s(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_div_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_rem_s(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_s(thread);
     store_i64_s(thread, left % right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn i64_rem_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left % right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_add(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_f32(thread, left + right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_sub(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_f32(thread, left - right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_mul(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_f32(thread, left * right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f32_div(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f32(thread);
     store_f32(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_add(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_f64(thread, left + right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_sub(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_f64(thread, left - right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_mul(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_f64(thread, left * right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 pub fn f64_div(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_f64(thread);
     store_f64(thread, left / right);
-    InterpretResult::MoveOn(2)
+    InterpretResult::Move(2)
 }
 
 #[inline]
