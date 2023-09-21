@@ -23,7 +23,8 @@ pub fn data_long_load(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_load(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_64(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -44,7 +45,8 @@ pub fn data_long_load32(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_load32(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -69,7 +71,8 @@ fn do_data_load32_i16_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i16_s(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -94,7 +97,8 @@ fn do_data_load32_i16_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i16_u(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -119,7 +123,8 @@ fn do_data_load32_i8_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i8_s(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -144,7 +149,8 @@ fn do_data_load32_i8_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_extend_from_i8_u(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -169,7 +175,8 @@ fn do_data_load32_f32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_32_with_float_check(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -194,7 +201,8 @@ fn do_data_load_f64(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.load_idx_64_with_float_check(internal_data_idx, offset_bytes, dst_ptr);
 
     InterpretResult::Move(8)
@@ -215,7 +223,8 @@ pub fn data_long_store(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_store(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.store_idx_64(src_ptr, internal_data_idx, offset_bytes);
 
     InterpretResult::Move(8)
@@ -236,7 +245,8 @@ pub fn data_long_store32(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_store32(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.store_idx_32(src_ptr, internal_data_idx, offset_bytes);
 
     InterpretResult::Move(8)
@@ -257,7 +267,8 @@ pub fn data_long_store16(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_store16(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.store_idx_16(src_ptr, internal_data_idx, offset_bytes);
 
     InterpretResult::Move(8)
@@ -278,7 +289,8 @@ pub fn data_long_store8(thread: &mut Thread) -> InterpretResult {
 
 fn do_data_store8(thread: &mut Thread, data_index: usize, offset_bytes: usize) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
-    let (datas, internal_data_idx) = thread.get_internal_data_index_and_datas_object(data_index);
+    let (datas, _target_module_index, internal_data_idx) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
     datas.store_idx_8(src_ptr, internal_data_idx, offset_bytes);
 
     InterpretResult::Move(8)
@@ -443,7 +455,10 @@ mod tests {
                 DataType::I32,
             ], // results
             code0,
-            vec![LocalVariableEntry::from_i32(), LocalVariableEntry::from_i64()], // local vars
+            vec![
+                LocalVariableEntry::from_i32(),
+                LocalVariableEntry::from_i64(),
+            ], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();

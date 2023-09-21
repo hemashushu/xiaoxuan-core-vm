@@ -15,8 +15,8 @@
 //         |---------------------------------------------------------------|
 //
 //         |------------------------------------------------------------------------------|
-//         | func idx 0 (u32) | target mod idx 0 (u32) | target internal func idx 0 (u32) | <-- table 1
-//         | func idx 1       | target mod idx 1       | target internal func idx 1       |
+//         | func public idx 0 (u32) | target mod idx 0 (u32) | func internal idx 0 (u32) | <-- table 1
+//         | func public idx 1       | target mod idx 1       | func internal idx 1       |
 //         | ...                                                                          |
 //         |------------------------------------------------------------------------------|
 
@@ -33,9 +33,10 @@ pub struct FuncIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexItem {
-    // the index of function item
-    // this index includes the imported functions and internal functions.
-    pub func_index: u32,
+    // the index of function item, includes the imported functions and internal functions.
+    // 'function public index' equals to
+    // 'amount of imported functions' + 'function internal index'
+    pub func_public_index: u32,
 
     // target module index
     pub target_module_index: u32,
@@ -44,7 +45,7 @@ pub struct FuncIndexItem {
     //
     // this index is the actual index of the internal functions in a specified module
     // i.e., it excludes the imported functions.
-    pub target_internal_function_index: u32,
+    pub function_internal_index: u32,
 }
 
 impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
@@ -66,14 +67,14 @@ impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
 
 impl FuncIndexItem {
     pub fn new(
-        func_index: u32,
+        func_public_index: u32,
         target_module_index: u32,
-        target_internal_function_index: u32,
+        function_internal_index: u32,
     ) -> Self {
         Self {
-            func_index,
+            func_public_index,
             target_module_index,
-            target_internal_function_index,
+            function_internal_index,
         }
     }
 }
@@ -96,17 +97,17 @@ mod tests {
             3, 0, 0, 0, // offset 1 (item 1)
             5, 0, 0, 0, // count 1
             //
-            1, 0, 0, 0, // func idx 0, item 0 (little endian)
+            1, 0, 0, 0, // func pub idx 0, item 0 (little endian)
             2, 0, 0, 0, // target module idx 0
-            3, 0, 0, 0, // target internal func idx 0
+            3, 0, 0, 0, // func internal idx 0
             //
-            5, 0, 0, 0, // func idx 1, item 1
+            5, 0, 0, 0, // func pub idx 1, item 1
             7, 0, 0, 0, // target module idx 1
-            11, 0, 0, 0, // target internal func idx 1
+            11, 0, 0, 0, // func internal idx 1
             //
-            13, 0, 0, 0, // func idx 2, item 2
+            13, 0, 0, 0, // func pub idx 2, item 2
             17, 0, 0, 0, // target module idx 2
-            19, 0, 0, 0, // target internal func idx 2
+            19, 0, 0, 0, // func internal idx 2
         ];
 
         let section = FuncIndexSection::load(&section_data);
@@ -157,17 +158,17 @@ mod tests {
                 3, 0, 0, 0, // offset 1 (item 1)
                 5, 0, 0, 0, // count 1
                 //
-                1, 0, 0, 0, // func idx 0, item 0 (little endian)
+                1, 0, 0, 0, // func puc idx 0, item 0 (little endian)
                 2, 0, 0, 0, // target module idx 0
-                3, 0, 0, 0, // target internal func idx 0
+                3, 0, 0, 0, // func internal idx 0
                 //
-                5, 0, 0, 0, // func idx 1, item 1
+                5, 0, 0, 0, // func puc idx 1, item 1
                 7, 0, 0, 0, // target module idx 1
-                11, 0, 0, 0, // target internal func idx 1
+                11, 0, 0, 0, // func internal idx 1
                 //
-                13, 0, 0, 0, // func idx 2, item 2
+                13, 0, 0, 0, // func puc idx 2, item 2
                 17, 0, 0, 0, // target module idx 2
-                19, 0, 0, 0, // target internal func idx 2
+                19, 0, 0, 0, // func internal idx 2
             ]
         );
     }

@@ -18,7 +18,7 @@ type EnvCallHandlerFunc = fn(&mut Thread) -> Result<(), usize>;
 
 fn unreachable(thread: &mut Thread) -> Result<(), usize> {
     let pc = &thread.pc;
-    let func_item = &thread.context.modules[pc.module_index].func_section.items[pc.internal_function_index];
+    let func_item = &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
     let codes = &thread.context.modules[pc.module_index]
         .func_section
         .codes_data
@@ -34,7 +34,7 @@ Bytecode:
 {}",
         thread.get_param_i32(),
         pc.module_index,
-        pc.internal_function_index,
+        pc.function_internal_index,
         pc.instruction_address,
         code_text
     );

@@ -51,7 +51,7 @@ pub struct TypeItem {
     pub results_offset: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypeEntry {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
@@ -73,11 +73,11 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_params_and_results_list(&'a self, idx: u32) -> (&'a [DataType], &'a [DataType]) {
+    pub fn get_params_and_results_list(&'a self, idx: usize) -> (&'a [DataType], &'a [DataType]) {
         let items = self.items;
         let types_data = self.types_data;
 
-        let item = &items[idx as usize];
+        let item = &items[idx];
 
         let params_data = &types_data[(item.params_offset as usize)
             ..(item.params_offset as usize + item.params_count as usize)];
@@ -101,7 +101,7 @@ impl<'a> TypeSection<'a> {
         (params_slice, results_slice)
     }
 
-    pub fn get_entry(&'a self, idx: u32) -> TypeEntry {
+    pub fn get_entry(&'a self, idx: usize) -> TypeEntry {
         let (params_slice, results_slice) = self.get_params_and_results_list(idx);
         TypeEntry {
             params: params_slice.to_vec(),

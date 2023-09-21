@@ -814,7 +814,7 @@ pub struct FuncWithLocalVariableItemsEntry {
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    codes: Vec<u8>,
+    code: Vec<u8>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 ) -> Vec<u8> {
     build_module_binary_with_single_function_and_data_sections(
@@ -823,7 +823,7 @@ pub fn build_module_binary_with_single_function(
         vec![],
         param_datatypes,
         result_datatypes,
-        codes,
+        code,
         local_variable_item_entries_without_args,
     )
 }
@@ -835,7 +835,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    codes: Vec<u8>,
+    code: Vec<u8>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 ) -> Vec<u8> {
     let type_entries = vec![TypeEntry {
@@ -845,7 +845,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
 
     let func_with_local_vars_entries = vec![FuncWithLocalVariableItemsEntry {
         type_index: 0,
-        code: codes,
+        code,
         local_variable_item_entries_without_args,
     }];
 
@@ -860,15 +860,29 @@ pub fn build_module_binary_with_single_function_and_data_sections(
 
 /// testing-helper
 pub fn build_module_binary_with_single_function_and_blocks(
-    type_entries: Vec<TypeEntry>,
-    func_with_local_vars_entry: FuncWithLocalVariableItemsEntry,
+    param_datatypes: Vec<DataType>,
+    result_datatypes: Vec<DataType>,
+    codes: Vec<u8>,
+    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    block_type_entries_without_function_type: Vec<TypeEntry>,
 ) -> Vec<u8> {
+    let mut type_entries = block_type_entries_without_function_type.clone();
+    type_entries.push(TypeEntry {
+        params: param_datatypes,
+        results: result_datatypes,
+    });
+    type_entries.extend_from_slice(&block_type_entries_without_function_type);
+
     build_module_binary(
         vec![],
         vec![],
         vec![],
         type_entries,
-        vec![func_with_local_vars_entry],
+        vec![FuncWithLocalVariableItemsEntry {
+            type_index: 0,
+            code: codes,
+            local_variable_item_entries_without_args,
+        }],
     )
 }
 

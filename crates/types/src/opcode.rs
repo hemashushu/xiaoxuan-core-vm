@@ -739,6 +739,11 @@ pub enum Opcode {
     // it is commonly used to construct the 'while/for' structures in general programming languages,
     // it is also used to implement the TCO (tail call optimization, see below section).
     //
+    // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
+    // all local variables will be reset to 0.
+    //
+    // note that the value of 'start_inst_offset' is a positive number.
+    //
     // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
     // 0d0008   i32.imm 11    ;; <------\
     // 0d0016   i32.imm 13    ;;        |         | 17                 | -----\ operands '17' and '13' were
@@ -869,7 +874,7 @@ pub enum Opcode {
 
     recur_nez,          // (param skip_depth:i16, start_inst_offset:i32)
 
-    // when the target block is the function itself, the param 'start_inst_offset' is ignore and
+    // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
     // all local variables will be reset to 0.
     //
     // instruction 'recur_nez' is used to implement the TCO (tail call optimization).
@@ -1038,8 +1043,12 @@ pub enum Opcode {
     // function
     //
 
-    call,                   // general function call            (param func_index:i32)
-    dcall,                  // closure/dynamic function call    (param VOID) (operand func_index:i64)
+    call,                   // general function call            (param func_pub_index:i32)
+    dcall,                  // closure/dynamic function call    (param VOID) (operand func_pub_index:i64)
+
+    // note:
+    // 'function public index' includes the imported functions, it equals to
+    // 'amount of imported functions' + 'function internal index'
 
     // call a function which is specified at runtime.
     //
@@ -1048,7 +1057,8 @@ pub enum Opcode {
     //
     // closure_function_item {
     //     [ref_count],
-    //     func_index:i32,
+    //     target_mopdule_index:i32,
+    //     func_internal_index:i32,
     //     captured_items:i64_ref
     // }
     //
@@ -1071,8 +1081,8 @@ pub enum Opcode {
     // `let a = fn (i32 a, i32 b, pointer captured_items) {...}`
     //
     // ```text
-    //                              |--> func_index --> fn (a, b, captured_items) {...}
-    //                         /----|
+    //                              |--> func_internal_index --> fn (a, b, captured_items) {...}
+    //                         /----|--> module_index
     //                         |    |--> captured_items
     //                         |
     // let a = filter(list, predicate)
@@ -1082,10 +1092,10 @@ pub enum Opcode {
     // general function, e.g.
     //
     // ```text
-    //                              |--> func_index --> | fn (a, b, captured_items)
-    //                         /----|                   | {
-    //                         |    |--> 0              |     the_general_function(a, b)
-    //                         |                        | }
+    //                              |--> func_internal_index --> | fn (a, b, captured_items)
+    //                         /----|--> module_index            | {
+    //                         |    |--> 0                       |     the_general_function(a, b)
+    //                         |                                 | }
     // let a = filter(list, predicate)
     // ```
     //

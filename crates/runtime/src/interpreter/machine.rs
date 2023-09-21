@@ -36,8 +36,10 @@ fn do_host_addr_local(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let final_offset =
-        thread.get_local_variable_address_by_index_and_offset(local_variable_index, offset_bytes);
+    let final_offset = thread.get_current_function_local_variable_address_by_index_and_offset(
+        local_variable_index,
+        offset_bytes,
+    );
     let ptr = thread.stack.get_ptr(final_offset);
     let address = ptr as u64;
 
@@ -64,8 +66,9 @@ fn do_host_addr_data(
     data_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let (datas, internal_data_index) = thread.get_internal_data_index_and_datas_object(data_index);
-    let final_offset = datas.get_idx_address(internal_data_index , offset_bytes);
+    let (datas, _target_module_index, internal_data_index) =
+        thread.get_current_module_internal_data_index_and_datas_object(data_index);
+    let final_offset = datas.get_idx_address(internal_data_index, offset_bytes);
     let ptr = datas.get_ptr(final_offset);
     let address = ptr as u64;
 

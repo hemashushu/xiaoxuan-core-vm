@@ -120,7 +120,7 @@ pub struct FrameInfo {
     _padding0: u32,                          //--/
     pub local_variables_allocate_bytes: u32, //--\
     pub return_module_index: u32,            //--/  8 bytes
-    pub return_internal_function_index: u32, //--\  8 bytes
+    pub return_function_internal_index: u32, //--\  8 bytes
     pub return_instruction_address: u32,     //--/  <-- addr high
 }
 
@@ -185,7 +185,8 @@ impl TypeMemory for Stack {
 ///
 /// - push/pop/peek
 /// - create frame
-/// - exit frame
+/// - remove frame
+/// - reset frame
 impl Stack {
     pub fn ensure_stack_space(&mut self) {
         // check the capacity of the stack to make sure
@@ -357,7 +358,7 @@ impl Stack {
      *
      * return the FP and BlockFrame.
      */
-    pub fn get_frame_pack(&self, reversed_index: usize) -> FramePack {
+    pub fn get_frame_pack(&self, reversed_index: u16) -> FramePack {
         // the FP chain:
         //
         //       |         |           |         |           |         |
@@ -493,12 +494,7 @@ impl Stack {
         &mut self,
         params_count: u16,
         results_count: u16,
-        // module_index: u32,
-        // internal_function_index: u32,
         local_variables_allocate_bytes: u32,
-        // return_module_index: u32,
-        // return_internal_function_index: u32,
-        // return_instruction_address: u32,
         return_pc: ProgramCounter,
     ) {
         let previous_fp = self.fp;
@@ -522,7 +518,7 @@ impl Stack {
 
         func_frame_info.local_variables_allocate_bytes = local_variables_allocate_bytes;
         func_frame_info.return_module_index = return_pc.module_index as u32;
-        func_frame_info.return_internal_function_index = return_pc.internal_function_index as u32;
+        func_frame_info.return_function_internal_index = return_pc.function_internal_index as u32;
         func_frame_info.return_instruction_address = return_pc.instruction_address as u32;
 
         // update sp and fp
@@ -579,7 +575,7 @@ impl Stack {
         // block_frame_info.module_index = 0;
         block_frame_info.local_variables_allocate_bytes = 0;
         block_frame_info.return_module_index = 0;
-        block_frame_info.return_internal_function_index = 0;
+        block_frame_info.return_function_internal_index = 0;
         block_frame_info.return_instruction_address = 0;
 
         // update sp and fp
@@ -593,9 +589,9 @@ impl Stack {
     /// remove the specified frame and all frames that follows this frame.
     ///
     /// return:
-    /// - None, when the target block is block frame
-    /// - Some(ProgramCounter), when the target block is function frame
-    pub fn exit_frames(&mut self, reversed_index: usize) -> Option<ProgramCounter> {
+    /// - None, when the target frame is block frame
+    /// - Some(ProgramCounter), when the target frame is function frame
+    pub fn remove_frames(&mut self, reversed_index: u16) -> Option<ProgramCounter> {
         let (sp, fp, is_function_frame, results_count, return_pc) = {
             let frame_pack = self.get_frame_pack(reversed_index);
             let is_function_frame =
@@ -607,7 +603,7 @@ impl Stack {
                 frame_pack.frame_info.results_count,
                 ProgramCounter {
                     instruction_address: frame_pack.frame_info.return_instruction_address as usize,
-                    internal_function_index: frame_pack.frame_info.return_internal_function_index
+                    function_internal_index: frame_pack.frame_info.return_function_internal_index
                         as usize,
                     module_index: frame_pack.frame_info.return_module_index as usize,
                 },
@@ -638,8 +634,8 @@ impl Stack {
     ///
     /// this function is commonly used for 'loop' structure or 'tail call' statement.
     ///
-    /// return TRUE if the target block is function frame.
-    pub fn reset_to_frame(&mut self, reversed_index: usize) -> bool{
+    /// return TRUE if the target frame is function frame.
+    pub fn reset_to_frame(&mut self, reversed_index: u16) -> bool{
         let (frame_addr, params_count, frame_func_fp, local_variables_allocate_bytes) = {
             let frame_pack = self.get_frame_pack(reversed_index);
             (
@@ -901,7 +897,7 @@ mod tests {
             16 + 16, // local vars len
             ProgramCounter {
                 module_index: 83,            // ret mod idx
-                internal_function_index: 79, // func idx
+                function_internal_index: 79, // func idx
                 instruction_address: 89,     //ret inst addr
             },
         );
@@ -964,7 +960,7 @@ mod tests {
                 _padding0: 0,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
-                return_internal_function_index: 79,
+                return_function_internal_index: 79,
                 return_instruction_address: 89
             }
         );
@@ -1069,7 +1065,7 @@ mod tests {
                 _padding0: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
-                return_internal_function_index: 0,
+                return_function_internal_index: 0,
                 return_instruction_address: 0
             }
         );
@@ -1124,7 +1120,7 @@ mod tests {
                 _padding0: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
-                return_internal_function_index: 0,
+                return_function_internal_index: 0,
                 return_instruction_address: 0
             }
         );
@@ -1154,7 +1150,7 @@ mod tests {
             0 + 8, // local vars len
             ProgramCounter {
                 module_index: 113,            // ret mod idx
-                internal_function_index: 109, // func idx
+                function_internal_index: 109, // func idx
                 instruction_address: 127,     // ret inst addr
             },
         );
@@ -1195,7 +1191,7 @@ mod tests {
                 _padding0: 0,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 113,
-                return_internal_function_index: 109,
+                return_function_internal_index: 109,
                 return_instruction_address: 127
             }
         );
@@ -1231,13 +1227,13 @@ mod tests {
         //   func frame | frame 3    |
         //              |------------| <-- fp3
 
-        let opt_return_pc0 = stack.exit_frames(0);
+        let opt_return_pc0 = stack.remove_frames(0);
 
         assert_eq!(
             opt_return_pc0,
             Some(ProgramCounter {
                 module_index: 113,
-                internal_function_index: 109,
+                function_internal_index: 109,
                 instruction_address: 127,
             })
         );
@@ -1278,7 +1274,7 @@ mod tests {
         assert_eq!(stack.read_local_by_offset_i32(24), 37);
 
         // remove the parent frame
-        let opt_return_pc1 = stack.exit_frames(1);
+        let opt_return_pc1 = stack.remove_frames(1);
         assert_eq!(opt_return_pc1, None);
 
         // SP--> 0d0112 |        |
@@ -1307,13 +1303,13 @@ mod tests {
         assert_eq!(stack.read_i32_s(80), 41);
 
         // remove the last frame
-        let opt_return_pc2 = stack.exit_frames(0);
+        let opt_return_pc2 = stack.remove_frames(0);
 
         assert_eq!(
             opt_return_pc2,
             Some(ProgramCounter {
                 module_index: 83,
-                internal_function_index: 79,
+                function_internal_index: 79,
                 instruction_address: 89,
             })
         );
@@ -1352,7 +1348,7 @@ mod tests {
             16 + 16, // local vars len
             ProgramCounter {
                 instruction_address: 89,     //ret inst addr
-                internal_function_index: 79, // func idx
+                function_internal_index: 79, // func idx
                 module_index: 83,            // ret mod idx
             },
         );
@@ -1454,7 +1450,7 @@ mod tests {
                 // module_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
-                return_internal_function_index: 79,
+                return_function_internal_index: 79,
                 return_instruction_address: 89
             }
         );
@@ -1573,7 +1569,7 @@ mod tests {
                 // module_index: 0,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
-                return_internal_function_index: 0,
+                return_function_internal_index: 0,
                 return_instruction_address: 0
             }
         );

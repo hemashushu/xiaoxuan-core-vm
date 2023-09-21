@@ -34,11 +34,12 @@ mod math;
 
 pub enum InterpretResult {
     // move to another address within a function
-    // param (offset_in_bytes: isize)
+    // param (relate_offset_in_bytes:isize)
     Move(isize),
 
-    // jump to another function
-    // param (return_pc: ProgramCounter)
+    // jump to another function (call), or
+    // return from another function (return)
+    // param (return_pc:ProgramCounter)
     Jump(ProgramCounter),
 
     // program end
@@ -49,14 +50,14 @@ pub enum InterpretResult {
     Break,
 
     // ecall returns with exception
-    // param (err_code: usize)
+    // param (err_code:usize)
     EnvError(usize),
 }
 
 fn unreachable(thread: &mut Thread) -> InterpretResult {
     let pc = &thread.pc;
     let func_item =
-        &thread.context.modules[pc.module_index].func_section.items[pc.internal_function_index];
+        &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
     let codes = &thread.context.modules[pc.module_index]
         .func_section
         .codes_data
@@ -72,7 +73,7 @@ Bytecode:
 {}",
         thread.get_opcode_num(),
         pc.module_index,
-        pc.internal_function_index,
+        pc.function_internal_index,
         pc.instruction_address,
         code_text
     );
@@ -347,6 +348,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::block_nez as usize] = control_flow::block_nez;
     interpreters[Opcode::return_nez as usize] = control_flow::return_nez;
     interpreters[Opcode::recur_nez as usize] = control_flow::recur_nez;
+    interpreters[Opcode::call as usize] = control_flow::call;
+    interpreters[Opcode::dcall as usize] = control_flow::dcall;
 
     interpreters[Opcode::ecall as usize] = ecall::ecall;
 
@@ -371,14 +374,14 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
         let result = //self.
                 process_next_instruction(thread);
         match result {
-            InterpretResult::Move(offset_in_bytes) => {
-                thread.pc.instruction_address =
-                    (thread.pc.instruction_address as isize + offset_in_bytes) as usize;
+            InterpretResult::Move(relate_offset_in_bytes) => {
+                let next_instruction_offset =
+                    thread.pc.instruction_address as isize + relate_offset_in_bytes;
+                thread.pc.instruction_address = next_instruction_offset as usize;
             }
-
             InterpretResult::Jump(return_pc) => {
                 thread.pc.module_index = return_pc.module_index;
-                thread.pc.internal_function_index = return_pc.internal_function_index;
+                thread.pc.function_internal_index = return_pc.function_internal_index;
                 thread.pc.instruction_address = return_pc.instruction_address;
             }
             InterpretResult::End => break,
@@ -392,23 +395,26 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
     }
 }
 
+// note:
+// 'function public index' includes the imported functions, it equals to
+// 'amount of imported functions' + 'function internal index'
 pub fn process_function(
     thread: &mut Thread,
-    module_index: u32,
-    func_index: u32, // this index includes the imported functions, is not the internal index
+    module_index: usize,
+    func_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, VMError> {
     // find the code start address
 
-    let (target_module_index, target_internal_function_index) =
-        thread.get_internal_function_index_and_module_index(module_index, func_index);
-    let (type_index, codeset, local_variables_allocate_bytes) = thread
-        .get_internal_function_type_and_code_offset_and_local_variables_allocate_bytes(
+    let (target_module_index, function_internal_index) =
+        thread.get_function_internal_index_and_module_index(module_index, func_public_index);
+    let (type_index, code_offset, local_variables_allocate_bytes) = thread
+        .get_function_type_and_code_offset_and_local_variables_allocate_bytes(
             target_module_index,
-            target_internal_function_index,
+            function_internal_index,
         );
 
-    let type_entry = thread.context.modules[target_module_index as usize]
+    let type_entry = thread.context.modules[target_module_index]
         .type_section
         .get_entry(type_index);
 
@@ -427,8 +433,6 @@ pub fn process_function(
     thread.stack.create_function_frame(
         type_entry.params.len() as u16,
         type_entry.results.len() as u16,
-        // target_module_index,
-        // target_internal_function_index,
         local_variables_allocate_bytes,
         ProgramCounter {
             // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
@@ -439,15 +443,15 @@ pub fn process_function(
             // so when a stack frame exits and the 'return address' is zero, it can only
             // be the end of a thread.
             instruction_address: 0,
-            internal_function_index: 0,
+            function_internal_index: 0,
             module_index: 0,
         },
     );
 
     // set new PC
-    thread.pc.module_index = target_module_index as usize;
-    thread.pc.internal_function_index = target_internal_function_index as usize;
-    thread.pc.instruction_address = codeset as usize;
+    thread.pc.module_index = target_module_index;
+    thread.pc.function_internal_index = function_internal_index;
+    thread.pc.instruction_address = code_offset;
 
     // self.
     process_continuous_instructions(thread);

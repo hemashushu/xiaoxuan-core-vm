@@ -109,7 +109,7 @@ pub enum ECallCode {
 
     create_host_function,
                         // create a new host function and map it to a module function.
-                        // `fn (module_index:i32 func_index:i32)`
+                        // `fn (module_index:i32 func_pub_index:i32)`
                         //
                         // it's commonly used for creating a callback function pointer for external C function.
                         //

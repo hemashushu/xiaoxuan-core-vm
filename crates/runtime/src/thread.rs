@@ -8,7 +8,8 @@ use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
-    context::Context, heap::Heap, stack::Stack, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES, indexed_memory::IndexedMemory,
+    context::Context, heap::Heap, indexed_memory::IndexedMemory, stack::Stack,
+    INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
 pub struct Thread<'a> {
@@ -111,10 +112,20 @@ pub struct Thread<'a> {
 /// and code are seperated into several piece which called 'function'.
 /// so the PC in XiaoXuan VM is represented by a tuple of
 /// (module index, function index, instruction address)
+///
+/// note that in the default VM implementation, the code of functions are join together,
+/// so the address of first instruction of a function is not always start with 0.
+/// for example, the 'instruction address' of the first function in a moudle is of course 0,
+/// the second will be N if the length of the first function's code is N, and
+/// the third will be N+M if the length of the second function's code is M, and so on.
+///
+/// on the other hand, a PC can only consists of 'module index' and 'instruction address', because
+/// the 'instruction address' implies the code starting position of a function, but for the sake
+/// of clarity, the field 'function index' is preserved here.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
     pub instruction_address: usize,     // the address of instruction
-    pub internal_function_index: usize, // the function internal index
+    pub function_internal_index: usize, // the function internal index
     pub module_index: usize,            // the module index
 }
 
@@ -125,7 +136,7 @@ impl<'a> Thread<'a> {
 
         let pc = ProgramCounter {
             instruction_address: 0,
-            internal_function_index: 0,
+            function_internal_index: 0,
             module_index: 0,
         };
 
@@ -182,98 +193,87 @@ impl<'a> Thread<'a> {
     }
 
     /// return:
-    /// (dyn IndexedMemory, internal_data_index)
-    pub fn get_internal_data_index_and_datas_object(
-        // thread: &'a mut Thread,
+    /// (dyn IndexedMemory, target_module_index:usize, internal_data_index:usize)
+    pub fn get_current_module_internal_data_index_and_datas_object(
         &mut self,
         data_index: usize,
-    ) -> (&mut dyn IndexedMemory, usize) {
-        // get the target data item
-
-        // let ProgramCounter {
-        //     instruction_address: _instruction_address,
-        //     internal_function_index: _internal_function_index,
-        //     module_index,
-        // } = self.pc;
-
+    ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
         let range = &self.context.data_index_section.ranges[module_index];
         let data_index_item =
             &self.context.data_index_section.items[range.offset as usize + data_index];
-        let target_module = &mut self.context.modules[data_index_item.target_module_index as usize];
-        let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
-        let internal_data_index = data_index_item.target_data_internal_index;
 
-        (datas, internal_data_index as usize)
+        let target_module_index = data_index_item.target_module_index as usize;
+        let target_module = &mut self.context.modules[target_module_index];
+        let internal_data_index = data_index_item.target_data_internal_index as usize;
+        let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
+
+        (datas, target_module_index, internal_data_index)
     }
 
     /// return:
-    /// (target_module_index, internal_function_index)
-    ///
-    pub fn get_internal_function_index_and_module_index(
+    /// (target_module_index, function_internal_index)
+    pub fn get_function_internal_index_and_module_index(
         &self,
-        module_index: u32,
-        function_index: u32,
-    ) -> (u32, u32) {
-        let range_item = &self.context.func_index_section.ranges[module_index as usize];
+        module_index: usize,
+        function_public_index: usize,
+    ) -> (usize, usize) {
+        let range_item = &self.context.func_index_section.ranges[module_index];
         let func_index_items = &self.context.func_index_section.items
             [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
-        let func_index_item = &func_index_items[function_index as usize];
+        let func_index_item = &func_index_items[function_public_index];
 
         let target_module_index = func_index_item.target_module_index;
-        let internal_function_index = func_index_item.target_internal_function_index;
-        (target_module_index, internal_function_index)
+        let function_internal_index = func_index_item.function_internal_index;
+        (
+            target_module_index as usize,
+            function_internal_index as usize,
+        )
     }
 
     /// return:
     /// (type_index, code_offset, local_variables_allocate_bytes)
-    ///
-    pub fn get_internal_function_type_and_code_offset_and_local_variables_allocate_bytes(
+    pub fn get_function_type_and_code_offset_and_local_variables_allocate_bytes(
         &self,
-        target_module_index: u32,
-        internal_function_index: u32,
-    ) -> (u32, u32, u32) {
-        let func_item = &self.context.modules[target_module_index as usize]
-            .func_section
-            .items[internal_function_index as usize];
+        module_index: usize,
+        function_internal_index: usize,
+    ) -> (usize, usize, u32) {
+        let func_item =
+            &self.context.modules[module_index].func_section.items[function_internal_index];
 
         let type_index = func_item.type_index;
         let code_offset = func_item.code_offset;
 
-        let local_variables_allocate_bytes = self.context.modules[target_module_index as usize]
+        let local_variables_allocate_bytes = self.context.modules[module_index]
             .local_variable_section
-            .lists[internal_function_index as usize]
+            .lists[function_internal_index]
             .list_allocate_bytes;
 
-        (type_index, code_offset, local_variables_allocate_bytes)
+        (
+            type_index as usize,
+            code_offset as usize,
+            local_variables_allocate_bytes,
+        )
     }
 
-    pub fn get_local_variable_address_by_index_and_offset(
-        // thread: &Thread,
+    pub fn get_current_function_local_variable_address_by_index_and_offset(
         &self,
         local_variable_index: usize,
         offset_bytes: usize,
     ) -> usize {
-        let local_start_address = self.stack.get_local_variables_start_address();
-
         // get the local variable info
         let ProgramCounter {
-            instruction_address: _instruction_address,
-            internal_function_index,
+            instruction_address: _,
+            function_internal_index,
             module_index,
         } = self.pc;
 
-        // let internal_function_index = thread
-        //     .stack
-        //     .get_function_frame_pack()
-        //     .frame_info
-        //     .internal_function_index;
-
         let variable_item = &self.context.modules[module_index]
             .local_variable_section
-            .get_variable_list(internal_function_index)[local_variable_index];
+            .get_variable_list(function_internal_index)[local_variable_index];
 
+        let local_start_address = self.stack.get_local_variables_start_address();
         local_start_address + variable_item.var_offset as usize + offset_bytes
     }
 
@@ -342,11 +342,11 @@ impl<'a> Thread<'a> {
 
         let ProgramCounter {
             instruction_address,
-            internal_function_index,
+            function_internal_index,
             module_index,
         } = self.pc;
         let func_item =
-            &self.context.modules[module_index].func_section.items[internal_function_index];
+            &self.context.modules[module_index].func_section.items[function_internal_index];
         let codes_data = self.context.modules[module_index].func_section.codes_data;
         let dst = instruction_address + func_item.code_offset as usize + offset;
         &codes_data[dst..(dst + len_in_bytes)]
@@ -446,7 +446,7 @@ mod tests {
             thread.pc,
             ProgramCounter {
                 instruction_address: 0,
-                internal_function_index: 0,
+                function_internal_index: 0,
                 module_index: 0
             }
         );

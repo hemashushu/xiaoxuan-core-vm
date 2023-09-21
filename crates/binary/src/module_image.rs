@@ -68,8 +68,11 @@
 //
 // - u8: data type, data section type, module share type
 // - u16: memory store/load offset, data align, block break/recur skip depth, params count, results count
-// - u32: section id, module index, function type index, data index, local variable index,
-//   function index, dynamic function index, c function index, syscall number, env call number
+// - u32: section id, syscall number, env call number
+//   module index, function type index, data index, local variable index,
+//   function index, dynamic function index, c function index
+//
+// on the host side, the data type of '*index' is usually represented as the 'usize'.
 
 pub mod data_index_section;
 pub mod data_section;
