@@ -49,26 +49,26 @@ fn do_host_addr_local(
 }
 
 pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
-    // (param offset_bytes:i16 data_index:i32)
-    let (offset_bytes, data_index) = thread.get_param_i16_i32();
-    do_host_addr_data(thread, data_index as usize, offset_bytes as usize)
+    // (param offset_bytes:i16 data_public_index:i32)
+    let (offset_bytes, data_public_index) = thread.get_param_i16_i32();
+    do_host_addr_data(thread, data_public_index as usize, offset_bytes as usize)
 }
 
 pub fn host_addr_data_long(thread: &mut Thread) -> InterpretResult {
-    // (param data_index:i32) (operand offset_bytes:i32)
-    let data_index = thread.get_param_i32();
+    // (param data_public_index:i32) (operand offset_bytes:i32)
+    let data_public_index = thread.get_param_i32();
     let offset_bytes = thread.stack.pop_i32_u();
-    do_host_addr_data(thread, data_index as usize, offset_bytes as usize)
+    do_host_addr_data(thread, data_public_index as usize, offset_bytes as usize)
 }
 
 fn do_host_addr_data(
     thread: &mut Thread,
-    data_index: usize,
+    data_public_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let (datas, _target_module_index, internal_data_index) =
-        thread.get_current_module_internal_data_index_and_datas_object(data_index);
-    let final_offset = datas.get_idx_address(internal_data_index, offset_bytes);
+    let (datas, _target_module_index, data_internal_index) =
+        thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
+    let final_offset = datas.get_idx_address(data_internal_index, offset_bytes);
     let ptr = datas.get_ptr(final_offset);
     let address = ptr as u64;
 

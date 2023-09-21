@@ -193,23 +193,23 @@ impl<'a> Thread<'a> {
     }
 
     /// return:
-    /// (dyn IndexedMemory, target_module_index:usize, internal_data_index:usize)
-    pub fn get_current_module_internal_data_index_and_datas_object(
+    /// (dyn IndexedMemory, target_module_index:usize, data_internal_index:usize)
+    pub fn get_current_module_data_internal_index_and_datas_object(
         &mut self,
-        data_index: usize,
+        data_public_index: usize,
     ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
         let range = &self.context.data_index_section.ranges[module_index];
         let data_index_item =
-            &self.context.data_index_section.items[range.offset as usize + data_index];
+            &self.context.data_index_section.items[range.offset as usize + data_public_index];
 
         let target_module_index = data_index_item.target_module_index as usize;
         let target_module = &mut self.context.modules[target_module_index];
-        let internal_data_index = data_index_item.target_data_internal_index as usize;
+        let data_internal_index = data_index_item.data_internal_index as usize;
         let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
 
-        (datas, target_module_index, internal_data_index)
+        (datas, target_module_index, data_internal_index)
     }
 
     /// return:

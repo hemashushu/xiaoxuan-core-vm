@@ -194,8 +194,26 @@ pub enum Opcode {
     //     [i32 i32 i64 i64]  [i32 i32]
     // idx  0   1   2   3      4   5
     //
-    // also note that the arguments are at the top of the (operand) stack when a function
-    // starts running, so you can also access these operands directly.
+    //
+    // note about the local variable (data, function) INDEX:
+    //
+    // using the 'index', rather than the 'address/pointer' to access local variables (including
+    // data in the data section and functions talked about in the following sections) is the
+    // security strategy of the XiaoXuan ISA and VM.
+    // because the 'index' includes the type, data length (range), location information of the 'object',
+    // when accessing the object, the VM can check whether the type of the object, and the range is legal
+    // or not, so it can prevent a lot of errors.
+    // for example, the traditional method of using pointers to access a array is very easy
+    // to read/write data outside the range.
+
+    // note:
+    // in the default VM implementation, the arguments of a function are placed on the top
+    // of the stack, so it is also possible to read the arguments directly in the function
+    // using instructions with the POP function (e.g. the comparison instructions, the arithmetic
+    // instructions).
+    // this feature can be used as a trick to improve performance, but the XiaoXuan ISA doesn't
+    // guarantee that this feature will always be available, so for general programs, use the
+    // stable method of accessing the arguments, i.e. the index.
 
     local_load = 0x200,         // load local variable              (param offset_bytes:i16 local_variable_index:i32)
     local_load32,               //                                  (param offset_bytes:i16 local_variable_index:i32)
@@ -238,36 +256,36 @@ pub enum Opcode {
     // pop one operand off the stack and set the specified data
     //
 
-    data_load = 0x300,          // load data                        (param offset_bytes:i16 data_index:i32)
-    data_load32,                //                                  (param offset_bytes:i16 data_index:i32)
-    data_load32_i16_s,          //                                  (param offset_bytes:i16 data_index:i32)
-    data_load32_i16_u,          //                                  (param offset_bytes:i16 data_index:i32)
-    data_load32_i8_s,           //                                  (param offset_bytes:i16 data_index:i32)
-    data_load32_i8_u,           //                                  (param offset_bytes:i16 data_index:i32)
-    data_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_index:i32)
-    data_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_index:i32)
-    data_store,                 // store data                       (param offset_bytes:i16 data_index:i32)
-    data_store32,               //                                  (param offset_bytes:i16 data_index:i32)
-    data_store16,               //                                  (param offset_bytes:i16 data_index:i32)
-    data_store8,                //                                  (param offset_bytes:i16 data_index:i32)
+    data_load = 0x300,          // load data                        (param offset_bytes:i16 data_public_index:i32)
+    data_load32,                //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load32_i16_s,          //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load32_i16_u,          //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load32_i8_s,           //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load32_i8_u,           //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32)
+    data_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32)
+    data_store,                 // store data                       (param offset_bytes:i16 data_public_index:i32)
+    data_store32,               //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_store16,               //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_store8,                //                                  (param offset_bytes:i16 data_public_index:i32)
 
     // there are also 2 sets of data load/store instructions, one set is the
     // data_load.../data_store.., they are designed to access primitive type data
     // and struct data, the other set is the data_long_load.../data_long_store..., they
     // are designed to access long byte-type data.
 
-    data_long_load = 0x380,     //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32,           //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i16_s,     //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i16_u,     //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i8_s,      //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i8_u,      //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load_f64,         //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_load32_f32,       //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_store,            //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_store32,          //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_store16,          //                                  (param data_index:i32) (operand offset_bytes:i32)
-    data_long_store8,           //                                  (param data_index:i32) (operand offset_bytes:i32)
+    data_long_load = 0x380,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32,           //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32_i16_s,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32_i16_u,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32_i8_s,      //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32_i8_u,      //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load_f64,         //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load32_f32,       //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_store,            //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_store32,          //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_store16,          //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_store8,           //                                  (param data_public_index:i32) (operand offset_bytes:i32)
 
     //
     // heap (thread-local memory) loading and storing
@@ -663,7 +681,7 @@ pub enum Opcode {
 
     block,              // (param type_index:i32)
                         //
-                        // create a block region. a block is similar to a function, it also has
+                        // create a block scope. a block is similar to a function, it also has
                         // parameters and results, it shares the type with function, so the 'block'
                         // instruction has a parameter called 'type_index'.
                         // this instruction leads VM to create a stack frame which is called 'block frame',
@@ -773,7 +791,7 @@ pub enum Opcode {
 
     block_nez,          // (param type_index:i32, alt_inst_offset:i32)
 
-    // the 'block_nez' instruction is similar to the 'block', it also creates a new block region
+    // the 'block_nez' instruction is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
     // but it jumps to the 'alternative instruction' if the operand on the top of stack is
     // equals to ZERO.
@@ -1161,8 +1179,8 @@ pub enum Opcode {
                                 // in its sub-functions. when a function exited, the function stack frame
                                 // will be destroied (or modified), as well as the local variables.
     host_addr_local_long,       // (param local_variable_index:i32) (operand offset_bytes:i32)
-    host_addr_data,             // (param offset_bytes:i16 data_index:i32)
-    host_addr_data_long,        // (param data_index:i32) (operand offset_bytes:i32)
+    host_addr_data,             // (param offset_bytes:i16 data_public_index:i32)
+    host_addr_data_long,        // (param data_public_index:i32) (operand offset_bytes:i32)
     host_addr_heap,             // (param offset_bytes:i16) (operand heap_addr:i64)
 
 

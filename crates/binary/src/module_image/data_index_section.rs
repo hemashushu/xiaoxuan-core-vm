@@ -15,8 +15,8 @@
 //         |--------------------------------------|
 //
 //         |--------------------------------------------------------------------------------------------------------------------------------|
-//         | data idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | target internal data idx 0 (u32) | <-- table 1
-//         | data idx 1       | target mod idx 1       | target data section type 1      |               | target internal data idx 1       |
+//         | data public idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | data internal idx 0 (u32) | <-- table 1
+//         | data public idx 1       | target mod idx 1       | target data section type 1      |               | data internal idx 1       |
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
@@ -42,7 +42,7 @@ pub struct DataIndexItem {
     // - internal read-write data items
     // - imported uninitilized data items
     // - internal uninitilized data items
-    pub data_index: u32,
+    pub data_public_index: u32,
 
     // target module index
     pub target_module_index: u32,
@@ -55,7 +55,7 @@ pub struct DataIndexItem {
     //
     // this index is the actual index of the internal data item in a specified data section
     // i.e., it excludes the imported data items.
-    pub target_data_internal_index: u32,
+    pub data_internal_index: u32,
 }
 
 impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
@@ -76,17 +76,17 @@ impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
 
 impl DataIndexItem {
     pub fn new(
-        data_index: u32,
+        data_public_index: u32,
         target_module_index: u32,
         target_data_section_type: DataSectionType,
-        target_data_internal_index: u32,
+        data_internal_index: u32,
     ) -> Self {
         Self {
-            data_index,
+            data_public_index,
             target_module_index,
             target_data_section_type,
             _padding0: [0, 0, 0],
-            target_data_internal_index,
+            data_internal_index,
         }
     }
 }
@@ -110,23 +110,23 @@ mod tests {
             5, 0, 0, 0, // offset 1 (item 1)
             7, 0, 0, 0, // count 1
             //
-            2, 0, 0, 0, // data index, item 0 (little endian)
+            2, 0, 0, 0, // data pub index, item 0 (little endian)
             3, 0, 0, 0, // t module index
             0, // t data section type
             0, 0, 0, // padding
-            5, 0, 0, 0, // t data idx
+            5, 0, 0, 0, // data internal idx
             //
-            7, 0, 0, 0, // data index, item 1 (little endian)
+            7, 0, 0, 0, // data pub index, item 1 (little endian)
             11, 0, 0, 0, // t module index
             1, // t data section type
             0, 0, 0, // padding
-            13, 0, 0, 0, // t data idx
+            13, 0, 0, 0, // data internal idx
             //
-            17, 0, 0, 0, // data index, item 2 (little endian)
+            17, 0, 0, 0, // data pub index, item 2 (little endian)
             11, 0, 0, 0, // t module index
             1, // t data section type
             0, 0, 0, // padding
-            19, 0, 0, 0, // t data idx
+            19, 0, 0, 0, // data internal idx
         ];
 
         let section = DataIndexSection::load(&section_data);
@@ -189,23 +189,23 @@ mod tests {
                 5, 0, 0, 0, // offset 1 (item 1)
                 7, 0, 0, 0, // count 1
                 //
-                2, 0, 0, 0, // data index, item 0 (little endian)
+                2, 0, 0, 0, // data pub index, item 0 (little endian)
                 3, 0, 0, 0, // t module index
                 0, // t data section type
                 0, 0, 0, // padding
-                5, 0, 0, 0, // t data idx
+                5, 0, 0, 0, // data internal idx
                 //
-                7, 0, 0, 0, // data index, item 1 (little endian)
+                7, 0, 0, 0, // data pub index, item 1 (little endian)
                 11, 0, 0, 0, // t module index
                 1, // t data section type
                 0, 0, 0, // padding
-                13, 0, 0, 0, // t data idx
+                13, 0, 0, 0, // datainternal  idx
                 //
-                17, 0, 0, 0, // data index, item 2 (little endian)
+                17, 0, 0, 0, // data pub index, item 2 (little endian)
                 11, 0, 0, 0, // t module index
                 1, // t data section type
                 0, 0, 0, // padding
-                19, 0, 0, 0, // t data idx
+                19, 0, 0, 0, // data internal idx
             ]
         );
     }
