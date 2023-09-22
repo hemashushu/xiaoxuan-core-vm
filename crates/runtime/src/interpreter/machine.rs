@@ -112,6 +112,8 @@ mod tests {
 
     #[test]
     fn test_process_machine() {
+        init_runtime();
+
         // bytecodes
         //
         // 0x0000 nop
@@ -139,7 +141,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -154,6 +155,8 @@ mod tests {
 
     #[test]
     fn test_process_host_address() {
+        init_runtime();
+
         //        read-only data section
         //       |low address    high addr|
         //       |                        |
@@ -277,7 +280,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
@@ -320,6 +322,8 @@ mod tests {
 
     #[test]
     fn test_process_host_address_long() {
+        init_runtime();
+
         //        read-only data section
         //       |low address  high addr|
         //       |                      |
@@ -422,7 +426,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
@@ -456,6 +459,8 @@ mod tests {
 
     #[test]
     fn test_process_host_address_heap() {
+        init_runtime();
+
         //
         //        heap
         //       |low address                high addr|
@@ -540,7 +545,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 

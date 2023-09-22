@@ -1450,7 +1450,7 @@ mod tests {
             0x0044 i32_div_u
             0x0046 nop
             0x0048 i64_imm              0x47 0x53
-            0x0054 block_nez            59 61"
+            0x0054 block_nez            59 0x3d"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]

@@ -284,6 +284,8 @@ mod tests {
 
     #[test]
     fn test_process_comparison_i32() {
+        init_runtime();
+
         // numbers:
         //   - 0: 0
         //   - 1: 11
@@ -486,7 +488,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -527,6 +528,8 @@ mod tests {
 
     #[test]
     fn test_process_comparison_i64() {
+        init_runtime();
+
         // numbers:
         //   - 0: 0
         //   - 1: 11
@@ -729,7 +732,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -770,6 +772,8 @@ mod tests {
 
     #[test]
     fn test_process_comparison_f32() {
+        init_runtime();
+
         // numbers:
         //   - 0: 1.414
         //   - 1: 1.732
@@ -922,7 +926,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -955,6 +958,8 @@ mod tests {
 
     #[test]
     fn test_process_comparison_f64() {
+        init_runtime();
+
         // numbers:
         //   - 0: 1.414
         //   - 1: 1.732
@@ -1109,7 +1114,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,

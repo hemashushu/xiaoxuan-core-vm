@@ -107,6 +107,8 @@ mod tests {
 
     #[test]
     fn test_ecall_heap_capacity() {
+        init_runtime();
+
         // bytecodes
         //
         // 0x0000 ecall                261
@@ -154,7 +156,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
 
         assert_eq!(
@@ -171,6 +172,8 @@ mod tests {
 
     #[test]
     fn test_ecall_runtime_info() {
+        init_runtime();
+
         // bytecodes
         //
         // 0x0000 ecall                257
@@ -195,7 +198,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
 
         let expect_version_number = RUNTIME_PATCH_VERSION as u64

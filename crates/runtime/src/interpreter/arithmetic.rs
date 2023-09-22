@@ -224,6 +224,8 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_i32() {
+        init_runtime();
+
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -320,7 +322,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -347,6 +348,8 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_i64() {
+        init_runtime();
+
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -445,7 +448,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -472,6 +474,8 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f32() {
+        init_runtime();
+
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -530,7 +534,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -550,6 +553,8 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f64() {
+        init_runtime();
+
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -608,7 +613,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,

@@ -228,6 +228,8 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i32() {
+        init_runtime();
+
         // numbers:
         //   - 0: 0xff0000ff
         //   - 1: 0xf0f000ff
@@ -385,7 +387,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -423,6 +424,8 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i64() {
+        init_runtime();
+
         // numbers:
         //   - 0: 0xff00ff00_00ff00ff
         //   - 1: 0xf0f00f0f_00ff00ff
@@ -580,7 +583,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,

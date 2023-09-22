@@ -165,6 +165,8 @@ mod tests {
 
     #[test]
     fn test_process_heap_load_store() {
+        init_runtime();
+
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |
@@ -329,7 +331,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,

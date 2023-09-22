@@ -626,8 +626,8 @@ impl Stack {
         }
     }
 
-    /// reset the specified (function or block) frame:
-    /// - initialize all local variables (if present) to value 0
+    /// reset the specified function frame or block frame:
+    /// - initialize all local variables to value 0 (only if the target frame is function frame)
     /// - remove all oprands which follow the local variable area
     /// - remove all frames which follow the current frame
     /// - moves the specified number of operands to the top of stack

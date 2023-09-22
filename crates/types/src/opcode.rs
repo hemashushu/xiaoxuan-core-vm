@@ -133,7 +133,8 @@
 //   instructions with 2 parameters, such as `local_load`, `data_load`, `break`, `recur`.
 //   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
 // - 96 bits
-//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_nez`,
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_nez`.
+//   (only these 3 instructions currently are 96 bits)
 //   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
 //
 // the simplified schemes:
@@ -692,9 +693,9 @@ pub enum Opcode {
     // the 'return' instruction is similar to the 'end' instruction, it is
     // used for finishing a block or a function.
     // - for a block:
-    //   a block stack frame will be removed and jump to the instruction
-    //   that NEXT TO THE 'end' instruction.
-    //   the value of the parameter 'next_inst_offset' should be (`addr of next inst to 'end'` - `addr of return`)
+    //   a block stack frame will be removed and jump to the next instruction
+    //   that AFTER the 'end' instruction.
+    //   the value of the parameter 'next_inst_offset' should be (`addr of next inst after 'end'` - `addr of return`)
     // - for a function:
     //   a function stack frame will be removed and return to the the
     //   instruction next to the 'call' instruction.
@@ -750,7 +751,12 @@ pub enum Opcode {
     // 0d0044 end
     // ```
 
-    // backgroup:
+    // note of the block range
+    //
+    // the value of parameter 'next_inst_offset' should not exceed the block range.
+    // the MAX value is the address of the instruction 'end' of the target frame.
+
+    // background:
     //
     // there is a similar instruction in WASM named 'br/break', it is used
     // to make the PC jump to the address of the instruction 'end'.
@@ -771,7 +777,7 @@ pub enum Opcode {
     // it is also used to implement the TCO (tail call optimization, see below section).
     //
     // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
-    // all local variables will be reset to 0.
+    // all local variables will be reset to 0 (except the arguments).
     //
     // note that the value of 'start_inst_offset' is a positive number.
     //
@@ -1023,52 +1029,105 @@ pub enum Opcode {
 
     // table of control flow structures and control flow instructions:
     //
-    // | structure         | instruction(s)  |
-    // |-------------------|-----------------|
-    // |                   | ..a..           |
-    // | if ..a.. {        | block_nez       |
-    // |    ..b..          | ..b..           |
-    // | }                 | end             |
-    // |-------------------|-----------------|
-    // |                   | ..a..           |
-    // | if ..a.. {        | block_nez -\    |
-    // |    ..b..          | ..b..      |    |
-    // | } else {          | return     |    |
-    // |    ..c..          | ..c..  <---/    |
-    // | }                 | end             |
-    // |-------------------|-----------------|
-    // |                   | ..a..           |
-    // | if ..a.. {        | block_nez -\    |
-    // |    ..b..          | ..b..      |    |
-    // | } else if ..c.. { | return     |    |
-    // |    ..d..          | ..c..  <---/    |
-    // | } else {          | block_nez -\    |
-    // |    ..e..          | ..d..      |    |
-    // | }                 | return     |    |
-    // |                   | ..e..  <---/    |
-    // | (or switch/case)  | end             |
-    // |-------------------|-----------------|
-
-    // | structure         | instructions(s) |
-    // |-------------------|-----------------|
-    // | loop {            | block <--\      |
-    // |    ..a..          | ..a..    |      |
-    // | }                 | recur ---/      |
-    // |                   | end             |
-    // |-------------------|-----------------|
-    // | while ..a.. {     | block           |
-    // |    ..b..          | ..a..   <--\    |
-    // | }                 | return_nez |    |
-    // |                   | ..b..       |   |
-    // | (or for...)       | recur -----/    |
-    // |                   | end             |
-    // |-------------------|-----------------|
-    // | do {              | block           |
-    // |    ..a..          | ..a..    <--\   |
-    // | }while(..b..)     | ..b..       |   |
-    // |                   | recur_nez --/   |
-    // | (or TCO)          | end             |
-    // |-------------------|-----------------|
+    // branch
+    //
+    // | structure         | instruction(s)   |
+    // |-------------------|------------------|
+    // |                   | ..a..            |
+    // | if ..a.. {        | block_nez -\     |
+    // |    ..b..          |   ..b..    |     |
+    // | }                 | end    <---/     |
+    // |-------------------|------------------|
+    // |                   | ..a..            |
+    // | if ..a.. {        | block_nez ---\   |
+    // |    ..b..          |   ..b..      |   |
+    // | } else {          |   return 0   |   |
+    // |    ..c..          |   ..c..  <---/   |
+    // | }                 | end              |
+    // |-------------------|------------------|
+    // |                   | ..a..            |
+    // | if ..a.. {        | block_nez ---\   |
+    // |    ..b..          |   ..b..      |   |
+    // | } else if ..c.. { |   return 0   |   |
+    // |    ..d..          |   ..c..  <---/   |
+    // | } else {          |   block_nez --\  |
+    // |    ..e..          |     ..d..     |  |
+    // | }                 |     return 1  |  |
+    // |                   |     ..e..  <--/  |
+    // | (or switch/case)  |   end            |
+    // |                   | end              |
+    // |                   |                  |
+    // |                   | ------ or ------ |
+    // |                   |                  |
+    // |                   | block            |
+    // |                   |   ..a..          |
+    // |                   |   block_nez -\   |
+    // |                   |     ..b..    |   |
+    // |                   |     return 1 |   |
+    // |                   |   end    <---/   |
+    // |                   |   ..c..          |
+    // |                   |   block_nez -\   |
+    // |                   |     ..d..    |   |
+    // |                   |     return 1 |   |
+    // |                   |   end    <---/   |
+    // |                   |   ..e..          |
+    // |                   | end..            |
+    // |-------------------|------------------|
+    //
+    // loop
+    //
+    // | structure         | instructions(s)  |
+    // |-------------------|------------------|
+    // | loop {            | block <----\     |
+    // |    ..a..          |   ..a..    |     |
+    // | }                 |   recur 0 -/     |
+    // |                   | end              |
+    // |-------------------|------------------|
+    // | while ..a.. {     | block            |
+    // |    ..b..          |   ..a..   <----\ |
+    // | }                 |   return_nez 0 | |
+    // |                   |   ..b..        | |
+    // | (or for...)       |   recur 0 -----/ |
+    // |                   | end              |
+    // |-------------------|------------------|
+    // | do {              | block            |
+    // |    ..a..          |   ..a..    <---\ |
+    // | }while(..b..)     |   ..b..        | |
+    // |                   |   recur_nez 0 -/ |
+    // | (or TCO)          | end              |
+    // |-------------------|------------------|
+    //
+    //
+    // TCO
+    //
+    // | structure         | instructions(s)  |
+    // |-------------------|------------------|
+    // | func foo {        | -- func begin -- |
+    // |    ..a..          |   ..a.. <------\ |
+    // |    if ..b.. {     |   ..b..        | |
+    // |      foo()        |   block_nez -\ | |
+    // |    }              |     recur 1 ---/ |
+    // | }                 |   end    <---/   |
+    // |                   | end              |
+    // |                   |                  |
+    // |                   | ------ or ------ |
+    // |                   |                  |
+    // |                   | -- func begin -- |
+    // |                   |   ..a.. <------\ | 'block_nez + recur 1/return1 + end'
+    // |                   |   ..b..        | | can be optimized as:
+    // |                   |   recur_nez 0 -/ | 'recur_nez 0' and 'return_nez 0'
+    // |                   | end              |
+    // |                   |                  |
+    // |-------------------|------------------|
+    // | func foo {        | -- func begin -- |
+    // |    if ..a.. {     |   ..a.. <------\ |
+    // |       ..b..       |   block_nez -\ | |
+    // |    } else {       |     ..b..    | | |
+    // |       foo()       |     return 0 / | |
+    // |    }              |     recur 1 ---/ |
+    // | }                 |   end            |
+    // |                   |                  |
+    // |-------------------|------------------|
 
     //
     // function

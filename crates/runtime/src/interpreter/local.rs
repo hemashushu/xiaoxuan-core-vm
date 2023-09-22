@@ -350,6 +350,8 @@ mod tests {
 
     #[test]
     fn test_process_local_load_store() {
+        init_runtime();
+
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0                                  1      2      3                         4         |
@@ -473,7 +475,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(
             &mut thread0,
             0,
@@ -504,6 +505,8 @@ mod tests {
 
     #[test]
     fn test_process_local_long_load_store() {
+        init_runtime();
+
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |
@@ -642,7 +645,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),

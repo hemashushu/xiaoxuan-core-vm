@@ -28,7 +28,8 @@ pub fn end(thread: &mut Thread) -> InterpretResult {
 
 pub fn block(thread: &mut Thread) -> InterpretResult {
     let type_index = thread.get_param_i32();
-    do_block(thread, type_index)
+    do_block(thread, type_index);
+    InterpretResult::Move(8)
 }
 
 pub fn block_nez(thread: &mut Thread) -> InterpretResult {
@@ -38,11 +39,12 @@ pub fn block_nez(thread: &mut Thread) -> InterpretResult {
     if condition == 0 {
         InterpretResult::Move(alt_inst_offset as isize)
     } else {
-        do_block(thread, type_index)
+        do_block(thread, type_index);
+        InterpretResult::Move(12)
     }
 }
 
-fn do_block(thread: &mut Thread, type_index: u32) -> InterpretResult {
+fn do_block(thread: &mut Thread, type_index: u32) {
     let ProgramCounter {
         instruction_address: _,
         function_internal_index: _,
@@ -54,8 +56,6 @@ fn do_block(thread: &mut Thread, type_index: u32) -> InterpretResult {
     thread
         .stack
         .create_block_frame(type_item.params_count, type_item.results_count);
-
-    InterpretResult::Move(8)
 }
 
 pub fn return_(thread: &mut Thread) -> InterpretResult {
@@ -200,6 +200,8 @@ mod tests {
 
     #[test]
     fn test_process_control_block() {
+        init_runtime();
+
         // func () -> (i32, i32, i32, i32)
         //     11
         //     13
@@ -239,7 +241,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
@@ -300,6 +301,8 @@ mod tests {
 
     #[test]
     fn test_process_control_return() {
+        init_runtime();
+
         // func () -> (i32, i32)
         //     11
         //     13
@@ -342,7 +345,6 @@ mod tests {
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
-        init_runtime();
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
@@ -470,8 +472,6 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", BytecodeReader::new(&code2).to_text());
-
         let binary2 = build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
             vec![DataType::I32, DataType::I32], // results
@@ -491,5 +491,78 @@ mod tests {
             result2.unwrap(),
             vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
         );
+    }
+
+    #[test]
+    fn test_process_control_if() {
+        init_runtime();
+
+        // func $max (i32, i32) -> (i32)
+        //     local_load32 0
+        //     local_load32 0
+        //     local_load32 1
+        //     i32_lt
+        //     blocl_nez ()->(i32)
+        //         local_load32 1
+        //     end
+        // end
+        //
+        // assert (11, 13) -> (13)
+        // assert (19, 17) -> (19)
+
+        // bytecode
+        //
+        // 0x0000 local_load32         0 0
+        // 0x0008 local_load32         0 0
+        // 0x0010 local_load32         0 1
+        // 0x0018 i32_lt_u
+        // 0x001a nop
+        // 0x001c block_nez            1 0x14
+        // 0x0028 local_load32         0 1
+        // 0x0030 end
+        // 0x0032 end
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::i32_lt_u)
+            .write_opcode_i32_i32(Opcode::block_nez, 1, 0x14)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::end)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32],                // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![DataType::I32],
+            }],
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
+
+        let result1 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
+        );
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(19)]);
     }
 }
