@@ -186,7 +186,7 @@ mod tests {
         // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
-            vec![],              // params
+            vec![], // params
             vec![DataType::I64], // results
             code0,
             vec![], // local varslist which
@@ -230,7 +230,7 @@ mod tests {
             vec![],
             vec![],
             vec![UninitDataEntry::from_i64()],
-            vec![],                             // params
+            vec![], // params
             vec![DataType::I32, DataType::I64], // results
             code1,
             vec![], // local varslist which

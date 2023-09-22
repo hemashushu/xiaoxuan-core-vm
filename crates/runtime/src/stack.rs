@@ -377,9 +377,9 @@ impl Stack {
 
         while remains > 0 {
             fp = frame_info.previous_frame_address as usize;
-            if fp == 0 {
-                panic!("The index is out of bounds.")
-            }
+            // if fp == 0 {
+            //     panic!("The index is out of bounds.")
+            // }
             frame_info = self.read_frame_info(fp);
             remains -= 1;
         }

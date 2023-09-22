@@ -700,6 +700,8 @@ pub enum Opcode {
     //   instruction next to the 'call' instruction.
     //   the value of the parameter 'next_inst_offset' is ignored.
     //
+    // note that this instruction implies the function of instruction 'end'.
+    //
     // e.g.
     //
     // ```bytecode
@@ -735,18 +737,29 @@ pub enum Opcode {
     // (the amount of the operands is determined by the 'target block type'.
     //
     // ```bytecode
-    // 0d0000 block 0
-    // 0d0008   block 0
-    // 0d0016     block 0
+    // 0d0000 block 0             ;; assumes the block type is '()->(i32,i32,i32)'
+    // 0d0008   block 0           ;; assumes the block type is '()->(i32,i32)'
+    // 0d0016     block 0         ;; assumes the block type is '()->(i32)'
     // 0d0024       nop
     // 0d0026       return 1 14   ;; (18 = 44 - 26) --------\
     // 0d0034       nop           ;;                        |
     // 0d0036     end             ;;                        |
     // 0d0038     nop             ;;                        |
-    // 0d0040   end               ;;                        |
-    // 0d0042   nop               ;; <----------------------/ jump to here
+    // 0d0040   end               ;;                        | carries operands (i32, i32) and
+    // 0d0042   nop               ;; <----------------------/ jumps to here
     // 0d0044 end
     // ```
+
+    // backgroup:
+    //
+    // there is a similar instruction in WASM named 'br/break', it is used
+    // to make the PC jump to the address of the instruction 'end'.
+    // it is more elegant than XiaoXuan instruction 'return', but less efficient
+    // because it need to carry the operand twice.
+    // after balancing between performance and elegance, XiaoXuan instruction
+    // 'return' implies 'end' as well as jumps directly to the next instruction
+    // after the instruction 'end'.
+
 
     recur,              // (param skip_depth:i16, start_inst_offset:i32)
 
@@ -779,11 +792,11 @@ pub enum Opcode {
     // the 'recur' instruction can cross over multiple block nested also.
     //
     // ```bytecode
-    // 0d0000 block 0
-    // 0d0008   nop             ;; <-----------------\ jump to here
-    // 0d0010   block 0         ;;                   |
-    // 0d0018     nop           ;;                   |
-    // 0d0020     recur 1 12    ;; (12 = 20 - 8) ----/
+    // 0d0000 block 0           ;; assumes the block type is '()->(i32,i32)'
+    // 0d0008   nop             ;; <--------------------------------------------\ carries operands (i32,i32) and
+    // 0d0010   block 0         ;; assumes the block type is '()->(i32)'        | jumps to here
+    // 0d0018     nop           ;;                                              |
+    // 0d0020     recur 1 12    ;; (12 = 20 - 8) -------------------------------/
     // 0d0028     nop
     // 0d0030   end
     // 0d0032 end

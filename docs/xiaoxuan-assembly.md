@@ -51,6 +51,32 @@
 )
 ```
 
+## fold
+
+```clojure
+(module
+    (func
+        (local.load 0)
+        (local.load 1)
+        (i32.lt)
+
+        ;; the 3 lines above can be writen as fold
+        (i32.lt (local.load 0) (local.load 1))
+
+        ;; all instructions which contains operands can be writen as fold
+        ;; e.g.
+        (i32.add (i32.imm 11) (i32.imm 13))
+        (dcall (data.load 0))
+
+        ;; and fold can be nested, e.g.
+        (i32.lt
+            (i32.add (local.load 0) (local.load 1))
+            (i32.add (local.load 2) (local.load 3))
+        )
+    )
+)
+```
+
 ## block
 
 ```clojure
@@ -82,9 +108,21 @@
                 )
             )
 
+            (block_nez $blk3 (type $two)
+                ;; the condition node can be writen in the 'block_nez' node
+                (i32.lt (local.load 0) (local.load 1))
+                (then
+                    ;; ...
+                )
+                (else
+                    ;; ...
+                )
+            )
+
             (block $loop (param i32) (result i32)
                 ...
                 (block_nez
+                    (...)
                     (then
                         (imm.i32 100)
                         (break 1)

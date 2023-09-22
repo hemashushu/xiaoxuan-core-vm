@@ -80,7 +80,13 @@ fn do_return(thread: &mut Thread, skip_depth: u16, next_inst_offset: u32) -> Int
     if let Some(return_pc) = opt_return_pc {
         // the target frame is a function frame
         // the value of 'next_inst_offset' is ignored.
-        InterpretResult::Jump(return_pc)
+        if return_pc.instruction_address == 0 {
+            // the PC reaches the first function end, it means
+            // the program reaches the ending.
+            InterpretResult::End
+        } else {
+            InterpretResult::Jump(return_pc)
+        }
     } else {
         // the target frame is a block frame
         InterpretResult::Move(next_inst_offset as isize)
@@ -158,7 +164,7 @@ fn do_call(thread: &mut Thread, function_public_index: u32) -> InterpretResult {
     let return_pc = ProgramCounter {
         // the length of instruction 'call' is 8 bytes.
         // so when the target function is finish, the next instruction should be the
-        // instruction which nexts to the instruction 'call'.
+        // instruction after the instruction 'call'.
         instruction_address: return_instruction_address + 8,
         function_internal_index: return_function_internal_index,
         module_index: return_module_index,
@@ -177,4 +183,313 @@ fn do_call(thread: &mut Thread, function_public_index: u32) -> InterpretResult {
     };
 
     InterpretResult::Jump(target_pc)
+}
+
+#[cfg(test)]
+mod tests {
+    use ancvm_binary::{
+        load_modules_binary,
+        module_image::type_section::TypeEntry,
+        utils::{
+            build_module_binary_with_single_function_and_blocks, BytecodeReader, BytecodeWriter,
+        },
+    };
+    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+
+    use crate::{init_runtime, interpreter::process_function, thread::Thread};
+
+    #[test]
+    fn test_process_control_block() {
+        // func () -> (i32, i32, i32, i32)
+        //     11
+        //     13
+        //     block () -> ()
+        //         17
+        //         19
+        //     end
+        //     23
+        //     29
+        // end
+        //
+        // expect (11, 13, 23, 29)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::block, 1) // block type = 1
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode(Opcode::end)
+            .write_opcode_i32(Opcode::i32_imm, 23)
+            .write_opcode_i32(Opcode::i32_imm, 29)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![],                                                           // params
+            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![],
+            }],
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt32(11),
+                ForeignValue::UInt32(13),
+                ForeignValue::UInt32(23),
+                ForeignValue::UInt32(29),
+            ]
+        );
+
+        // func () -> (i32, i32, i32, i32)
+        //     11
+        //     13
+        //     block (i32) -> (i32, i32)
+        //         17
+        //     end
+        //     19
+        // end
+        //
+        // expect (11, 13, 17, 19)
+
+        let code1 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::block, 1) // block type = 1
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode(Opcode::end)
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary1 = build_module_binary_with_single_function_and_blocks(
+            vec![],                                                           // params
+            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            code1,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![DataType::I32],
+                results: vec![DataType::I32, DataType::I32],
+            }],
+        );
+
+        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let mut thread1 = Thread::new(&image1);
+
+        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
+        assert_eq!(
+            result1.unwrap(),
+            vec![
+                ForeignValue::UInt32(11),
+                ForeignValue::UInt32(13),
+                ForeignValue::UInt32(17),
+                ForeignValue::UInt32(19),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_process_control_return() {
+        // func () -> (i32, i32)
+        //     11
+        //     13
+        //     return 0 0
+        //     17
+        //     19
+        // end
+        //
+        // expect (11, 13)
+
+        // bytecode
+        //
+        // 0x0000 i32_imm              0xb
+        // 0x0008 i32_imm              0xd
+        // 0x0010 return               0 0
+        // 0x0018 i32_imm              0x11
+        // 0x0020 i32_imm              0x13
+        // 0x0028 end
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i16_i32(Opcode::return_, 0, 0)
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![],                             // params
+            vec![DataType::I32, DataType::I32], // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![],
+            }],
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        init_runtime();
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13),]
+        );
+
+        // func () -> (i32, i32, i32, i32)
+        //     11
+        //     13
+        //     block () -> (i32, i32)
+        //         17
+        //         19
+        //         return 0 x
+        //         23
+        //         29
+        //     end
+        //     31
+        //     37
+        // end
+        //
+        // expect (17, 19, 31, 37)
+
+        // bytecode
+        //
+        // 0x0000 i32_imm              0xb
+        // 0x0008 i32_imm              0xd
+        // 0x0010 block                1
+        // 0x0018 i32_imm              0x11
+        // 0x0020 i32_imm              0x13
+        // 0x0028 return               0 0x1a
+        // 0x0030 i32_imm              0x17
+        // 0x0038 i32_imm              0x1d
+        // 0x0040 end
+        // 0x0042 nop
+        // 0x0044 i32_imm              0x1f
+        // 0x004c i32_imm              0x25
+        // 0x0054 end
+
+        let code1 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::block, 1) // block type = 1
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode_i16_i32(Opcode::return_, 0, 0x1a)
+            .write_opcode_i32(Opcode::i32_imm, 23)
+            .write_opcode_i32(Opcode::i32_imm, 29)
+            .write_opcode(Opcode::end)
+            .write_opcode_i32(Opcode::i32_imm, 31)
+            .write_opcode_i32(Opcode::i32_imm, 37)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary1 = build_module_binary_with_single_function_and_blocks(
+            vec![],                                                           // params
+            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            code1,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![DataType::I32, DataType::I32],
+            }],
+        );
+
+        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let mut thread1 = Thread::new(&image1);
+
+        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
+        assert_eq!(
+            result1.unwrap(),
+            vec![
+                ForeignValue::UInt32(17),
+                ForeignValue::UInt32(19),
+                ForeignValue::UInt32(31),
+                ForeignValue::UInt32(37),
+            ]
+        );
+
+        // cross jump
+        //
+        // func () -> (i32, i32)
+        //     11
+        //     13
+        //     block () -> ()
+        //         17
+        //         19
+        //         return 1 0
+        //         23
+        //         29
+        //     end
+        //     31
+        //     37
+        // end
+        //
+        // expect (17, 19)
+
+        // bytecode
+        //
+        // 0x0000 i32_imm              0xb
+        // 0x0008 i32_imm              0xd
+        // 0x0010 block                1
+        // 0x0018 i32_imm              0x11
+        // 0x0020 i32_imm              0x13
+        // 0x0028 return               1 0x0
+        // 0x0030 i32_imm              0x17
+        // 0x0038 i32_imm              0x1d
+        // 0x0040 end
+        // 0x0042 nop
+        // 0x0044 i32_imm              0x1f
+        // 0x004c i32_imm              0x25
+        // 0x0054 end
+
+        let code2 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::block, 1) // block type = 1
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode_i16_i32(Opcode::return_, 1, 0)
+            .write_opcode_i32(Opcode::i32_imm, 23)
+            .write_opcode_i32(Opcode::i32_imm, 29)
+            .write_opcode(Opcode::end)
+            .write_opcode_i32(Opcode::i32_imm, 31)
+            .write_opcode_i32(Opcode::i32_imm, 37)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code2).to_text());
+
+        let binary2 = build_module_binary_with_single_function_and_blocks(
+            vec![],                             // params
+            vec![DataType::I32, DataType::I32], // results
+            code2,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![],
+            }],
+        );
+
+        let image2 = load_modules_binary(vec![&binary2]).unwrap();
+        let mut thread2 = Thread::new(&image2);
+
+        let result2 = process_function(&mut thread2, 0, 0, &vec![]);
+        assert_eq!(
+            result2.unwrap(),
+            vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
+        );
+    }
 }

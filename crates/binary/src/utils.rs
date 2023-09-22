@@ -737,11 +737,11 @@ impl<'a> BytecodeReader<'a> {
                 }
                 Opcode::block_nez => {
                     let (type_idx, offset) = self.read_param_i32_i32();
-                    line.push_str(&format!("{} {}", type_idx, offset));
+                    line.push_str(&format!("{} 0x{:x}", type_idx, offset));
                 }
                 Opcode::return_ | Opcode::return_nez | Opcode::recur | Opcode::recur_nez => {
                     let (deepth, offset) = self.read_param_i16_i32();
-                    line.push_str(&format!("{} {}", deepth, offset));
+                    line.push_str(&format!("{} 0x{:x}", deepth, offset));
                 }
                 Opcode::call | Opcode::ecall | Opcode::scall | Opcode::ccall => {
                     let idx = self.read_param_i32();
@@ -866,11 +866,10 @@ pub fn build_module_binary_with_single_function_and_blocks(
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     block_type_entries_without_function_type: Vec<TypeEntry>,
 ) -> Vec<u8> {
-    let mut type_entries = block_type_entries_without_function_type.clone();
-    type_entries.push(TypeEntry {
+    let mut type_entries = vec![TypeEntry {
         params: param_datatypes,
         results: result_datatypes,
-    });
+    }];
     type_entries.extend_from_slice(&block_type_entries_without_function_type);
 
     build_module_binary(
