@@ -47,7 +47,7 @@ pub enum InterpretResult {
 
     // pause the interpreter
     // for debug the program or the VM itself
-    Break,
+    Debug,
 
     // ecall returns with exception
     // param (err_code:usize)
@@ -343,10 +343,11 @@ pub fn init_interpreters() {
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;
     interpreters[Opcode::block as usize] = control_flow::block;
-    interpreters[Opcode::return_ as usize] = control_flow::return_;
+    interpreters[Opcode::break_ as usize] = control_flow::break_;
     interpreters[Opcode::recur as usize] = control_flow::recur;
+    interpreters[Opcode::block_alt as usize] = control_flow::block_alt;
     interpreters[Opcode::block_nez as usize] = control_flow::block_nez;
-    interpreters[Opcode::return_nez as usize] = control_flow::return_nez;
+    interpreters[Opcode::break_nez as usize] = control_flow::break_nez;
     interpreters[Opcode::recur_nez as usize] = control_flow::recur_nez;
     interpreters[Opcode::call as usize] = control_flow::call;
     interpreters[Opcode::dcall as usize] = control_flow::dcall;
@@ -355,7 +356,7 @@ pub fn init_interpreters() {
 
     // machine
     interpreters[Opcode::nop as usize] = machine::nop;
-    interpreters[Opcode::break_ as usize] = machine::break_;
+    interpreters[Opcode::debug as usize] = machine::debug;
     interpreters[Opcode::host_addr_local as usize] = machine::host_addr_local;
     interpreters[Opcode::host_addr_local_long as usize] = machine::host_addr_local_long;
     interpreters[Opcode::host_addr_data as usize] = machine::host_addr_data;
@@ -385,7 +386,7 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
                 thread.pc.instruction_address = return_pc.instruction_address;
             }
             InterpretResult::End => break,
-            InterpretResult::Break => {
+            InterpretResult::Debug => {
                 thread.pc.instruction_address += 2;
             }
             InterpretResult::EnvError(code) => {

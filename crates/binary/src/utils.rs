@@ -735,11 +735,11 @@ impl<'a> BytecodeReader<'a> {
                     let type_idx = self.read_param_i32();
                     line.push_str(&format!("{}", type_idx));
                 }
-                Opcode::block_nez => {
+                Opcode::block_alt | Opcode::block_nez => {
                     let (type_idx, offset) = self.read_param_i32_i32();
                     line.push_str(&format!("{} 0x{:x}", type_idx, offset));
                 }
-                Opcode::return_ | Opcode::return_nez | Opcode::recur | Opcode::recur_nez => {
+                Opcode::break_ | Opcode::break_nez | Opcode::recur | Opcode::recur_nez => {
                     let (deepth, offset) = self.read_param_i16_i32();
                     line.push_str(&format!("{} 0x{:x}", deepth, offset));
                 }
@@ -749,7 +749,7 @@ impl<'a> BytecodeReader<'a> {
                 }
                 Opcode::dcall => {}
                 // machine
-                Opcode::nop | Opcode::break_ => {}
+                Opcode::nop | Opcode::debug => {}
                 Opcode::host_addr_local | Opcode::host_addr_data => {
                     let (offset, idx) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, idx));
@@ -1262,7 +1262,7 @@ mod tests {
         );
 
         let code3 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::return_, 13, 17)
+            .write_opcode_i16_i32(Opcode::break_, 13, 17)
             .to_bytes();
 
         assert_eq!(
@@ -1275,7 +1275,7 @@ mod tests {
         );
 
         let code4 = BytecodeWriter::new()
-            .write_opcode_i32_i32(Opcode::block_nez, 19, 23)
+            .write_opcode_i32_i32(Opcode::block_alt, 19, 23)
             .to_bytes();
 
         assert_eq!(
@@ -1339,7 +1339,7 @@ mod tests {
             .write_opcode(Opcode::i32_div_u)
             // padding
             .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_nez, 0x59, 0x61)
+            .write_opcode_i32_i32(Opcode::block_alt, 0x59, 0x61)
             .to_bytes();
 
         assert_eq!(
@@ -1384,7 +1384,7 @@ mod tests {
                 0x00, 0x00, //
                 0x41, 0x00, 0x00, 0x00, //
                 // call 0x43
-                0x07, 0x0a, //
+                0x08, 0x0a, //
                 0x00, 0x00, //
                 0x43, 0x00, 0x00, 0x00, //
                 // i32_div_u
@@ -1396,12 +1396,59 @@ mod tests {
                 0x00, 0x00, //
                 0x47, 0x00, 0x00, 0x00, //
                 0x53, 0x00, 0x00, 0x00, //
-                // block_nez 0x59 0x61
+                // block_alt 0x59 0x61
                 0x04, 0x0a, //
                 0x00, 0x00, //
                 0x59, 0x00, 0x00, 0x00, //
                 0x61, 0x00, 0x00, 0x00, //
             ]
+        );
+    }
+
+    #[test]
+    fn test_bytecode_print() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16(Opcode::heap_load, 0x5)
+            .write_opcode_i16(Opcode::heap_store, 0x7)
+            // padding
+            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
+            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
+            .write_opcode(Opcode::i32_sub)
+            .write_opcode(Opcode::i32_mul)
+            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
+            .write_opcode(Opcode::i32_div_s)
+            // padding
+            .write_opcode_i32(Opcode::block, 0x41)
+            .write_opcode_i32(Opcode::call, 0x43)
+            .write_opcode(Opcode::i32_div_u)
+            // padding
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
+            .write_opcode_i32_i32(Opcode::block_alt, 0x59, 0x61)
+            .to_bytes();
+
+        let text = print_bytecodes(&code0);
+
+        assert_eq!(
+            text,
+            "
+            0x0000  00 07 00 04  05 00 08 04
+            0x0008  07 00 00 0b  00 02 11 00
+            0x0010  13 00 00 00  08 02 17 00
+            0x0018  19 00 00 00  01 07 02 07
+            0x0020  00 02 23 00  29 00 00 00
+            0x0028  08 02 31 00  37 00 00 00
+            0x0030  03 07 00 0b  01 0a 00 00
+            0x0038  41 00 00 00  08 0a 00 00
+            0x0040  43 00 00 00  04 07 00 0b
+            0x0048  05 01 00 00  47 00 00 00
+            0x0050  53 00 00 00  04 0a 00 00
+            0x0058  59 00 00 00  61 00 00 00"
+                .split('\n')
+                .map(|line| line.trim_start().to_string())
+                .collect::<Vec<String>>()[1..]
+                .join("\n")
         );
     }
 
@@ -1425,7 +1472,7 @@ mod tests {
             .write_opcode(Opcode::i32_div_u)
             // padding
             .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_nez, 59, 61)
+            .write_opcode_i32_i32(Opcode::block_alt, 59, 61)
             .to_bytes();
 
         let text = BytecodeReader::new(&code0).to_text();
@@ -1450,58 +1497,11 @@ mod tests {
             0x0044 i32_div_u
             0x0046 nop
             0x0048 i64_imm              0x47 0x53
-            0x0054 block_nez            59 0x3d"
+            0x0054 block_alt            59 0x3d"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]
                 .join("\n")
         )
-    }
-
-    #[test]
-    fn test_bytecode_print() {
-        let code0 = BytecodeWriter::new()
-            .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::heap_load, 0x5)
-            .write_opcode_i16(Opcode::heap_store, 0x7)
-            // padding
-            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
-            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
-            .write_opcode(Opcode::i32_sub)
-            .write_opcode(Opcode::i32_mul)
-            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
-            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
-            .write_opcode(Opcode::i32_div_s)
-            // padding
-            .write_opcode_i32(Opcode::block, 0x41)
-            .write_opcode_i32(Opcode::call, 0x43)
-            .write_opcode(Opcode::i32_div_u)
-            // padding
-            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_nez, 0x59, 0x61)
-            .to_bytes();
-
-        let text = print_bytecodes(&code0);
-
-        assert_eq!(
-            text,
-            "
-            0x0000  00 07 00 04  05 00 08 04
-            0x0008  07 00 00 0b  00 02 11 00
-            0x0010  13 00 00 00  08 02 17 00
-            0x0018  19 00 00 00  01 07 02 07
-            0x0020  00 02 23 00  29 00 00 00
-            0x0028  08 02 31 00  37 00 00 00
-            0x0030  03 07 00 0b  01 0a 00 00
-            0x0038  41 00 00 00  07 0a 00 00
-            0x0040  43 00 00 00  04 07 00 0b
-            0x0048  05 01 00 00  47 00 00 00
-            0x0050  53 00 00 00  04 0a 00 00
-            0x0058  59 00 00 00  61 00 00 00"
-                .split('\n')
-                .map(|line| line.trim_start().to_string())
-                .collect::<Vec<String>>()[1..]
-                .join("\n")
-        );
     }
 }

@@ -14,8 +14,8 @@ pub fn nop(_thread: &mut Thread) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn break_(_thread: &mut Thread) -> InterpretResult {
-    InterpretResult::Break
+pub fn debug(_thread: &mut Thread) -> InterpretResult {
+    InterpretResult::Debug
 }
 
 pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {

@@ -133,8 +133,8 @@
 //   instructions with 2 parameters, such as `local_load`, `data_load`, `break`, `recur`.
 //   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
 // - 96 bits
-//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_nez`.
-//   (only these 3 instructions currently are 96 bits)
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_alt`, 'block_nez'.
+//   (only these 4 instructions currently are 96 bits)
 //   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
 //
 // the simplified schemes:
@@ -294,7 +294,7 @@ pub enum Opcode {
 
     // note that the address of heap is a 64-bit integer number, which means that you
     // must write the target address (to stack) using the
-    // 'i64_imm', 'local_(long_)load' or 'data_(long_)load' instructions.
+    // instructions 'i64_imm', 'local_(long_)load' or 'data_(long_)load'.
     // do NOT use the 'i32_imm', 'local_(long_)load32' or 'data_(long_)load32', because
     // the latter instructions leave the value of the high part of
     // operand (on the stack) undefined/unpredictable.
@@ -677,7 +677,7 @@ pub enum Opcode {
     //
 
     end = 0xa00,        // finish a block or a function.
-    // when the 'end' instruction is executed, a stack frame will be removed and
+    // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
     block,              // (param type_index:i32)
@@ -688,17 +688,17 @@ pub enum Opcode {
                         // this instruction leads VM to create a stack frame which is called 'block frame',
                         // block frame is similar to 'function frame' except it has no local variables.
 
-    return_,            // (param skip_depth:i16, next_inst_offset:i32)
+    break_,             // (param skip_depth:i16, next_inst_offset:i32)
 
-    // the 'return' instruction is similar to the 'end' instruction, it is
+    // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
     // - for a block:
     //   a block stack frame will be removed and jump to the next instruction
-    //   that AFTER the 'end' instruction.
-    //   the value of the parameter 'next_inst_offset' should be (`addr of next inst after 'end'` - `addr of return`)
+    //   that AFTER the instruction 'end'.
+    //   the value of the parameter 'next_inst_offset' should be (`addr of next inst after 'end'` - `addr of break`)
     // - for a function:
     //   a function stack frame will be removed and return to the the
-    //   instruction next to the 'call' instruction.
+    //   instruction next to the instruction 'call'.
     //   the value of the parameter 'next_inst_offset' is ignored.
     //
     // note that this instruction implies the function of instruction 'end'.
@@ -706,23 +706,23 @@ pub enum Opcode {
     // e.g.
     //
     // ```bytecode
-    // 0d0000 block 0         ;; the size of 'block' instruction is 8 bytes
+    // 0d0000 block 0         ;; the size of instruction 'block' is 8 bytes
     // 0d0008   nop
-    // 0d0010   return 0 14   ;; the size of 'return' instruction is 8 bytes, (14 = 24 - 10) --\
+    // 0d0010   break 0 14    ;; the size of instruction 'break' is 8 bytes, (14 = 24 - 10) --\
     // 0d0018   nop           ;;                                                               |
     // 0d0020   nop           ;;                                                               |
     // 0d0022 end             ;;                                                               |
     // 0d0024 nop             ;; <-- jump to here (the instruction that next to the 'end')-----/
     // ```
     //
-    // instruction 'return' not only just finish a block or a function, but also
+    // instruction 'break' not only just finish a block or a function, but also
     // brings the operands out of the block or function, e.g.
     //
     // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
     // 0d0008   i32.imm 11
     // 0d0016   i32.imm 13                       | 17                 | -----\ operands '17' and '13' were
     // 0d0024   i32.imm 17    ;; --------------> | 13                 | -----\ taken out of the block frame
-    // 0d0032   return 0 14   ;; ---\            | 11                 |      |
+    // 0d0032   break 0 14    ;; ---\            | 11                 |      |
     // 0d0040   nop           ;;    |            | [block frame info] |      v
     // 0d0042   nop           ;;    | jump       | ..                 |    | 17                 |
     // 0d0044   nop           ;;    |            | [func frame info]  |    | 13                 |
@@ -731,7 +731,7 @@ pub enum Opcode {
     // 0d0050 nop             ;; <--/ -----------------------------------> \____________________/
     //                                                                        the stack layout
     //
-    // the 'return' instruction can cross over multiple block nested.
+    // the instruction 'break' can cross over multiple block nested.
     // when the parameter 'skip_depth' is 0, it simply finish the current block.
     // when the value is greater than 0, multiple block stack frame will be removed,
     // as well as the operands will be taken out of the block.
@@ -742,7 +742,7 @@ pub enum Opcode {
     // 0d0008   block 0           ;; assumes the block type is '()->(i32,i32)'
     // 0d0016     block 0         ;; assumes the block type is '()->(i32)'
     // 0d0024       nop
-    // 0d0026       return 1 14   ;; (18 = 44 - 26) --------\
+    // 0d0026       break 1 14    ;; (18 = 44 - 26) --------\
     // 0d0034       nop           ;;                        |
     // 0d0036     end             ;;                        |
     // 0d0038     nop             ;;                        |
@@ -760,16 +760,16 @@ pub enum Opcode {
     //
     // there is a similar instruction in WASM named 'br/break', it is used
     // to make the PC jump to the address of the instruction 'end'.
-    // it is more elegant than XiaoXuan instruction 'return', but less efficient
+    // it is more elegant than XiaoXuan instruction 'break', but less efficient
     // because it need to carry the operand twice.
     // after balancing between performance and elegance, XiaoXuan instruction
-    // 'return' implies 'end' as well as jumps directly to the next instruction
+    // 'break' implies 'end' as well as jumps directly to the next instruction
     // after the instruction 'end'.
 
 
     recur,              // (param skip_depth:i16, start_inst_offset:i32)
 
-    // the 'recur' instruction lets VM to jump to the instruction next to the instruction 'block', 'block_nez'
+    // the instruction 'recur' lets VM to jump to the instruction next to the instruction 'block', 'block_alt'
     // or the first instruction of the current function,
     // as well as all the operands in the current stack frame will be removed except
     // the operands for the 'target block/function params' are reserved and placed on the top of stack.
@@ -795,7 +795,7 @@ pub enum Opcode {
     //                                                                      \____________________/
     //                                                                           the stack layout
 
-    // the 'recur' instruction can cross over multiple block nested also.
+    // the instruction 'recur' can cross over multiple block nested also.
     //
     // ```bytecode
     // 0d0000 block 0           ;; assumes the block type is '()->(i32,i32)'
@@ -808,38 +808,21 @@ pub enum Opcode {
     // 0d0032 end
     // ```
 
-    block_nez,          // (param type_index:i32, alt_inst_offset:i32)
+    block_alt,          // (param type_index:i32, alt_inst_offset:i32)
 
-    // the 'block_nez' instruction is similar to the 'block', it also creates a new block scope
+    // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
     // but it jumps to the 'alternative instruction' if the operand on the top of stack is
-    // equals to ZERO.
+    // equals to ZERO (logic FALSE).
     //
     // note:
     // 0:i32 and 0:i64 are both treated as logic FALSE and
     // all other i32/i64 non-zero are treated as logic TRUE.
     //
-    // so the 'block_nez' instruction means only executes the instructions that follow the instruction 'block_nez'
+    // so the instruction 'block_alt' means only executes the instructions that follow the instruction 'block_alt'
     // when the logic is TRUE, otherwise, jump to the 'alternative instruction'.
     //
-    // the 'block_nez' instruction is commonly used to construct the 'if' structures
-    // in general programming languages.
-    //
-    // e.g. 1
-    //
-    // ```c
-    // if (i != 0) {
-    //     ...
-    // }
-    // ```
-    //
-    // ```bytecode
-    // 0d0000 block_nez 0 100   ;; -----\
-    // ....                     ;;      |
-    // 0d0100 end               ;; <----/ jump to here when FALSE
-    // ```
-    //
-    // e.g. 2
+    // e.g.
     //
     // ```c
     // if (i != 0) {
@@ -850,24 +833,52 @@ pub enum Opcode {
     // ```
     //
     // ```bytecode
-    //                          ;; the TRUE path    |                          ;;       the FALSE path
-    //                          ;; |                |                          ;;       |
-    // 0d0000 block_nez 0 158   ;; V                | 0d0000 block_nez 0 158   ;;       V jump to 0d0158 when FALSE
-    // 0d0008 ...               ;; |+               | 0d0008 ...               ;;       |-
-    // ;; the 'then' part       ;; |+               | ;; the 'then' part       ;;       |-
-    // 0d0150 return 0 200      ;; \-->--\+         | 0d0150 return 0 200      ;;       |-
-    // 0d0158 ...               ;;       |-         | 0d0158 ...               ;; /--<--/+
-    // ;; the 'else' part       ;;       |-         | ;; the 'else' part       ;; |+
-    // 0d0350 end               ;;       |-         | 0d0350 end               ;; |+
-    // 0d0352 nop               ;; <-----/          | 0d0352 nop               ;; |
+    //                          ;; TRUE             | FALSE
+    //                          ;; |                | |
+    //                          ;; |                | \-->--\
+    // 0d0000 block_alt 0 158   ;; V                |       | jump to 0d0158 when FALSE
+    // 0d0008 ...               ;; |+               |       |-
+    // ;; the 'then' part       ;; |+               |       |-
+    // 0d0150 break 0 200       ;; \-->--\+         |       |-
+    // 0d0158 ...               ;;       |-         | /--<--/+
+    // ;; the 'else' part       ;;       |-         | |+
+    // 0d0350 end               ;;       |-         | |+
+    // 0d0352 nop               ;; <-----/          | |
     // ```
     //
     // (+ => execute, - => pass)
 
-    return_nez,         // (param skip_depth:i16, next_inst_offset:i32)
+    block_nez,          // (param type_index:i32, next_inst_offset:i32)
 
-    // a complete 'for' structure is actually combined with instructions 'block', 'block_nez', 'recur', 'return'
-    // and 'return_nez', e.g.
+    // create a block scope only if the operand on the top of stack is
+    // NOT equals to ZERO (logic TRUE).
+    //
+    // the value of 'next_inst_offset' should be the address of the next instructions
+    // AFTER the instruction 'end'.
+    //
+    // instruction 'block_nez' is commonly used to construct the 'if' structures
+    // in general programming languages.
+    //
+    // e.g
+    //
+    // ```c
+    // if (i != 0) {
+    //     ...
+    // }
+    // ```
+    //
+    // ```bytecode
+    // 0d0000 block_nez 0 100   ;; -----\
+    // ....                     ;;      |
+    // 0d0100 end               ;;      |
+    // 0d0102 nop               ;; <----/ jump to here when FALSE
+    // ```
+    //
+
+    break_nez,          // (param skip_depth:i16, next_inst_offset:i32)
+
+    // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
+    // and 'break_nez', e.g.
     //
     // ```rust
     // let i = loop {
@@ -883,9 +894,9 @@ pub enum Opcode {
     // 0d0000 block 0
     // 0d0008   ...             ;; <-------------\
     //          ...             ;;               |
-    // 0d0100   block_nez 0 28  ;; ----\         |
+    // 0d0100   block_alt 0 28  ;; ----\         |
     // 0d0112     i32.imm 100   ;;     |         |
-    // 0d0120     return 1 88   ;; ----|----\    |
+    // 0d0120     break 1 88    ;; ----|----\    |
     // 0d0128   end             ;; <---/    |    |
     //          ...             ;;          |    |
     // 0d0200   recur 0 192     ;; ---------|----/
@@ -893,7 +904,7 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
     //
-    // the code above can be optimized by instruction 'return_nez', e.g.
+    // the code above can be optimized by instruction 'break_nez', e.g.
     //
     // ```bytecode
     // 0d0000 block 0
@@ -901,7 +912,7 @@ pub enum Opcode {
     //          ...             ;;               |
     // 0d0100   i32.imm 100     ;;               |
     //          ...             ;;               |
-    // 0d0120   return_nez 0 88 ;; ---------\    |
+    // 0d0120   break_nez 0 88  ;; ---------\    |
     // 0d0128   drop            ;;          |    |
     //          ...             ;;          |    |
     // 0d0200   recur 0 192     ;; ---------|----/
@@ -1031,103 +1042,111 @@ pub enum Opcode {
     //
     // branch
     //
-    // | structure         | instruction(s)   |
-    // |-------------------|------------------|
-    // |                   | ..a..            |
-    // | if ..a.. {        | block_nez -\     |
-    // |    ..b..          |   ..b..    |     |
-    // | }                 | end    <---/     |
-    // |-------------------|------------------|
-    // |                   | ..a..            |
-    // | if ..a.. {        | block_nez ---\   |
-    // |    ..b..          |   ..b..      |   |
-    // | } else {          |   return 0   |   |
-    // |    ..c..          |   ..c..  <---/   |
-    // | }                 | end              |
-    // |-------------------|------------------|
-    // |                   | ..a..            |
-    // | if ..a.. {        | block_nez ---\   |
-    // |    ..b..          |   ..b..      |   |
-    // | } else if ..c.. { |   return 0   |   |
-    // |    ..d..          |   ..c..  <---/   |
-    // | } else {          |   block_nez --\  |
-    // |    ..e..          |     ..d..     |  |
-    // | }                 |     return 1  |  |
-    // |                   |     ..e..  <--/  |
-    // | (or switch/case)  |   end            |
-    // |                   | end              |
-    // |                   |                  |
-    // |                   | ------ or ------ |
-    // |                   |                  |
-    // |                   | block            |
-    // |                   |   ..a..          |
-    // |                   |   block_nez -\   |
-    // |                   |     ..b..    |   |
-    // |                   |     return 1 |   |
-    // |                   |   end    <---/   |
-    // |                   |   ..c..          |
-    // |                   |   block_nez -\   |
-    // |                   |     ..d..    |   |
-    // |                   |     return 1 |   |
-    // |                   |   end    <---/   |
-    // |                   |   ..e..          |
-    // |                   | end..            |
-    // |-------------------|------------------|
+    // | structure         | instruction(s)     |
+    // |-------------------|--------------------|
+    // |                   | ..a..              |
+    // | if ..a.. {        | block_nez -\       |
+    // |    ..b..          |   ..b..    |       |
+    // | }                 | end        |       |
+    // |                   | ...    <---/       |
+    // |-------------------|--------------------|
+    // |                   | ..a..              |
+    // | if ..a.. {        | block_alt ---\     |
+    // |    ..b..          |   ..b..      |     |
+    // | } else {          |   break 0  --|-\   |
+    // |    ..c..          |   ..c..  <---/ |   |
+    // | }                 | end            |   |
+    // |                   | ...      <-----/   |
+    // |-------------------|--------------------|
+    // |                   | ..a..              |
+    // | if ..a.. {        | block_alt ---\     |
+    // |    ..b..          |   ..b..      |     |
+    // | } else if ..c.. { |   break 0 ---|--\  |
+    // |    ..d..          |   ..c..  <---/  |  |
+    // | } else {          |   block_alt --\ |  |
+    // |    ..e..          |     ..d..     | |  |
+    // | }                 |     break 1 --|-|  |
+    // |                   |     ..e..  <--/ |  |
+    // | (or switch/case)  |   end           |  |
+    // |                   | end             |  |
+    // |                   | ...        <----/  |
+    // |                   |                    |
+    // |                   | ------- or ------  |
+    // |                   |                    |
+    // |                   | block              | // note:
+    // |                   |   ..a..            | //
+    // |                   |   block_nez -\     | // 'block_nez + x_imm/x_loadx + break N + end'
+    // |                   |     ..b..    |     | // can be optimized as:
+    // |                   |     break 1 -|--\  | // 'x_imm/x_loadx + swap + break_nez N-1 + drop'
+    // |                   |   end        |  |  |
+    // |                   |   ..c..  <---/  |  |
+    // |                   |   block_nez -\  |  |
+    // |                   |     ..d..    |  |  |
+    // |                   |     break 1 -|--|  |
+    // |                   |   end        |  |  |
+    // |                   |   ..e..  <---/  |  |
+    // |                   | end             |  |
+    // |                   | ...        <----/  |
+    // |-------------------|--------------------|
     //
     // loop
     //
-    // | structure         | instructions(s)  |
-    // |-------------------|------------------|
-    // | loop {            | block <----\     |
-    // |    ..a..          |   ..a..    |     |
-    // | }                 |   recur 0 -/     |
-    // |                   | end              |
-    // |-------------------|------------------|
-    // | while ..a.. {     | block            |
-    // |    ..b..          |   ..a..   <----\ |
-    // | }                 |   return_nez 0 | |
-    // |                   |   ..b..        | |
-    // | (or for...)       |   recur 0 -----/ |
-    // |                   | end              |
-    // |-------------------|------------------|
-    // | do {              | block            |
-    // |    ..a..          |   ..a..    <---\ |
-    // | }while(..b..)     |   ..b..        | |
-    // |                   |   recur_nez 0 -/ |
-    // | (or TCO)          | end              |
-    // |-------------------|------------------|
+    // | structure         | instructions(s)    |
+    // |-------------------|--------------------|
+    // | loop {            | block              |
+    // |    ..a..          |   ..a.. <--\       |
+    // | }                 |   recur 0 -/       |
+    // |                   | end                |
+    // |-------------------|--------------------|
+    // | while ..a.. {     | block              |
+    // |    ..b..          |   ..a..   <----\   |
+    // | }                 |   break_nez 0 -|-\ |
+    // |                   |   ..b..        | | |
+    // | (or for...)       |   recur 0 -----/ | |
+    // |                   | end              | |
+    // |                   | ...        <-----/ |
+    // |-------------------|--------------------|
+    // | do {              | block              |
+    // |    ..a..          |   ..a..    <---\   |
+    // | }while(..b..)     |   ..b..        |   |
+    // |                   |   recur_nez 0 -/   |
+    // | (or TCO)          | end                |
+    // |-------------------|--------------------|
     //
     //
     // TCO
     //
-    // | structure         | instructions(s)  |
-    // |-------------------|------------------|
-    // | func foo {        | -- func begin -- |
-    // |    ..a..          |   ..a.. <------\ |
-    // |    if ..b.. {     |   ..b..        | |
-    // |      foo()        |   block_nez -\ | |
-    // |    }              |     recur 1 ---/ |
-    // | }                 |   end    <---/   |
-    // |                   | end              |
-    // |                   |                  |
-    // |                   | ------ or ------ |
-    // |                   |                  |
-    // |                   | -- func begin -- |
-    // |                   |   ..a.. <------\ | 'block_nez + recur 1/return1 + end'
-    // |                   |   ..b..        | | can be optimized as:
-    // |                   |   recur_nez 0 -/ | 'recur_nez 0' and 'return_nez 0'
-    // |                   | end              |
-    // |                   |                  |
-    // |-------------------|------------------|
-    // | func foo {        | -- func begin -- |
-    // |    if ..a.. {     |   ..a.. <------\ |
-    // |       ..b..       |   block_nez -\ | |
-    // |    } else {       |     ..b..    | | |
-    // |       foo()       |     return 0 / | |
-    // |    }              |     recur 1 ---/ |
-    // | }                 |   end            |
-    // |                   |                  |
-    // |-------------------|------------------|
+    // | structure         | instructions(s)    |
+    // |-------------------|--------------------|
+    // | func foo {        | -- func begin --   |
+    // |    ..a..          |   ..a.. <-------\  |
+    // |    if ..b.. {     |   ..b..         |  |
+    // |      foo()        |   block_nez --\ |  |
+    // |    }              |     recur 1 --|-/  |
+    // | }                 |   end         |    |
+    // |                   |   ...    <----/    |
+    // |                   | end                |
+    // |                   |                    |
+    // |                   | ------- or ------- |
+    // |                   |                    | // note:
+    // |                   | -- func begin --   | //
+    // |                   |   ..a.. <-------\  | // 'block_nez + recur 1/break 1 + end'
+    // |                   |   ..b..         |  | // can be optimized as:
+    // |                   |   recur_nez 0 --/  | // 'recur_nez 0' and 'break_nez 0'
+    // |                   | end                |
+    // |                   |                    |
+    // |-------------------|--------------------|
+    // | func foo {        | -- func begin --   |
+    // |    if ..a.. {     |   ..a.. <------\   |
+    // |       ..b..       |   block_alt -\ |   |
+    // |    } else {       |     ..b..    | |   |
+    // |       foo()       |     break 0 -|-|-\ |
+    // |                   |          <---/ | | |
+    // |    }              |     recur 1 ---/ | |
+    // | }                 |   end            | |
+    // |                   |   ...       <----/ |
+    // |                   | end                |
+    // |-------------------|--------------------|
 
     //
     // function
@@ -1220,7 +1239,7 @@ pub enum Opcode {
                             //
                             // note that both 'scall' and 'ccall' are optional instructions, they may be
                             // unavailable in some environment.
-                            // the supported feature list can be obtained through the 'ecall' instruction with code 'features'.
+                            // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
 
     //
     // machine
@@ -1228,7 +1247,7 @@ pub enum Opcode {
 
     nop = 0xb00,        // instruction to do nothing,
                         // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    break_,             // for VM debug
+    debug,             // for VM debug
 
     // MAYBE USELESS
     //

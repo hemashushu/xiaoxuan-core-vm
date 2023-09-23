@@ -10,7 +10,7 @@ impl Opcode {
     pub fn get_name(&self) -> &'static str {
         match self {
             Opcode::nop => "nop",
-            Opcode::break_ => "break",
+            Opcode::debug => "debug",
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
             Opcode::swap => "swap",
@@ -242,10 +242,11 @@ impl Opcode {
             //
             Opcode::end => "end",
             Opcode::block => "block",
-            Opcode::return_ => "return",
+            Opcode::break_ => "break",
             Opcode::recur => "recur",
+            Opcode::block_alt => "block_alt",
             Opcode::block_nez => "block_nez",
-            Opcode::return_nez => "return_nez",
+            Opcode::break_nez => "break_nez",
             Opcode::recur_nez => "recur_nez",
             //
             Opcode::call => "call",
