@@ -406,6 +406,37 @@ impl Default for BytecodeWriter {
     }
 }
 
+pub fn print_bytecodes(codes: &[u8]) -> String {
+    // display the bytecode as the following format:
+    //
+    // 0x0008  00 11 22 33  44 55 66 77
+    // 0x0000  88 99 aa bb  cc dd ee ff
+    //
+    codes
+        .iter()
+        .enumerate()
+        .map(|(idx, data)| {
+            // Rust std format!()
+            // https://doc.rust-lang.org/std/fmt/
+            if idx % 8 == 0 {
+                if idx == 0 {
+                    // first line
+                    format!("0x{:04x}  {:02x}", idx, data)
+                } else {
+                    // new line
+                    format!("\n0x{:04x}  {:02x}", idx, data)
+                }
+            } else if idx % 4 == 0 {
+                // middle
+                format!("  {:02x}", data)
+            } else {
+                format!(" {:02x}", data)
+            }
+        })
+        .collect::<Vec<String>>()
+        .join("")
+}
+
 impl<'a> BytecodeReader<'a> {
     pub fn new(codes: &'a [u8]) -> Self {
         Self { codes, offset: 0 }
@@ -643,15 +674,23 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_div_s
                 | Opcode::i32_div_u
                 | Opcode::i32_rem_s
-                | Opcode::i32_rem_u
-                | Opcode::i64_add
+                | Opcode::i32_rem_u => {}
+                Opcode::i32_inc | Opcode::i32_dec => {
+                    let amount = self.read_param_i16();
+                    line.push_str(&format!("{}", amount));
+                }
+                Opcode::i64_add
                 | Opcode::i64_sub
                 | Opcode::i64_mul
                 | Opcode::i64_div_s
                 | Opcode::i64_div_u
                 | Opcode::i64_rem_s
-                | Opcode::i64_rem_u
-                | Opcode::f32_add
+                | Opcode::i64_rem_u => {}
+                Opcode::i64_inc | Opcode::i64_dec => {
+                    let amount = self.read_param_i16();
+                    line.push_str(&format!("{}", amount));
+                }
+                Opcode::f32_add
                 | Opcode::f32_sub
                 | Opcode::f32_mul
                 | Opcode::f32_div
@@ -770,37 +809,6 @@ impl<'a> BytecodeReader<'a> {
 
         lines.join("\n")
     }
-}
-
-pub fn print_bytecodes(codes: &[u8]) -> String {
-    // display the bytecode as the following format:
-    //
-    // 0x0008  00 11 22 33  44 55 66 77
-    // 0x0000  88 99 aa bb  cc dd ee ff
-    //
-    codes
-        .iter()
-        .enumerate()
-        .map(|(idx, data)| {
-            // Rust std format!()
-            // https://doc.rust-lang.org/std/fmt/
-            if idx % 8 == 0 {
-                if idx == 0 {
-                    // first line
-                    format!("0x{:04x}  {:02x}", idx, data)
-                } else {
-                    // new line
-                    format!("\n0x{:04x}  {:02x}", idx, data)
-                }
-            } else if idx % 4 == 0 {
-                // middle
-                format!("  {:02x}", data)
-            } else {
-                format!(" {:02x}", data)
-            }
-        })
-        .collect::<Vec<String>>()
-        .join("")
 }
 
 /// testing-helper

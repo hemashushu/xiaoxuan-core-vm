@@ -9,13 +9,10 @@ use crate::opcode::Opcode;
 impl Opcode {
     pub fn get_name(&self) -> &'static str {
         match self {
-            Opcode::nop => "nop",
-            Opcode::debug => "debug",
+            Opcode::zero => "zero",
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
             Opcode::swap => "swap",
-            Opcode::zero => "zero",
-            //
             Opcode::i32_imm => "i32_imm",
             Opcode::i64_imm => "i64_imm",
             Opcode::f32_imm => "f32_imm",
@@ -154,6 +151,8 @@ impl Opcode {
             Opcode::i32_div_u => "i32_div_u",
             Opcode::i32_rem_s => "i32_rem_s",
             Opcode::i32_rem_u => "i32_rem_u",
+            Opcode::i32_inc => "i32_inc",
+            Opcode::i32_dec => "i32_dec",
             Opcode::i64_add => "i64_add",
             Opcode::i64_sub => "i64_sub",
             Opcode::i64_mul => "i64_mul",
@@ -161,6 +160,8 @@ impl Opcode {
             Opcode::i64_div_u => "i64_div_u",
             Opcode::i64_rem_s => "i64_rem_s",
             Opcode::i64_rem_u => "i64_rem_u",
+            Opcode::i64_inc => "i64_inc",
+            Opcode::i64_dec => "i64_dec",
             Opcode::f32_add => "f32_add",
             Opcode::f32_sub => "f32_sub",
             Opcode::f32_mul => "f32_mul",
@@ -255,6 +256,8 @@ impl Opcode {
             Opcode::scall => "scall",
             Opcode::ccall => "ccall",
             //
+            Opcode::nop => "nop",
+            Opcode::debug => "debug",
             Opcode::host_addr_local => "host_addr_local",
             Opcode::host_addr_local_long => "host_addr_local_long",
             Opcode::host_addr_data => "host_addr_data",

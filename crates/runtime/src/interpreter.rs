@@ -250,6 +250,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::i32_div_u as usize] = arithmetic::i32_div_u;
     interpreters[Opcode::i32_rem_s as usize] = arithmetic::i32_rem_s;
     interpreters[Opcode::i32_rem_u as usize] = arithmetic::i32_rem_u;
+    interpreters[Opcode::i32_inc as usize] = arithmetic::i32_inc;
+    interpreters[Opcode::i32_dec as usize] = arithmetic::i32_dec;
     interpreters[Opcode::i64_add as usize] = arithmetic::i64_add;
     interpreters[Opcode::i64_sub as usize] = arithmetic::i64_sub;
     interpreters[Opcode::i64_mul as usize] = arithmetic::i64_mul;
@@ -257,6 +259,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::i64_div_u as usize] = arithmetic::i64_div_u;
     interpreters[Opcode::i64_rem_s as usize] = arithmetic::i64_rem_s;
     interpreters[Opcode::i64_rem_u as usize] = arithmetic::i64_rem_u;
+    interpreters[Opcode::i64_inc as usize] = arithmetic::i64_inc;
+    interpreters[Opcode::i64_dec as usize] = arithmetic::i64_dec;
     interpreters[Opcode::f32_add as usize] = arithmetic::f32_add;
     interpreters[Opcode::f32_sub as usize] = arithmetic::f32_sub;
     interpreters[Opcode::f32_mul as usize] = arithmetic::f32_mul;
@@ -405,8 +409,9 @@ pub fn process_function(
     func_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, VMError> {
-    // find the code start address
+    thread.stack.reset();
 
+    // find the code start address
     let (target_module_index, function_internal_index) =
         thread.get_function_internal_index_and_module_index(module_index, func_public_index);
     let (type_index, code_offset, local_variables_allocate_bytes) = thread

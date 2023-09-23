@@ -162,14 +162,14 @@ pub enum Opcode {
     //
     // fundamental
     //
-    zero = 0x100,       // push 0 (i64) onto stack
-    drop,               // drop one operand (the top most operand)
-    duplicate,          // duplicate one operand (the top most operand)
-    swap,               // swap the top two operands
-    i32_imm,            // (param immediate_number:i32)
-    i64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
-    f32_imm,            // (param immediate_number:i32)
-    f64_imm,            // (param immediate_number_low:i32, immediate_number_high:i32)
+    zero = 0x100,               // push 0 (i64) onto stack
+    drop,                       // drop one operand (the top most operand)
+    duplicate,                  // duplicate one operand (the top most operand)
+    swap,                       // swap the top two operands
+    i32_imm,                    // (param immediate_number:i32)
+    i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
+    f32_imm,                    // (param immediate_number:i32)
+    f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
 
     // i32/i64/f32/f64 load/store instructions require the address and offset alignment:
     //
@@ -299,27 +299,18 @@ pub enum Opcode {
     // the latter instructions leave the value of the high part of
     // operand (on the stack) undefined/unpredictable.
 
-    heap_load = 0x400,      // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32,            //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i16_s,      //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i16_u,      //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i8_s,       //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i8_u,       //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load_f64,          // Load f64 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_f32,        // Load f32 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store,             // store heap                       (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store32,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store16,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store8,            //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-
-    //
-    // shared-memory loading and storing
-    // (UNDECIDED)
-    //
-    // share_load = 0x600,     // load
-    // ...
-    // share_store,
-    // ...
+    heap_load = 0x400,          // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32,                //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32_i16_s,          //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32_i16_u,          //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32_i8_s,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32_i8_u,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_store,                 // store heap                       (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_store32,               //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_store16,               //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_store8,                //                                  (param offset_bytes:i16) (operand heap_addr:i64)
 
     //
     // conversion
@@ -342,13 +333,13 @@ pub enum Opcode {
     // convert float to int
     // truncate fractional part
     i32_trunc_f32_s,
-    i32_trunc_f32_u,        // note -x.xx(float) -> 0(int)
+    i32_trunc_f32_u,            // note -x.xx(float) -> 0(int)
     i32_trunc_f64_s,
-    i32_trunc_f64_u,        // note -x.xx(float) -> 0(int)
+    i32_trunc_f64_u,            // note -x.xx(float) -> 0(int)
     i64_trunc_f32_s,
-    i64_trunc_f32_u,        // note -x.xx(float) -> 0(int)
+    i64_trunc_f32_u,            // note -x.xx(float) -> 0(int)
     i64_trunc_f64_s,
-    i64_trunc_f64_u,        // note -x.xx(float) -> 0(int)
+    i64_trunc_f64_u,            // note -x.xx(float) -> 0(int)
 
     // convert int to float
     f32_convert_i32_s,
@@ -420,10 +411,10 @@ pub enum Opcode {
     i32_lt_u,
     i32_gt_s,
     i32_gt_u,
-    i32_le_s,   // redundant
-    i32_le_u,   // redundant
-    i32_ge_s,   // redundant
-    i32_ge_u,   // redundant
+    i32_le_s,                   // redundant
+    i32_le_u,                   // redundant
+    i32_ge_s,                   // redundant
+    i32_ge_u,                   // redundant
 
     i64_eqz,
     i64_nez,
@@ -433,10 +424,10 @@ pub enum Opcode {
     i64_lt_u,
     i64_gt_s,
     i64_gt_u,
-    i64_le_s,   // redundant
-    i64_le_u,   // redundant
-    i64_ge_s,   // redundant
-    i64_ge_u,   // redundant
+    i64_le_s,                   // redundant
+    i64_le_u,                   // redundant
+    i64_ge_s,                   // redundant
+    i64_ge_u,                   // redundant
 
     f32_eq,
     f32_ne,
@@ -461,8 +452,10 @@ pub enum Opcode {
     i32_mul,
     i32_div_s,
     i32_div_u,
-    i32_rem_s, // calculate the remainder
+    i32_rem_s,                  // calculate the remainder
     i32_rem_u,
+    i32_inc,                    // (param amount:i16)
+    i32_dec,                    // (param amount:i16)
 
     // remainder vs modulus
     // --------------------
@@ -532,6 +525,8 @@ pub enum Opcode {
     i64_div_u,
     i64_rem_s,
     i64_rem_u,
+    i64_inc,                    // (param amount:i16)
+    i64_dec,                    // (param amount:i16)
 
     f32_add,
     f32_sub,
@@ -550,18 +545,18 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0x800,    // bitwise AND
-    i32_or,             // bitwise OR
-    i32_xor,            // bitwise XOR
-    i32_not,            // bitwise NOT
-    i32_leading_zeros,  // count leading zeros          (number:i64) -> i32
-    i32_trailing_zeros, // count trailing zeros         (number:i64) -> i32
-    i32_count_ones,     // count the number of ones in the binary representation     (number:i64) -> i32
-    i32_shift_left,     // left shift                   (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_shift_right_s,  // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_shift_right_u,  // logical right shift          (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_rotate_left,    // left rotate                  (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_rotate_right,   // right rotate                 (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_and = 0x800,            // bitwise AND
+    i32_or,                     // bitwise OR
+    i32_xor,                    // bitwise XOR
+    i32_not,                    // bitwise NOT
+    i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
+    i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
+    i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
+    i32_shift_left,             // left shift                   (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_shift_right_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
 
 
     // instruction `i32.shl` example:
@@ -601,14 +596,14 @@ pub enum Opcode {
     i64_or,
     i64_xor,
     i64_not,
-    i64_leading_zeros,  // (number:i64) -> i32
-    i64_trailing_zeros, // (number:i64) -> i32
-    i64_count_ones,     // (number:i64) -> i32
-    i64_shift_left,     // left shift                   (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_shift_right_s,  // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_shift_right_u,  // logical right shift          (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_rotate_left,    // left rotate                  (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_rotate_right,   // right rotate                 (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_leading_zeros,          // (operand number:i64) -> i32
+    i64_trailing_zeros,         // (operand number:i64) -> i32
+    i64_count_ones,             // (operand number:i64) -> i32
+    i64_shift_left,             // left shift                   (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_shift_right_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
 
 
     //
@@ -621,17 +616,17 @@ pub enum Opcode {
     f32_floor,
     f32_round_half_away_from_zero,
     // f32_round_half_to_even,
-    f32_trunc,          // the integer part of x
-    f32_fract,          // the fractional part of  x
-    f32_sqrt,           // sqrt(x)
-    f32_cbrt,           // cbrt(x), the cube root of x
-    f32_pow,            // left^right
-    f32_exp,            // e^x
-    f32_exp2,           // 2^x
-    f32_ln,             // log_e(x)
-    f32_log,            // log_right(left)
-    f32_log2,           // log_2(x)
-    f32_log10,          // log_10(x)
+    f32_trunc,                  // the integer part of x
+    f32_fract,                  // the fractional part of  x
+    f32_sqrt,                   // sqrt(x)
+    f32_cbrt,                   // cbrt(x), the cube root of x
+    f32_pow,                    // left^right
+    f32_exp,                    // e^x
+    f32_exp2,                   // 2^x
+    f32_ln,                     // log_e(x)
+    f32_log,                    // log_right(left)
+    f32_log2,                   // log_2(x)
+    f32_log10,                  // log_10(x)
     f32_sin,
     f32_cos,
     f32_tan,
@@ -676,19 +671,19 @@ pub enum Opcode {
     // control flow
     //
 
-    end = 0xa00,        // finish a block or a function.
+    end = 0xa00,                // finish a block or a function.
     // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
-    block,              // (param type_index:i32)
-                        //
-                        // create a block scope. a block is similar to a function, it also has
-                        // parameters and results, it shares the type with function, so the 'block'
-                        // instruction has a parameter called 'type_index'.
-                        // this instruction leads VM to create a stack frame which is called 'block frame',
-                        // block frame is similar to 'function frame' except it has no local variables.
+    block,                      // (param type_index:i32)
+                                //
+                                // create a block scope. a block is similar to a function, it also has
+                                // parameters and results, it shares the type with function, so the 'block'
+                                // instruction has a parameter called 'type_index'.
+                                // this instruction leads VM to create a stack frame which is called 'block frame',
+                                // block frame is similar to 'function frame' except it has no local variables.
 
-    break_,             // (param skip_depth:i16, next_inst_offset:i32)
+    break_,                     // (param skip_depth:i16, next_inst_offset:i32)
 
     // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
@@ -706,29 +701,29 @@ pub enum Opcode {
     // e.g.
     //
     // ```bytecode
-    // 0d0000 block 0         ;; the size of instruction 'block' is 8 bytes
-    // 0d0008   nop
-    // 0d0010   break 0 14    ;; the size of instruction 'break' is 8 bytes, (14 = 24 - 10) --\
-    // 0d0018   nop           ;;                                                               |
-    // 0d0020   nop           ;;                                                               |
-    // 0d0022 end             ;;                                                               |
-    // 0d0024 nop             ;; <-- jump to here (the instruction that next to the 'end')-----/
+    // 0d0000 block 0           ;; the size of instruction 'block' is 8 bytes
+    // 0d0008   nop             ;;
+    // 0d0010   break 0 14      ;; the size of instruction 'break' is 8 bytes, (14 = 24 - 10) --\
+    // 0d0018   nop             ;;                                                               |
+    // 0d0020   nop             ;;                                                               |
+    // 0d0022 end               ;;                                                               |
+    // 0d0024 nop               ;; <-- jump to here (the instruction that next to the 'end')-----/
     // ```
     //
     // instruction 'break' not only just finish a block or a function, but also
     // brings the operands out of the block or function, e.g.
     //
-    // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
-    // 0d0008   i32.imm 11
-    // 0d0016   i32.imm 13                       | 17                 | -----\ operands '17' and '13' were
-    // 0d0024   i32.imm 17    ;; --------------> | 13                 | -----\ taken out of the block frame
-    // 0d0032   break 0 14    ;; ---\            | 11                 |      |
-    // 0d0040   nop           ;;    |            | [block frame info] |      v
-    // 0d0042   nop           ;;    | jump       | ..                 |    | 17                 |
-    // 0d0044   nop           ;;    |            | [func frame info]  |    | 13                 |
-    // 0d0046   nop           ;;    |            \____________________/    | ..                 |
-    // 0d0048 end             ;;    |               the stack layout       | [func frame info]  |
-    // 0d0050 nop             ;; <--/ -----------------------------------> \____________________/
+    // 0d0000 block 0           ;; assumes the block type is '()->(i32,i32)'
+    // 0d0008   i32.imm 11      ;;
+    // 0d0016   i32.imm 13      ;;                 | 17                 | -----\ operands '17' and '13' were
+    // 0d0024   i32.imm 17      ;; --------------> | 13                 | -----\ taken out of the block frame
+    // 0d0032   break 0 14      ;; ---\            | 11                 |      |
+    // 0d0040   nop             ;;    |            | [block frame info] |      v
+    // 0d0042   nop             ;;    | jump       | ..                 |    | 17                 |
+    // 0d0044   nop             ;;    |            | [func frame info]  |    | 13                 |
+    // 0d0046   nop             ;;    |            \____________________/    | ..                 |
+    // 0d0048 end               ;;    |               the stack layout       | [func frame info]  |
+    // 0d0050 nop               ;; <--/ -----------------------------------> \____________________/
     //                                                                        the stack layout
     //
     // the instruction 'break' can cross over multiple block nested.
@@ -738,16 +733,16 @@ pub enum Opcode {
     // (the amount of the operands is determined by the 'target block type'.
     //
     // ```bytecode
-    // 0d0000 block 0             ;; assumes the block type is '()->(i32,i32,i32)'
-    // 0d0008   block 0           ;; assumes the block type is '()->(i32,i32)'
-    // 0d0016     block 0         ;; assumes the block type is '()->(i32)'
+    // 0d0000 block 0           ;; assumes the block type is '()->(i32,i32,i32)'
+    // 0d0008   block 0         ;; assumes the block type is '()->(i32,i32)'
+    // 0d0016     block 0       ;; assumes the block type is '()->(i32)'
     // 0d0024       nop
-    // 0d0026       break 1 14    ;; (18 = 44 - 26) --------\
-    // 0d0034       nop           ;;                        |
-    // 0d0036     end             ;;                        |
-    // 0d0038     nop             ;;                        |
-    // 0d0040   end               ;;                        | carries operands (i32, i32) and
-    // 0d0042   nop               ;; <----------------------/ jumps to here
+    // 0d0026       break 1 14  ;; (18 = 44 - 26) --------\
+    // 0d0034       nop         ;;                        |
+    // 0d0036     end           ;;                        |
+    // 0d0038     nop           ;;                        |
+    // 0d0040   end             ;;                        | carries operands (i32, i32) and
+    // 0d0042   nop             ;; <----------------------/ jumps to here
     // 0d0044 end
     // ```
 
@@ -767,7 +762,7 @@ pub enum Opcode {
     // after the instruction 'end'.
 
 
-    recur,              // (param skip_depth:i16, start_inst_offset:i32)
+    recur,                      // (param skip_depth:i16, start_inst_offset:i32)
 
     // the instruction 'recur' lets VM to jump to the instruction next to the instruction 'block', 'block_alt'
     // or the first instruction of the current function,
@@ -781,17 +776,17 @@ pub enum Opcode {
     //
     // note that the value of 'start_inst_offset' is a positive number.
     //
-    // 0d0000 block 0         ;; assumes the block type is '()->(i32,i32)'
-    // 0d0008   i32.imm 11    ;; <------\
-    // 0d0016   i32.imm 13    ;;        |         | 17                 | -----\ operands '17' and '13' were
-    // 0d0024   i32.imm 17    ;; ---------------> | 13                 | -----\ taken out of the block frame
-    // 0d0032   nop           ;;        |         | 11                 |      |
-    // 0d0034   nop           ;;        |         | [block frame info] |      v
-    // 0d0036   nop           ;;        |         | ..                 |    | 17                 |
-    // 0d0038   nop           ;;  jump  |         | [func frame info]  |    | 13                 |
-    // 0d0040   recur 0 14    ;; -------/         \____________________/    | [block frame info] |
-    // 0d0048 end             ;;        |            the stack layout       | ..                 |
-    // 0d0050 nop             ;;        \---------------------------------> | [func frame info]  |
+    // 0d0000 block 0           ;; assumes the block type is '()->(i32,i32)'
+    // 0d0008   i32.imm 11      ;; <------\
+    // 0d0016   i32.imm 13      ;;        |         | 17                 | -----\ operands '17' and '13' were
+    // 0d0024   i32.imm 17      ;; ---------------> | 13                 | -----\ taken out of the block frame
+    // 0d0032   nop             ;;        |         | 11                 |      |
+    // 0d0034   nop             ;;        |         | [block frame info] |      v
+    // 0d0036   nop             ;;        |         | ..                 |    | 17                 |
+    // 0d0038   nop             ;;  jump  |         | [func frame info]  |    | 13                 |
+    // 0d0040   recur 0 14      ;; -------/         \____________________/    | [block frame info] |
+    // 0d0048 end               ;;        |            the stack layout       | ..                 |
+    // 0d0050 nop               ;;        \---------------------------------> | [func frame info]  |
     //                                                                      \____________________/
     //                                                                           the stack layout
 
@@ -1124,8 +1119,7 @@ pub enum Opcode {
     // |      foo()        |   block_nez --\ |  |
     // |    }              |     recur 1 --|-/  |
     // | }                 |   end         |    |
-    // |                   |   ...    <----/    |
-    // |                   | end                |
+    // |                   | end      <----/    |
     // |                   |                    |
     // |                   | ------- or ------- |
     // |                   |                    | // note:
@@ -1140,20 +1134,20 @@ pub enum Opcode {
     // |    if ..a.. {     |   ..a.. <------\   |
     // |       ..b..       |   block_alt -\ |   |
     // |    } else {       |     ..b..    | |   |
-    // |       foo()       |     break 0 -|-|-\ |
-    // |                   |          <---/ | | |
+    // |       ..c..       |     break 0 -|-|-\ |
+    // |       foo()       |     ..c.. <--/ | | |
     // |    }              |     recur 1 ---/ | |
     // | }                 |   end            | |
-    // |                   |   ...       <----/ |
-    // |                   | end                |
+    // |                   | end         <----/ |
+    // |                   |                    |
     // |-------------------|--------------------|
 
     //
     // function
     //
 
-    call,                   // general function call            (param func_pub_index:i32)
-    dcall,                  // closure/dynamic function call    (param VOID) (operand func_pub_index:i64)
+    call,                       // general function call            (param func_pub_index:i32)
+    dcall,                      // closure/dynamic function call    (param VOID) (operand func_pub_index:i64)
 
     // note:
     // 'function public index' includes the imported functions, it equals to
@@ -1230,36 +1224,24 @@ pub enum Opcode {
     // )
     // ```
 
-    ecall,                  // environment call                 (param env_func_num:i32)
+    ecall,                      // environment call                 (param env_func_num:i32)
 
-    scall,                  // syscall                          (param sys_call_num:i32)
-                            // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
-                            //
-    ccall,                  // external C function call         (param c_func_index:i32)
-                            //
-                            // note that both 'scall' and 'ccall' are optional instructions, they may be
-                            // unavailable in some environment.
-                            // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
+    scall,                      // syscall                          (param sys_call_num:i32)
+                                // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+                                //
+    ccall,                      // external C function call         (param c_func_index:i32)
+                                //
+                                // note that both 'scall' and 'ccall' are optional instructions, they may be
+                                // unavailable in some environment.
+                                // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
 
     //
     // machine
     //
 
-    nop = 0xb00,        // instruction to do nothing,
-                        // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    debug,             // for VM debug
-
-    // MAYBE USELESS
-    //
-    // sp = 0x0e00,            // get stack pointer
-    // fp,                     // get function stack frame pointer
-    // pc,                     // get program counter (the position of instruction and the current module index)
-                               //
-                               // |            |
-                               // | module idx |
-                               // | inst addr  |
-                               // \------------/
-                               //
+    nop = 0xb00,                // instruction to do nothing,
+                                // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
+    debug,                      // for VM debug
 
     // get the host address of memory
     //
@@ -1276,24 +1258,6 @@ pub enum Opcode {
 
 
     //
-    // atomic
-    //
-    // only available in shared-memory
-    // (UNDECIDED)
-    //
-    //
-    // i32_cas = 0xf00,        // compare and swap     (operand addr:i64, old_for_compare:i32, new_for_set:i32) result 0/1:i32
-                             //
-                             //  |                 |
-                             //  | new_for_set     |
-                             //  | old_for_compare |
-                             //  | addr            |
-                             //  \-----------------/
-                             //
-    // i64_cas,                // compare and swap     (operand addr:i64, old_for_compare:i64, new_for_set:i64) result 0/1:i32
-
-
-    //
     // SIMD
     //
     // ref:
@@ -1303,4 +1267,4 @@ pub enum Opcode {
     // - https://github.com/rust-lang/rfcs/blob/master/text/2325-stable-simd.md
 }
 
-pub const MAX_OPCODE_NUMBER:usize = 0x1000;
+pub const MAX_OPCODE_NUMBER:usize = 0xe00;

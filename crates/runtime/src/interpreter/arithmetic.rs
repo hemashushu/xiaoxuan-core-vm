@@ -50,6 +50,20 @@ pub fn i32_rem_u(thread: &mut Thread) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
+pub fn i32_inc(thread: &mut Thread) -> InterpretResult {
+    let amount = thread.get_param_i16();
+    let value = load_operand_i32_u(thread);
+    store_i32_u(thread, value + amount as u32);
+    InterpretResult::Move(4)
+}
+
+pub fn i32_dec(thread: &mut Thread) -> InterpretResult {
+    let amount = thread.get_param_i16();
+    let value = load_operand_i32_u(thread);
+    store_i32_u(thread, value - amount as u32);
+    InterpretResult::Move(4)
+}
+
 pub fn i64_add(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left + right);
@@ -90,6 +104,20 @@ pub fn i64_rem_u(thread: &mut Thread) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread);
     store_i64_u(thread, left % right);
     InterpretResult::Move(2)
+}
+
+pub fn i64_inc(thread: &mut Thread) -> InterpretResult {
+    let amount = thread.get_param_i16();
+    let value = load_operand_i64_u(thread);
+    store_i64_u(thread, value + amount as u64);
+    InterpretResult::Move(4)
+}
+
+pub fn i64_dec(thread: &mut Thread) -> InterpretResult {
+    let amount = thread.get_param_i16();
+    let value = load_operand_i64_u(thread);
+    store_i64_u(thread, value - amount as u64);
+    InterpretResult::Move(4)
 }
 
 pub fn f32_add(thread: &mut Thread) -> InterpretResult {
@@ -148,6 +176,11 @@ fn load_operands_i32_s(thread: &mut Thread) -> (i32, i32) {
 }
 
 #[inline]
+fn load_operand_i32_u(thread: &mut Thread) -> u32 {
+    thread.stack.pop_i32_u()
+}
+
+#[inline]
 fn load_operands_i32_u(thread: &mut Thread) -> (u32, u32) {
     let right = thread.stack.pop_i32_u();
     let left = thread.stack.pop_i32_u();
@@ -166,6 +199,11 @@ fn load_operands_i64_u(thread: &mut Thread) -> (u64, u64) {
     let right = thread.stack.pop_i64_u();
     let left = thread.stack.pop_i64_u();
     (left, right)
+}
+
+#[inline]
+fn load_operand_i64_u(thread: &mut Thread) -> u64 {
+    thread.stack.pop_i64_u()
 }
 
 #[inline]
@@ -216,7 +254,7 @@ fn store_f64(thread: &mut Thread, v: f64) {
 mod tests {
     use ancvm_binary::{
         load_modules_binary,
-        utils::{build_module_binary_with_single_function, BytecodeWriter},
+        utils::{build_module_binary_with_single_function, BytecodeReader, BytecodeWriter},
     };
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
@@ -239,6 +277,11 @@ mod tests {
         //   - div_u 2 1      -> 20355295 (= 4294967283/211)
         //   - rem_s 1 2      -> 3
         //   - rem_u 2 1      -> 38
+        //
+        //   - inc   0 3      -> 14
+        //   - dec   0 3      -> 8
+        //   - inc   2 3      -> -10
+        //   - dec   2 3      -> -16
 
         // note of the 'remainder':
         // (211 % -13) = 3
@@ -275,7 +318,16 @@ mod tests {
         // 0x0078 local_load32         0 2
         // 0x0080 local_load32         0 1
         // 0x0088 i32_rem_u
-        // 0x008a end
+        // 0x008a nop
+        // 0x008c local_load32         0 0
+        // 0x0094 i32_inc              3
+        // 0x0098 local_load32         0 0
+        // 0x00a0 i32_dec              3
+        // 0x00a4 local_load32         0 2
+        // 0x00ac i32_inc              3
+        // 0x00b0 local_load32         0 2
+        // 0x00b8 i32_dec              3
+        // 0x00bc end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
@@ -301,8 +353,18 @@ mod tests {
             .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
             .write_opcode(Opcode::i32_rem_u)
             //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16(Opcode::i32_inc, 3)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16(Opcode::i32_dec, 3)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 2)
+            .write_opcode_i16(Opcode::i32_inc, 3)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 2)
+            .write_opcode_i16(Opcode::i32_dec, 3)
             .write_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32, DataType::I32], // params
@@ -310,6 +372,11 @@ mod tests {
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                //
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -342,6 +409,11 @@ mod tests {
                 ForeignValue::UInt32(20355295),
                 ForeignValue::UInt32(3),
                 ForeignValue::UInt32(38),
+                //
+                ForeignValue::UInt32(14),
+                ForeignValue::UInt32(8),
+                ForeignValue::UInt32(-10i32 as u32),
+                ForeignValue::UInt32(-16i32 as u32),
             ]
         );
     }
@@ -363,6 +435,11 @@ mod tests {
         //   - div_u 2 1      -> 87425327363552377 (= 18446744073709551603/211)
         //   - rem_s 1 2      -> 3
         //   - rem_u 2 1      -> 56
+        //
+        //   - inc   0 3      -> 14
+        //   - dec   0 3      -> 8
+        //   - inc   2 3      -> -10
+        //   - dec   2 3      -> -16
 
         // note of the 'remainder':
         // (211 % -13) = 3
@@ -399,7 +476,16 @@ mod tests {
         // 0x0078 local_load           0 2
         // 0x0080 local_load           0 1
         // 0x0088 i64_rem_u
-        // 0x008a end
+        // 0x008a nop
+        // 0x008c local_load           0 0
+        // 0x0094 i64_inc              3
+        // 0x0098 local_load           0 0
+        // 0x00a0 i64_dec              3
+        // 0x00a4 local_load           0 2
+        // 0x00ac i64_inc              3
+        // 0x00b0 local_load           0 2
+        // 0x00b8 i64_dec              3
+        // 0x00bc end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::local_load, 0, 0)
@@ -425,10 +511,19 @@ mod tests {
             .write_opcode_i16_i32(Opcode::local_load, 0, 1)
             .write_opcode(Opcode::i64_rem_u)
             //
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16(Opcode::i64_inc, 3)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 0)
+            .write_opcode_i16(Opcode::i64_dec, 3)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i16(Opcode::i64_inc, 3)
+            .write_opcode_i16_i32(Opcode::local_load, 0, 2)
+            .write_opcode_i16(Opcode::i64_dec, 3)
+            //
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", BytecodeReader::new(&code0).to_text());
+        println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I64, DataType::I64, DataType::I64], // params
@@ -436,6 +531,11 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                //
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
@@ -468,6 +568,11 @@ mod tests {
                 ForeignValue::UInt64(87425327363552377),
                 ForeignValue::UInt64(3),
                 ForeignValue::UInt64(56),
+                //
+                ForeignValue::UInt64(14),
+                ForeignValue::UInt64(8),
+                ForeignValue::UInt64(-10i64 as u64),
+                ForeignValue::UInt64(-16i64 as u64),
             ]
         );
     }

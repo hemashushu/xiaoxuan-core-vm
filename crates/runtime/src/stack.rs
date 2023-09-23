@@ -151,6 +151,11 @@ impl Stack {
             fp: 0,
         }
     }
+
+    pub fn reset(&mut self) {
+        self.fp = 0;
+        self.sp = 0;
+    }
 }
 
 impl Memory for Stack {
@@ -543,6 +548,8 @@ impl Stack {
 
         let local_variables_allocate_bytes_without_args =
             local_variables_allocate_bytes as usize - params_count as usize * OPERAND_SIZE_IN_BYTES;
+        // clear the local variables area
+        self.data[self.sp..(self.sp + local_variables_allocate_bytes_without_args)].fill(0);
         self.sp += local_variables_allocate_bytes_without_args;
 
         // restore the arguments from swap
