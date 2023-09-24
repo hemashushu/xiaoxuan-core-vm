@@ -282,7 +282,10 @@ mod tests {
                 ForeignValue::UInt32(29),
             ]
         );
+    }
 
+    #[test]
+    fn test_process_control_block_with_args_and_results() {
         // func () -> (i32, i32, i32, i32)
         //     11
         //     13
@@ -381,7 +384,11 @@ mod tests {
             result0.unwrap(),
             vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13),]
         );
+    }
 
+    #[test]
+    fn test_process_control_break_block() {
+        init_runtime();
         // func () -> (i32, i32, i32, i32)
         //     11
         //     13
@@ -453,7 +460,11 @@ mod tests {
                 ForeignValue::UInt32(37),
             ]
         );
+    }
 
+    #[test]
+    fn test_process_control_break_cross() {
+        init_runtime();
         // cross jump
         //
         // func () -> (i32, i32)
@@ -951,7 +962,7 @@ mod tests {
     fn test_process_control_while() {
         init_runtime();
 
-        // func $acc_traditional (i32) -> (i32)
+        // func $accu (i32) -> (i32)
         //     (local (;0;) $sum i32)
         //     block ()->()
         //         (local_load32 1)
@@ -962,7 +973,7 @@ mod tests {
         //         (local_load32 1)
         //         (i32_add)
         //         (local_store32 0)
-        //         ;; i = i - 1
+        //         ;; n = n - 1
         //         (local_load32 1)
         //         (i32_imm 1)
         //         (i32_sub)
@@ -1043,8 +1054,12 @@ mod tests {
 
         let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
+    }
 
-        // func $acc_functional (i32) -> (i32)
+    #[test]
+    fn test_process_control_while_opti() {
+        init_runtime();
+        // func $accu_optimized (i32) -> (i32)
         //     (zerp)          ;; sum
         //     block (i32)->(i32)
         //         (local_load32 0)
@@ -1053,7 +1068,7 @@ mod tests {
         //         ;; sum + i
         //         (local_load32 0)
         //         (i32_add)
-        //         ;; i = i - 1
+        //         ;; n = n - 1
         //         (local_load32 0)
         //         (i32_dec 1)
         //         (local_store32 1)
@@ -1084,7 +1099,7 @@ mod tests {
         // 0x0048 end
         // 0x004a end
 
-        let code1 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::zero)
             //
             .write_opcode_i32(Opcode::block, 0)
@@ -1107,22 +1122,22 @@ mod tests {
 
         // println!("{}", BytecodeReader::new(&code1).to_text());
 
-        let binary1 = build_module_binary_with_single_function_and_blocks(
+        let binary0 = build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
             vec![DataType::I32], // results
-            code1,
+            code0,
             vec![], // local vars
             vec![],
         );
 
-        let image1 = load_modules_binary(vec![&binary1]).unwrap();
-        let mut thread1 = Thread::new(&image1);
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
 
-        let result2 = process_function(&mut thread1, 0, 0, &vec![ForeignValue::UInt32(10)]);
-        assert_eq!(result2.unwrap(), vec![ForeignValue::UInt32(55)]);
+        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result3 = process_function(&mut thread1, 0, 0, &vec![ForeignValue::UInt32(100)]);
-        assert_eq!(result3.unwrap(), vec![ForeignValue::UInt32(5050)]);
+        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
@@ -1137,7 +1152,7 @@ mod tests {
         //         (local_load32 1)
         //         (i32_add)
         //         (local_store32 0)
-        //         ;; i = i - 1
+        //         ;; n = n - 1
         //         (local_load32 1)
         //         (i32_dec 1)
         //         (local_store32 1)
@@ -1215,6 +1230,297 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
         let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
+    }
+
+    #[test]
+    fn test_process_control_tco() {
+        init_runtime();
+
+        // func $accu (sum:i32, n:i32) -> (i32)
+        //     ;; sum = sum + i
+        //     (local_load32 0)
+        //     (local_load32 1)
+        //     (i32_add)
+        //     (local_store32 0)
+        //     ;; i = i - 1
+        //     (local_load32 1)
+        //     (i32_dec 1)
+        //     (local_store32 1)
+        //     ;;
+        //     (local_load32 1)
+        //     (zero)
+        //     (i32_gt)
+        //     (block_nez 0)
+        //         (local_load32 0)
+        //         (local_load32 1)
+        //         (recur 1)
+        //     end
+        //     (local_load32 0)
+        // end
+        //
+        // assert (0, 10) -> (55)
+        // assert (0, 100) -> (5050)
+
+        // bytecode
+        //
+        // 0x0000 local_load32         0 0
+        // 0x0008 local_load32         0 1
+        // 0x0010 i32_add
+        // 0x0012 nop
+        // 0x0014 local_store32        0 0
+        // 0x001c local_load32         0 1
+        // 0x0024 i32_dec              1
+        // 0x0028 local_store32        0 1
+        // 0x0030 local_load32         0 1
+        // 0x0038 zero
+        // 0x003a i32_gt_u
+        // 0x003c block_nez            0 0x28
+        // 0x0048 local_load32         0 0
+        // 0x0050 local_load32         0 1
+        // 0x0058 recur                1 0x0
+        // 0x0060 end
+        // 0x0062 nop
+        // 0x0064 local_load32         0 0
+        // 0x006c end
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16_i32(Opcode::local_store32, 0, 0)
+            //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16_i32(Opcode::local_store32, 0, 1)
+            //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::zero)
+            .write_opcode(Opcode::i32_gt_u)
+            .write_opcode_i32_i32(Opcode::block_nez, 1, 0x28)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode_i16_i32(Opcode::recur, 1, 0)
+            .write_opcode(Opcode::end)
+            // block end
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32],                // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![],
+            }], // block types
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
+
+        let result1 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+        );
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
+    }
+
+    #[test]
+    fn test_process_control_tco_opti() {
+        init_runtime();
+
+        // func $accu_opti (sum:i32, n:i32) -> (i32)
+        //     ;; sum = sum + i
+        //     (local_load32 0)
+        //     (local_load32 1)
+        //     (i32_add)
+        //     ;; (local_store32 0)
+        //     ;; i = i - 1
+        //     (local_load32 1)
+        //     (i32_dec 1)
+        //     ;; (local_store32 1)
+        //     ;;
+        //     ;; (local_load32 0)
+        //     ;; (local_load32 1)
+        //     ;;
+        //     ;; (local_load32 1)
+        //     (duplicate)
+        //     (zero)
+        //     (i32_gt)
+        //     (recur_nez 0)
+        //     (drop)       ;; drop local 1
+        // end
+        //
+        // assert (0, 10) -> (55)
+        // assert (0, 100) -> (5050)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::i32_add)
+            //.write_opcode_i16_i32(Opcode::local_store32, 0, 0)
+            //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            //.write_opcode_i16_i32(Opcode::local_store32, 0, 1)
+            //
+            //.write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            //.write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            //
+            //.write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::duplicate)
+            .write_opcode(Opcode::zero)
+            .write_opcode(Opcode::i32_gt_u)
+            .write_opcode_i16_i32(Opcode::recur_nez, 0, 0)
+            //
+            .write_opcode(Opcode::drop)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32],                // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![],
+            }], // block types
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
+
+        let result1 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+        );
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
+    }
+
+    #[test]
+    fn test_process_control_tco_branch() {
+        init_runtime();
+
+        // func $accu_opti (sum:i32, n:i32) -> (i32)
+        //     ;;
+        //     (local_load32 1)
+        //     (i32_eqz)
+        //     (block_alt 1)        ;; () -> (i32)
+        //         (local_load32 0)
+        //     (break 0)
+        //         ;; sum = sum + i
+        //         (local_load32 0)
+        //         (local_load32 1)
+        //         (i32_add)
+        //         ;; i = i - 1
+        //         (local_load32 1)
+        //         (i32_dec 1)
+        //         (recur 1)
+        //     end
+        // end
+        //
+        // assert (0, 10) -> (55)
+        // assert (0, 100) -> (5050)
+
+        // bytecode
+        //
+        // 0x0000 local_load32         0 1
+        // 0x0008 i32_eqz
+        // 0x000a nop
+        // 0x000c block_alt            1 0x1c
+        // 0x0018 local_load32         0 0
+        // 0x0020 break                0 0x32
+        // 0x0028 local_load32         0 0
+        // 0x0030 local_load32         0 1
+        // 0x0038 i32_add
+        // 0x003a nop
+        // 0x003c local_load32         0 1
+        // 0x0044 i32_dec              1
+        // 0x0048 recur                1 0x0
+        // 0x0050 end
+        // 0x0052 end
+
+        let code0 = BytecodeWriter::new()
+            //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::i32_eqz)
+            .write_opcode_i32_i32(Opcode::block_alt, 1, 0x1c)
+            // then
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::break_, 0, 0x32)
+            // else
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 0)
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode(Opcode::i32_add)
+            //
+            .write_opcode_i16_i32(Opcode::local_load32, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            //
+            .write_opcode_i16_i32(Opcode::recur, 1, 0)
+            .write_opcode(Opcode::end)
+            // block end
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function_and_blocks(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32],                // results
+            code0,
+            vec![], // local vars
+            vec![TypeEntry {
+                params: vec![],
+                results: vec![DataType::I32],
+            }], // block types
+        );
+
+        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
+
+        let result1 = process_function(
+            &mut thread0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+        );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 }
