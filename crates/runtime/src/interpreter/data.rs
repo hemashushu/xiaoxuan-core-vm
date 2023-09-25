@@ -21,7 +21,11 @@ pub fn data_long_load(thread: &mut Thread) -> InterpretResult {
     do_data_load(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_load(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_load(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -43,7 +47,11 @@ pub fn data_long_load32(thread: &mut Thread) -> InterpretResult {
     do_data_load32(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_load32(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_load32(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let dst_ptr = thread.stack.push_from_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -221,7 +229,11 @@ pub fn data_long_store(thread: &mut Thread) -> InterpretResult {
     do_data_store(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_store(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_store(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -243,7 +255,11 @@ pub fn data_long_store32(thread: &mut Thread) -> InterpretResult {
     do_data_store32(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_store32(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_store32(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -265,7 +281,11 @@ pub fn data_long_store16(thread: &mut Thread) -> InterpretResult {
     do_data_store16(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_store16(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_store16(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -287,7 +307,11 @@ pub fn data_long_store8(thread: &mut Thread) -> InterpretResult {
     do_data_store8(thread, data_public_index as usize, offset_bytes as usize)
 }
 
-fn do_data_store8(thread: &mut Thread, data_public_index: usize, offset_bytes: usize) -> InterpretResult {
+fn do_data_store8(
+    thread: &mut Thread,
+    data_public_index: usize,
+    offset_bytes: usize,
+) -> InterpretResult {
     let src_ptr = thread.stack.pop_to_memory();
     let (datas, _target_module_index, data_internal_index) =
         thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
@@ -403,9 +427,9 @@ mod tests {
             //
             // the arguments f32 and f64 are at the top of stack, they can access directly
             // here test loading the arguments as local variables.
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
@@ -456,11 +480,11 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
-            code0,
             vec![
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i64(),
             ], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -633,7 +657,6 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
-            code0,
             vec![
                 LocalVariableEntry::from_bytes(8, 8),
                 LocalVariableEntry::from_f32(),
@@ -641,6 +664,7 @@ mod tests {
                 LocalVariableEntry::from_i64(),
                 LocalVariableEntry::from_i32(),
             ], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -812,8 +836,8 @@ mod tests {
                 DataType::I32,
                 DataType::I32,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();

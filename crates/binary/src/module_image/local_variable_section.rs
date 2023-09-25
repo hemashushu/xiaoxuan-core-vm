@@ -21,21 +21,22 @@
 //
 // the variable "list" is a table too, the "list" layout:
 //
-//              |-----------------------------------------------------------------------------------------------------------------|
-//  item 0 -->  | var offset 0 (u32) | var actual length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | var actual align 0 (u16) | <-- list
-//  item 1 -->  | var offset 1       | var actual length 1       | mem data type 1      |              | var actual align 1       |
-//              | ...                                                                                                             |
-//              |-----------------------------------------------------------------------------------------------------------------|
+//              |----------------------------------------------------------------------------------------------------------|
+//  item 0 -->  | var offset 0 (u32) | var actual length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | var align 0 (u16) | <-- list
+//  item 1 -->  | var offset 1       | var actual length 1       | mem data type 1      |              | var align 1       |
+//              | ...                                                                                                      |
+//              |----------------------------------------------------------------------------------------------------------|
 //
 // note:
 // - all variables in the 'local variable area' MUST be 8-byte aligned,
-//   and their size are padded to a multiple of 8.
-//   for example, an i32 will be padded to 8 bytes, and a struct which is 12 bytes will
+//   and their size should be padded to a multiple of 8.
+//   for example, an i32 will be padded to 8 bytes, and a struct with 12 bytes will
 //   be padded to 16 (= 8 * 2) bytes.
-//   this is because the current VM allocates 'local variable area' on the stack frame,
+//   this is because the current VM implementation allocates 'local variables area' on the stack frame,
 //   and the stack address is 8-byte aligned.
 // - the local variable list also includes the functions arguments. the compiler will
 //   append arguments to the end of the list as local variables automatically.
+// - both function and block can contain a local variables list.
 
 use std::mem::size_of;
 
@@ -79,26 +80,33 @@ pub struct LocalVariableItem {
     //   this is the actual size, but in the local variable area this struct occurs 8 bytes.
     //
     // note that all variable is allocated with the length (in bytes) of multiple of 8,
-    // for example, an i32 will be padded to 8 bytes, and a struct which is 12 bytes will
+    // for example, an i32 will be padded to 8 bytes, and a struct with 12 bytes will
     // be padded to 16 (= 8 * 2) bytes.
     pub var_actual_length: u32,
 
-    // the data_type field is not necessary at runtime, though it is helpful for debugging.
+    // the memory_data_type field is not necessary at runtime, though it is helpful for debugging.
     pub memory_data_type: MemoryDataType,
 
     _padding0: u8,
 
-    // the var_actual_align field is not necessary either at runtime because the local variable is always
-    // 8-byte aligned, it is only needed when copying data into other memory, such as
-    // copying a struct from data section into heap.
-    pub var_actual_align: u16,
+    // the var_align field is not necessary for local variables loading and storing,
+    // because the local variable is always 8-byte aligned,
+    // it is only needed when copying data into other memory, such as
+    // copying a struct from local variables area into heap.
+    pub var_align: u16,
 }
 
-// one function one VariableListEntry
-// #[derive(Debug, PartialEq)]
-// pub struct VariableListEntry {
-//     pub variables: Vec<VariableItemEntry>,
-// }
+// both function and block can contains a 'local variables list'
+#[derive(Debug, PartialEq, Clone)]
+pub struct LocalVariableListEntry {
+    pub variables: Vec<LocalVariableEntry>,
+}
+
+impl LocalVariableListEntry {
+    pub fn new(variables: Vec<LocalVariableEntry>) -> Self {
+        Self { variables }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalVariableEntry {
@@ -166,14 +174,14 @@ impl LocalVariableItem {
         var_offset: u32,
         var_actual_length: u32,
         data_type: MemoryDataType,
-        var_actual_align: u16,
+        var_align: u16,
     ) -> Self {
         Self {
             var_offset,
             var_actual_length,
             memory_data_type: data_type,
             _padding0: 0,
-            var_actual_align,
+            var_align,
         }
     }
 }
@@ -215,33 +223,34 @@ impl<'a> LocalVariableSection<'a> {
     }
 
     pub fn convert_from_entries(
-        entiress: &[&[LocalVariableEntry]],
+        entiress: &[LocalVariableListEntry],
     ) -> (Vec<LocalVariableList>, Vec<u8>) {
         let var_item_length_in_bytes = size_of::<LocalVariableItem>();
 
         // generate a list of (list, list_allocate_bytes)
         let list_with_allocate_bytes = entiress
             .iter()
-            .map(|entries| {
+            .map(|list_entry| {
                 // a function contains a variable list
                 // a list contains several entries
 
                 // the offset in the list
                 let mut next_offset: u32 = 0;
 
-                let items = entries
+                let items = list_entry
+                    .variables
                     .iter()
-                    .map(|entry| {
+                    .map(|var_entry| {
                         let item = LocalVariableItem::new(
                             next_offset,
-                            entry.length,
-                            entry.memory_data_type,
-                            entry.align,
+                            var_entry.length,
+                            var_entry.memory_data_type,
+                            var_entry.align,
                         );
 
                         // pad the length of variable/data to the multiple of 8
                         let padding = {
-                            let remainder = entry.length % OPERAND_SIZE_IN_BYTES as u32; // remainder
+                            let remainder = var_entry.length % OPERAND_SIZE_IN_BYTES as u32; // remainder
                             if remainder != 0 {
                                 OPERAND_SIZE_IN_BYTES as u32 - remainder
                             } else {
@@ -249,7 +258,7 @@ impl<'a> LocalVariableSection<'a> {
                             }
                         };
 
-                        let var_allocated_in_bytes = entry.length + padding;
+                        let var_allocated_in_bytes = var_entry.length + padding;
                         next_offset += var_allocated_in_bytes;
                         item
                     })
@@ -307,7 +316,7 @@ mod tests {
     use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
-        local_variable_section::{LocalVariableItem, LocalVariableList},
+        local_variable_section::{LocalVariableItem, LocalVariableList, LocalVariableListEntry},
         SectionEntry,
     };
 
@@ -315,32 +324,35 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut entires: Vec<Vec<LocalVariableEntry>> = Vec::new();
+        let mut entries: Vec<LocalVariableListEntry> = Vec::new();
 
-        entires.push(vec![
+        entries.push(LocalVariableListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_i64(),
             LocalVariableEntry::from_f32(),
             LocalVariableEntry::from_f64(),
-        ]);
+        ]));
 
-        entires.push(vec![
+        entries.push(LocalVariableListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_bytes(1, 2),
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_bytes(6, 12),
             LocalVariableEntry::from_bytes(12, 16),
             LocalVariableEntry::from_i32(),
-        ]);
+        ]));
 
-        entires.push(vec![]);
-        entires.push(vec![LocalVariableEntry::from_bytes(1, 4)]);
-        entires.push(vec![]);
-        entires.push(vec![]);
-        entires.push(vec![LocalVariableEntry::from_i32()]);
+        entries.push(LocalVariableListEntry::new(vec![]));
+        entries.push(LocalVariableListEntry::new(vec![
+            LocalVariableEntry::from_bytes(1, 4),
+        ]));
+        entries.push(LocalVariableListEntry::new(vec![]));
+        entries.push(LocalVariableListEntry::new(vec![]));
+        entries.push(LocalVariableListEntry::new(vec![
+            LocalVariableEntry::from_i32(),
+        ]));
 
-        let entries_ref = entires.iter().map(|e| &e[..]).collect::<Vec<_>>();
-        let (lists, list_data) = LocalVariableSection::convert_from_entries(&entries_ref);
+        let (lists, list_data) = LocalVariableSection::convert_from_entries(&entries);
 
         let section = LocalVariableSection {
             lists: &lists,

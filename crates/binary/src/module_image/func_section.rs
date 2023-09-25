@@ -6,17 +6,17 @@
 
 // "function section" binary layout
 //
-//              |----------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                           |
-//              |----------------------------------------------------------------|
-//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | type index 0 (u32) |  <-- table
-//   item 1 --> | code offset 1       | code length 1       | type index 1       |
-//              | ...                                                            |
-//              |----------------------------------------------------------------|
-// offset 0 --> | code 0                                                         | <-- data area
-// offset 1 --> | code 1                                                         |
-//              | ...                                                            |
-//              |----------------------------------------------------------------|
+//              |--------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                 |
+//              |--------------------------------------------------------------------------------------|
+//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | type index 0 (u32) | local index 0 (u32) |  <-- table
+//   item 1 --> | code offset 1       | code length 1       | type index 1       | local index 1       |
+//              | ...                                                                                  |
+//              |--------------------------------------------------------------------------------------|
+// offset 0 --> | code 0                                                                               | <-- data area
+// offset 1 --> | code 1                                                                               |
+//              | ...                                                                                  |
+//              |--------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -33,12 +33,14 @@ pub struct FuncSection<'a> {
 pub struct FuncItem {
     pub code_offset: u32, // the offset of the code in data area
     pub code_length: u32, // the length (in bytes) of the code in data area
-    pub type_index: u32,
+    pub type_index: u32,  // the index of the type (of function)
+    pub local_index: u32, // the index of the 'local variables list'
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FuncEntry {
     pub type_index: usize,
+    pub local_index: usize,
     pub code: Vec<u8>,
 }
 
@@ -68,6 +70,7 @@ impl<'a> FuncSection<'a> {
 
         FuncEntry {
             type_index: item.type_index as usize,
+            local_index: item.local_index as usize,
             code: code_data.to_vec(),
         }
     }
@@ -87,7 +90,12 @@ impl<'a> FuncSection<'a> {
                 let code_offset = next_offset;
                 let code_length = entry.code.len() as u32;
                 next_offset += code_length; // for next offset
-                FuncItem::new(code_offset, code_length, entry.type_index as u32)
+                FuncItem::new(
+                    code_offset,
+                    code_length,
+                    entry.type_index as u32,
+                    entry.local_index as u32,
+                )
             })
             .collect::<Vec<FuncItem>>();
 
@@ -101,11 +109,12 @@ impl<'a> FuncSection<'a> {
 }
 
 impl FuncItem {
-    pub fn new(code_offset: u32, code_length: u32, type_index: u32) -> Self {
+    pub fn new(code_offset: u32, code_length: u32, type_index: u32, local_index: u32) -> Self {
         Self {
             code_offset,
             code_length,
             type_index,
+            local_index,
         }
     }
 }
@@ -125,11 +134,13 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, 0, 0, // func type
+            7, 0, 0, 0, // func type index
+            11, 0, 0, 0, // local variable list index
             //
-            11, 0, 0, 0, // code offset (item 1)
-            13, 0, 0, 0, // code length
-            17, 0, 0, 0, // func type
+            13, 0, 0, 0, // code offset (item 1)
+            17, 0, 0, 0, // code length
+            19, 0, 0, 0, // func type index
+            23, 0, 0, 0, // local variable list index
         ];
 
         section_data.extend_from_slice(b"hello0123456789a");
@@ -137,8 +148,8 @@ mod tests {
         let section = FuncSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
-        assert_eq!(section.items[0], FuncItem::new(3, 5, 7,));
-        assert_eq!(section.items[1], FuncItem::new(11, 13, 17,));
+        assert_eq!(section.items[0], FuncItem::new(3, 5, 7, 11));
+        assert_eq!(section.items[1], FuncItem::new(13, 17, 19, 23));
         assert_eq!(section.codes_data, b"hello0123456789a")
     }
 
@@ -146,8 +157,8 @@ mod tests {
     fn test_save_section() {
         let mut items: Vec<FuncItem> = Vec::new();
 
-        items.push(FuncItem::new(3, 5, 7));
-        items.push(FuncItem::new(11, 13, 17));
+        items.push(FuncItem::new(3, 5, 7, 11));
+        items.push(FuncItem::new(13, 17, 19, 23));
 
         let section = FuncSection {
             items: &items,
@@ -163,11 +174,13 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, 0, 0, // func type
+            7, 0, 0, 0, // func type index
+            11, 0, 0, 0, // local variable list index
             //
-            11, 0, 0, 0, // code offset  (item 1)
-            13, 0, 0, 0, // code length
-            17, 0, 0, 0, // func type
+            13, 0, 0, 0, // code offset (item 1)
+            17, 0, 0, 0, // code length
+            19, 0, 0, 0, // func type index
+            23, 0, 0, 0, // local variable list index
         ];
 
         expect_data.extend_from_slice(b"hello0123456789a");
@@ -184,11 +197,13 @@ mod tests {
 
         entries.push(FuncEntry {
             type_index: 7,
+            local_index: 9,
             code: code0.clone(),
         });
 
         entries.push(FuncEntry {
-            type_index: 9,
+            type_index: 11,
+            local_index: 13,
             code: code1.clone(),
         });
 
@@ -202,6 +217,7 @@ mod tests {
             section.get_entry(0),
             FuncEntry {
                 type_index: 7,
+                local_index: 9,
                 code: code0
             }
         );
@@ -209,7 +225,8 @@ mod tests {
         assert_eq!(
             section.get_entry(1),
             FuncEntry {
-                type_index: 9,
+                type_index: 11,
+                local_index: 13,
                 code: code1
             }
         );

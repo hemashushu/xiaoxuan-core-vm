@@ -6,7 +6,7 @@
 
 use std::sync::Mutex;
 
-use ancvm_binary::utils::print_bytecodes;
+use ancvm_binary::utils::format_bytecodes;
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
     ForeignValue,
@@ -62,7 +62,7 @@ fn unreachable(thread: &mut Thread) -> InterpretResult {
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
-    let code_text = print_bytecodes(codes);
+    let code_text = format_bytecodes(codes);
 
     unreachable!(
         "Invalid opcode: 0x{:04x}
@@ -414,8 +414,8 @@ pub fn process_function(
     // find the code start address
     let (target_module_index, function_internal_index) =
         thread.get_function_internal_index_and_module_index(module_index, func_public_index);
-    let (type_index, code_offset, local_variables_allocate_bytes) = thread
-        .get_function_type_and_code_offset_and_local_variables_allocate_bytes(
+    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) = thread
+        .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
             target_module_index,
             function_internal_index,
         );
@@ -436,11 +436,12 @@ pub fn process_function(
     thread.push_values(arguments);
 
     // create function statck frame
-    thread.stack.create_function_frame(
+    thread.stack.create_frame(
         type_entry.params.len() as u16,
         type_entry.results.len() as u16,
+        local_variables_list_index as u32,
         local_variables_allocate_bytes,
-        ProgramCounter {
+        Some(ProgramCounter {
             // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
             //
             // the function stack frame is created only by 'call' instruction or
@@ -451,7 +452,7 @@ pub fn process_function(
             instruction_address: 0,
             function_internal_index: 0,
             module_index: 0,
-        },
+        }),
     );
 
     // set new PC

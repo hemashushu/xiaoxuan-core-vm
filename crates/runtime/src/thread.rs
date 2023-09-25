@@ -224,56 +224,64 @@ impl<'a> Thread<'a> {
             [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
         let func_index_item = &func_index_items[function_public_index];
 
-        let target_module_index = func_index_item.target_module_index;
-        let function_internal_index = func_index_item.function_internal_index;
-        (
-            target_module_index as usize,
-            function_internal_index as usize,
-        )
+        let target_module_index = func_index_item.target_module_index as usize;
+        let function_internal_index = func_index_item.function_internal_index as usize;
+        (target_module_index, function_internal_index)
     }
 
     /// return:
-    /// (type_index, code_offset, local_variables_allocate_bytes)
-    pub fn get_function_type_and_code_offset_and_local_variables_allocate_bytes(
+    /// (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes)
+    pub fn get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
         &self,
         module_index: usize,
         function_internal_index: usize,
-    ) -> (usize, usize, u32) {
+    ) -> (usize, usize, usize, u32) {
         let func_item =
             &self.context.modules[module_index].func_section.items[function_internal_index];
 
-        let type_index = func_item.type_index;
-        let code_offset = func_item.code_offset;
+        let type_index = func_item.type_index as usize;
+        let local_index = func_item.local_index as usize;
+        let code_offset = func_item.code_offset as usize;
 
         let local_variables_allocate_bytes = self.context.modules[module_index]
             .local_variable_section
-            .lists[function_internal_index]
+            .lists[local_index]
             .list_allocate_bytes;
 
         (
-            type_index as usize,
-            code_offset as usize,
+            type_index,
+            local_index,
+            code_offset,
             local_variables_allocate_bytes,
         )
     }
 
-    pub fn get_current_function_local_variable_address_by_index_and_offset(
+    pub fn get_local_variable_address_by_index_and_offset(
         &self,
+        reversed_index: u16,
         local_variable_index: usize,
         offset_bytes: usize,
     ) -> usize {
         // get the local variable info
         let ProgramCounter {
             instruction_address: _,
-            function_internal_index,
+            function_internal_index: _,
             module_index,
         } = self.pc;
 
+        let (fp, list_index) = {
+            let frame_pack = self.stack.get_frame_pack(reversed_index);
+            (
+                frame_pack.address,
+                frame_pack.frame_info.local_variables_list_index,
+            )
+        };
+
         let variable_item = &self.context.modules[module_index]
             .local_variable_section
-            .get_variable_list(function_internal_index)[local_variable_index];
+            .get_variable_list(list_index as usize)[local_variable_index];
 
-        let local_start_address = self.stack.get_local_variables_start_address();
+        let local_start_address = self.stack.get_frame_local_variables_start_address(fp);
         local_start_address + variable_item.var_offset as usize + offset_bytes
     }
 
@@ -318,6 +326,19 @@ impl<'a> Thread<'a> {
         }
     }
 
+    /// 64 bits instruction
+    /// [opcode + i16 + i16 + i16]
+    pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
+        let data = self.get_instruction(2, 6);
+
+        unsafe {
+            let p0 = std::ptr::read(data.as_ptr() as *const u16);
+            let p1 = std::ptr::read(data[2..4].as_ptr() as *const u16);
+            let p2 = std::ptr::read(data[4..].as_ptr() as *const u16);
+            (p0, p1, p2)
+        }
+    }
+
     /// 96 bits instruction
     /// [opcode + padding + i32 + i32]
     pub fn get_param_i32_i32(&self) -> (u32, u32) {
@@ -327,6 +348,19 @@ impl<'a> Thread<'a> {
             let p0 = std::ptr::read(data.as_ptr() as *const u32);
             let p1 = std::ptr::read(data[4..].as_ptr() as *const u32);
             (p0, p1)
+        }
+    }
+
+    /// 128 bits instruction
+    /// [opcode + padding + i32 + i32 + i32]
+    pub fn get_param_i32_i32_i32(&self) -> (u32, u32, u32) {
+        let data = self.get_instruction(4, 12);
+
+        unsafe {
+            let p0 = std::ptr::read(data.as_ptr() as *const u32);
+            let p1 = std::ptr::read(data[4..8].as_ptr() as *const u32);
+            let p2 = std::ptr::read(data[8..].as_ptr() as *const u32);
+            (p0, p1, p2)
         }
     }
 
@@ -386,8 +420,8 @@ mod tests {
             ],
             vec![DataType::I32, DataType::I32],
             vec![DataType::I64],
-            vec![0u8],
             vec![LocalVariableEntry::from_i32()],
+            vec![0u8],
         );
 
         let binaries = vec![&binary[..]];

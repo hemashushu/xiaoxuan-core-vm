@@ -127,23 +127,33 @@
 //   instructions with 1 parameter, such as `heap_load`, `heap_store`.
 //   16 bits opcode + 16 bits parameter
 // - 64 bits:
-//   instructions with 1 parameter, such as `i32_imm`, `f32_imm`, `block`, `call`.
-//   16 bits opcode + 16 bits padding + 32 bits parameter (4-byte alignment require)
+//   instructions with 1 parameter, such as `i32_imm`, `f32_imm`, `call`.
+//   16 bits opcode + 16 bits padding + 32 bits parameter (ALIGN 4-byte alignment require)
 // - 64 bits:
-//   instructions with 2 parameters, such as `local_load`, `data_load`, `break`, `recur`.
-//   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
+//   instructions with 2 parameters, such as `data_load`, `break`, `recur`.
+//   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (ALIGN 4-byte alignment require)
+// - 64 bits:
+//   instructions with 3 parameter, such as `local_load`, `local_store`
+//   16 bits opcode + 16 bits parameter 1 + 16 bits parameter 2 + 16 bits parameter 3
 // - 96 bits
-//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`, `block_alt`, 'block_nez'.
-//   (only these 4 instructions currently are 96 bits)
-//   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (4-byte alignment require)
-//
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`. `block`
+//   (only these instructions currently are 96 bits)
+//   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (ALIGN 4-byte alignment require)
+// - 128 bits
+//   instructions with 3 parameters, such as `block_alt`, 'block_nez'.
+//   (only these instructions currently are 96 bits)
+//   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 + 32 bits parameter 2 (ALIGN 4-byte alignment require)
+
+
 // the simplified schemes:
 //
-// - [opcode i16]
-// - [opcode i16] - [param i16      ]
-// - [opcode i16] - [param i16      ] + [param i32]
-// - [opcode i16] - [padding 16 bits] + [param i32]
-// - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
+// - [opcode i16]                                                                               ;; 16-bit
+// - [opcode i16] - [param i16    ]                                                             ;; 32-bit
+// - [opcode i16] - [pading 16-bit] + [param i32              ]                                 ;; 64-bit
+// - [opcode i16] - [param i16    ] + [param i32              ]                                 ;; 64-bit
+// - [opcode i16] - [param i16    ] + [param i16] + [param i16]                                 ;; 64-bit
+// - [opcode i16] - [pading 16-bit] + [param i32              ] + [param i32]                   ;; 96-bit
+// - [opcode i16] - [pading 16-bit] + [param i32              ] + [param i32] + [param i32]     ;; 128-bit
 //
 // the opcode scheme:
 //
@@ -216,31 +226,31 @@ pub enum Opcode {
     // guarantee that this feature will always be available, so for general programs, use the
     // stable method of accessing the arguments, i.e. the index.
 
-    local_load = 0x200,         // load local variable              (param offset_bytes:i16 local_variable_index:i32)
-    local_load32,               //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load32_i16_s,         //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load32_i16_u,         //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load32_i8_s,          //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load32_i8_u,          //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_load_f64,             // Load f64 with floating-point validity check.     (param offset_bytes:i16 local_variable_index:i32)
-    local_load32_f32,           // Load f32 with floating-point validity check.     (param offset_bytes:i16 local_variable_index:i32)
-    local_store,                // store local variable             (param offset_bytes:i16 local_variable_index:i32)
-    local_store32,              //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_store16,              //                                  (param offset_bytes:i16 local_variable_index:i32)
-    local_store8,               //                                  (param offset_bytes:i16 local_variable_index:i32)
+    local_load = 0x200,         // load local variable              (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32,               //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32_i16_s,         //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32_i16_u,         //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32_i8_s,          //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32_i8_u,          //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load_f64,             // Load f64 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load32_f32,           // Load f32 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_store,                // store local variable             (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_store32,              //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_store16,              //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_store8,               //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
 
-    local_long_load = 0x280,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32,          //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i16_s,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i16_u,    //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i8_s,     //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i8_u,     //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load_f64,        //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_f32,      //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store,           //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store32,         //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store16,         //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store8,          //                                  (param local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load = 0x280,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32,          //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32_i16_s,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32_i16_u,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32_i8_s,     //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32_i8_u,     //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load_f64,        //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load32_f32,      //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_store,           //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_store32,         //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_store16,         //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_store8,          //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
 
     // note:
     // - there are 2 sets of local load/store instructions, one set is the
@@ -675,7 +685,7 @@ pub enum Opcode {
     // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
-    block,                      // (param type_index:i32)
+    block,                      // (param type_index:i32, local_index:i32)
                                 //
                                 // create a block scope. a block is similar to a function, it also has
                                 // parameters and results, it shares the type with function, so the 'block'
@@ -683,7 +693,7 @@ pub enum Opcode {
                                 // this instruction leads VM to create a stack frame which is called 'block frame',
                                 // block frame is similar to 'function frame' except it has no local variables.
 
-    break_,                     // (param skip_depth:i16, next_inst_offset:i32)
+    break_,                     // (param reversed_index:i16, next_inst_offset:i32)
 
     // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
@@ -727,7 +737,7 @@ pub enum Opcode {
     //                                                                        the stack layout
     //
     // the instruction 'break' can cross over multiple block nested.
-    // when the parameter 'skip_depth' is 0, it simply finish the current block.
+    // when the parameter 'reversed_index' is 0, it simply finish the current block.
     // when the value is greater than 0, multiple block stack frame will be removed,
     // as well as the operands will be taken out of the block.
     // (the amount of the operands is determined by the 'target block type'.
@@ -762,7 +772,7 @@ pub enum Opcode {
     // after the instruction 'end'.
 
 
-    recur,                      // (param skip_depth:i16, start_inst_offset:i32)
+    recur,                      // (param reversed_index:i16, start_inst_offset:i32)
 
     // the instruction 'recur' lets VM to jump to the instruction next to the instruction 'block', 'block_alt'
     // or the first instruction of the current function,
@@ -803,7 +813,7 @@ pub enum Opcode {
     // 0d0032 end
     // ```
 
-    block_alt,          // (param type_index:i32, alt_inst_offset:i32)
+    block_alt,          // (param type_index:i32, local_index:i32, alt_inst_offset:i32)
 
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
@@ -843,7 +853,7 @@ pub enum Opcode {
     //
     // (+ => execute, - => pass)
 
-    block_nez,          // (param type_index:i32, next_inst_offset:i32)
+    block_nez,          // (param type_index:i32, local_index:i32, next_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is
     // NOT equals to ZERO (logic TRUE).
@@ -870,7 +880,7 @@ pub enum Opcode {
     // ```
     //
 
-    break_nez,          // (param skip_depth:i16, next_inst_offset:i32)
+    break_nez,          // (param reversed_index:i16, next_inst_offset:i32)
 
     // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
     // and 'break_nez', e.g.
@@ -915,7 +925,7 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
 
-    recur_nez,          // (param skip_depth:i16, start_inst_offset:i32)
+    recur_nez,          // (param reversed_index:i16, start_inst_offset:i32)
 
     // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
     // all local variables will be reset to 0.
@@ -1147,7 +1157,7 @@ pub enum Opcode {
     //
 
     call,                       // general function call            (param func_pub_index:i32)
-    dcall,                      // closure/dynamic function call    (param VOID) (operand func_pub_index:i64)
+    dcall,                      // closure/dynamic function call    (operand func_pub_index:i64)
 
     // note:
     // 'function public index' includes the imported functions, it equals to
@@ -1247,11 +1257,11 @@ pub enum Opcode {
     //
     // it is currently assumed that the target architecture is 64-bit.
 
-    host_addr_local,            // (param offset_bytes:i16 local_variable_index:i32)
+    host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
                                 // note that the host address only valid in the current function and
                                 // in its sub-functions. when a function exited, the function stack frame
                                 // will be destroied (or modified), as well as the local variables.
-    host_addr_local_long,       // (param local_variable_index:i32) (operand offset_bytes:i32)
+    host_addr_local_long,       // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     host_addr_data,             // (param offset_bytes:i16 data_public_index:i32)
     host_addr_data_long,        // (param data_public_index:i32) (operand offset_bytes:i32)
     host_addr_heap,             // (param offset_bytes:i16) (operand heap_addr:i64)

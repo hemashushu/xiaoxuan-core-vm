@@ -97,10 +97,10 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32], // params
+            vec![DataType::I32],                // params
             vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
             code0,
-            vec![], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -125,9 +125,9 @@ mod tests {
 
         let binary1 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![DataType::I32],                // results
+            vec![],                             // local vars
             code1,
-            vec![], // local vars
         );
 
         let image1 = load_modules_binary(vec![&binary1]).unwrap();
@@ -153,10 +153,10 @@ mod tests {
             .to_bytes();
 
         let binary2 = build_module_binary_with_single_function(
-            vec![DataType::I32], // params
+            vec![DataType::I32],                // params
             vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
             code2,
-            vec![], // local vars
         );
 
         let image2 = load_modules_binary(vec![&binary2]).unwrap();
@@ -183,8 +183,8 @@ mod tests {
         let binary3 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
             vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
             code3,
-            vec![], // local vars
         );
 
         let image3 = load_modules_binary(vec![&binary3]).unwrap();
@@ -223,10 +223,10 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![], // params
+            vec![],                                                           // params
             vec![DataType::I32, DataType::I64, DataType::I32, DataType::I64], // results
+            vec![],                                                           // local vars
             code0,
-            vec![], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -261,10 +261,10 @@ mod tests {
             .to_bytes();
 
         let binary1 = build_module_binary_with_single_function(
-            vec![], // params
+            vec![],                                                           // params
             vec![DataType::F32, DataType::F64, DataType::F32, DataType::F64], // results
+            vec![],                                                           // local vars
             code1,
-            vec![], // local vars
         );
 
         let image1 = load_modules_binary(vec![&binary1]).unwrap();

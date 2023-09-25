@@ -19,24 +19,36 @@ pub fn debug(_thread: &mut Thread) -> InterpretResult {
 }
 
 pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
-    // (param offset_bytes:i16 local_variable_index:i32)
-    let (offset_bytes, local_variable_index) = thread.get_param_i16_i32();
-    do_host_addr_local(thread, local_variable_index as usize, offset_bytes as usize)
+    // (param offset_bytes:i16 reversed_index:i16 local_variable_index:i16)
+    let (offset_bytes, reversed_index, local_variable_index) = thread.get_param_i16_i16_i16();
+    do_host_addr_local(
+        thread,
+        reversed_index,
+        local_variable_index as usize,
+        offset_bytes as usize,
+    )
 }
 
 pub fn host_addr_local_long(thread: &mut Thread) -> InterpretResult {
-    // (param local_variable_index:i32) (operand offset_bytes:i32)
-    let local_variable_index = thread.get_param_i32();
+    // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
     let offset_bytes = thread.stack.pop_i32_u();
-    do_host_addr_local(thread, local_variable_index as usize, offset_bytes as usize)
+    do_host_addr_local(
+        thread,
+        reversed_index,
+        local_variable_index as usize,
+        offset_bytes as usize,
+    )
 }
 
 fn do_host_addr_local(
     thread: &mut Thread,
+    reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let final_offset = thread.get_current_function_local_variable_address_by_index_and_offset(
+    let final_offset = thread.get_local_variable_address_by_index_and_offset(
+        reversed_index,
         local_variable_index,
         offset_bytes,
     );
@@ -134,8 +146,8 @@ mod tests {
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
             vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
             code0,
-            vec![], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -205,17 +217,17 @@ mod tests {
         // 0x0034 i64_imm              0x29 0x0
         // 0x0040 data_store           0 5
         // 0x0048 i32_imm              0x31
-        // 0x0050 local_store32        0 1
+        // 0x0050 local_store32        0 0 1
         // 0x0058 i32_imm              0x37
-        // 0x0060 local_store32        0 2
+        // 0x0060 local_store32        0 0 2
         // 0x0068 host_addr_data       0 0
         // 0x0070 host_addr_data       0 1
         // 0x0078 host_addr_data       0 2
         // 0x0080 host_addr_data       0 3
         // 0x0088 host_addr_data       0 4
         // 0x0090 host_addr_data       0 5
-        // 0x0098 host_addr_local      0 1
-        // 0x00a0 host_addr_local      0 2
+        // 0x0098 host_addr_local      0 0 1
+        // 0x00a0 host_addr_local      0 0 2
         // 0x00a8 end
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
@@ -234,9 +246,9 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store, 0, 5)
             //
             .write_opcode_i32(Opcode::i32_imm, 0x31)
-            .write_opcode_i16_i32(Opcode::local_store32, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             .write_opcode_i32(Opcode::i32_imm, 0x37)
-            .write_opcode_i16_i32(Opcode::local_store32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             //
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 1)
@@ -245,11 +257,13 @@ mod tests {
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 4)
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 5)
             //
-            .write_opcode_i16_i32(Opcode::host_addr_local, 0, 1)
-            .write_opcode_i16_i32(Opcode::host_addr_local, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
@@ -269,12 +283,12 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            code0,
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i32(),
             ], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -352,7 +366,7 @@ mod tests {
         // bytecodes
         //
         // 0x0000 i64_imm              0x37312923 0x53474341
-        // 0x000c local_store          0 1
+        // 0x000c local_store          0 0 1
         // 0x0014 i32_imm              0x0
         // 0x001c host_addr_data_long  0
         // 0x0024 i32_imm              0x2
@@ -362,20 +376,20 @@ mod tests {
         // 0x0044 i32_imm              0x3
         // 0x004c host_addr_data_long  1
         // 0x0054 i32_imm              0x0
-        // 0x005c host_addr_local_long 1
+        // 0x005c host_addr_local_long 0 1
         // 0x0064 i32_imm              0x3
-        // 0x006c host_addr_local_long 1
+        // 0x006c host_addr_local_long 0 1
         // 0x0074 i32_imm              0x6
-        // 0x007c host_addr_local_long 1
+        // 0x007c host_addr_local_long 0 1
         // 0x0084 i32_imm              0x7
-        // 0x008c host_addr_local_long 1
+        // 0x008c host_addr_local_long 0 1
         // 0x0094 end
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
         let code0 = BytecodeWriter::new()
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
-            .write_opcode_i16_i32(Opcode::local_store, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 1)
             //
             .write_opcode_i32(Opcode::i32_imm, 0)
             .write_opcode_i32(Opcode::host_addr_data_long, 0)
@@ -391,12 +405,14 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, 3)
             .write_opcode_i32(Opcode::host_addr_local_long, 1)
             .write_opcode_i32(Opcode::i32_imm, 6)
-            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            .write_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             .write_opcode_i32(Opcode::i32_imm, 7)
-            .write_opcode_i32(Opcode::host_addr_local_long, 1)
+            .write_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![
@@ -416,11 +432,11 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            code0,
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_bytes(8, 8),
             ], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -538,8 +554,8 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();

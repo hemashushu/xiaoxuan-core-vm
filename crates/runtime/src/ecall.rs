@@ -6,7 +6,7 @@
 
 use std::sync::Mutex;
 
-use ancvm_binary::utils::print_bytecodes;
+use ancvm_binary::utils::format_bytecodes;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::{interpreter::InterpretResult, thread::Thread};
@@ -23,7 +23,7 @@ fn unreachable(thread: &mut Thread) -> Result<(), usize> {
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
-    let code_text = print_bytecodes(codes);
+    let code_text = format_bytecodes(codes);
 
     unreachable!(
         "Invalid environment call number: 0x{:04x}
@@ -149,8 +149,8 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            code0,
             vec![], // local varslist which
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -191,8 +191,8 @@ mod tests {
         let binary0 = build_module_binary_with_single_function(
             vec![], // params
             vec![DataType::I64], // results
-            code0,
             vec![], // local varslist which
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -234,8 +234,8 @@ mod tests {
             vec![UninitDataEntry::from_i64()],
             vec![], // params
             vec![DataType::I32, DataType::I64], // results
-            code1,
             vec![], // local varslist which
+            code1,
         );
 
         let image1 = load_modules_binary(vec![&binary1]).unwrap();

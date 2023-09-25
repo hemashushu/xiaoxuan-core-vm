@@ -324,8 +324,8 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
+            vec![],                             // local vars
             code0,
-            vec![], // local vars
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();

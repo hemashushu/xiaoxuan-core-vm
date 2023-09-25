@@ -6,28 +6,28 @@
 
 // "read-only/read-write data section" binary layout
 //
-//              |-------------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                            |
-//              |-------------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | align 1       |
-//              | ...                                                                                             |
-//              |-------------------------------------------------------------------------------------------------|
-// offset 0 --> | data 0 | data 1 | ...                                                                           | <-- data area
-//              |          ^                                                                                      |
-// offset 1 ----|----------|                                                                                      |
-//              |-------------------------------------------------------------------------------------------------|
+//              |------------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                                 |
+//              |------------------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | data align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | data align 1       |
+//              | ...                                                                                                  |
+//              |------------------------------------------------------------------------------------------------------|
+// offset 0 --> | data 0 | data 1 | ...                                                                                | <-- data area
+//              |          ^                                                                                           |
+// offset 1 ----|----------|                                                                                           |
+//              |------------------------------------------------------------------------------------------------------|
 //
 //
 // "uninit data section" binary layout
 //
-//              |-------------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                            |
-//              |-------------------------------------------------------------------------------------------------|
-//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | align 0 (u16) | <-- table
-//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | align 1       |
-//              | ...                                                                                             |
-//              |-------------------------------------------------------------------------------------------------|
+//              |------------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                                 |
+//              |------------------------------------------------------------------------------------------------------|
+//  item 0 -->  | data offset 0 (u32) | data length 0 (u32) | mem data type 0 (u8) | pad (1 byte) | data align 0 (u16) | <-- table
+//  item 1 -->  | data offset 1       | data length 1       | mem data type 1      |              | data align 1       |
+//              | ...                                                                                                  |
+//              |------------------------------------------------------------------------------------------------------|
 //
 // data size and alignment
 //
@@ -79,10 +79,10 @@ pub struct DataItem {
 
     _padding0: u8,
 
-    // the align field is not necessary either at runtime because the 'data_offset'
-    // is aligned  at compilation, it is only needed when copying data into other memory, such as
+    // the align field is not necessary for data loading and storing, because the value of 'data_offset'
+    // is aligned at compilation time, it is only needed when copying data into other memory, such as
     // copying a struct from data section into heap.
-    pub align: u16,
+    pub data_align: u16,
 }
 
 #[repr(u8)]
@@ -221,13 +221,13 @@ impl UninitDataEntry {
 }
 
 impl DataItem {
-    pub fn new(data_offset: u32, data_length: u32, data_type: MemoryDataType, align: u16) -> Self {
+    pub fn new(data_offset: u32, data_length: u32, data_type: MemoryDataType, data_align: u16) -> Self {
         DataItem {
             data_offset,
             data_length,
             memory_data_type: data_type,
             _padding0: 0,
-            align,
+            data_align,
         }
     }
 }

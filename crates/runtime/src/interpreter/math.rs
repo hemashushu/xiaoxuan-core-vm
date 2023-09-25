@@ -411,44 +411,44 @@ mod tests {
         // 0x00d6 end
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode(Opcode::f32_abs)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .write_opcode(Opcode::f32_abs)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode(Opcode::f32_neg)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .write_opcode(Opcode::f32_neg)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .write_opcode(Opcode::f32_ceil)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
             .write_opcode(Opcode::f32_ceil)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode(Opcode::f32_ceil)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_ceil)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .write_opcode(Opcode::f32_floor)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
             .write_opcode(Opcode::f32_floor)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode(Opcode::f32_floor)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_floor)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 6)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_round_half_away_from_zero)
             //
             .write_opcode(Opcode::end)
@@ -487,8 +487,8 @@ mod tests {
                 DataType::F32,
                 DataType::F32,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -630,38 +630,38 @@ mod tests {
         // 0x00da end
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode(Opcode::f32_trunc)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode(Opcode::f32_fract)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .write_opcode(Opcode::f32_sqrt)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .write_opcode(Opcode::f32_cbrt)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 1)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
             .write_opcode(Opcode::f32_pow)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
             .write_opcode(Opcode::f32_exp)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
             .write_opcode(Opcode::f32_exp2)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 6)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
             .write_opcode(Opcode::f32_ln)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 4)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
             .write_opcode(Opcode::f32_log)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .write_opcode(Opcode::f32_log2)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode(Opcode::f32_log10)
             //
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_sin)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_cos)
-            .write_opcode_i16_i32(Opcode::local_load32_f32, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
             .write_opcode(Opcode::f32_tan)
             .write_opcode_pesudo_f32(Opcode::f32_imm, 0.5)
             .write_opcode(Opcode::f32_asin)
@@ -705,8 +705,8 @@ mod tests {
                 DataType::F32,
                 DataType::F32,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -792,44 +792,44 @@ mod tests {
         //   - round_half_away_from_zero    7   -> -3.0
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
             .write_opcode(Opcode::f64_abs)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode(Opcode::f64_abs)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
             .write_opcode(Opcode::f64_neg)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode(Opcode::f64_neg)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
             .write_opcode(Opcode::f64_ceil)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
             .write_opcode(Opcode::f64_ceil)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
             .write_opcode(Opcode::f64_ceil)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_ceil)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
             .write_opcode(Opcode::f64_floor)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
             .write_opcode(Opcode::f64_floor)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
             .write_opcode(Opcode::f64_floor)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_floor)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_round_half_away_from_zero)
             //
             .write_opcode(Opcode::end)
@@ -868,8 +868,8 @@ mod tests {
                 DataType::F64,
                 DataType::F64,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();
@@ -955,38 +955,38 @@ mod tests {
         //   - atab    (0.57..) -> deg 30
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
             .write_opcode(Opcode::f64_trunc)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
             .write_opcode(Opcode::f64_fract)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode(Opcode::f64_sqrt)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
             .write_opcode(Opcode::f64_cbrt)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode(Opcode::f64_pow)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode(Opcode::f64_exp)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
             .write_opcode(Opcode::f64_exp2)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
             .write_opcode(Opcode::f64_ln)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode(Opcode::f64_log)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode(Opcode::f64_log2)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
             .write_opcode(Opcode::f64_log10)
             //
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_sin)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_cos)
-            .write_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
             .write_opcode(Opcode::f64_tan)
             .write_opcode_pesudo_f64(Opcode::f64_imm, 0.5)
             .write_opcode(Opcode::f64_asin)
@@ -1030,8 +1030,8 @@ mod tests {
                 DataType::F64,
                 DataType::F64,
             ], // results
-            code0,
             vec![], // local vars
+            code0,
         );
 
         let image0 = load_modules_binary(vec![&binary0]).unwrap();

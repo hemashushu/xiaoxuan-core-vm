@@ -69,7 +69,7 @@
 // - u8: data type, data section type, module share type
 // - u16: memory store/load offset, data align, block break/recur skip depth, params count, results count
 // - u32: section id, syscall number, env call number
-//   module index, function type index, data index, local variable index,
+//   module index, function type index, data index, local (variable list) index,
 //   function index, dynamic function index, c function index
 //
 // on the host side, the data type of '*index' is usually represented as the 'usize'.
@@ -407,7 +407,9 @@ mod tests {
         data_section::DataSectionType,
         func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
-        local_variable_section::{LocalVariableSection, LocalVariableItem, LocalVariableEntry},
+        local_variable_section::{
+            LocalVariableEntry, LocalVariableItem, LocalVariableListEntry, LocalVariableSection,
+        },
         module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
         type_section::{TypeEntry, TypeSection},
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
@@ -451,11 +453,13 @@ mod tests {
         let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29];
 
         func_entries.push(FuncEntry {
-            type_index: 0,
+            type_index: 2,
+            local_index: 3,
             code: code0.clone(),
         });
         func_entries.push(FuncEntry {
-            type_index: 1,
+            type_index: 5,
+            local_index: 7,
             code: code1.clone(),
         });
 
@@ -470,17 +474,17 @@ mod tests {
         // note:
         // the local variable list should include the function arguments, but
         // it's ok in this unit test scenario.
-        let mut local_var_entries: Vec<Vec<LocalVariableEntry>> = Vec::new();
-        local_var_entries.push(vec![
+        let mut local_var_list_entries: Vec<LocalVariableListEntry> = Vec::new();
+        local_var_list_entries.push(LocalVariableListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_i64(),
-        ]);
-        local_var_entries.push(vec![LocalVariableEntry::from_bytes(12, 4)]);
-
-        let local_var_ref_entries = local_var_entries.iter().map(|e| {&e[..]}).collect::<Vec<_>>();
+        ]));
+        local_var_list_entries.push(LocalVariableListEntry::new(vec![
+            LocalVariableEntry::from_bytes(12, 4),
+        ]));
 
         let (local_var_lists, local_var_list_data) =
-            LocalVariableSection::convert_from_entries(&local_var_ref_entries);
+            LocalVariableSection::convert_from_entries(&local_var_list_entries);
         let local_var_section = LocalVariableSection {
             lists: &local_var_lists,
             list_data: &local_var_list_data,
@@ -523,10 +527,10 @@ mod tests {
                 //
                 0x21u8, 0, 0, 0, // section id
                 36, 0, 0, 0, // offset 1
-                44, 0, 0, 0, // length 1
+                52, 0, 0, 0, // length 1
                 //
                 0x22u8, 0, 0, 0, // section id
-                80, 0, 0, 0, // offset 1
+                88, 0, 0, 0, // offset 1
                 68, 0, 0, 0, // length 1
             ]
         );
@@ -555,7 +559,7 @@ mod tests {
             ]
         );
 
-        let (func_section_data, remains) = remains.split_at(44);
+        let (func_section_data, remains) = remains.split_at(52);
         assert_eq!(
             func_section_data,
             &vec![
@@ -564,11 +568,13 @@ mod tests {
                 //
                 0, 0, 0, 0, // code offset 0
                 5, 0, 0, 0, // code len 0
-                0, 0, 0, 0, // func type 0
+                2, 0, 0, 0, // func type index 0
+                3, 0, 0, 0, // local index 0
                 //
                 5, 0, 0, 0, // code offset 1
                 6, 0, 0, 0, // code len 1
-                1, 0, 0, 0, // func type 1
+                5, 0, 0, 0, // func type index 1
+                7, 0, 0, 0, // local index 1
                 //
                 1, 2, 3, 5, 7, // code 0
                 11, 13, 17, 19, 23, 29, // code 1
@@ -649,7 +655,8 @@ mod tests {
         assert_eq!(
             func_section_restore.get_entry(0),
             FuncEntry {
-                type_index: 0,
+                type_index: 2,
+                local_index: 3,
                 code: code0,
             }
         );
@@ -657,7 +664,8 @@ mod tests {
         assert_eq!(
             func_section_restore.get_entry(1),
             FuncEntry {
-                type_index: 1,
+                type_index: 5,
+                local_index: 7,
                 code: code1,
             }
         );

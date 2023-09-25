@@ -10,6 +10,7 @@ use ancvm_types::DataType;
 use std::io::Write;
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
+use crate::module_image::local_variable_section::LocalVariableListEntry;
 use crate::module_image::{
     data_index_section::{DataIndexItem, DataIndexSection},
     data_section::{
@@ -288,6 +289,7 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
 // }
 
 impl BytecodeWriter {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             buffer: Vec::<u8>::new(),
@@ -304,14 +306,21 @@ impl BytecodeWriter {
     /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
     /// the same applies to the i8, i16 and i64.
     fn start_opcode_with_i16(self, opcode: Opcode, value: u16) -> Self {
-        let mut new_self = self.start_opcode(opcode);
-        let data = value.to_le_bytes();
-        new_self.buffer.write_all(&data).unwrap();
-        new_self
+        // let mut new_self = self.start_opcode(opcode);
+        // let data = value.to_le_bytes();
+        // new_self.buffer.write_all(&data).unwrap();
+        // new_self
+        self.start_opcode(opcode).append_i16(value)
     }
 
     fn start_opcode_with_16bits_padding(self, opcode: Opcode) -> Self {
         self.start_opcode_with_i16(opcode, 0)
+    }
+
+    fn append_i16(mut self, value: u16) -> Self {
+        let data = value.to_le_bytes();
+        self.buffer.write_all(&data).unwrap();
+        self
     }
 
     fn append_i32(mut self, value: u32) -> Self {
@@ -353,12 +362,40 @@ impl BytecodeWriter {
             .append_i32(param1)
     }
 
+    /// 64-bit instruction
+    pub fn write_opcode_i16_i16_i16(
+        self,
+        opcode: Opcode,
+        param0: u16,
+        param1: u16,
+        param2: u16,
+    ) -> Self {
+        self.start_opcode_with_i16(opcode, param0)
+            .append_i16(param1)
+            .append_i16(param2)
+    }
+
     /// 96-bit instruction
     pub fn write_opcode_i32_i32(self, opcode: Opcode, param0: u32, param1: u32) -> Self {
         self.require_4bytes_padding()
             .start_opcode_with_16bits_padding(opcode)
             .append_i32(param0)
             .append_i32(param1)
+    }
+
+    /// 128-bit instruction
+    pub fn write_opcode_i32_i32_i32(
+        self,
+        opcode: Opcode,
+        param0: u32,
+        param1: u32,
+        param2: u32,
+    ) -> Self {
+        self.require_4bytes_padding()
+            .start_opcode_with_16bits_padding(opcode)
+            .append_i32(param0)
+            .append_i32(param1)
+            .append_i32(param2)
     }
 
     /// 96-bit instruction
@@ -400,13 +437,13 @@ impl BytecodeWriter {
     }
 }
 
-impl Default for BytecodeWriter {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl Default for BytecodeWriter {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
-pub fn print_bytecodes(codes: &[u8]) -> String {
+pub fn format_bytecodes(codes: &[u8]) -> String {
     // display the bytecode as the following format:
     //
     // 0x0008  00 11 22 33  44 55 66 77
@@ -488,6 +525,21 @@ impl<'a> BytecodeReader<'a> {
         )
     }
 
+    /// 64 bits instruction
+    /// [opcode + i16 + i16 + i16]
+    fn read_param_i16_i16_i16(&mut self) -> (u16, u16, u16) {
+        let param_data0 = &self.codes[self.offset..self.offset + 2];
+        let param_data1 = &self.codes[self.offset + 2..self.offset + 2 + 2];
+        let param_data2 = &self.codes[self.offset + 2 + 2..self.offset + 2 + 2 + 2];
+        self.offset += 6;
+
+        (
+            u16::from_le_bytes(param_data0.try_into().unwrap()),
+            u16::from_le_bytes(param_data1.try_into().unwrap()),
+            u16::from_le_bytes(param_data2.try_into().unwrap()),
+        )
+    }
+
     /// 96 bits instruction
     /// [opcode + padding + i32 + i32]
     fn read_param_i32_i32(&mut self) -> (u32, u32) {
@@ -498,6 +550,21 @@ impl<'a> BytecodeReader<'a> {
         (
             u32::from_le_bytes(param_data0.try_into().unwrap()),
             u32::from_le_bytes(param_data1.try_into().unwrap()),
+        )
+    }
+
+    /// 128 bits instruction
+    /// [opcode + padding + i32 + i32 + i32]
+    fn read_param_i32_i32_i32(&mut self) -> (u32, u32, u32) {
+        let param_data0 = &self.codes[self.offset + 2..self.offset + 2 + 4];
+        let param_data1 = &self.codes[self.offset + 2 + 4..self.offset + 2 + 4 + 4];
+        let param_data2 = &self.codes[self.offset + 2 + 4 + 4..self.offset + 2 + 4 + 4 + 4];
+        self.offset += 14;
+
+        (
+            u32::from_le_bytes(param_data0.try_into().unwrap()),
+            u32::from_le_bytes(param_data1.try_into().unwrap()),
+            u32::from_le_bytes(param_data2.try_into().unwrap()),
         )
     }
 
@@ -541,8 +608,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::local_store32
                 | Opcode::local_store16
                 | Opcode::local_store8 => {
-                    let (offset, index) = self.read_param_i16_i32();
-                    line.push_str(&format!("{} {}", offset, index));
+                    let (offset, reversed_index, index) = self.read_param_i16_i16_i16();
+                    line.push_str(&format!("{} {} {}", offset, reversed_index, index));
                 }
                 //
                 Opcode::local_long_load
@@ -557,8 +624,8 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::local_long_store32
                 | Opcode::local_long_store16
                 | Opcode::local_long_store8 => {
-                    let index = self.read_param_i32();
-                    line.push_str(&format!("{}", index));
+                    let (reversed_index, index) = self.read_param_i16_i32();
+                    line.push_str(&format!("{} {}", reversed_index, index));
                 }
                 // data load/store
                 Opcode::data_load
@@ -771,12 +838,12 @@ impl<'a> BytecodeReader<'a> {
                 // control flow
                 Opcode::end => {}
                 Opcode::block => {
-                    let type_idx = self.read_param_i32();
-                    line.push_str(&format!("{}", type_idx));
+                    let (type_idx, local_index) = self.read_param_i32_i32();
+                    line.push_str(&format!("{} {}", type_idx, local_index));
                 }
                 Opcode::block_alt | Opcode::block_nez => {
-                    let (type_idx, offset) = self.read_param_i32_i32();
-                    line.push_str(&format!("{} 0x{:x}", type_idx, offset));
+                    let (type_idx, local_idx, offset) = self.read_param_i32_i32_i32();
+                    line.push_str(&format!("{} {} 0x{:x}", type_idx, local_idx, offset));
                 }
                 Opcode::break_ | Opcode::break_nez | Opcode::recur | Opcode::recur_nez => {
                     let (deepth, offset) = self.read_param_i16_i32();
@@ -789,11 +856,19 @@ impl<'a> BytecodeReader<'a> {
                 Opcode::dcall => {}
                 // machine
                 Opcode::nop | Opcode::debug => {}
-                Opcode::host_addr_local | Opcode::host_addr_data => {
+                Opcode::host_addr_local => {
+                    let (reversed_idx, offset, idx) = self.read_param_i16_i16_i16();
+                    line.push_str(&format!("{} {} {}", reversed_idx, offset, idx));
+                }
+                Opcode::host_addr_local_long => {
+                    let (reversed_idx, idx) = self.read_param_i16_i32();
+                    line.push_str(&format!("{} {}", reversed_idx, idx));
+                }
+                Opcode::host_addr_data => {
                     let (offset, idx) = self.read_param_i16_i32();
                     line.push_str(&format!("{} {}", offset, idx));
                 }
-                Opcode::host_addr_local_long | Opcode::host_addr_data_long => {
+                Opcode::host_addr_data_long => {
                     let idx = self.read_param_i32();
                     line.push_str(&format!("{}", idx));
                 }
@@ -812,9 +887,16 @@ impl<'a> BytecodeReader<'a> {
 }
 
 /// testing-helper
-pub struct FuncWithLocalVariableItemsEntry {
-    pub type_index: usize,
+pub struct HelperFunctionEntry {
+    pub params: Vec<DataType>,
+    pub results: Vec<DataType>,
+    pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     pub code: Vec<u8>,
+}
+
+pub struct HelperBlockEntry {
+    pub params: Vec<DataType>,
+    pub results: Vec<DataType>,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 }
 
@@ -822,8 +904,8 @@ pub struct FuncWithLocalVariableItemsEntry {
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    code: Vec<u8>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    code: Vec<u8>,
 ) -> Vec<u8> {
     build_module_binary_with_single_function_and_data_sections(
         vec![],
@@ -831,8 +913,8 @@ pub fn build_module_binary_with_single_function(
         vec![],
         param_datatypes,
         result_datatypes,
-        code,
         local_variable_item_entries_without_args,
+        code,
     )
 }
 
@@ -843,26 +925,39 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    code: Vec<u8>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    code: Vec<u8>,
 ) -> Vec<u8> {
-    let type_entries = vec![TypeEntry {
-        params: param_datatypes,
-        results: result_datatypes,
-    }];
+    let type_entry = TypeEntry {
+        params: param_datatypes.clone(),
+        results: result_datatypes.clone(),
+    };
 
-    let func_with_local_vars_entries = vec![FuncWithLocalVariableItemsEntry {
+    let local_variables = local_variable_item_entries_without_args.clone();
+    let params_as_variables = param_datatypes
+        .iter()
+        .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+        .collect::<Vec<_>>();
+
+    let mut variables = Vec::new();
+    variables.extend_from_slice(&local_variables);
+    variables.extend_from_slice(&params_as_variables);
+
+    let local_var_list_entry = LocalVariableListEntry { variables };
+
+    let func_entry = FuncEntry {
         type_index: 0,
+        local_index: 0,
         code,
-        local_variable_item_entries_without_args,
-    }];
+    };
 
     build_module_binary(
         read_only_data_entries,
         read_write_data_entries,
         uninit_uninit_data_entries,
-        type_entries,
-        func_with_local_vars_entries,
+        vec![type_entry],
+        vec![func_entry],
+        vec![local_var_list_entry],
     )
 }
 
@@ -870,26 +965,111 @@ pub fn build_module_binary_with_single_function_and_data_sections(
 pub fn build_module_binary_with_single_function_and_blocks(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    codes: Vec<u8>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
-    block_type_entries_without_function_type: Vec<TypeEntry>,
+    code: Vec<u8>,
+    helper_block_entries: Vec<HelperBlockEntry>,
 ) -> Vec<u8> {
-    let mut type_entries = vec![TypeEntry {
+    let help_func_entry = HelperFunctionEntry {
         params: param_datatypes,
         results: result_datatypes,
-    }];
-    type_entries.extend_from_slice(&block_type_entries_without_function_type);
+        local_variable_item_entries_without_args,
+        code,
+    };
+
+    build_module_binary_with_functions_and_blocks(vec![help_func_entry], helper_block_entries)
+}
+
+/// testing-helper
+pub fn build_module_binary_with_functions_and_blocks(
+    helper_func_entries: Vec<HelperFunctionEntry>,
+    helper_block_entries: Vec<HelperBlockEntry>,
+) -> Vec<u8> {
+    // build type entries
+
+    // note:
+    // for simplicity, duplicate items are not merged here.
+
+    let func_type_entries = helper_func_entries
+        .iter()
+        .map(|entry| TypeEntry {
+            params: entry.params.clone(),
+            results: entry.results.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    let block_type_entries = helper_block_entries
+        .iter()
+        .map(|entry| TypeEntry {
+            params: entry.params.clone(),
+            results: entry.results.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    let mut type_entries = Vec::new();
+    type_entries.extend_from_slice(&func_type_entries);
+    type_entries.extend_from_slice(&block_type_entries);
+
+    // build local vars list entries
+
+    // note:
+    // for simplicity, duplicate items are not merged here.
+
+    let func_local_var_list_entries = helper_func_entries
+        .iter()
+        .map(|entry| {
+            let mut variables = entry.local_variable_item_entries_without_args.clone();
+
+            let params_as_variables = entry
+                .params
+                .iter()
+                .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+                .collect::<Vec<_>>();
+
+            variables.extend_from_slice(&params_as_variables);
+
+            LocalVariableListEntry { variables }
+        })
+        .collect::<Vec<_>>();
+
+    let block_local_var_list_entries = helper_block_entries
+        .iter()
+        .map(|entry| {
+            let mut variables = entry.local_variable_item_entries_without_args.clone();
+
+            let params_as_variables = entry
+                .params
+                .iter()
+                .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+                .collect::<Vec<_>>();
+
+            variables.extend_from_slice(&params_as_variables);
+
+            LocalVariableListEntry { variables }
+        })
+        .collect::<Vec<_>>();
+
+    let mut local_var_list_entries = Vec::new();
+    local_var_list_entries.extend_from_slice(&func_local_var_list_entries);
+    local_var_list_entries.extend_from_slice(&block_local_var_list_entries);
+
+    // build func entries
+    let func_entries = helper_func_entries
+        .iter()
+        .enumerate()
+        .map(|(idx, entry)| FuncEntry {
+            type_index: idx,
+            local_index: idx,
+            code: entry.code.clone(),
+        })
+        .collect::<Vec<_>>();
 
     build_module_binary(
         vec![],
         vec![],
         vec![],
         type_entries,
-        vec![FuncWithLocalVariableItemsEntry {
-            type_index: 0,
-            code: codes,
-            local_variable_item_entries_without_args,
-        }],
+        func_entries,
+        local_var_list_entries,
     )
 }
 
@@ -899,7 +1079,8 @@ pub fn build_module_binary(
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
-    func_with_local_vars_entries: Vec<FuncWithLocalVariableItemsEntry>,
+    func_entries: Vec<FuncEntry>,
+    local_var_list_entries: Vec<LocalVariableListEntry>,
 ) -> Vec<u8> {
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
@@ -921,26 +1102,6 @@ pub fn build_module_binary(
         items: &uninit_items,
     };
 
-    // build local variable list section
-    let local_var_entries = func_with_local_vars_entries
-        .iter()
-        .map(|fv| {
-            let param_datatypes = &type_entries[fv.type_index].params;
-            let params_as_local_variable_item_entries = param_datatypes
-                .iter()
-                .map(|dt| LocalVariableEntry::from_datatype(*dt))
-                .collect::<Vec<_>>();
-
-            let mut local_variable_item_entries: Vec<LocalVariableEntry> = Vec::new();
-
-            local_variable_item_entries
-                .extend_from_slice(&fv.local_variable_item_entries_without_args);
-            local_variable_item_entries.extend_from_slice(&params_as_local_variable_item_entries);
-
-            local_variable_item_entries
-        })
-        .collect::<Vec<Vec<LocalVariableEntry>>>();
-
     // build type section
     let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
     let type_section = TypeSection {
@@ -949,13 +1110,6 @@ pub fn build_module_binary(
     };
 
     // build function section
-    let func_entries = func_with_local_vars_entries
-        .iter()
-        .map(|fv| FuncEntry {
-            type_index: fv.type_index,
-            code: fv.code.clone(),
-        })
-        .collect::<Vec<FuncEntry>>();
 
     let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
     let func_section = FuncSection {
@@ -964,9 +1118,9 @@ pub fn build_module_binary(
     };
 
     // build local variable section
-    let local_var_ref_entries = local_var_entries.iter().map(|e| &e[..]).collect::<Vec<_>>();
+
     let (local_var_lists, local_var_list_data) =
-        LocalVariableSection::convert_from_entries(&local_var_ref_entries);
+        LocalVariableSection::convert_from_entries(&local_var_list_entries);
     let local_var_section = LocalVariableSection {
         lists: &local_var_lists,
         list_data: &local_var_list_data,
@@ -1088,7 +1242,7 @@ mod tests {
         },
     };
 
-    use super::print_bytecodes;
+    use super::format_bytecodes;
 
     #[test]
     fn test_build_single_function_module_binary_and_data_sections() {
@@ -1105,8 +1259,8 @@ mod tests {
             ],
             vec![DataType::I64, DataType::I64],
             vec![DataType::I32],
-            vec![0u8],
             vec![LocalVariableEntry::from_i32()],
+            vec![0u8],
         );
 
         let module_images = load_modules_binary(vec![&binary]).unwrap();
@@ -1215,10 +1369,12 @@ mod tests {
         // check func section
         let func_section = module_image.get_func_section();
         assert_eq!(func_section.items.len(), 1);
+
         assert_eq!(
             func_section.get_entry(0),
             FuncEntry {
                 type_index: 0,
+                local_index: 0,
                 code: vec![0u8]
             }
         );
@@ -1237,13 +1393,15 @@ mod tests {
     }
 
     #[test]
-    fn test_bytecode_writer_schemes() {
+    fn test_bytecode_writer() {
+        // 16 bits
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
             .to_bytes();
 
         assert_eq!(code0, vec![0x00, 0x07]);
 
+        // 32 bits
         let code1 = BytecodeWriter::new()
             .write_opcode_i16(Opcode::heap_load, 7)
             .to_bytes();
@@ -1256,19 +1414,21 @@ mod tests {
             ]
         );
 
+        // 64 bits - 1 param
         let code2 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::block, 11)
+            .write_opcode_i32(Opcode::i32_imm, 11)
             .to_bytes();
 
         assert_eq!(
             code2,
             vec![
-                0x01, 0x0a, // opcode
+                0x04, 0x01, // opcode
                 0, 0, // padding
                 11, 0, 0, 0 // param
             ]
         );
 
+        // 64 bits - 2 params
         let code3 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::break_, 13, 17)
             .to_bytes();
@@ -1282,26 +1442,76 @@ mod tests {
             ]
         );
 
+        // 64 bits - 3 params
         let code4 = BytecodeWriter::new()
-            .write_opcode_i32_i32(Opcode::block_alt, 19, 23)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 19, 23, 29)
             .to_bytes();
 
         assert_eq!(
             code4,
             vec![
-                0x04, 0x0a, // opcode
-                0, 0, // padding
-                19, 0, 0, 0, // param 0
-                23, 0, 0, 0 // param 1
+                0x00, 0x02, // opcode
+                19, 0, // param 0
+                23, 0, // param 1
+                29, 0 // param 2
             ]
         );
 
+        // 96 bits - 2 params
         let code5 = BytecodeWriter::new()
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x1122334455667788u64)
+            .write_opcode_i32_i32(Opcode::block, 31, 37)
             .to_bytes();
 
         assert_eq!(
             code5,
+            vec![
+                0x01, 0x0a, // opcode
+                0, 0, // padding
+                31, 0, 0, 0, // param 0
+                37, 0, 0, 0 // param 1
+            ]
+        );
+
+        // 128 bits - 3 params
+        let code6 = BytecodeWriter::new()
+            .write_opcode_i32_i32_i32(Opcode::block_alt, 41, 73, 79)
+            .to_bytes();
+
+        assert_eq!(
+            code6,
+            vec![
+                0x04, 0x0a, // opcode
+                0, 0, // padding
+                41, 0, 0, 0, // param 0
+                73, 0, 0, 0, // param 1
+                79, 0, 0, 0 // param 2
+            ]
+        );
+    }
+
+    #[test]
+    fn test_bytecode_writer_pesudo() {
+        // pesudo f32
+        let code0 = BytecodeWriter::new()
+            .write_opcode_pesudo_f32(Opcode::f32_imm, 3.1415927)
+            .to_bytes();
+
+        // 3.1415927 -> 0x40490FDB
+        assert_eq!(
+            code0,
+            vec![
+                0x06, 0x01, // opcode
+                0, 0, // padding
+                0xdb, 0x0f, 0x49, 0x40, // param 0
+            ]
+        );
+
+        let code1 = BytecodeWriter::new()
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x1122334455667788u64)
+            .to_bytes();
+
+        assert_eq!(
+            code1,
             vec![
                 0x05, 0x01, // opcode
                 0, 0, // padding
@@ -1310,14 +1520,14 @@ mod tests {
             ]
         );
 
-        let code6 = BytecodeWriter::new()
+        let code2 = BytecodeWriter::new()
             .write_opcode_pesudo_f64(Opcode::f64_imm, 6.62607015e-34f64)
             .to_bytes();
 
         // 6.62607015e-34f64 (dec) -> 0x390B860B DE023111 (hex)
 
         assert_eq!(
-            code6,
+            code2,
             vec![
                 0x07, 0x01, // opcode
                 0, 0, // padding
@@ -1331,84 +1541,62 @@ mod tests {
     fn test_bytecode_writer_padding() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::heap_load, 0x5)
-            .write_opcode_i16(Opcode::heap_store, 0x7)
+            .write_opcode_i16(Opcode::heap_load, 0x2)
+            .write_opcode_i16(Opcode::heap_store, 0x3)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
             // padding
-            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
-            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
+            .write_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
             .write_opcode(Opcode::i32_sub)
-            .write_opcode(Opcode::i32_mul)
-            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
-            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
-            .write_opcode(Opcode::i32_div_s)
+            .write_opcode(Opcode::i32_eqz)
+            .write_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
+            .write_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .write_opcode(Opcode::i32_nez)
             // padding
-            .write_opcode_i32(Opcode::block, 0x41)
-            .write_opcode_i32(Opcode::call, 0x43)
-            .write_opcode(Opcode::i32_div_u)
+            .write_opcode_i32(Opcode::i32_imm, 0x59)
+            .write_opcode_i32(Opcode::call, 0x61)
+            .write_opcode(Opcode::i32_eq)
             // padding
-            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_alt, 0x59, 0x61)
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x67, 0x71)
+            .write_opcode_i32_i32(Opcode::block, 0x73, 0x79)
+            .write_opcode(Opcode::zero)
+            // padding
+            .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
+            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
             .to_bytes();
 
         assert_eq!(
             code0,
             vec![
-                // i32_add
-                0x00, 0x07, //
-                // heap load 0x5
-                0x00, 0x04, //
-                0x5, 0, //
-                // heap store 0x7
-                0x08, 0x04, //
-                0x7, 0, //
-                // padding nop
-                0x00, 0x0b, //
-                // local_load 0x11 0x13
-                0x00, 0x02, //
-                0x11, 0x00, //
-                0x13, 0x00, 0x00, 0x00, //
-                // local_store 0x17 0x19
-                0x08, 0x02, //
-                0x17, 0x00, //
-                0x19, 0x00, 0x00, 0x00, //
-                // i32_sub
-                0x01, 0x07, //
-                // i32_mul
-                0x02, 0x07, //
-                // local_load 0x23 0x29
-                0x00, 0x02, //
-                0x23, 0x00, //
-                0x29, 0x00, 0x00, 0x00, //
-                // local_store 0x31 0x37
-                0x08, 0x02, //
-                0x31, 0x00, //
-                0x37, 0x00, 0x00, 0x00, //
-                // i32_div_s
-                0x03, 0x07, //
-                // padding nop
-                0x00, 0x0b, //
-                // block 0x41
-                0x01, 0x0a, //
-                0x00, 0x00, //
-                0x41, 0x00, 0x00, 0x00, //
-                // call 0x43
-                0x08, 0x0a, //
-                0x00, 0x00, //
-                0x43, 0x00, 0x00, 0x00, //
-                // i32_div_u
-                0x04, 0x07, //
-                // padding nop
-                0x00, 0x0b, //
-                // i64_imm 0x47 0x53
-                0x05, 0x01, //
-                0x00, 0x00, //
-                0x47, 0x00, 0x00, 0x00, //
-                0x53, 0x00, 0x00, 0x00, //
-                // block_alt 0x59 0x61
-                0x04, 0x0a, //
-                0x00, 0x00, //
-                0x59, 0x00, 0x00, 0x00, //
-                0x61, 0x00, 0x00, 0x00, //
+                0x00, 0x07, // i32_add
+                0x00, 0x04, 0x02, 0x00, // heap_load 0x2
+                0x08, 0x04, 0x03, 0x00, // heap_store 0x3
+                0x00, 0x02, 0x05, 0x00, 0x07, 0x00, 0x11, 0x00, // local_load 0x5 0x7 0x11
+                0x08, 0x02, 0x13, 0x00, 0x17, 0x00, 0x19, 0x00, // local_store 0x13 0x17 0x19
+                0x00, 0x0b, // padding nop
+                0x00, 0x03, 0x23, 0x00, 0x29, 0x00, 0x00, 0x00, // data_load 0x23 0x29
+                0x08, 0x03, 0x31, 0x00, 0x37, 0x00, 0x00, 0x00, // data_store 0x31 0x37
+                0x01, 0x07, // i32_sub
+                0x00, 0x06, // i32_eqz
+                0x00, 0x03, 0x41, 0x00, 0x43, 0x00, 0x00, 0x00, // data_load 0x41 0x43
+                0x08, 0x03, 0x47, 0x00, 0x53, 0x00, 0x00, 0x00, // data_store 0x47 0x53
+                0x01, 0x06, // i32_nez
+                0x00, 0x0b, // padding nop
+                0x04, 0x01, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00, // i32_imm 0x59
+                0x08, 0x0a, 0x00, 0x00, 0x61, 0x00, 0x00, 0x00, // call 0x61
+                0x02, 0x06, // i32_eq
+                0x00, 0x0b, // padding nop
+                0x05, 0x01, 0x00, 0x00, 0x67, 0x00, 0x00, 0x00, 0x71, 0x00, 0x00,
+                0x00, // i64_imm
+                0x01, 0x0a, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00, 0x79, 0x00, 0x00,
+                0x00, // block
+                0x00, 0x01, // zero
+                0x00, 0x0b, // padding nop
+                0x04, 0x0a, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x17, 0x00,
+                0x00, 0x00, // block_alt
+                0x05, 0x0a, 0x00, 0x00, 0x19, 0x00, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x29, 0x00,
+                0x00, 0x00 // block_nez
             ]
         );
     }
@@ -1417,42 +1605,55 @@ mod tests {
     fn test_bytecode_print() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::heap_load, 0x5)
-            .write_opcode_i16(Opcode::heap_store, 0x7)
+            .write_opcode_i16(Opcode::heap_load, 0x2)
+            .write_opcode_i16(Opcode::heap_store, 0x3)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
             // padding
-            .write_opcode_i16_i32(Opcode::local_load, 0x11, 0x13)
-            .write_opcode_i16_i32(Opcode::local_store, 0x17, 0x19)
+            .write_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
             .write_opcode(Opcode::i32_sub)
-            .write_opcode(Opcode::i32_mul)
-            .write_opcode_i16_i32(Opcode::local_load, 0x23, 0x29)
-            .write_opcode_i16_i32(Opcode::local_store, 0x31, 0x37)
-            .write_opcode(Opcode::i32_div_s)
+            .write_opcode(Opcode::i32_eqz)
+            .write_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
+            .write_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .write_opcode(Opcode::i32_nez)
             // padding
-            .write_opcode_i32(Opcode::block, 0x41)
-            .write_opcode_i32(Opcode::call, 0x43)
-            .write_opcode(Opcode::i32_div_u)
+            .write_opcode_i32(Opcode::i32_imm, 0x59)
+            .write_opcode_i32(Opcode::call, 0x61)
+            .write_opcode(Opcode::i32_eq)
             // padding
-            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_alt, 0x59, 0x61)
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x67, 0x71)
+            .write_opcode_i32_i32(Opcode::block, 0x73, 0x79)
+            .write_opcode(Opcode::zero)
+            // padding
+            .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
+            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
             .to_bytes();
 
-        let text = print_bytecodes(&code0);
+        let text = format_bytecodes(&code0);
 
         assert_eq!(
             text,
             "
-            0x0000  00 07 00 04  05 00 08 04
-            0x0008  07 00 00 0b  00 02 11 00
-            0x0010  13 00 00 00  08 02 17 00
-            0x0018  19 00 00 00  01 07 02 07
-            0x0020  00 02 23 00  29 00 00 00
-            0x0028  08 02 31 00  37 00 00 00
-            0x0030  03 07 00 0b  01 0a 00 00
-            0x0038  41 00 00 00  08 0a 00 00
-            0x0040  43 00 00 00  04 07 00 0b
-            0x0048  05 01 00 00  47 00 00 00
-            0x0050  53 00 00 00  04 0a 00 00
-            0x0058  59 00 00 00  61 00 00 00"
+            0x0000  00 07 00 04  02 00 08 04
+            0x0008  03 00 00 02  05 00 07 00
+            0x0010  11 00 08 02  13 00 17 00
+            0x0018  19 00 00 0b  00 03 23 00
+            0x0020  29 00 00 00  08 03 31 00
+            0x0028  37 00 00 00  01 07 00 06
+            0x0030  00 03 41 00  43 00 00 00
+            0x0038  08 03 47 00  53 00 00 00
+            0x0040  01 06 00 0b  04 01 00 00
+            0x0048  59 00 00 00  08 0a 00 00
+            0x0050  61 00 00 00  02 06 00 0b
+            0x0058  05 01 00 00  67 00 00 00
+            0x0060  71 00 00 00  01 0a 00 00
+            0x0068  73 00 00 00  79 00 00 00
+            0x0070  00 01 00 0b  04 0a 00 00
+            0x0078  11 00 00 00  13 00 00 00
+            0x0080  17 00 00 00  05 0a 00 00
+            0x0088  19 00 00 00  23 00 00 00
+            0x0090  29 00 00 00"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]
@@ -1464,23 +1665,29 @@ mod tests {
     fn test_bytecode_reader() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16(Opcode::heap_load, 5)
-            .write_opcode_i16(Opcode::heap_store, 7)
+            .write_opcode_i16(Opcode::heap_load, 0x2)
+            .write_opcode_i16(Opcode::heap_store, 0x3)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
             // padding
-            .write_opcode_i16_i32(Opcode::local_load, 11, 13)
-            .write_opcode_i16_i32(Opcode::local_store, 17, 19)
+            .write_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
+            .write_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
             .write_opcode(Opcode::i32_sub)
-            .write_opcode(Opcode::i32_mul)
-            .write_opcode_i16_i32(Opcode::local_load, 23, 29)
-            .write_opcode_i16_i32(Opcode::local_store, 31, 37)
-            .write_opcode(Opcode::i32_div_s)
+            .write_opcode(Opcode::i32_eqz)
+            .write_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
+            .write_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .write_opcode(Opcode::i32_nez)
             // padding
-            .write_opcode_i32(Opcode::block, 41)
-            .write_opcode_i32(Opcode::call, 43)
-            .write_opcode(Opcode::i32_div_u)
+            .write_opcode_i32(Opcode::i32_imm, 0x59)
+            .write_opcode_i32(Opcode::call, 0x61)
+            .write_opcode(Opcode::i32_eq)
             // padding
-            .write_opcode_i32_i32(Opcode::i64_imm, 0x47, 0x53)
-            .write_opcode_i32_i32(Opcode::block_alt, 59, 61)
+            .write_opcode_i32_i32(Opcode::i64_imm, 0x67, 0x71)
+            .write_opcode_i32_i32(Opcode::block, 0x73, 0x79)
+            .write_opcode(Opcode::zero)
+            // padding
+            .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
+            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
             .to_bytes();
 
         let text = BytecodeReader::new(&code0).to_text();
@@ -1489,23 +1696,29 @@ mod tests {
             text,
             "
             0x0000 i32_add
-            0x0002 heap_load            5
-            0x0006 heap_store           7
-            0x000a nop
-            0x000c local_load           11 13
-            0x0014 local_store          17 19
-            0x001c i32_sub
-            0x001e i32_mul
-            0x0020 local_load           23 29
-            0x0028 local_store          31 37
-            0x0030 i32_div_s
-            0x0032 nop
-            0x0034 block                41
-            0x003c call                 43
-            0x0044 i32_div_u
-            0x0046 nop
-            0x0048 i64_imm              0x47 0x53
-            0x0054 block_alt            59 0x3d"
+            0x0002 heap_load            2
+            0x0006 heap_store           3
+            0x000a local_load           5 7 17
+            0x0012 local_store          19 23 25
+            0x001a nop
+            0x001c data_load            35 41
+            0x0024 data_store           49 55
+            0x002c i32_sub
+            0x002e i32_eqz
+            0x0030 data_load            65 67
+            0x0038 data_store           71 83
+            0x0040 i32_nez
+            0x0042 nop
+            0x0044 i32_imm              0x59
+            0x004c call                 97
+            0x0054 i32_eq
+            0x0056 nop
+            0x0058 i64_imm              0x67 0x71
+            0x0064 block                115 121
+            0x0070 zero
+            0x0072 nop
+            0x0074 block_alt            17 19 0x17
+            0x0084 block_nez            25 35 0x29"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]
