@@ -653,9 +653,37 @@ impl Stack {
             )
         };
 
-        // optimized for the looping in the current frame, conditions:
-        // - the specified frame is the current frame
-        // - there is no other operands than local vars and parameters
+        // optimized for the looping in the current frame, when:
+        // - the specified frame is the current frame (the top most frame)
+        // - there is no other operands than local vars and parameters on the top of stack
+        //
+        // diagram:
+        //
+        //                 args has been take out            new operands are
+        //                          for operating            push on the stack
+        //                                 ^ ^                       | |
+        //                                 | |                       | |
+        // SP --> |            |       |   | |      |       |        | | | <-- SP
+        //        | arg 1      |       | --- |      |       | new 1 <- | |
+        //        | arg 0      |  ==>  | -----      |  ==>  | new 0 <--- |
+        //        |------------|       |------------|       |------------|
+        //        | local vars |       | local vars |       | local vars |
+        // FP --> |============|       |============|       |============| <-- FP
+        //        |            |       |            |       |            |
+        //        \------------/       \------------/       \------------/
+        //
+        // when the conditions above are met, then there is no need to move the
+        // argurments to the 'swap' and back again, but simply reset the local
+        // variables to '0'.
+        //
+        // note:
+        //
+        // there is a precondition for this optimization:
+        // the arguments (whare are the part of local variables) can be taken directly
+        // (e.g. to perform arithmetic operations, do not have to 'local_load' first).
+        // the current VM implementation happens to meet that condition, but the
+        // XiaoXuan ISA does not guarantee that this feature always be available.
+
         if (reversed_index == 0)
             && (self.sp == self.fp + size_of::<FrameInfo>() + local_variables_allocate_bytes)
         {
