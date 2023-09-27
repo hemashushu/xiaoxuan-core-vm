@@ -13,22 +13,8 @@ use ancvm_types::RuntimeError;
 use ecall::init_ecall_handlers;
 use interpreter::init_interpreters;
 
-pub mod context;
-pub mod datas;
 pub mod ecall;
-pub mod heap;
-pub mod indexed_memory;
 pub mod interpreter;
-pub mod memory;
-pub mod resizeable_memory;
-pub mod stack;
-pub mod thread;
-pub mod type_memory;
-
-const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
-const STACK_FRAME_SIZE_IN_PAGES: usize = 1;
-const INIT_STACK_SIZE_IN_PAGES: usize = STACK_FRAME_SIZE_IN_PAGES;
-const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
 
 const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 
@@ -44,11 +30,11 @@ pub fn init_runtime() {
 }
 
 #[derive(Debug)]
-pub struct VMError {
+pub struct InterpreterError {
     message: String,
 }
 
-impl VMError {
+impl InterpreterError {
     pub fn new(message: &str) -> Self {
         Self {
             message: message.to_owned(),
@@ -56,13 +42,13 @@ impl VMError {
     }
 }
 
-impl Display for VMError {
+impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("vm error: {}", self.message))
     }
 }
 
-impl RuntimeError for VMError {
+impl RuntimeError for InterpreterError {
     fn as_any(&self) -> &dyn Any {
         self
     }

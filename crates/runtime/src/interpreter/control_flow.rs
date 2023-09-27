@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use crate::thread::{ProgramCounter, Thread};
+use ancvm_thread::thread::{ProgramCounter, Thread};
 
 use super::InterpretResult;
 
@@ -259,9 +259,10 @@ mod tests {
             HelperFunctionEntry,
         },
     };
+    use ancvm_thread::thread::Thread;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function, thread::Thread};
+    use crate::{init_runtime, interpreter::process_function};
 
     #[test]
     fn test_process_control_block() {

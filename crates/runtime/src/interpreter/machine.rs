@@ -6,7 +6,7 @@
 
 //! it is currently assumed that the target architecture is 64-bit.
 
-use crate::{memory::Memory, thread::Thread};
+use ancvm_thread::{memory::Memory, thread::Thread};
 
 use super::InterpretResult;
 
@@ -118,9 +118,10 @@ mod tests {
             BytecodeWriter,
         },
     };
+    use ancvm_thread::thread::Thread;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function, thread::Thread};
+    use crate::{init_runtime, interpreter::process_function};
 
     #[test]
     fn test_process_machine() {

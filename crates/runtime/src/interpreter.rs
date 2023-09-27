@@ -7,16 +7,13 @@
 use std::sync::Mutex;
 
 use ancvm_binary::utils::format_bytecodes;
+use ancvm_thread::thread::{ProgramCounter, Thread};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
     ForeignValue,
 };
 
-use crate::{
-    ecall,
-    thread::{ProgramCounter, Thread},
-    VMError,
-};
+use crate::{ecall, InterpreterError};
 
 type InterpretFunc = fn(&mut Thread) -> InterpretResult;
 
@@ -48,10 +45,6 @@ pub enum InterpretResult {
     // pause the interpreter
     // for debug the program or the VM itself
     Debug,
-
-    // ecall returns with exception
-    // param (err_code:usize)
-    EnvError(usize),
 }
 
 fn unreachable(thread: &mut Thread) -> InterpretResult {
@@ -393,9 +386,6 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
             InterpretResult::Debug => {
                 thread.pc.instruction_address += 2;
             }
-            InterpretResult::EnvError(code) => {
-                panic!("Runtime error, code: {}", code)
-            }
         }
     }
 }
@@ -408,24 +398,25 @@ pub fn process_function(
     module_index: usize,
     func_public_index: usize,
     arguments: &[ForeignValue],
-) -> Result<Vec<ForeignValue>, VMError> {
+) -> Result<Vec<ForeignValue>, InterpreterError> {
     thread.stack.reset();
 
     // find the code start address
     let (target_module_index, function_internal_index) =
         thread.get_function_internal_index_and_module_index(module_index, func_public_index);
-    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) = thread
-        .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
-            target_module_index,
-            function_internal_index,
-        );
+    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+        thread
+            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+                target_module_index,
+                function_internal_index,
+            );
 
     let type_entry = thread.context.modules[target_module_index]
         .type_section
         .get_entry(type_index);
 
     if type_entry.params.len() != arguments.len() {
-        return Err(VMError::new(
+        return Err(InterpreterError::new(
             "The number of arguments does not match the specified funcion.",
         ));
     }

@@ -7,18 +7,20 @@
 use std::sync::Mutex;
 
 use ancvm_binary::utils::format_bytecodes;
+use ancvm_thread::thread::Thread;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
-use crate::{interpreter::InterpretResult, thread::Thread};
+use crate::interpreter::InterpretResult;
 
 pub mod heap;
 pub mod info;
 
-type EnvCallHandlerFunc = fn(&mut Thread) -> Result<(), usize>;
+type EnvCallHandlerFunc = fn(&mut Thread);
 
-fn unreachable(thread: &mut Thread) -> Result<(), usize> {
+fn unreachable(thread: &mut Thread) {
     let pc = &thread.pc;
-    let func_item = &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
+    let func_item =
+        &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
     let codes = &thread.context.modules[pc.module_index]
         .func_section
         .codes_data
@@ -80,12 +82,8 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
 
     let env_func_num = thread.get_param_i32();
     let func = unsafe { &HANDLERS[env_func_num as usize] };
-    let result = func(thread);
-
-    match result {
-        Ok(_) => InterpretResult::Move(8),
-        Err(err_code) => InterpretResult::EnvError(err_code),
-    }
+    func(thread);
+    InterpretResult::Move(8)
 }
 
 #[cfg(test)]
@@ -98,11 +96,12 @@ mod tests {
             build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
         },
     };
+    use ancvm_thread::thread::Thread;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        init_runtime, interpreter::process_function, thread::Thread, RUNTIME_CODE_NAME,
-        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        init_runtime, interpreter::process_function, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION,
+        RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     #[test]
@@ -189,9 +188,9 @@ mod tests {
         // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
-            vec![], // params
+            vec![],              // params
             vec![DataType::I64], // results
-            vec![], // local varslist which
+            vec![],              // local varslist which
             code0,
         );
 
@@ -232,9 +231,9 @@ mod tests {
             vec![],
             vec![],
             vec![UninitDataEntry::from_i64()],
-            vec![], // params
+            vec![],                             // params
             vec![DataType::I32, DataType::I64], // results
-            vec![], // local varslist which
+            vec![],                             // local varslist which
             code1,
         );
 

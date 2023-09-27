@@ -1,11 +1,8 @@
 [package]
-name = "ancvm_runtime"
+name = "ancvm_scall"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ancvm_types = { path = "../types" }
-ancvm_binary = { path = "../binary" }
-ancvm_thread = { path = "../thread" }

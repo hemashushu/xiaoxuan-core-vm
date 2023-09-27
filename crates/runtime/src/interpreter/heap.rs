@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use crate::{memory::Memory, thread::Thread};
+use ancvm_thread::{memory::Memory, thread::Thread};
 
 use super::InterpretResult;
 
@@ -159,9 +159,10 @@ mod tests {
         load_modules_from_binaries,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
+    use ancvm_thread::thread::Thread;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function, thread::Thread};
+    use crate::{init_runtime, interpreter::process_function};
 
     #[test]
     fn test_process_heap_load_store() {

@@ -348,6 +348,12 @@ impl Stack {
         self.get_ptr(self.sp)
     }
 
+    pub fn pop_operands(&mut self, count:usize) -> &[u8] {
+        let length = count * OPERAND_SIZE_IN_BYTES;
+        self.sp -= length;
+        &self.data[self.sp..]
+    }
+
     /**
      * block frames are nested, the parameter 'reversed_index' is
      * the depth of the frame what you want to get, it is relate to the current frame.
@@ -859,6 +865,11 @@ mod tests {
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3);
 
         assert_eq!(stack.peek_i32_u(), 19);
+    }
+
+    #[test]
+    fn test_pop_operands() {
+        //pop_operands
     }
 
     #[test]
