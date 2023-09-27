@@ -309,7 +309,7 @@ fn store_f64(thread: &mut Thread, v: f64) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
@@ -491,7 +491,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -709,7 +709,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -872,7 +872,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -1034,7 +1034,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(

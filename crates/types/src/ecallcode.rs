@@ -133,6 +133,20 @@ pub enum ECallCode {
     regex_test,
     regex_remove,
 
+    // system
+
+    scall,              // syscall
+                        // `fn (params_count: i32, sys_call_num:i32)`
+                        // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+
+    ccall,              // external C function call
+                        // `fn (params_count: i32, c_func_index:i32)`
+
+    // note that both 'scall' and 'ccall' are optional, they may be
+    // unavailable in some environment.
+    // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
+
+
     //
     // I/O functions
     //
@@ -142,7 +156,7 @@ pub enum ECallCode {
     print_i64,          // `fn (fd:i32 value:i64)`
 
     //
-    // delegate to syscall
+    // delegate to std I/O
     //
     write,              // `fn (fd:i32 addr:i64 length:i64)`
 }

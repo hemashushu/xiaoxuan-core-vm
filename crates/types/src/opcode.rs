@@ -1157,7 +1157,7 @@ pub enum Opcode {
     //
 
     call,                       // general function call            (param func_pub_index:i32)
-    dcall,                      // closure/dynamic function call    (operand func_pub_index:i64)
+    dcall,                      // closure/dynamic function call    (operand func_pub_index:i32)
 
     // note:
     // 'function public index' includes the imported functions, it equals to
@@ -1235,15 +1235,6 @@ pub enum Opcode {
     // ```
 
     ecall,                      // environment call                 (param env_func_num:i32)
-
-    scall,                      // syscall                          (param sys_call_num:i32)
-                                // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
-                                //
-    ccall,                      // external C function call         (param c_func_index:i32)
-                                //
-                                // note that both 'scall' and 'ccall' are optional instructions, they may be
-                                // unavailable in some environment.
-                                // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
 
     //
     // machine

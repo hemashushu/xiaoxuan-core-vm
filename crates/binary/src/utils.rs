@@ -437,12 +437,6 @@ impl BytecodeWriter {
     }
 }
 
-// impl Default for BytecodeWriter {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
 pub fn format_bytecodes(codes: &[u8]) -> String {
     // display the bytecode as the following format:
     //
@@ -849,7 +843,7 @@ impl<'a> BytecodeReader<'a> {
                     let (deepth, offset) = self.read_param_i16_i32();
                     line.push_str(&format!("{} 0x{:x}", deepth, offset));
                 }
-                Opcode::call | Opcode::ecall | Opcode::scall | Opcode::ccall => {
+                Opcode::call | Opcode::ecall => {
                     let idx = self.read_param_i32();
                     line.push_str(&format!("{}", idx));
                 }
@@ -886,7 +880,7 @@ impl<'a> BytecodeReader<'a> {
     }
 }
 
-/// testing-helper
+/// helper object for unit test
 pub struct HelperFunctionEntry {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
@@ -894,13 +888,14 @@ pub struct HelperFunctionEntry {
     pub code: Vec<u8>,
 }
 
+/// helper object for unit test
 pub struct HelperBlockEntry {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 }
 
-/// testing-helper
+/// helper function for unit test
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
@@ -918,7 +913,7 @@ pub fn build_module_binary_with_single_function(
     )
 }
 
-/// testing-helper
+/// helper function for unit test
 pub fn build_module_binary_with_single_function_and_data_sections(
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
@@ -961,7 +956,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     )
 }
 
-/// testing-helper
+/// helper function for unit test
 pub fn build_module_binary_with_single_function_and_blocks(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
@@ -979,7 +974,7 @@ pub fn build_module_binary_with_single_function_and_blocks(
     build_module_binary_with_functions_and_blocks(vec![help_func_entry], helper_block_entries)
 }
 
-/// testing-helper
+/// helper function for unit test
 pub fn build_module_binary_with_functions_and_blocks(
     helper_func_entries: Vec<HelperFunctionEntry>,
     helper_block_entries: Vec<HelperBlockEntry>,
@@ -1073,7 +1068,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     )
 }
 
-/// testing-helper
+/// helper function for unit test
 pub fn build_module_binary(
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
@@ -1186,10 +1181,16 @@ pub fn build_module_binary(
     // build function index
     let func_ranges: Vec<RangeItem> = vec![RangeItem {
         offset: 0,
-        count: 1,
+        count: func_entries.len() as u32,
     }];
 
-    let func_index_items: Vec<FuncIndexItem> = vec![FuncIndexItem::new(0, 0, 0)];
+    let func_index_items: Vec<FuncIndexItem> = (0..func_entries.len())
+        .map(|idx| {
+            let idx_u32 = idx as u32;
+            FuncIndexItem::new(idx_u32, 0, idx_u32)
+        })
+        .collect::<Vec<_>>();
+
     let func_index_section = FuncIndexSection {
         ranges: &func_ranges,
         items: &func_index_items,
@@ -1225,7 +1226,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
     use crate::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::{
             data_index_section::DataIndexItem,
             data_section::{DataEntry, DataItem, DataSectionType, UninitDataEntry},
@@ -1263,7 +1264,7 @@ mod tests {
             vec![0u8],
         );
 
-        let module_images = load_modules_binary(vec![&binary]).unwrap();
+        let module_images = load_modules_from_binaries(vec![&binary]).unwrap();
 
         // check module image
 

@@ -451,7 +451,7 @@ impl Stack {
         // let func_fp = frame_info.function_frame_address;
         let FramePack {
             address: fp,
-            frame_info: _frame_info,
+            frame_info: _,
         } = self.get_frame_pack(reversed_index);
 
         self.get_frame_local_variables_start_address(fp)
@@ -642,7 +642,7 @@ impl Stack {
     /// - moves the specified number of operands to the top of stack
     ///
     /// return TRUE if the target frame is function frame.
-    pub fn reset_to_frame(&mut self, reversed_index: u16) -> bool {
+    pub fn reset_frames(&mut self, reversed_index: u16) -> bool {
         let (is_function_frame, frame_addr, params_count, local_variables_allocate_bytes) = {
             let frame_pack = self.get_frame_pack(reversed_index);
             (
@@ -1587,7 +1587,7 @@ mod tests {
         assert_eq!(stack.sp, 112);
 
         // reset the frame
-        let isfunc0 = stack.reset_to_frame(0);
+        let isfunc0 = stack.reset_frames(0);
         assert!(isfunc0);
 
         // the current layout
@@ -1649,7 +1649,7 @@ mod tests {
         // reset in the current frame
         // because there is no extra operands, there are only local vars (and args),
         // so the reseting this time should be optimizied.
-        stack.reset_to_frame(0);
+        stack.reset_frames(0);
 
         assert_eq!(stack.read_local_by_offset_i32(0, 0), 0); // reset
         assert_eq!(stack.read_local_by_offset_i32(0, 8), 0); // reset
@@ -1739,7 +1739,7 @@ mod tests {
         //              |--------|
 
         // reset the frame
-        let isfunc1 = stack.reset_to_frame(0);
+        let isfunc1 = stack.reset_frames(0);
         assert!(!isfunc1);
 
         // the current layout (partial)
@@ -1784,7 +1784,7 @@ mod tests {
         assert_eq!(stack.read_local_by_offset_i32(0, 8), 151);
 
         // reset the current block frame again
-        let isfunc2 = stack.reset_to_frame(0);
+        let isfunc2 = stack.reset_frames(0);
         assert!(!isfunc2);
 
         // nothings changes
@@ -1880,7 +1880,7 @@ mod tests {
         // note:
         // the current frame has no local vars, neither args
 
-        stack.reset_to_frame(0);
+        stack.reset_frames(0);
 
         // check SP
         assert_eq!(stack.fp, 136);
@@ -1903,7 +1903,7 @@ mod tests {
         //
 
         // the params count of target frame is 1
-        let isfunc3 = stack.reset_to_frame(1);
+        let isfunc3 = stack.reset_frames(1);
         assert!(!isfunc3);
 
         // the current layout (partial)
@@ -1947,7 +1947,7 @@ mod tests {
         //              |--------|
 
         // the params count of target frame (frame 0) is 2
-        let isfunc4 = stack.reset_to_frame(1);
+        let isfunc4 = stack.reset_frames(1);
         assert!(isfunc4);
 
         // the current layout

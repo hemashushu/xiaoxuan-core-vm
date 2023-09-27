@@ -4,7 +4,10 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::fmt::Display;
+use std::{
+    fmt::{Binary, Display},
+    fs::File,
+};
 
 use module_image::ModuleImage;
 
@@ -22,7 +25,54 @@ impl Display for BinaryError {
     }
 }
 
-pub fn load_modules_binary(module_binaries: Vec<&[u8]>) -> Result<Vec<ModuleImage>, BinaryError> {
+pub fn load_modules_files(
+    app_cache_path: &str,
+    shared_modules_path: &str,
+) -> Result<File, BinaryError> {
+    // a script application may consist of a single script file, or several script files.
+    // in either case, these script files will be compiled into a single module image file
+    // named 'main.ancbc', and this file will be copied to the 'application cache' directory.
+    //
+    // the dependent modules of application are copied to this cache directory also, but
+    // the shared modules (such as the standard library) are located at the runtime directory, and
+    // they will not be copied to this directory.
+    //
+    // the structure of application cache directory
+    //
+    // app cache dir
+    //   |-- cache.anon (the cache infomations, such as the last modified time and content hash of script file)
+    //   |-- main.ancbc
+    //   |-- dependency1.ancbc
+    //   |-- dependencyN.ancbc
+    //
+    //
+    // note that apart from the script files, a script application may also contains resource files
+    // and (dynamically linked) shared libraries.
+    // these files will stay in their original location and will not be copied to the cache directory.
+    //
+    // app source file dir
+    //   |-- module.anon (the application description file, similar to the Nodejs's package.json
+    //   |                and the Rust's Cargo.toml)
+    //   |-- main.ancs (the main module script file)
+    //   |-- sub-module.ancs
+    //   |-- sub-dir
+    //   |     |-- sub-module.ancs
+    //   |     |-- ...
+    //   |
+    //   |-- resources
+    //   |     |-- images_etc
+    //   |     |-- ...
+    //   |
+    //   |-- lib
+    //   |     |-- shared-library.so
+    //   |     |-- ...
+
+    todo!()
+}
+
+pub fn load_modules_from_binaries(
+    module_binaries: Vec<&[u8]>,
+) -> Result<Vec<ModuleImage>, BinaryError> {
     let mut module_images: Vec<ModuleImage> = Vec::new();
     for binary in module_binaries {
         let module_image = ModuleImage::load(binary)?;

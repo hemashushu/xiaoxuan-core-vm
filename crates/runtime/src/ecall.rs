@@ -91,7 +91,7 @@ pub fn ecall(thread: &mut Thread) -> InterpretResult {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::data_section::UninitDataEntry,
         utils::{
             build_module_binary_with_single_function,
@@ -153,7 +153,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -195,7 +195,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -238,7 +238,7 @@ mod tests {
             code1,
         );
 
-        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
         let mut thread1 = Thread::new(&image1);
 
         let result1 = process_function(&mut thread1, 0, 0, &vec![]);

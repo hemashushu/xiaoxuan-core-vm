@@ -11,14 +11,14 @@ use super::InterpretResult;
 pub fn end(thread: &mut Thread) -> InterpretResult {
     let opt_return_pc = thread.stack.remove_frames(0);
 
-    if let Some(pc) = opt_return_pc {
-        if pc.instruction_address == 0 {
+    if let Some(return_pc) = opt_return_pc {
+        if return_pc.instruction_address == 0 {
             // the PC reaches the first function end, it means
             // the program reaches the ending.
             InterpretResult::End
         } else {
             // call another function or come back from another function
-            InterpretResult::Jump(pc)
+            InterpretResult::Jump(return_pc)
         }
     } else {
         // just move on
@@ -166,7 +166,7 @@ pub fn recur_nez(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_recur(thread: &mut Thread, reversed_index: u16, start_inst_offset: u32) -> InterpretResult {
-    let is_func = thread.stack.reset_to_frame(reversed_index);
+    let is_func = thread.stack.reset_frames(reversed_index);
     if is_func {
         // the target frame is a function frame
         // the value of 'start_inst_offset' is ignored.
@@ -187,15 +187,19 @@ fn do_recur(thread: &mut Thread, reversed_index: u16, start_inst_offset: u32) ->
 
 pub fn call(thread: &mut Thread) -> InterpretResult {
     let function_public_index = thread.get_param_i32();
-    do_call(thread, function_public_index)
+    do_call(thread, function_public_index, 8)
 }
 
 pub fn dcall(thread: &mut Thread) -> InterpretResult {
     let function_public_index = thread.stack.pop_i32_u();
-    do_call(thread, function_public_index)
+    do_call(thread, function_public_index, 2)
 }
 
-fn do_call(thread: &mut Thread, function_public_index: u32) -> InterpretResult {
+fn do_call(
+    thread: &mut Thread,
+    function_public_index: u32,
+    instruction_length: usize,
+) -> InterpretResult {
     let ProgramCounter {
         instruction_address: return_instruction_address,
         function_internal_index: return_function_internal_index,
@@ -219,10 +223,10 @@ fn do_call(thread: &mut Thread, function_public_index: u32) -> InterpretResult {
         .items[type_index];
 
     let return_pc = ProgramCounter {
-        // the length of instruction 'call' is 8 bytes.
+        // the length of instruction 'call' is 8 bytes (while 'dcall' is 2 bytes).
         // so when the target function is finish, the next instruction should be the
-        // instruction after the instruction 'call'.
-        instruction_address: return_instruction_address + 8,
+        // instruction after the instruction 'call/dcall'.
+        instruction_address: return_instruction_address + instruction_length,
         function_internal_index: return_function_internal_index,
         module_index: return_module_index,
     };
@@ -247,10 +251,12 @@ fn do_call(thread: &mut Thread, function_public_index: u32) -> InterpretResult {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::local_variable_section::LocalVariableEntry,
         utils::{
+            build_module_binary_with_functions_and_blocks,
             build_module_binary_with_single_function_and_blocks, BytecodeWriter, HelperBlockEntry,
+            HelperFunctionEntry,
         },
     };
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
@@ -262,14 +268,14 @@ mod tests {
         init_runtime();
 
         // func () -> (i32, i32, i32, i32)
-        //     11
-        //     13
-        //     block () -> ()
-        //         17
-        //         19
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) () -> ()
+        //         (i32_imm 17)
+        //         (i32_imm 19)
         //     end
-        //     23
-        //     29
+        //     (i32_imm 23)
+        //     (i32_imm 29)
         // end
         //
         // expect (11, 13, 23, 29)
@@ -298,7 +304,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -318,12 +324,12 @@ mod tests {
         init_runtime();
 
         // func () -> (i32, i32, i32, i32)
-        //     11
-        //     13
-        //     block (i32) -> (i32, i32)
-        //         17
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) (i32) -> (i32, i32)
+        //         (i32_imm 17)
         //     end
-        //     19
+        //     (i32_imm 19)
         // end
         //
         // expect (11, 13, 17, 19)
@@ -350,7 +356,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -371,29 +377,29 @@ mod tests {
 
         // func (a/2:i32, b/3:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
         //     (local c/0:i32, d/1:i32)
-        //     c=a+1                        ;; 20
-        //     d=b+1                        ;; 12
-        //     block () -> (i32, i32, i32,i32)
+        //     ;; c=a+1                     ;; 20
+        //     ;; d=b+1                     ;; 12
+        //     (block 1 1) () -> (i32, i32, i32,i32)
         //         (local p/0:i32, q/1:i32)
-        //         a=a-1                    ;; 18
-        //         b=b-1                    ;; 10
-        //         p=c+d                    ;; 32
-        //         q=c-d                    ;; 8
-        //         load c
-        //         load d
-        //             block (x/0:i32, y/1:i32) -> (i32,i32)
-        //                 x+q              ;; 28
-        //                 y+p              ;; 44
-        //                 d=d+1            ;; 13
-        //                 q=q-1            ;; 7
-        //             end
-        //         load p
-        //         load q
+        //         ;; a=a-1                 ;; 18
+        //         ;; b=b-1                 ;; 10
+        //         ;; p=c+d                 ;; 32
+        //         ;; q=c-d                 ;; 8
+        //         ;; load c
+        //         ;; load d
+        //         (block 2 2) (x/0:i32, y/1:i32) -> (i32,i32)
+        //             ;; x+q               ;; 28
+        //             ;; y+p               ;; 44
+        //             ;; d=d+1             ;; 13
+        //             ;; q=q-1             ;; 7
+        //         end
+        //         ;; load p
+        //         ;; load q
         //     end
-        //     load a
-        //     load b
-        //     load c
-        //     load d
+        //     ;; load a
+        //     ;; load b
+        //     ;; load c
+        //     ;; load d
         // end
         //
         // expect (19, 11) -> (28,44, 32, 7, 18, 10, 20, 13)
@@ -548,7 +554,7 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -577,11 +583,11 @@ mod tests {
         init_runtime();
 
         // func () -> (i32, i32)
-        //     11
-        //     13
-        //     break 0 0
-        //     17
-        //     19
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (break 0 0)
+        //     (i32_imm 17)
+        //     (i32_imm 19)
         // end
         //
         // expect (11, 13)
@@ -612,7 +618,7 @@ mod tests {
             vec![],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -626,17 +632,17 @@ mod tests {
     fn test_process_control_break_block() {
         init_runtime();
         // func () -> (i32, i32, i32, i32)
-        //     11
-        //     13
-        //     block () -> (i32, i32)
-        //         17
-        //         19
-        //         break 0 x
-        //         23
-        //         29
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) () -> (i32, i32)
+        //         (i32_imm 17)
+        //         (i32_imm 19)
+        //         (break 0 x)
+        //         (i32_imm 23)
+        //         (i32_imm 29)
         //     end
-        //     31
-        //     37
+        //     (i32_imm 31)
+        //     (i32_imm 37)
         // end
         //
         // expect (17, 19, 31, 37)
@@ -684,7 +690,7 @@ mod tests {
             }],
         );
 
-        let image1 = load_modules_binary(vec![&binary1]).unwrap();
+        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
         let mut thread1 = Thread::new(&image1);
 
         let result1 = process_function(&mut thread1, 0, 0, &vec![]);
@@ -705,17 +711,17 @@ mod tests {
         // cross jump
         //
         // func () -> (i32, i32)
-        //     11
-        //     13
-        //     block () -> ()
-        //         17
-        //         19
-        //         break 1 0
-        //         23
-        //         29
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) () -> ()
+        //         (i32_imm 17)
+        //         (i32_imm 19)
+        //         (break 1 0)
+        //         (i32_imm 23)
+        //         (i32_imm 29)
         //     end
-        //     31
-        //     37
+        //     (i32_imm 31)
+        //     (i32_imm 37)
         // end
         //
         // expect (17, 19)
@@ -763,7 +769,7 @@ mod tests {
             }],
         );
 
-        let image2 = load_modules_binary(vec![&binary2]).unwrap();
+        let image2 = load_modules_from_binaries(vec![&binary2]).unwrap();
         let mut thread2 = Thread::new(&image2);
 
         let result2 = process_function(&mut thread2, 0, 0, &vec![]);
@@ -778,12 +784,12 @@ mod tests {
         init_runtime();
 
         // func $max (i32, i32) -> (i32)
-        //     local_load32 0 0
-        //     local_load32 0 0
-        //     local_load32 0 1
+        //     (local_load32 0 0)
+        //     (local_load32 0 0)
+        //     (local_load32 0 1)
         //     i32_lt
-        //     block_nez ()->(i32)
-        //         local_load32 1 1
+        //     (block_nez 1 1) ()->(i32)
+        //         (local_load32 1 1)
         //     end
         // end
         //
@@ -827,7 +833,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -852,13 +858,13 @@ mod tests {
         init_runtime();
 
         // func $max (i32, i32) -> (i32)
-        //     local_load32 0 0
-        //     local_load32 0 1
+        //     (local_load32 0 0)
+        //     (local_load32 0 1)
         //     i32_gt
-        //     block_alt ()->(i32)
-        //         local_load32 1 0
-        //     break 0
-        //         local_load32 1 1
+        //     (block_alt 1 1) ()->(i32)
+        //         (local_load32 1 0)
+        //     (break 0)
+        //         (local_load32 1 1)
         //     end
         // end
         //
@@ -904,7 +910,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -929,25 +935,25 @@ mod tests {
         init_runtime();
 
         // func $level (i32) -> (i32)
-        //     local_load32 0 0
-        //     i32_imm 85
+        //     (local_load32 0 0)
+        //     (i32_imm 85)
         //     i32_gt
-        //     block_alt ()->(i32)          ;; block 1 1
-        //         i32_imm 65               ;; 'A' (85, 100]
-        //     break 0
-        //         local_load32 1 0
-        //         i32_imm 70
-        //         i32_gt
-        //         block_alt ()->(i32)      ;; block 2 2
-        //             i32_imm 66           ;; 'B' (70,85]
-        //         break 1
-        //             local_load32 2 0
-        //             i32_imm 55
-        //             i32_gt
-        //             block_alt ()->(i32)  ;; block 3 3
-        //                 i32_imm 67       ;; 'C' (55, 70]
-        //             break 2
-        //                 i32_imm 68       ;; 'D' [0, 55]
+        //     (block_alt 1 1) ()->(i32)            ;; block 1 1
+        //         (i32_imm 65)                     ;; 'A' (85, 100]
+        //     (break 0)
+        //         (local_load32 1 0)
+        //         (i32_imm 70)
+        //         i32_gt_u
+        //         (block_alt 2 2) ()->(i32)        ;; block 2 2
+        //             (i32_imm 66)                 ;; 'B' (70,85]
+        //         (break 1)
+        //             (local_load32 2 0)
+        //             (i32_imm 55)
+        //             i32_gt_u
+        //             (block_alt 3 3) ()->(i32)    ;; block 3 3
+        //                 (i32_imm 67)             ;; 'C' (55, 70]
+        //             (break 2)
+        //                 (i32_imm 68)             ;; 'D' [0, 55]
         //             end
         //         end
         //     end
@@ -1041,7 +1047,7 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(90)]);
@@ -1068,33 +1074,33 @@ mod tests {
         init_runtime();
 
         // func $level (i32) -> (i32)
-        //     block ()->(i32)          ;; block 1 1
-        //                              ;; case 1
-        //         local_load32 0 0
-        //         i32_imm 85
+        //     (block 1 1) ()->(i32)        ;; block 1 1
+        //                                  ;; case 1
+        //         (local_load32 0 0)
+        //         (i32_imm 85)
         //         i32_gt
-        //         block_nez ()->()     ;; block 2 2
-        //             i32_imm 65       ;; 'A' (85, 100]
-        //             break 1
+        //         (block_nez 2 2) ()->()   ;; block 2 2
+        //             (i32_imm 65)         ;; 'A' (85, 100]
+        //             (break 1)
         //         end
-        //                              ;; case 2
-        //         local_load32 0 0
-        //         i32_imm 70
+        //                                  ;; case 2
+        //         (local_load32 0 0)
+        //         (i32_imm 70)
         //         i32_gt
-        //         block_nez ()->()     ;; block 3 3
-        //             i32_imm 66       ;; 'B' (70,85]
-        //             break 1
+        //         (block_nez 3 3) ()->()   ;; block 3 3
+        //             (i32_imm 66)         ;; 'B' (70,85]
+        //             (break 1)
         //         end
-        //                              ;; case 3
-        //         local_load32 0 0
-        //         i32_imm 55
+        //                                  ;; case 3
+        //         (local_load32 0 0)
+        //         (i32_imm 55)
         //         i32_gt
-        //         block_nez ()->()     ;; block 4 4
-        //             i32_imm 67       ;; 'C' (55, 70]
-        //             break 1
+        //         (block_nez 4 4) ()->()   ;; block 4 4
+        //             (i32_imm 67)         ;; 'C' (55, 70]
+        //             (break 1)
         //         end
-        //                              ;; default
-        //         i32_imm 68           ;; 'D' [0, 55]
+        //                                  ;; default
+        //         (i32_imm 68)             ;; 'D' [0, 55]
         //     end
         // end
         //
@@ -1204,7 +1210,7 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(90)]);
@@ -1230,17 +1236,17 @@ mod tests {
     fn test_process_control_while() {
         init_runtime();
 
-        // func $accu (i32) -> (i32)
-        //     (local (;0;) $sum i32)
-        //     block ()->()
+        // func $accu (n/1:i32) -> (i32)
+        //     (local sum/0:i32)
+        //     (block 1 1) ()->()
         //                              ;; break if n==0
         //         (local_load32 1 1)
-        //         (i32_eqz)
+        //         i32_eqz
         //         (break_nez 0)
         //                              ;; sum = sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
-        //         (i32_add)
+        //         i32_add
         //         (local_store32 1 0)
         //                              ;; n = n - 1
         //         (local_load32 1)
@@ -1313,7 +1319,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1326,19 +1332,19 @@ mod tests {
     #[test]
     fn test_process_control_while_functional() {
         init_runtime();
-        // func $accu_optimized (i32) -> (i32)
-        //     (zero)                   ;; sum
+        // func $accu (i32) -> (i32)
+        //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
-        //     block (sum/0:i32, n/1:i32)->(i32)
+        //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
         //         (local_load32 0 0)   ;; load sum
         //                              ;; break if n==0
         //         (local_load32 0 1)
-        //         (i32_eqz)
+        //         i32_eqz
         //         (break_nez 0)
         //                              ;; sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //         (i32_add)
+        //         i32_add
         //                              ;; n - 1
         //         (local_load32 0 1)
         //         (i32_dec 1)
@@ -1411,7 +1417,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1425,19 +1431,19 @@ mod tests {
     fn test_process_control_while_opti() {
         init_runtime();
         // func $accu_optimized (i32) -> (i32)
-        //     (zero)                   ;; sum
+        //     zero                   ;; sum
         //     (local_load32 0 0)       ;; n
-        //     block (sum/0:i32, n/1:i32)->(i32)
+        //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
         //         (local_load32 0 0)   ;; load sum
         //                              ;; break if n==0
         //         (local_load32 0 1)
-        //         (i32_eqz)
+        //         i32_eqz
         //         (break_nez 0)
-        //         (drop)               ;; drop sum
+        //         drop                 ;; drop sum
         //                              ;; sum = sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //         (i32_add)
+        //         i32_add
         //         (local_store32 0 0)
         //                              ;; n = n - 1
         //         (local_load32 0 1)
@@ -1518,7 +1524,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1534,12 +1540,12 @@ mod tests {
 
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
-        //     local_load32 0 0         ;; n
-        //     block (i32, i32)->(i32)
+        //     (local_load32 0 0)       ;; n
+        //     (block 1 1) (i32, i32)->(i32)
         //                              ;; sum = sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //         (i32_add)
+        //         i32_add
         //         (local_store32 0 0)
         //                              ;; n = n - 1
         //         (local_load32 0 3)
@@ -1551,10 +1557,10 @@ mod tests {
         //                              ;; load n
         //                              ;; recur if n > 0
         //         (local_load32 0 1)
-        //         (zero)
-        //         (i32_gt)
+        //         zero
+        //         i32_gt
         //         (recur_nez 0)
-        //         (drop)               ;; drop n, keep sum
+        //         drop               ;; drop n, keep sum
         //     end
         // end
         //
@@ -1629,7 +1635,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1649,13 +1655,13 @@ mod tests {
 
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
-        //     local_load32 0 0         ;; n
-        //     block (p_sum/2:i32, p_n/3:i32)->(i32)
+        //     (local_load32 0 0)       ;; n
+        //     (block 1 1) (p_sum/2:i32, p_n/3:i32)->(i32)
         //         (local new_sum/0:i32 new_n/1:i32)
         //                              ;; new_sum = p_sum + p_n
         //         (local_load32 0 2)
         //         (local_load32 0 3)
-        //         (i32_add)
+        //         i32_add
         //         (local_store32 0 0)
         //                              ;; new_n = p_n - 1
         //         (local_load32 0 3)
@@ -1667,11 +1673,11 @@ mod tests {
         //                              ;; load new_n
         //         (local_load32 0 1)
         //                              ;; recur if new_n > 0
-        //         (zero)
-        //         (i32_gt)
+        //         zero
+        //         i32_gt
         //         (recur_nez 0)
         //
-        //         (drop)               ;; drop new_n, keep new_sum
+        //         drop               ;; drop new_n, keep new_sum
         //     end
         // end
         //
@@ -1749,7 +1755,7 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1767,7 +1773,7 @@ mod tests {
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
         //     (local_load32 0 1)
-        //     (i32_add)
+        //     i32_add
         //     (local_store32 0 0)
         //                              ;; n = n - 1
         //     (local_load32 0 1)
@@ -1775,9 +1781,9 @@ mod tests {
         //     (local_store32 0 1)
         //                              ;; if n > 0 recur (sum,n)
         //     (local_load32 0 1)
-        //     (zero)
-        //     (i32_gt)
-        //     (block_nez) () -> ()
+        //     zero
+        //     i32_gt
+        //     (block_nez 1 1) () -> ()
         //         (local_load32 0 0)
         //         (local_load32 0 1)
         //         (recur 1)
@@ -1847,7 +1853,7 @@ mod tests {
             }], // blocks
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -1875,17 +1881,17 @@ mod tests {
         //                          ;; sum + n
         //     (local_load32 0)
         //     (local_load32 1)
-        //     (i32_add)
+        //     i32_add
         //                          ;; n - 1
         //     (local_load32 1)
         //     (i32_dec 1)
         //                          ;; recur if n>0
-        //     (duplicate)
-        //     (zero)
-        //     (i32_gt)
+        //     duplicate
+        //     zero
+        //     i32_gt
         //     (recur_nez 0)
         //                          ;; drop n, keep sum
-        //     (drop)
+        //     drop
         // end
         //
         // assert (0, 10) -> (55)
@@ -1933,7 +1939,7 @@ mod tests {
             vec![], // blocks
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -1959,14 +1965,14 @@ mod tests {
 
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
-        //     (i32_eqz)
+        //     i32_eqz
         //     (block_alt 1 1) () -> (i32)      ;; if n == 0
         //         (local_load32 1 0)           ;; then sum
         //     (break 0)                        ;; else
         //                                      ;; sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
-        //         (i32_add)
+        //         i32_add
         //                                      ;; n - 1
         //         (local_load32 1 1)
         //         (i32_dec 1)
@@ -2032,7 +2038,7 @@ mod tests {
             }], // blocks
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -2050,5 +2056,290 @@ mod tests {
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
+    }
+
+    #[test]
+    fn test_process_control_call() {
+        init_runtime();
+
+        // func $main (i32) -> (i32)
+        //     (call $sum_square)
+        // end
+        //
+        // func $sum_square (n/1:i32) -> (i32)
+        //     zero
+        //     (local_load32 0 0)
+        //     (block 3 3) (sum/0:i32, n/1:i32) -> (i32)
+        //                                  ;; if n == 0
+        //         (local_load32 0 1)
+        //         i32_eqz
+        //         (block_alt 4 4) () -> (i32)
+        //             (local_load32 1 0)   ;; then sum
+        //         (break 0)                ;; else
+        //                                  ;; sum + n^2
+        //             (local_load32 1 0)
+        //             (local_load32 1 1)
+        //             (call $square)
+        //             i32_add
+        //                                  ;; n - 1
+        //             (local_load32 1 1)
+        //             (i32_dec 1)
+        //                                  ;; recur 1
+        //             (recur 1)
+        //         end
+        //     end
+        // end
+        //
+        // func $square (i32) -> (i32)
+        //     (local_load 32)
+        //     i32_mul
+        // end
+
+        // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
+
+        // bytecode
+        //
+        // 0x0000 call                 1
+        // 0x0008 end
+
+        let code_main = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::call, 1)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // bytecode
+        //
+        // 0x0000 zero
+        // 0x0002 local_load32         0 0 0
+        // 0x000a nop
+        // 0x000c block                1 1
+        // 0x0018 local_load32         0 0 1
+        // 0x0020 i32_eqz
+        // 0x0022 nop
+        // 0x0024 block_alt            2 2 0x20
+        // 0x0034 local_load32         0 0 0
+        // 0x003c break                0 0x3a
+        // 0x0044 local_load32         0 0 0
+        // 0x004c local_load32         0 0 1
+        // 0x0054 call                 2
+        // 0x005c i32_add
+        // 0x005e local_load32         0 0 1
+        // 0x0066 i32_dec              1
+        // 0x006a nop
+        // 0x006c recur                1 0x54
+        // 0x0074 end
+        // 0x0076 end
+        // 0x0078 end
+
+        let code_sum_square = BytecodeWriter::new()
+            .write_opcode(Opcode::zero)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .write_opcode_i32_i32(Opcode::block, 3, 3)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .write_opcode(Opcode::i32_eqz)
+            .write_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .write_opcode_i16_i32(Opcode::break_, 0, 0x3a)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i32(Opcode::call, 2)
+            .write_opcode(Opcode::i32_add)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            //
+            .write_opcode_i16_i32(Opcode::recur, 1, 0x54)
+            //
+            .write_opcode(Opcode::end)
+            .write_opcode(Opcode::end)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // bytecode
+        //
+        // 0x0000 local_load32         0 0 0
+        // 0x0008 i32_mul
+        // 0x000a end
+
+        let code_square = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .write_opcode(Opcode::i32_mul)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}\n", BytecodeReader::new(&code_main).to_text());
+        // println!("{}\n", BytecodeReader::new(&code_sum_square).to_text());
+        // println!("{}\n", BytecodeReader::new(&code_square).to_text());
+
+        let binary0 = build_module_binary_with_functions_and_blocks(
+            vec![
+                HelperFunctionEntry {
+                    params: vec![DataType::I32],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_main,
+                },
+                HelperFunctionEntry {
+                    params: vec![DataType::I32],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_sum_square,
+                },
+                HelperFunctionEntry {
+                    params: vec![DataType::I32],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_square,
+                },
+            ],
+            vec![
+                HelperBlockEntry {
+                    params: vec![DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                },
+                HelperBlockEntry {
+                    params: vec![],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                },
+            ],
+        );
+
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(5)]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55),]);
+    }
+
+    #[test]
+    fn test_process_control_dcall() {
+        init_runtime();
+
+        // func $main () -> (i32, i32, i32, i32, i32)
+        //     (i32_imm 2)
+        //     (dcall)
+        //     (i32_imm 4)
+        //     (dcall)
+        //     (i32_imm 3)
+        //     (dcall)
+        //     (i32_imm 1)
+        //     (dcall)
+        //     (i32_imm 2)
+        //     (dcall)
+        // end
+        //
+        // func $eleven (;1;) () -> (i32)
+        //     (i32_imm 11)
+        // end
+        //
+        // func $thirteen (;2;) () -> (i32)
+        //     (i32_imm 13)
+        // end
+        //
+        // func $seventeen (;3;) () -> (i32)
+        //     (i32_imm 17)
+        // end
+        //
+        // func $nineteen (;4;) () -> (i32)
+        //     (i32_imm 19)
+        // end
+
+        // expect (13, 19, 17, 11, 13)
+
+        let code_main = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode(Opcode::dcall)
+            .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode(Opcode::dcall)
+            .write_opcode_i32(Opcode::i32_imm, 3)
+            .write_opcode(Opcode::dcall)
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode(Opcode::dcall)
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_eleven = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_thirteen = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_seventeen = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 17)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_nineteen = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 19)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_functions_and_blocks(
+            vec![
+                HelperFunctionEntry {
+                    params: vec![],
+                    results: vec![
+                        DataType::I32,
+                        DataType::I32,
+                        DataType::I32,
+                        DataType::I32,
+                        DataType::I32,
+                    ],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_main,
+                },
+                HelperFunctionEntry {
+                    params: vec![],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_eleven,
+                },
+                HelperFunctionEntry {
+                    params: vec![],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_thirteen,
+                },
+                HelperFunctionEntry {
+                    params: vec![],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_seventeen,
+                },
+                HelperFunctionEntry {
+                    params: vec![],
+                    results: vec![DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_nineteen,
+                },
+            ],
+            vec![],
+        );
+
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
+        let mut thread0 = Thread::new(&image0);
+
+        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt32(13),
+                ForeignValue::UInt32(19),
+                ForeignValue::UInt32(17),
+                ForeignValue::UInt32(11),
+                ForeignValue::UInt32(13),
+            ]
+        );
     }
 }

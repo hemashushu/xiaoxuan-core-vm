@@ -376,13 +376,14 @@ impl<'a> Thread<'a> {
 
         let ProgramCounter {
             instruction_address,
-            function_internal_index,
+            function_internal_index: _,
             module_index,
         } = self.pc;
-        let func_item =
-            &self.context.modules[module_index].func_section.items[function_internal_index];
+        // let func_item =
+        //     &self.context.modules[module_index].func_section.items[function_internal_index];
         let codes_data = self.context.modules[module_index].func_section.codes_data;
-        let dst = instruction_address + func_item.code_offset as usize + offset;
+        // let dst = instruction_address + func_item.code_offset as usize + offset;
+        let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
     }
 }
@@ -390,7 +391,7 @@ impl<'a> Thread<'a> {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
@@ -425,7 +426,7 @@ mod tests {
         );
 
         let binaries = vec![&binary[..]];
-        let module_images = load_modules_binary(binaries).unwrap(); //.expect("module binary error");
+        let module_images = load_modules_from_binaries(binaries).unwrap(); //.expect("module binary error");
         let thread = Thread::new(&module_images);
 
         let context = &thread.context;

@@ -514,7 +514,7 @@ fn do_local_store8(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::local_variable_section::LocalVariableEntry,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
@@ -647,7 +647,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -819,7 +819,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);

@@ -253,8 +253,6 @@ impl Opcode {
             Opcode::call => "call",
             Opcode::dcall => "dcall",
             Opcode::ecall => "ecall",
-            Opcode::scall => "scall",
-            Opcode::ccall => "ccall",
             //
             Opcode::nop => "nop",
             Opcode::debug => "debug",

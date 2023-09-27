@@ -107,7 +107,7 @@ pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
 mod tests {
 
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
@@ -150,7 +150,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
@@ -291,7 +291,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -439,7 +439,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);
@@ -558,7 +558,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(&mut thread0, 0, 0, &vec![]);

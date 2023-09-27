@@ -156,7 +156,7 @@ pub fn heap_store8(thread: &mut Thread) -> InterpretResult {
 mod tests {
 
     use ancvm_binary::{
-        load_modules_binary,
+        load_modules_from_binaries,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
@@ -328,7 +328,7 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_binary(vec![&binary0]).unwrap();
+        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
         let mut thread0 = Thread::new(&image0);
 
         let result0 = process_function(
