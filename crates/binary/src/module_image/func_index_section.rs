@@ -22,7 +22,7 @@
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{RangeItem, SectionEntry, SectionId};
+use super::{RangeItem, SectionEntry, ModuleSectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
@@ -60,8 +60,8 @@ impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
         save_section_with_two_tables(self.ranges, self.items, writer)
     }
 
-    fn id(&'a self) -> SectionId {
-        SectionId::FuncIndex
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::FuncIndex
     }
 }
 

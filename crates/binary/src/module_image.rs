@@ -46,12 +46,11 @@
 // are resolved and stored the indices in the following sections,
 // this help speeding up the next time the program loading:
 //
-// - module index section
 // - data index section (optional)
 // - func index section
+// - external func index section (optional)
 //
 // note that only the application main module contains these sections.
-//
 //
 // about the design of module:
 //
@@ -79,14 +78,12 @@ pub mod data_section;
 pub mod func_index_section;
 pub mod func_section;
 pub mod local_variable_section;
-pub mod module_index_section;
 pub mod type_section;
 
 use crate::{
     module_image::data_index_section::DataIndexSection,
     module_image::func_index_section::FuncIndexSection,
     module_image::func_section::FuncSection,
-    module_image::module_index_section::ModuleIndexSection,
     module_image::type_section::TypeSection,
     utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
     BinaryError,
@@ -126,20 +123,20 @@ pub struct ModuleImage<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct ModuleSection {
-    pub id: SectionId, // u32
+    pub id: ModuleSectionId, // u32
     pub offset: u32,
     pub length: u32,
 }
 
 impl ModuleSection {
-    pub fn new(id: SectionId, offset: u32, length: u32) -> Self {
+    pub fn new(id: ModuleSectionId, offset: u32, length: u32) -> Self {
         Self { id, offset, length }
     }
 }
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum SectionId {
+pub enum ModuleSectionId {
     ReadOnlyData = 0x10, // 0x10
     ReadWriteData,       // 0x11
     UninitData,          // 0x12
@@ -155,9 +152,9 @@ pub enum SectionId {
     ExternalFunc,      // 0x34
     AutoFunc,          // 0x35
     //
-    ModuleIndex = 0x40, // 0x40
-    DataIndex,          // 0x41
-    FuncIndex,          // 0x42
+    DataIndex = 0x40,  // 0x40
+    FuncIndex,         // 0x41
+    ExternalFuncIndex, // 0x42
 }
 
 // impl From<u32> for SectionId {
@@ -201,7 +198,7 @@ impl RangeItem {
 }
 
 pub trait SectionEntry<'a> {
-    fn id(&'a self) -> SectionId;
+    fn id(&'a self) -> ModuleSectionId;
     fn load(section_data: &'a [u8]) -> Self
     where
         Self: Sized;
@@ -294,7 +291,7 @@ impl<'a> ModuleImage<'a> {
         (items, image_data)
     }
 
-    pub fn get_section_index_by_id(&'a self, section_id: SectionId) -> Option<usize> {
+    pub fn get_section_index_by_id(&'a self, section_id: ModuleSectionId) -> Option<usize> {
         self.items.iter().enumerate().find_map(|(idx, item)| {
             if item.id == section_id {
                 Some(idx)
@@ -304,7 +301,7 @@ impl<'a> ModuleImage<'a> {
         })
     }
 
-    fn get_section_data_by_id(&'a self, section_id: SectionId) -> Option<&'a [u8]> {
+    fn get_section_data_by_id(&'a self, section_id: ModuleSectionId) -> Option<&'a [u8]> {
         self.items.iter().find_map(|item| {
             if item.id == section_id {
                 let data =
@@ -316,17 +313,17 @@ impl<'a> ModuleImage<'a> {
         })
     }
 
-    pub fn get_module_index_section(&'a self) -> ModuleIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::ModuleIndex);
-        if let Some(section_data) = opt_section_data {
-            ModuleIndexSection::load(section_data)
-        } else {
-            panic!("Can not found the module index section.")
-        }
-    }
+    // pub fn get_module_index_section(&'a self) -> ModuleIndexSection<'a> {
+    //     let opt_section_data = self.get_section_data_by_id(SectionId::ModuleIndex);
+    //     if let Some(section_data) = opt_section_data {
+    //         ModuleIndexSection::load(section_data)
+    //     } else {
+    //         panic!("Can not found the module index section.")
+    //     }
+    // }
 
     pub fn get_data_index_section(&'a self) -> DataIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::DataIndex);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::DataIndex);
         if let Some(section_data) = opt_section_data {
             DataIndexSection::load(section_data)
         } else {
@@ -335,7 +332,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_func_index_section(&'a self) -> FuncIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::FuncIndex);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::FuncIndex);
         if let Some(section_data) = opt_section_data {
             FuncIndexSection::load(section_data)
         } else {
@@ -344,7 +341,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_read_only_data_section(&'a self) -> ReadOnlyDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::ReadOnlyData);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ReadOnlyData);
         if let Some(section_data) = opt_section_data {
             ReadOnlyDataSection::load(section_data)
         } else {
@@ -353,7 +350,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_read_write_data_section(&'a self) -> ReadWriteDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::ReadWriteData);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ReadWriteData);
         if let Some(section_data) = opt_section_data {
             ReadWriteDataSection::load(section_data)
         } else {
@@ -362,7 +359,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_uninit_data_section(&'a self) -> UninitDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::UninitData);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UninitData);
         if let Some(section_data) = opt_section_data {
             UninitDataSection::load(section_data)
         } else {
@@ -371,7 +368,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_type_section(&'a self) -> TypeSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::Type);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::Type);
         if let Some(section_data) = opt_section_data {
             TypeSection::load(section_data)
         } else {
@@ -380,7 +377,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_func_section(&'a self) -> FuncSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::Func);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::Func);
         if let Some(section_data) = opt_section_data {
             FuncSection::load(section_data)
         } else {
@@ -389,7 +386,7 @@ impl<'a> ModuleImage<'a> {
     }
 
     pub fn get_local_variable_section(&'a self) -> LocalVariableSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(SectionId::LocalVariable);
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::LocalVariable);
         if let Some(section_data) = opt_section_data {
             LocalVariableSection::load(section_data)
         } else {
@@ -410,7 +407,6 @@ mod tests {
         local_variable_section::{
             LocalVariableEntry, LocalVariableItem, LocalVariableListEntry, LocalVariableSection,
         },
-        module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
         type_section::{TypeEntry, TypeSection},
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
     };
@@ -692,22 +688,22 @@ mod tests {
     #[test]
     fn test_module_index_sections() {
         // build ModuleIndexSection instance
-        let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
-        module_index_entries.push(ModuleIndexEntry::new(
-            ModuleShareType::Local,
-            "main".to_string(),
-        ));
-        module_index_entries.push(ModuleIndexEntry::new(
-            ModuleShareType::Shared,
-            "httpclient".to_string(),
-        ));
-
-        let (module_index_items, names_data) =
-            ModuleIndexSection::convert_from_entries(&module_index_entries);
-        let module_index_section = ModuleIndexSection {
-            items: &module_index_items,
-            names_data: &names_data,
-        };
+//         let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
+//         module_index_entries.push(ModuleIndexEntry::new(
+//             ModuleShareType::Local,
+//             "main".to_string(),
+//         ));
+//         module_index_entries.push(ModuleIndexEntry::new(
+//             ModuleShareType::Shared,
+//             "httpclient".to_string(),
+//         ));
+//
+//         let (module_index_items, names_data) =
+//             ModuleIndexSection::convert_from_entries(&module_index_entries);
+//         let module_index_section = ModuleIndexSection {
+//             items: &module_index_items,
+//             names_data: &names_data,
+//         };
 
         // build DataIndexSection instance
         let data_range0 = RangeItem::new(0, 3);
@@ -734,7 +730,7 @@ mod tests {
         // build IndexMap instance
 
         let section_entries: Vec<&dyn SectionEntry> = vec![
-            &module_index_section,
+            // &module_index_section,
             &data_index_section,
             &func_index_section,
         ];
@@ -753,54 +749,54 @@ mod tests {
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
 
-        assert_eq!(&image_data[16..20], &vec![3, 0, 0, 0]); // item count
+        assert_eq!(&image_data[16..20], &vec![2, 0, 0, 0]); // item count
         assert_eq!(&image_data[20..24], &vec![0, 0, 0, 0]); // padding
 
         // image header 24 bytes
         let remains = &image_data[24..];
 
-        // section table length = 12 (record length) * 3
-        let (section_table_data, remains) = remains.split_at(36);
+        // section table length = 12 (record length) * 2
+        let (section_table_data, remains) = remains.split_at(24);
 
         assert_eq!(
             section_table_data,
             &vec![
                 0x40u8, 0, 0, 0, // section id 0
                 0, 0, 0, 0, // offset 0
-                48, 0, 0, 0, // length 0
+                64, 0, 0, 0, // length 0
                 //
                 0x41u8, 0, 0, 0, // section id 1
-                48, 0, 0, 0, // offset 1
-                64, 0, 0, 0, // length 1
+                64, 0, 0, 0, // offset 1
+                28, 0, 0, 0, // length 1
                 //
-                0x42u8, 0, 0, 0, // section id 2
-                112, 0, 0, 0, // offset 2
-                28, 0, 0, 0, // length 2
+                // 0x42u8, 0, 0, 0, // section id 2
+                // 112, 0, 0, 0, // offset 2
+                // 28, 0, 0, 0, // length 2
             ]
         );
 
-        let (module_index_section_data, remains) = remains.split_at(48);
-
-        assert_eq!(
-            module_index_section_data,
-            &vec![
-                2, 0, 0, 0, // item count
-                0, 0, 0, 0, // padding
-                0, 0, 0, 0, // name offset 0
-                4, 0, 0, 0, // name length 0
-                0, // module type 0
-                0, 0, 0, // padding
-                //
-                4, 0, 0, 0, // name offset 1
-                10, 0, 0, 0, // name length 1
-                1, // module type 1
-                0, 0, 0, // padding
-                //
-                109, 97, 105, 110, // b"main"
-                104, 116, 116, 112, 99, 108, 105, 101, 110, 116, // b"httpclient"
-                0, 0, // padding for 4-byte alignment
-            ]
-        );
+//         let (module_index_section_data, remains) = remains.split_at(48);
+//
+//         assert_eq!(
+//             module_index_section_data,
+//             &vec![
+//                 2, 0, 0, 0, // item count
+//                 0, 0, 0, 0, // padding
+//                 0, 0, 0, 0, // name offset 0
+//                 4, 0, 0, 0, // name length 0
+//                 0, // module type 0
+//                 0, 0, 0, // padding
+//                 //
+//                 4, 0, 0, 0, // name offset 1
+//                 10, 0, 0, 0, // name length 1
+//                 1, // module type 1
+//                 0, 0, 0, // padding
+//                 //
+//                 109, 97, 105, 110, // b"main"
+//                 104, 116, 116, 112, 99, 108, 105, 101, 110, 116, // b"httpclient"
+//                 0, 0, // padding for 4-byte alignment
+//             ]
+//         );
 
         let (data_index_section_data, remains) = remains.split_at(64);
 
@@ -852,21 +848,21 @@ mod tests {
 
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
-        assert_eq!(module_image_restore.items.len(), 3);
+        assert_eq!(module_image_restore.items.len(), 2);
 
-        let module_index_section_restore = module_image_restore.get_module_index_section();
-
-        assert_eq!(module_index_section_restore.items.len(), 2);
-
-        assert_eq!(
-            module_index_section_restore.get_entry(0),
-            ModuleIndexEntry::new(ModuleShareType::Local, "main".to_string(),)
-        );
-
-        assert_eq!(
-            module_index_section_restore.get_entry(1),
-            ModuleIndexEntry::new(ModuleShareType::Shared, "httpclient".to_string(),)
-        );
+//         let module_index_section_restore = module_image_restore.get_module_index_section();
+//
+//         assert_eq!(module_index_section_restore.items.len(), 2);
+//
+//         assert_eq!(
+//             module_index_section_restore.get_entry(0),
+//             ModuleIndexEntry::new(ModuleShareType::Local, "main".to_string(),)
+//         );
+//
+//         assert_eq!(
+//             module_index_section_restore.get_entry(1),
+//             ModuleIndexEntry::new(ModuleShareType::Shared, "httpclient".to_string(),)
+//         );
 
         let data_index_section_restore = module_image_restore.get_data_index_section();
 

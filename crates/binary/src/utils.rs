@@ -20,7 +20,7 @@ use crate::module_image::{
     func_index_section::{FuncIndexItem, FuncIndexSection},
     func_section::{FuncEntry, FuncSection},
     local_variable_section::{LocalVariableEntry, LocalVariableSection},
-    module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
+    // module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
     type_section::{TypeEntry, TypeSection},
     ModuleImage, RangeItem, SectionEntry,
 };
@@ -1121,18 +1121,18 @@ pub fn build_module_binary(
         list_data: &local_var_list_data,
     };
 
-    // build module index
-    let mod_index_entries: Vec<ModuleIndexEntry> = vec![ModuleIndexEntry::new(
-        ModuleShareType::Local,
-        "main".to_string(),
-    )];
-
-    let (module_index_items, names_data) =
-        ModuleIndexSection::convert_from_entries(&mod_index_entries);
-    let mod_index_section = ModuleIndexSection {
-        items: &module_index_items,
-        names_data: &names_data,
-    };
+    // build module list
+//     let mod_index_entries: Vec<ModuleIndexEntry> = vec![ModuleIndexEntry::new(
+//         ModuleShareType::Local,
+//         "main".to_string(),
+//     )];
+//
+//     let (module_index_items, names_data) =
+//         ModuleIndexSection::convert_from_entries(&mod_index_entries);
+//     let mod_index_section = ModuleIndexSection {
+//         items: &module_index_items,
+//         names_data: &names_data,
+//     };
 
     // build data index
 
@@ -1198,7 +1198,7 @@ pub fn build_module_binary(
 
     // build module image
     let section_entries: Vec<&dyn SectionEntry> = vec![
-        &mod_index_section,
+        // &mod_index_section,
         &data_index_section,
         &func_index_section,
         &ro_data_section,
@@ -1233,7 +1233,6 @@ mod tests {
             func_index_section::FuncIndexItem,
             func_section::FuncEntry,
             local_variable_section::{LocalVariableEntry, LocalVariableItem},
-            module_index_section::ModuleShareType,
             type_section::TypeEntry,
             RangeItem,
         },
@@ -1272,13 +1271,13 @@ mod tests {
 
         let module_image = &module_images[0];
 
-        // check module index section
-        let module_index_section = module_image.get_module_index_section();
-        assert_eq!(module_index_section.items.len(), 1);
-
-        let module_index_entry = module_index_section.get_entry(0);
-        assert_eq!(module_index_entry.name, "main".to_string());
-        assert_eq!(module_index_entry.module_share_type, ModuleShareType::Local);
+        // check module list section
+//         let module_index_section = module_image.get_module_index_section();
+//         assert_eq!(module_index_section.items.len(), 1);
+//
+//         let module_index_entry = module_index_section.get_entry(0);
+//         assert_eq!(module_index_entry.name, "main".to_string());
+//         assert_eq!(module_index_entry.module_share_type, ModuleShareType::Local);
 
         // check data index section
         let data_index_section = module_image.get_data_index_section();

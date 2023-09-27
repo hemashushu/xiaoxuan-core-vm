@@ -49,7 +49,7 @@ use crate::utils::{
     save_section_with_one_table, save_section_with_table_and_data_area,
 };
 
-use super::{SectionEntry, SectionId};
+use super::{SectionEntry, ModuleSectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct ReadOnlyDataSection<'a> {
@@ -233,8 +233,8 @@ impl DataItem {
 }
 
 impl<'a> SectionEntry<'a> for ReadOnlyDataSection<'a> {
-    fn id(&'a self) -> SectionId {
-        SectionId::ReadOnlyData
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::ReadOnlyData
     }
 
     fn load(section_data: &'a [u8]) -> Self
@@ -254,8 +254,8 @@ impl<'a> SectionEntry<'a> for ReadOnlyDataSection<'a> {
 }
 
 impl<'a> SectionEntry<'a> for ReadWriteDataSection<'a> {
-    fn id(&'a self) -> SectionId {
-        SectionId::ReadWriteData
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::ReadWriteData
     }
 
     fn load(section_data: &'a [u8]) -> Self
@@ -275,8 +275,8 @@ impl<'a> SectionEntry<'a> for ReadWriteDataSection<'a> {
 }
 
 impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
-    fn id(&'a self) -> SectionId {
-        SectionId::UninitData
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::UninitData
     }
 
     fn load(section_data: &'a [u8]) -> Self

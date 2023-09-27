@@ -44,7 +44,7 @@ use ancvm_types::{DataType, MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, SectionId};
+use super::{SectionEntry, ModuleSectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct LocalVariableSection<'a> {
@@ -187,8 +187,8 @@ impl LocalVariableItem {
 }
 
 impl<'a> SectionEntry<'a> for LocalVariableSection<'a> {
-    fn id(&'a self) -> SectionId {
-        SectionId::LocalVariable
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::LocalVariable
     }
 
     fn load(section_data: &'a [u8]) -> Self

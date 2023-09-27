@@ -20,7 +20,7 @@
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, SectionId};
+use super::{SectionEntry, ModuleSectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncSection<'a> {
@@ -54,8 +54,8 @@ impl<'a> SectionEntry<'a> for FuncSection<'a> {
         save_section_with_table_and_data_area(self.items, self.codes_data, writer)
     }
 
-    fn id(&'a self) -> SectionId {
-        SectionId::Func
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::Func
     }
 }
 

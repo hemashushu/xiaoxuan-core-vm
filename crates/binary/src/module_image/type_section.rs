@@ -26,7 +26,7 @@ use ancvm_types::DataType;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, SectionId};
+use super::{SectionEntry, ModuleSectionId};
 
 #[derive(Debug, PartialEq)]
 pub struct TypeSection<'a> {
@@ -67,8 +67,8 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
         save_section_with_table_and_data_area(self.items, self.types_data, writer)
     }
 
-    fn id(&'a self) -> SectionId {
-        SectionId::Type
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::Type
     }
 }
 
