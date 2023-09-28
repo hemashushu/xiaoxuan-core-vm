@@ -3,7 +3,7 @@ members = [
     "crates/types",
     "crates/binary",
     "crates/thread",
-    # "crates/scall",
+    "crates/scall",
     # "crates/ccall",
     "crates/runtime",
     # "crates/ancsr",
