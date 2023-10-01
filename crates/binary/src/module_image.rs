@@ -25,8 +25,10 @@
 // - export data section (optional)
 // - export function section (optional)
 // - auto function index list section (optional)
-//   the index of functions that are executed before application start, after application exits and
-//   the index of the entry (main) function.
+//   the index of functions:
+//   - which executes before application start (constructor function)
+//   - which executes before application exit (destructor function)
+//   - the entry function (main function)
 //
 // a minimal module only requires 3 sections:
 //

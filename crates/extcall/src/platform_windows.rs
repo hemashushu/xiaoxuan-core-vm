@@ -4,8 +4,4 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-#[cfg(target_arch="x86_64")]
-mod x86_64;
-
-#[cfg(target_arch="x86_64")]
-pub use x86_64::SysCallNum;
+// todo

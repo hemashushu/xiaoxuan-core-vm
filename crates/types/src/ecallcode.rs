@@ -30,6 +30,7 @@ pub enum ECallCode {
                             // "scall,ccall,shared_memory"
                             //
                             // `fn (buf_ptr: i64) -> feature_list_len:i32`
+    check_feature,          // `fn (name_ptr:i64, name_len:i32) -> bool`
 
     // heap memory
 
@@ -112,19 +113,72 @@ pub enum ECallCode {
     backpack_get,           // `fn (bag_item_id:i32)`
     backpack_remove,        // `fn (bag_item_id:i32)`
 
-    // foreign function call
+    // external function call
 
-    create_host_function,
-                        // create a new host function and map it to a module function.
-                        // `fn (module_index:i32 func_pub_index:i32)`
-                        //
-                        // it's commonly used for creating a callback function pointer for external C function.
-                        //
-                        // note:
-                        // - a host function will be created when `create_host_function` is executed, as well as
-                        //   the specified VM function will be appended to the "function pointer table" to
-                        //   prevent duplicate creation.
-                        // - the new created function is refered to a (thread id, module idx, function idx) tuple.
+    create_bridge,          // create a new host function and map it to a module function.
+                            // this host function named 'bridge funcion'
+                            // `fn (module_index:i32 func_pub_index:i32)`
+
+
+    // it's commonly used for creating a callback function pointer for external C function.
+    //
+    // note:
+    // - a bridge function (host function) will be created when `create_host_function` is executed,
+    //   as well as the specified VM function will be appended to the "host function bridge table" to
+    //   prevent duplicate creation.
+    // - a bridge function is refered to a (module idx, function idx) tuple.
+    // - the bridge function is created via JIT codegen.
+    // - when the external C function calls the bridge function, a new thread is created.
+    //
+    // when the XiaoXUan VM is embed into a C or Rust application as a library, the C or Rust application
+    // can call the VM function through the bridge function as if it calls a native function.
+    //
+    // call bridge functon from Rust application example:
+    //
+    // ref:
+    // https://doc.rust-lang.org/nomicon/ffi.html
+    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
+    // https://doc.rust-lang.org/stable/reference/items/functions.html
+    //
+    // ```rust
+    // fn main() {
+    //     let func_ptr = ... (pointer of the bridge function)
+    //     let func_addr = ... (virtual memory address of the bridge function)
+    //
+    //     /** mock pointer and address
+    //     let func_ptr = cb_func as extern "C" fn(usize, usize) as *const extern "C" fn(usize, usize);
+    //     let func_addr = func_ptr as usize;
+    //     */
+    //
+    //     println!("{:p}", func_ptr);
+    //     println!("0x{:x}", func_addr);
+    //
+    //     let func_from_ptr: fn(usize, usize) = unsafe { std::mem::transmute(func_ptr) };
+    //     (func_from_ptr)(11, 13);
+    //
+    //     let ptr_from_addr = func_addr as *const ();
+    //     let func_from_addr: fn(usize, usize) = unsafe { std::mem::transmute(ptr_from_addr) };
+    //     (func_from_addr)(17, 19);
+    // }
+    //
+    // #[no_mangle]
+    // pub extern "C" fn cb_func(a1: usize, a2: usize) {
+    //     println!("numbers: {},{}", a1, a2);
+    // }
+    // ```
+    //
+    // call bridge functon from C application example:
+    //
+    // ```c
+    // int main(void)
+    // {
+    //     void *func_ptr = ...
+    //     int (*func_from_ptr)(int, int) = (int (*)(int, int))func_ptr;
+    //     printf("1+2=%d\n", (*func_from_ptr)(1, 2));
+    //     exit(EXIT_SUCCESS);
+    // }
+    // ```
+
 
     // regex
 
@@ -135,14 +189,27 @@ pub enum ECallCode {
 
     // system
 
-    scall,              // syscall
-                        // `fn (params_count: i32, sys_call_num:i32)`
-                        // https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+    syscall,            // syscall
+                        // `fn (params_count: i32, syscall_num:i32)` -> (errno:i32, return_value:i64)
 
-    ccall,              // external C function call
+    // the syscall arguments should be pushed on the stack first, e.g.
+    //
+    // | syscall_num    |
+    // | params_count   |
+    // | arg6           |
+    // | arg5           |
+    // | arg4           |
+    // | arg3           |
+    // | arg2           |                  | return value   |
+    // | arg1           |     return -->   | errno          |
+    // | other operands |                  | other operands |
+    // | ...            |                  | ...            |
+    // \----------------/ <-- stack start  \----------------/
+
+    extcall,            // external function call
                         // `fn (params_count: i32, c_func_index:i32)`
 
-    // note that both 'scall' and 'ccall' are optional, they may be
+    // note that both 'scall' and 'extcall' are optional, they may be
     // unavailable in some environment.
     // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
 

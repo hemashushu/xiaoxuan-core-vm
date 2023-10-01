@@ -8,4 +8,7 @@ edition = "2021"
 [dependencies]
 ancvm_types = { path = "../types" }
 ancvm_binary = { path = "../binary" }
+ancvm_syscall = { path = "../syscall" }
+ancvm_extcall = { path = "../extcall" }
+ancvm_bridge = { path = "../bridge" }
 ancvm_thread = { path = "../thread" }

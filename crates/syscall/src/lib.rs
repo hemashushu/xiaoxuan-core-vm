@@ -9,18 +9,17 @@
 // if you need a syscall library, please refer to:
 // - https://github.com/jasonwhite/syscalls.git
 
+pub mod arch;
 pub mod errno;
-pub mod syscall;
-pub mod callnum;
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        errno::Errno,
-        syscall::{
+        arch::{
             syscall_with_1_arg, syscall_with_2_args, syscall_with_3_args, syscall_without_args,
+            SysCallNum,
         },
-        callnum::SysCallNum,
+        errno::Errno,
     };
 
     #[test]
@@ -45,6 +44,31 @@ mod tests {
         };
 
         assert!(matches!(result0, Err(errno) if errno == Errno::ENOENT as usize));
+
+        // the equivalent C program
+        //
+        // ```c
+        // #include <stdio.h>
+        // #include <stdlib.h>
+        // #include <unistd.h>
+        // #include <fcntl.h>
+        // #include <errno.h>
+        //
+        // int main(void)
+        // {
+        //     int fd = open("/this/file/should/not/exist", O_RDONLY | O_CLOEXEC);
+        //     if (fd == -1)
+        //     {
+        //         printf("open file failed, errno: %d\n", errno);
+        //     }
+        //     else
+        //     {
+        //         printf("open file success, fd: %d", fd);
+        //         close(fd);
+        //     }
+        //     return EXIT_SUCCESS;
+        // }
+        // ```
 
         let result1 = unsafe {
             syscall_with_2_args(

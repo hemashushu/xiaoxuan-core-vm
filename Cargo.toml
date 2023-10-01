@@ -3,10 +3,11 @@ members = [
     "crates/types",
     "crates/binary",
     "crates/thread",
-    "crates/scall",
-    # "crates/ccall",
+    "crates/syscall",
+    "crates/extcall",
+    "crates/bridge",
     "crates/runtime",
-    # "crates/ancsr",
+    "crates/ancsr",
 ]
 
 resolver = "2"
