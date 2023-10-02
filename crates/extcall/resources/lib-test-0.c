@@ -6,8 +6,14 @@
  * more details in file LICENSE and CONTRIBUTING.
  */
 
-int add(int a, int b) {
-    return a+b;
+int add(int a, int b)
+{
+    return a + b;
+}
+
+int mul_add(int a, int b, int c)
+{
+    return a * b + c;
 }
 
 // compile this file with the command:

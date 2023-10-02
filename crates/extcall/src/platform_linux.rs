@@ -94,12 +94,12 @@ mod tests {
         let library_ptr = load_library("libc.so.6").unwrap();
 
         let symbol0 = load_symbol(library_ptr, "getuid").unwrap();
-        let getuid: fn() -> uid_t = convert_symbol_to(symbol0);
+        let getuid: extern "C" fn() -> uid_t = convert_symbol_to(symbol0);
         let uid0 = getuid();
         assert!(uid0 > 0);
 
         let symbol1 = load_symbol(library_ptr, "getenv").unwrap();
-        let getenv: fn(*const c_char) -> *mut c_char = convert_symbol_to(symbol1);
+        let getenv: extern "C" fn(*const c_char) -> *mut c_char = convert_symbol_to(symbol1);
         let pwd0 = convert_from_cstring(getenv(add_null_terminated("PWD").as_ptr() as _));
         assert!(!pwd0.to_string().is_empty());
     }
@@ -116,9 +116,13 @@ mod tests {
         let lib_test_path = pwd.to_str().unwrap();
 
         let library_ptr = load_library(lib_test_path).unwrap();
-        let func_ptr = load_symbol(library_ptr, "add").unwrap();
 
-        let add: extern "C" fn(i32, i32) -> i32 = convert_symbol_to(func_ptr);
-        assert_eq!(add(11, 13), 24);
+        let func_add_ptr = load_symbol(library_ptr, "add").unwrap();
+        let func_add: extern "C" fn(i32, i32) -> i32 = convert_symbol_to(func_add_ptr);
+        assert_eq!(func_add(11, 13), 24);
+
+        let func_mul_add_ptr = load_symbol(library_ptr, "mul_add").unwrap();
+        let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 = convert_symbol_to(func_mul_add_ptr);
+        assert_eq!(func_mul_add(11, 13, 17), 160);
     }
 }
