@@ -10,9 +10,8 @@ use ancvm_binary::module_image::{
     func_index_section::FuncIndexSection,
     func_section::FuncSection,
     local_variable_section::LocalVariableSection,
-    // module_index_section::ModuleIndexSection,
     type_section::TypeSection,
-    ModuleImage, RangeItem, ModuleSectionId,
+    ModuleImage, ModuleSectionId, RangeItem,
 };
 
 use crate::{
@@ -25,11 +24,13 @@ const EMPTY_DATA_ITEMS: &[DataItem] = &[];
 const EMPTY_DATA_INDEX_ITEMS: &[DataIndexItem] = &[];
 const EMPTY_DATA_INDEX_OFFSETS: &[RangeItem] = &[];
 
-pub struct Context<'a> {
+pub struct ProgramReference<'a> {
     // the indices
-    // pub module_index_section: ModuleIndexSection<'a>,
     pub data_index_section: DataIndexSection<'a>,
     pub func_index_section: FuncIndexSection<'a>,
+
+    // todo
+    // external_index_section
 
     // the modules
     pub modules: Vec<Module<'a>>,
@@ -42,7 +43,7 @@ pub struct Module<'a> {
     pub func_section: FuncSection<'a>,
 }
 
-impl<'a> Context<'a> {
+impl<'a> ProgramReference<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let modules = module_images
             .iter()
@@ -74,21 +75,23 @@ impl<'a> Context<'a> {
 
 impl<'a> Module<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
-        let (read_only_data_items, read_only_datas_data) =
-            if let Some(_idx) = module_image.get_section_index_by_id(ModuleSectionId::ReadOnlyData) {
-                let section = module_image.get_read_only_data_section();
-                (section.items, section.datas_data)
-            } else {
-                (EMPTY_DATA_ITEMS, EMPTY_DATA)
-            };
+        let (read_only_data_items, read_only_datas_data) = if let Some(_idx) =
+            module_image.get_section_index_by_id(ModuleSectionId::ReadOnlyData)
+        {
+            let section = module_image.get_read_only_data_section();
+            (section.items, section.datas_data)
+        } else {
+            (EMPTY_DATA_ITEMS, EMPTY_DATA)
+        };
 
-        let (read_write_data_items, read_write_datas_data) =
-            if let Some(_idx) = module_image.get_section_index_by_id(ModuleSectionId::ReadWriteData) {
-                let section = module_image.get_read_write_data_section();
-                (section.items, section.datas_data.to_vec())
-            } else {
-                (EMPTY_DATA_ITEMS, Vec::<u8>::new())
-            };
+        let (read_write_data_items, read_write_datas_data) = if let Some(_idx) =
+            module_image.get_section_index_by_id(ModuleSectionId::ReadWriteData)
+        {
+            let section = module_image.get_read_write_data_section();
+            (section.items, section.datas_data.to_vec())
+        } else {
+            (EMPTY_DATA_ITEMS, Vec::<u8>::new())
+        };
 
         let (uninit_data_items, uninit_datas_data) =
             if let Some(_idx) = module_image.get_section_index_by_id(ModuleSectionId::UninitData) {

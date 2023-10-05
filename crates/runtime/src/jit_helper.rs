@@ -78,7 +78,7 @@ mod tests {
     use cranelift_frontend::FunctionBuilder;
     use cranelift_module::{Linkage, Module};
 
-    use crate::JIT;
+    use crate::jit_helper::JIT;
 
     #[test]
     fn test_jit_base() {

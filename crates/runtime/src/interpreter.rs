@@ -7,15 +7,18 @@
 use std::sync::Mutex;
 
 use ancvm_binary::utils::format_bytecodes;
-use ancvm_thread::thread::{ProgramCounter, Thread};
+use ancvm_thread::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
     ForeignValue,
 };
 
-use crate::{ecall, InterpreterError};
+use crate::{
+    ecall::{self, init_ecall_handlers},
+    InterpreterError,
+};
 
-type InterpretFunc = fn(&mut Thread) -> InterpretResult;
+type InterpretFunc = fn(&mut ThreadContext) -> InterpretResult;
 
 mod arithmetic;
 mod bitwise;
@@ -47,11 +50,12 @@ pub enum InterpretResult {
     Debug,
 }
 
-fn unreachable(thread: &mut Thread) -> InterpretResult {
-    let pc = &thread.pc;
-    let func_item =
-        &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
-    let codes = &thread.context.modules[pc.module_index]
+fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
+    let pc = &thread_context.pc;
+    let func_item = &thread_context.program_ref.modules[pc.module_index]
+        .func_section
+        .items[pc.function_internal_index];
+    let codes = &thread_context.program_ref.modules[pc.module_index]
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
@@ -64,7 +68,7 @@ Function index: {}
 Instruction address: 0x{:04x}
 Bytecode:
 {}",
-        thread.get_opcode_num(),
+        thread_context.get_opcode_num(),
         pc.module_index,
         pc.function_internal_index,
         pc.instruction_address,
@@ -80,14 +84,21 @@ static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_
 
 /// initilize the instruction interpreters
 pub fn init_interpreters() {
+    unsafe {
+        if HAS_INIT {
+            return;
+        }
+    }
+
     let _lock = INIT_LOCK.lock().unwrap();
 
     unsafe {
         if HAS_INIT {
             return;
         }
-        HAS_INIT = true;
     }
+
+    init_ecall_handlers();
 
     let interpreters = unsafe { &mut INTERPRETERS };
 
@@ -361,32 +372,36 @@ pub fn init_interpreters() {
     interpreters[Opcode::host_addr_data as usize] = machine::host_addr_data;
     interpreters[Opcode::host_addr_data_long as usize] = machine::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = machine::host_addr_heap;
+
+    unsafe {
+        HAS_INIT = true;
+    }
 }
 
-pub fn process_next_instruction(thread: &mut Thread) -> InterpretResult {
-    let opcode_num = thread.get_opcode_num();
+pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {
+    let opcode_num = thread_context.get_opcode_num();
     let func = unsafe { &INTERPRETERS[opcode_num as usize] };
-    func(thread)
+    func(thread_context)
 }
 
-pub fn process_continuous_instructions(thread: &mut Thread) {
+pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
     loop {
         let result = //self.
-                process_next_instruction(thread);
+                process_next_instruction(thread_context);
         match result {
             InterpretResult::Move(relate_offset_in_bytes) => {
                 let next_instruction_offset =
-                    thread.pc.instruction_address as isize + relate_offset_in_bytes;
-                thread.pc.instruction_address = next_instruction_offset as usize;
+                    thread_context.pc.instruction_address as isize + relate_offset_in_bytes;
+                thread_context.pc.instruction_address = next_instruction_offset as usize;
             }
             InterpretResult::Jump(return_pc) => {
-                thread.pc.module_index = return_pc.module_index;
-                thread.pc.function_internal_index = return_pc.function_internal_index;
-                thread.pc.instruction_address = return_pc.instruction_address;
+                thread_context.pc.module_index = return_pc.module_index;
+                thread_context.pc.function_internal_index = return_pc.function_internal_index;
+                thread_context.pc.instruction_address = return_pc.instruction_address;
             }
             InterpretResult::End => break,
             InterpretResult::Debug => {
-                thread.pc.instruction_address += 2;
+                thread_context.pc.instruction_address += 2;
             }
         }
     }
@@ -396,24 +411,24 @@ pub fn process_continuous_instructions(thread: &mut Thread) {
 // 'function public index' includes the imported functions, it equals to
 // 'amount of imported functions' + 'function internal index'
 pub fn process_function(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     module_index: usize,
     func_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
-    thread.stack.reset();
+    thread_context.stack.reset();
 
     // find the code start address
-    let (target_module_index, function_internal_index) =
-        thread.get_function_internal_index_and_module_index(module_index, func_public_index);
+    let (target_module_index, function_internal_index) = thread_context
+        .get_function_internal_index_and_module_index(module_index, func_public_index);
     let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
-        thread
+        thread_context
             .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
 
-    let type_entry = thread.context.modules[target_module_index]
+    let type_entry = thread_context.program_ref.modules[target_module_index]
         .type_section
         .get_entry(type_index);
 
@@ -426,22 +441,22 @@ pub fn process_function(
     // for simplicity, does not check the data type of arguments for now.
 
     // push arguments
-    thread.push_values(arguments);
+    thread_context.push_values(arguments);
 
     // create function statck frame
-    thread.stack.create_frame(
+    thread_context.stack.create_frame(
         type_entry.params.len() as u16,
         type_entry.results.len() as u16,
         local_variables_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
-            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread.
+            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread_context.
             //
             // the function stack frame is created only by 'call' instruction or
             // thread beginning, the 'call' instruction will set the 'return instruction address' to
             // the instruction next to 'call', which can't be '0'.
             // so when a stack frame exits and the 'return address' is zero, it can only
-            // be the end of a thread.
+            // be the end of a thread_context.
             instruction_address: 0,
             function_internal_index: 0,
             module_index: 0,
@@ -449,15 +464,15 @@ pub fn process_function(
     );
 
     // set new PC
-    thread.pc.module_index = target_module_index;
-    thread.pc.function_internal_index = function_internal_index;
-    thread.pc.instruction_address = code_offset;
+    thread_context.pc.module_index = target_module_index;
+    thread_context.pc.function_internal_index = function_internal_index;
+    thread_context.pc.instruction_address = code_offset;
 
     // self.
-    process_continuous_instructions(thread);
+    process_continuous_instructions(thread_context);
 
     // pop results off the stack
-    let results = thread.pop_values(&type_entry.results);
+    let results = thread_context.pop_values(&type_entry.results);
 
     Ok(results)
 }

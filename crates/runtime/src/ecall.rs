@@ -7,21 +7,25 @@
 use std::sync::Mutex;
 
 use ancvm_binary::utils::format_bytecodes;
-use ancvm_thread::thread::Thread;
+use ancvm_thread::thread_context::ThreadContext;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
 pub mod heap;
 pub mod info;
+pub mod bridge;
+pub mod extcall;
+pub mod syscall;
 
-type EnvCallHandlerFunc = fn(&mut Thread);
+type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
-fn unreachable(thread: &mut Thread) {
-    let pc = &thread.pc;
-    let func_item =
-        &thread.context.modules[pc.module_index].func_section.items[pc.function_internal_index];
-    let codes = &thread.context.modules[pc.module_index]
+fn unreachable(thread_context: &mut ThreadContext) {
+    let pc = &thread_context.pc;
+    let func_item = &thread_context.program_ref.modules[pc.module_index]
+        .func_section
+        .items[pc.function_internal_index];
+    let codes = &thread_context.program_ref.modules[pc.module_index]
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
@@ -34,7 +38,7 @@ Function index: {}
 Instruction address: 0x{:04x}
 Bytecode:
 {}",
-        thread.get_param_i32(),
+        thread_context.get_param_i32(),
         pc.module_index,
         pc.function_internal_index,
         pc.instruction_address,
@@ -42,22 +46,20 @@ Bytecode:
     );
 }
 
-// the initialization can be built with crates such as 'lazy_static', 'once_cell'
-// or 'rust-ctor', but it's easy to implement a simple init, so here just build manually.
-static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-static mut HAS_INIT: bool = false;
+// static INIT_LOCK: Mutex<i32> = Mutex::new(0);
+// static mut HAS_INIT: bool = false;
 static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
     [unreachable; MAX_ECALLCODE_NUMBER];
 
 pub fn init_ecall_handlers() {
-    let _lock = INIT_LOCK.lock().unwrap();
-
-    unsafe {
-        if HAS_INIT {
-            return;
-        }
-        HAS_INIT = true;
-    }
+    //     let _lock = INIT_LOCK.lock().unwrap();
+    //
+    //     unsafe {
+    //         if HAS_INIT {
+    //             return;
+    //         }
+    //         HAS_INIT = true;
+    //     }
 
     let handlers = unsafe { &mut HANDLERS };
 
@@ -79,36 +81,34 @@ pub fn init_ecall_handlers() {
     handlers[ECallCode::heap_resize as usize] = heap::heap_resize;
 }
 
-pub fn ecall(thread: &mut Thread) -> InterpretResult {
+pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param env_func_num:i32)
 
-    let env_func_num = thread.get_param_i32();
+    let env_func_num = thread_context.get_param_i32();
     let func = unsafe { &HANDLERS[env_func_num as usize] };
-    func(thread);
+    func(thread_context);
     InterpretResult::Move(8)
 }
 
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_from_binaries,
         module_image::data_section::UninitDataEntry,
         utils::{
             build_module_binary_with_single_function,
             build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
         },
     };
-    use ancvm_thread::thread::Thread;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        init_runtime, interpreter::process_function, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION,
-        RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     #[test]
     fn test_ecall_heap_capacity() {
-        init_runtime();
+        // init_runtime();
 
         // bytecodes
         //
@@ -154,10 +154,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
 
         assert_eq!(
             result0.unwrap(),
@@ -172,8 +173,8 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_runtime_info() {
-        init_runtime();
+    fn test_ecall_runtime_version() {
+        // init_runtime();
 
         // bytecodes
         //
@@ -196,10 +197,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
 
         let expect_version_number = RUNTIME_PATCH_VERSION as u64
             | (RUNTIME_MINOR_VERSION as u64) << 16
@@ -209,7 +211,10 @@ mod tests {
             result0.unwrap(),
             vec![ForeignValue::UInt64(expect_version_number)]
         );
+    }
 
+    #[test]
+    fn test_ecall_runtime_name() {
         // bytecodes
         //
         // 0x0000 host_addr_data       0 0
@@ -222,28 +227,29 @@ mod tests {
         //        |    |name buffer (8 bytes)
         //        |name length
 
-        let code1 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
             .write_opcode_i32(Opcode::ecall, ECallCode::runtime_name as u32)
             .write_opcode_i16_i32(Opcode::data_load, 0, 0)
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        let binary1 = build_module_binary_with_single_function_and_data_sections(
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![],
             vec![],
             vec![UninitDataEntry::from_i64()],
             vec![],                             // params
             vec![DataType::I32, DataType::I64], // results
             vec![],                             // local varslist which
-            code1,
+            code0,
         );
 
-        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
-        let mut thread1 = Thread::new(&image1);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
-        let fvs1 = result1.unwrap();
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let fvs1 = result0.unwrap();
         let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
             i
         } else {

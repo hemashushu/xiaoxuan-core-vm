@@ -4,158 +4,156 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread::Thread;
+use ancvm_thread::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
 // demote i64 to i32
 // discard the high 32 bits of an i64 number directly
-pub fn i32_trunc_i64(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i64_u();
-    thread.stack.push_i32_u(value as u32);
+pub fn i32_trunc_i64(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i64_u();
+    thread_context.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
 // promote i32 to i64
-pub fn i64_extend_i32_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_s();
-    thread.stack.push_i64_s(value as i64);
+pub fn i64_extend_i32_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_s();
+    thread_context.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_extend_i32_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_u();
-    thread.stack.push_i64_u(value as u64);
+pub fn i64_extend_i32_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_u();
+    thread_context.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
 }
 
 // demote f64 to f32
-pub fn f32_demote_f64(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f64();
-    thread.stack.push_f32(value as f32);
+pub fn f32_demote_f64(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f64();
+    thread_context.stack.push_f32(value as f32);
     InterpretResult::Move(2)
 }
 
 // promote f32 to f64
-pub fn f64_promote_f32(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f32();
-    thread.stack.push_f64(value as f64);
+pub fn f64_promote_f32(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f32();
+    thread_context.stack.push_f64(value as f64);
     InterpretResult::Move(2)
 }
 
 // convert float to int
 // truncate fractional part
-pub fn i32_convert_f32_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f32();
-    thread.stack.push_i32_s(value as i32);
+pub fn i32_convert_f32_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f32();
+    thread_context.stack.push_i32_s(value as i32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_convert_f32_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f32();
-    thread.stack.push_i32_u(value as u32);
+pub fn i32_convert_f32_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f32();
+    thread_context.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_convert_f64_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f64();
-    thread.stack.push_i32_s(value as i32);
+pub fn i32_convert_f64_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f64();
+    thread_context.stack.push_i32_s(value as i32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_convert_f64_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f64();
-    thread.stack.push_i32_u(value as u32);
+pub fn i32_convert_f64_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f64();
+    thread_context.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
-pub fn i64_convert_f32_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f32();
-    thread.stack.push_i64_s(value as i64);
+pub fn i64_convert_f32_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f32();
+    thread_context.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_convert_f32_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f32();
-    thread.stack.push_i64_u(value as u64);
+pub fn i64_convert_f32_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f32();
+    thread_context.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_convert_f64_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f64();
-    thread.stack.push_i64_s(value as i64);
+pub fn i64_convert_f64_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f64();
+    thread_context.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_convert_f64_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_f64();
-    thread.stack.push_i64_u(value as u64);
+pub fn i64_convert_f64_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_f64();
+    thread_context.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
 }
 
 // convert int to float
-pub fn f32_convert_i32_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_s();
-    thread.stack.push_f32(value as f32);
+pub fn f32_convert_i32_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_s();
+    thread_context.stack.push_f32(value as f32);
     InterpretResult::Move(2)
 }
 
-pub fn f32_convert_i32_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_u();
-    thread.stack.push_f32(value as f32);
+pub fn f32_convert_i32_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_u();
+    thread_context.stack.push_f32(value as f32);
     InterpretResult::Move(2)
 }
 
-pub fn f32_convert_i64_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i64_s();
-    thread.stack.push_f32(value as f32);
+pub fn f32_convert_i64_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i64_s();
+    thread_context.stack.push_f32(value as f32);
     InterpretResult::Move(2)
 }
 
-pub fn f32_convert_i64_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i64_u();
-    thread.stack.push_f32(value as f32);
+pub fn f32_convert_i64_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i64_u();
+    thread_context.stack.push_f32(value as f32);
     InterpretResult::Move(2)
 }
 
-pub fn f64_convert_i32_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_s();
-    thread.stack.push_f64(value as f64);
+pub fn f64_convert_i32_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_s();
+    thread_context.stack.push_f64(value as f64);
     InterpretResult::Move(2)
 }
 
-pub fn f64_convert_i32_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i32_u();
-    thread.stack.push_f64(value as f64);
+pub fn f64_convert_i32_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i32_u();
+    thread_context.stack.push_f64(value as f64);
     InterpretResult::Move(2)
 }
 
-pub fn f64_convert_i64_s(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i64_s();
-    thread.stack.push_f64(value as f64);
+pub fn f64_convert_i64_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i64_s();
+    thread_context.stack.push_f64(value as f64);
     InterpretResult::Move(2)
 }
 
-pub fn f64_convert_i64_u(thread: &mut Thread) -> InterpretResult {
-    let value = thread.stack.pop_i64_u();
-    thread.stack.push_f64(value as f64);
+pub fn f64_convert_i64_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let value = thread_context.stack.pop_i64_u();
+    thread_context.stack.push_f64(value as f64);
     InterpretResult::Move(2)
 }
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{
-        load_modules_from_binaries,
-        utils::{build_module_binary_with_single_function, BytecodeWriter},
-    };
-    use ancvm_thread::thread::Thread;
+    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
-    fn test_process_conversion_demote_and_promote() {
-        init_runtime();
+    fn test_process_conversion_extend_and_trunc() {
+        // init_runtime();
 
         // bytecodes
         //
@@ -192,11 +190,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -212,7 +211,10 @@ mod tests {
                 ForeignValue::UInt32(0x07050302u32),
             ]
         );
+    }
 
+    #[test]
+    fn test_process_conversion_demote_and_promote() {
         // bytecodes
         //
         // 0x0000 local_load32_f32     0 1
@@ -228,7 +230,7 @@ mod tests {
         //  |    \----------/    |
         //  \--------------------/ demote
 
-        let code1 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .write_opcode(Opcode::f64_promote_f32)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
@@ -238,18 +240,19 @@ mod tests {
 
         // println!("{}", BytecodeReader::new(&code1).to_text());
 
-        let binary1 = build_module_binary_with_single_function(
+        let binary0 = build_module_binary_with_single_function(
             vec![DataType::F64, DataType::F32], // params
             vec![DataType::F64, DataType::F32], // results
             vec![],                             // local vars
-            code1,
+            code0,
         );
 
-        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
-        let mut thread1 = Thread::new(&image1);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result1 = process_function(
-            &mut thread1,
+        let result0 = process_function(
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -264,14 +267,14 @@ mod tests {
         let exp1 = 3.1415926535897931159979634685f64 as f32;
 
         assert_eq!(
-            result1.unwrap(),
+            result0.unwrap(),
             vec![ForeignValue::Float64(exp0), ForeignValue::Float32(exp1),]
         );
     }
 
     #[test]
-    fn test_process_conversion_float_and_int() {
-        init_runtime();
+    fn test_process_conversion_float_to_int() {
+        // init_runtime();
 
         // bytecodes
         //
@@ -402,11 +405,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -441,7 +445,10 @@ mod tests {
                 //
             ]
         );
+    }
 
+    #[test]
+    fn test_process_conversion_int_to_float() {
         // bytecodes
         //
         // 0x0000 local_load32         0 0
@@ -502,7 +509,7 @@ mod tests {
         //  v   v   v   v     v   v   v   v    v   v   v   v     v   v   v   v
         // (f32 f32 f64 f64   f32 f32 f64 f64  f32 f32 f64 f64   f32 f32 f64 f64)
 
-        let code1 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode(Opcode::f32_convert_i32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
@@ -542,7 +549,7 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        let binary1 = build_module_binary_with_single_function(
+        let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I64, DataType::I32, DataType::I64], // params
             vec![
                 DataType::F32,
@@ -566,14 +573,15 @@ mod tests {
                 DataType::F64,
             ], // results
             vec![],                                                           // local vars
-            code1,
+            code0,
         );
 
-        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
-        let mut thread1 = Thread::new(&image1);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result1 = process_function(
-            &mut thread1,
+        let result0 = process_function(
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -592,7 +600,7 @@ mod tests {
         let exp3 = -19i64 as u64 as f64;
 
         assert_eq!(
-            result1.unwrap(),
+            result0.unwrap(),
             vec![
                 ForeignValue::Float32(11.0),
                 ForeignValue::Float32(11.0),

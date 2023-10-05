@@ -5,7 +5,7 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 /// in XiaoXuan VM, there are several objects belong to the memory class,
-/// includes the local variable area, (thread-local) data sections, stack, (thread-local) heap.
+/// includes the local variable area, (thread-local) data sections, stack, (thread_context-local) heap.
 /// this trait provides the ability of data loading and storing to memory,
 /// but does not involve the primitive data reading and writing.
 ///

@@ -4,27 +4,28 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::{memory::Memory, thread::Thread};
+use ancvm_thread::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
-pub fn local_load(thread: &mut Thread) -> InterpretResult {
+pub fn local_load(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -32,7 +33,7 @@ pub fn local_long_load(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
@@ -50,34 +51,35 @@ fn do_local_load(
     // the latter has a higher efficiency because it eliminates data conversion,
     // so the second method is adopted.
 
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_64(data_address, dst_ptr);
+    thread_context.stack.load_64(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -85,39 +87,40 @@ pub fn local_long_load32(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_32(data_address, dst_ptr);
+    thread_context.stack.load_32(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32_i16_s(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32_i16_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32_i16_s(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32_i16_s(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32_i16_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32_i16_s(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -125,41 +128,42 @@ pub fn local_long_load32_i16_s(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32_i16_s(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread
+    thread_context
         .stack
         .load_32_extend_from_i16_s(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32_i16_u(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32_i16_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32_i16_u(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32_i16_u(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32_i16_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32_i16_u(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -167,41 +171,42 @@ pub fn local_long_load32_i16_u(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32_i16_u(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread
+    thread_context
         .stack
         .load_32_extend_from_i16_u(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32_i8_s(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32_i8_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32_i8_s(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32_i8_s(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32_i8_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32_i8_s(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -209,39 +214,42 @@ pub fn local_long_load32_i8_s(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32_i8_s(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_32_extend_from_i8_s(data_address, dst_ptr);
+    thread_context
+        .stack
+        .load_32_extend_from_i8_s(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32_i8_u(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32_i8_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32_i8_u(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32_i8_u(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32_i8_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32_i8_u(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -249,39 +257,42 @@ pub fn local_long_load32_i8_u(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32_i8_u(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_32_extend_from_i8_u(data_address, dst_ptr);
+    thread_context
+        .stack
+        .load_32_extend_from_i8_u(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load32_f32(thread: &mut Thread) -> InterpretResult {
+pub fn local_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load32_f32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load32_f32(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load32_f32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -289,39 +300,42 @@ pub fn local_long_load32_f32(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load32_f32(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_32_with_float_check(data_address, dst_ptr);
+    thread_context
+        .stack
+        .load_32_with_float_check(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_load_f64(thread: &mut Thread) -> InterpretResult {
+pub fn local_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_load_f64(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_load_f64(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_load_f64(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -329,39 +343,42 @@ pub fn local_long_load_f64(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_load_f64(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread.stack.push_from_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let dst_ptr = thread_context.stack.push_from_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.load_64_with_float_check(data_address, dst_ptr);
+    thread_context
+        .stack
+        .load_64_with_float_check(data_address, dst_ptr);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_store(thread: &mut Thread) -> InterpretResult {
+pub fn local_store(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_store(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_store(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_store(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -369,39 +386,40 @@ pub fn local_long_store(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_store(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread.stack.pop_to_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let src_ptr = thread_context.stack.pop_to_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.store_64(src_ptr, data_address);
+    thread_context.stack.store_64(src_ptr, data_address);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_store32(thread: &mut Thread) -> InterpretResult {
+pub fn local_store32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_store32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_store32(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_store32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store32(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -409,39 +427,40 @@ pub fn local_long_store32(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_store32(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread.stack.pop_to_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let src_ptr = thread_context.stack.pop_to_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.store_32(src_ptr, data_address);
+    thread_context.stack.store_32(src_ptr, data_address);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_store16(thread: &mut Thread) -> InterpretResult {
+pub fn local_store16(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_store16(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_store16(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_store16(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store16(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -449,39 +468,40 @@ pub fn local_long_store16(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_store16(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread.stack.pop_to_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let src_ptr = thread_context.stack.pop_to_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.store_16(src_ptr, data_address);
+    thread_context.stack.store_16(src_ptr, data_address);
 
     InterpretResult::Move(8)
 }
 
-pub fn local_store8(thread: &mut Thread) -> InterpretResult {
+pub fn local_store8(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    let (reversed_index, offset_bytes, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (reversed_index, offset_bytes, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_local_store8(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn local_long_store8(thread: &mut Thread) -> InterpretResult {
+pub fn local_long_store8(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store8(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -489,18 +509,18 @@ pub fn local_long_store8(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_local_store8(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread.stack.pop_to_memory();
-    let data_address = thread.get_local_variable_address_by_index_and_offset(
+    let src_ptr = thread_context.stack.pop_to_memory();
+    let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    thread.stack.store_8(src_ptr, data_address);
+    thread_context.stack.store_8(src_ptr, data_address);
 
     InterpretResult::Move(8)
 }
@@ -514,18 +534,19 @@ fn do_local_store8(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_from_binaries,
         module_image::local_variable_section::LocalVariableEntry,
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
-    use ancvm_thread::thread::Thread;
+
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_local_load_store() {
-        init_runtime();
+        // init_runtime();
 
         //       |low address                                                              high address|
         //       |                                                                                     |
@@ -648,11 +669,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -681,7 +703,7 @@ mod tests {
 
     #[test]
     fn test_process_local_long_load_store() {
-        init_runtime();
+        // init_runtime();
 
         //       |low address                                 high address|
         //       |                                                        |
@@ -820,10 +842,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![

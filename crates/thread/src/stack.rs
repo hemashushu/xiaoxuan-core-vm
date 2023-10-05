@@ -9,7 +9,7 @@ use std::mem::size_of;
 use ancvm_types::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    memory::Memory, resizeable_memory::ResizeableMemory, thread::ProgramCounter,
+    memory::Memory, resizeable_memory::ResizeableMemory, thread_context::ProgramCounter,
     type_memory::TypeMemory, MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
 };
 
@@ -771,7 +771,7 @@ mod tests {
         memory::Memory,
         resizeable_memory::ResizeableMemory,
         stack::{FrameInfo, Stack},
-        thread::ProgramCounter,
+        thread_context::ProgramCounter,
         type_memory::TypeMemory,
         MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
     };

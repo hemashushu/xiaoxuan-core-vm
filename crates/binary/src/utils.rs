@@ -1422,7 +1422,7 @@ mod tests {
         assert_eq!(
             code2,
             vec![
-                0x04, 0x01, // opcode
+                0x80, 0x01, // opcode
                 0, 0, // padding
                 11, 0, 0, 0 // param
             ]
@@ -1500,7 +1500,7 @@ mod tests {
         assert_eq!(
             code0,
             vec![
-                0x06, 0x01, // opcode
+                0x82, 0x01, // opcode
                 0, 0, // padding
                 0xdb, 0x0f, 0x49, 0x40, // param 0
             ]
@@ -1513,7 +1513,7 @@ mod tests {
         assert_eq!(
             code1,
             vec![
-                0x05, 0x01, // opcode
+                0x81, 0x01, // opcode
                 0, 0, // padding
                 0x88, 0x77, 0x66, 0x55, // param 0
                 0x44, 0x33, 0x22, 0x11 // param 1
@@ -1529,7 +1529,7 @@ mod tests {
         assert_eq!(
             code2,
             vec![
-                0x07, 0x01, // opcode
+                0x83, 0x01, // opcode
                 0, 0, // padding
                 0x11, 0x31, 0x02, 0xde, // param 0
                 0x0b, 0x86, 0x0b, 0x39, // param 1
@@ -1583,11 +1583,11 @@ mod tests {
                 0x08, 0x03, 0x47, 0x00, 0x53, 0x00, 0x00, 0x00, // data_store 0x47 0x53
                 0x01, 0x06, // i32_nez
                 0x00, 0x0b, // padding nop
-                0x04, 0x01, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00, // i32_imm 0x59
+                0x80, 0x01, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00, // i32_imm 0x59
                 0x08, 0x0a, 0x00, 0x00, 0x61, 0x00, 0x00, 0x00, // call 0x61
                 0x02, 0x06, // i32_eq
                 0x00, 0x0b, // padding nop
-                0x05, 0x01, 0x00, 0x00, 0x67, 0x00, 0x00, 0x00, 0x71, 0x00, 0x00,
+                0x81, 0x01, 0x00, 0x00, 0x67, 0x00, 0x00, 0x00, 0x71, 0x00, 0x00,
                 0x00, // i64_imm
                 0x01, 0x0a, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00, 0x79, 0x00, 0x00,
                 0x00, // block
@@ -1643,10 +1643,10 @@ mod tests {
             0x0028  37 00 00 00  01 07 00 06
             0x0030  00 03 41 00  43 00 00 00
             0x0038  08 03 47 00  53 00 00 00
-            0x0040  01 06 00 0b  04 01 00 00
+            0x0040  01 06 00 0b  80 01 00 00
             0x0048  59 00 00 00  08 0a 00 00
             0x0050  61 00 00 00  02 06 00 0b
-            0x0058  05 01 00 00  67 00 00 00
+            0x0058  81 01 00 00  67 00 00 00
             0x0060  71 00 00 00  01 0a 00 00
             0x0068  73 00 00 00  79 00 00 00
             0x0070  00 01 00 0b  04 0a 00 00

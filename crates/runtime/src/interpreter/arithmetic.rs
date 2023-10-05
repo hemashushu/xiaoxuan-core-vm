@@ -4,267 +4,264 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread::Thread;
+use ancvm_thread::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
-pub fn i32_add(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_u(thread);
-    store_i32_u(thread, left + right);
+pub fn i32_add(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_u(thread_context);
+    store_i32_u(thread_context, left + right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_sub(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_u(thread);
-    store_i32_u(thread, left - right);
+pub fn i32_sub(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_u(thread_context);
+    store_i32_u(thread_context, left - right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_mul(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_u(thread);
-    store_i32_u(thread, left * right);
+pub fn i32_mul(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_u(thread_context);
+    store_i32_u(thread_context, left * right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_div_s(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_s(thread);
-    store_i32_s(thread, left / right);
+pub fn i32_div_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_s(thread_context);
+    store_i32_s(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_div_u(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_u(thread);
-    store_i32_u(thread, left / right);
+pub fn i32_div_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_u(thread_context);
+    store_i32_u(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_rem_s(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_s(thread);
-    store_i32_s(thread, left % right);
+pub fn i32_rem_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_s(thread_context);
+    store_i32_s(thread_context, left % right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_rem_u(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i32_u(thread);
-    store_i32_u(thread, left % right);
+pub fn i32_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i32_u(thread_context);
+    store_i32_u(thread_context, left % right);
     InterpretResult::Move(2)
 }
 
-pub fn i32_add_imm(thread: &mut Thread) -> InterpretResult {
-    let amount = thread.get_param_i16();
-    let value = load_operand_i32_u(thread);
-    store_i32_u(thread, value + amount as u32);
+pub fn i32_add_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+    let amount = thread_context.get_param_i16();
+    let value = load_operand_i32_u(thread_context);
+    store_i32_u(thread_context, value + amount as u32);
     InterpretResult::Move(4)
 }
 
-pub fn i32_sub_imm(thread: &mut Thread) -> InterpretResult {
-    let amount = thread.get_param_i16();
-    let value = load_operand_i32_u(thread);
-    store_i32_u(thread, value - amount as u32);
+pub fn i32_sub_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+    let amount = thread_context.get_param_i16();
+    let value = load_operand_i32_u(thread_context);
+    store_i32_u(thread_context, value - amount as u32);
     InterpretResult::Move(4)
 }
 
-pub fn i64_add(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_u(thread);
-    store_i64_u(thread, left + right);
+pub fn i64_add(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_u(thread_context);
+    store_i64_u(thread_context, left + right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_sub(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_u(thread);
-    store_i64_u(thread, left - right);
+pub fn i64_sub(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_u(thread_context);
+    store_i64_u(thread_context, left - right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_mul(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_u(thread);
-    store_i64_u(thread, left * right);
+pub fn i64_mul(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_u(thread_context);
+    store_i64_u(thread_context, left * right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_div_s(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_s(thread);
-    store_i64_s(thread, left / right);
+pub fn i64_div_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_s(thread_context);
+    store_i64_s(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_div_u(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_u(thread);
-    store_i64_u(thread, left / right);
+pub fn i64_div_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_u(thread_context);
+    store_i64_u(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_rem_s(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_s(thread);
-    store_i64_s(thread, left % right);
+pub fn i64_rem_s(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_s(thread_context);
+    store_i64_s(thread_context, left % right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_rem_u(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_i64_u(thread);
-    store_i64_u(thread, left % right);
+pub fn i64_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_i64_u(thread_context);
+    store_i64_u(thread_context, left % right);
     InterpretResult::Move(2)
 }
 
-pub fn i64_add_imm(thread: &mut Thread) -> InterpretResult {
-    let amount = thread.get_param_i16();
-    let value = load_operand_i64_u(thread);
-    store_i64_u(thread, value + amount as u64);
+pub fn i64_add_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+    let amount = thread_context.get_param_i16();
+    let value = load_operand_i64_u(thread_context);
+    store_i64_u(thread_context, value + amount as u64);
     InterpretResult::Move(4)
 }
 
-pub fn i64_sub_imm(thread: &mut Thread) -> InterpretResult {
-    let amount = thread.get_param_i16();
-    let value = load_operand_i64_u(thread);
-    store_i64_u(thread, value - amount as u64);
+pub fn i64_sub_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+    let amount = thread_context.get_param_i16();
+    let value = load_operand_i64_u(thread_context);
+    store_i64_u(thread_context, value - amount as u64);
     InterpretResult::Move(4)
 }
 
-pub fn f32_add(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left + right);
+pub fn f32_add(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left + right);
     InterpretResult::Move(2)
 }
 
-pub fn f32_sub(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left - right);
+pub fn f32_sub(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left - right);
     InterpretResult::Move(2)
 }
 
-pub fn f32_mul(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left * right);
+pub fn f32_mul(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left * right);
     InterpretResult::Move(2)
 }
 
-pub fn f32_div(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left / right);
+pub fn f32_div(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
-pub fn f64_add(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left + right);
+pub fn f64_add(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left + right);
     InterpretResult::Move(2)
 }
 
-pub fn f64_sub(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left - right);
+pub fn f64_sub(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left - right);
     InterpretResult::Move(2)
 }
 
-pub fn f64_mul(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left * right);
+pub fn f64_mul(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left * right);
     InterpretResult::Move(2)
 }
 
-pub fn f64_div(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left / right);
+pub fn f64_div(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left / right);
     InterpretResult::Move(2)
 }
 
 #[inline]
-fn load_operands_i32_s(thread: &mut Thread) -> (i32, i32) {
-    let right = thread.stack.pop_i32_s();
-    let left = thread.stack.pop_i32_s();
+fn load_operands_i32_s(thread_context: &mut ThreadContext) -> (i32, i32) {
+    let right = thread_context.stack.pop_i32_s();
+    let left = thread_context.stack.pop_i32_s();
     (left, right)
 }
 
 #[inline]
-fn load_operand_i32_u(thread: &mut Thread) -> u32 {
-    thread.stack.pop_i32_u()
+fn load_operand_i32_u(thread_context: &mut ThreadContext) -> u32 {
+    thread_context.stack.pop_i32_u()
 }
 
 #[inline]
-fn load_operands_i32_u(thread: &mut Thread) -> (u32, u32) {
-    let right = thread.stack.pop_i32_u();
-    let left = thread.stack.pop_i32_u();
+fn load_operands_i32_u(thread_context: &mut ThreadContext) -> (u32, u32) {
+    let right = thread_context.stack.pop_i32_u();
+    let left = thread_context.stack.pop_i32_u();
     (left, right)
 }
 
 #[inline]
-fn load_operands_i64_s(thread: &mut Thread) -> (i64, i64) {
-    let right = thread.stack.pop_i64_s();
-    let left = thread.stack.pop_i64_s();
+fn load_operands_i64_s(thread_context: &mut ThreadContext) -> (i64, i64) {
+    let right = thread_context.stack.pop_i64_s();
+    let left = thread_context.stack.pop_i64_s();
     (left, right)
 }
 
 #[inline]
-fn load_operands_i64_u(thread: &mut Thread) -> (u64, u64) {
-    let right = thread.stack.pop_i64_u();
-    let left = thread.stack.pop_i64_u();
+fn load_operands_i64_u(thread_context: &mut ThreadContext) -> (u64, u64) {
+    let right = thread_context.stack.pop_i64_u();
+    let left = thread_context.stack.pop_i64_u();
     (left, right)
 }
 
 #[inline]
-fn load_operand_i64_u(thread: &mut Thread) -> u64 {
-    thread.stack.pop_i64_u()
+fn load_operand_i64_u(thread_context: &mut ThreadContext) -> u64 {
+    thread_context.stack.pop_i64_u()
 }
 
 #[inline]
-fn load_operands_f32(thread: &mut Thread) -> (f32, f32) {
-    let right = thread.stack.pop_f32();
-    let left = thread.stack.pop_f32();
+fn load_operands_f32(thread_context: &mut ThreadContext) -> (f32, f32) {
+    let right = thread_context.stack.pop_f32();
+    let left = thread_context.stack.pop_f32();
     (left, right)
 }
 
 #[inline]
-fn load_operands_f64(thread: &mut Thread) -> (f64, f64) {
-    let right = thread.stack.pop_f64();
-    let left = thread.stack.pop_f64();
+fn load_operands_f64(thread_context: &mut ThreadContext) -> (f64, f64) {
+    let right = thread_context.stack.pop_f64();
+    let left = thread_context.stack.pop_f64();
     (left, right)
 }
 
 #[inline]
-fn store_i32_s(thread: &mut Thread, v: i32) {
-    thread.stack.push_i32_s(v);
+fn store_i32_s(thread_context: &mut ThreadContext, v: i32) {
+    thread_context.stack.push_i32_s(v);
 }
 
 #[inline]
-fn store_i32_u(thread: &mut Thread, v: u32) {
-    thread.stack.push_i32_u(v);
+fn store_i32_u(thread_context: &mut ThreadContext, v: u32) {
+    thread_context.stack.push_i32_u(v);
 }
 
 #[inline]
-fn store_i64_s(thread: &mut Thread, v: i64) {
-    thread.stack.push_i64_s(v);
+fn store_i64_s(thread_context: &mut ThreadContext, v: i64) {
+    thread_context.stack.push_i64_s(v);
 }
 
 #[inline]
-fn store_i64_u(thread: &mut Thread, v: u64) {
-    thread.stack.push_i64_u(v);
+fn store_i64_u(thread_context: &mut ThreadContext, v: u64) {
+    thread_context.stack.push_i64_u(v);
 }
 
 #[inline]
-fn store_f32(thread: &mut Thread, v: f32) {
-    thread.stack.push_f32(v);
+fn store_f32(thread_context: &mut ThreadContext, v: f32) {
+    thread_context.stack.push_f32(v);
 }
 
 #[inline]
-fn store_f64(thread: &mut Thread, v: f64) {
-    thread.stack.push_f64(v);
+fn store_f64(thread_context: &mut ThreadContext, v: f64) {
+    thread_context.stack.push_f64(v);
 }
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{
-        load_modules_from_binaries,
-        utils::{build_module_binary_with_single_function, BytecodeWriter},
-    };
-    use ancvm_thread::thread::Thread;
+    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_thread::thread_context::ThreadContext;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_arithmetic_i32() {
-        init_runtime();
-
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -380,11 +377,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -414,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_i64() {
-        init_runtime();
+        // // init_runtime();
 
         // numbers:
         //   - 0: 11
@@ -532,11 +530,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -566,7 +565,7 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f32() {
-        init_runtime();
+        // // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -620,11 +619,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::Float32(1.414), ForeignValue::Float32(4.123)],
@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f64() {
-        init_runtime();
+        // // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -696,11 +696,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::Float64(1.414), ForeignValue::Float64(4.123)],

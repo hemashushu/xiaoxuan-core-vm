@@ -8,11 +8,11 @@ use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
-    context::Context, heap::Heap, indexed_memory::IndexedMemory, stack::Stack,
+    program_reference::ProgramReference, heap::Heap, indexed_memory::IndexedMemory, stack::Stack,
     INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
-pub struct Thread<'a> {
+pub struct ThreadContext<'a> {
     // operand stack also includes the function/block frame info
     // when call a function or enter a block,
     //
@@ -102,7 +102,10 @@ pub struct Thread<'a> {
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
-    pub context: Context<'a>,
+    // external_func_table
+    // bridge_func_table
+
+    pub program_ref: ProgramReference<'a>,
 }
 
 /// unlike the ELF and Linux runting environment, which all data and code of execuatable binary
@@ -129,7 +132,7 @@ pub struct ProgramCounter {
     pub module_index: usize,            // the module index
 }
 
-impl<'a> Thread<'a> {
+impl<'a> ThreadContext<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_PAGES);
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
@@ -140,12 +143,12 @@ impl<'a> Thread<'a> {
             module_index: 0,
         };
 
-        let context = Context::new(module_images);
+        let program_ref = ProgramReference::new(module_images);
         Self {
             stack,
             heap,
             pc,
-            context,
+            program_ref,
         }
     }
 
@@ -200,12 +203,12 @@ impl<'a> Thread<'a> {
     ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
-        let range = &self.context.data_index_section.ranges[module_index];
+        let range = &self.program_ref.data_index_section.ranges[module_index];
         let data_index_item =
-            &self.context.data_index_section.items[range.offset as usize + data_public_index];
+            &self.program_ref.data_index_section.items[range.offset as usize + data_public_index];
 
         let target_module_index = data_index_item.target_module_index as usize;
-        let target_module = &mut self.context.modules[target_module_index];
+        let target_module = &mut self.program_ref.modules[target_module_index];
         let data_internal_index = data_index_item.data_internal_index as usize;
         let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
 
@@ -219,8 +222,8 @@ impl<'a> Thread<'a> {
         module_index: usize,
         function_public_index: usize,
     ) -> (usize, usize) {
-        let range_item = &self.context.func_index_section.ranges[module_index];
-        let func_index_items = &self.context.func_index_section.items
+        let range_item = &self.program_ref.func_index_section.ranges[module_index];
+        let func_index_items = &self.program_ref.func_index_section.items
             [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
         let func_index_item = &func_index_items[function_public_index];
 
@@ -237,13 +240,13 @@ impl<'a> Thread<'a> {
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
         let func_item =
-            &self.context.modules[module_index].func_section.items[function_internal_index];
+            &self.program_ref.modules[module_index].func_section.items[function_internal_index];
 
         let type_index = func_item.type_index as usize;
         let local_index = func_item.local_index as usize;
         let code_offset = func_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.context.modules[module_index]
+        let local_variables_allocate_bytes = self.program_ref.modules[module_index]
             .local_variable_section
             .lists[local_index]
             .list_allocate_bytes;
@@ -277,7 +280,7 @@ impl<'a> Thread<'a> {
             )
         };
 
-        let variable_item = &self.context.modules[module_index]
+        let variable_item = &self.program_ref.modules[module_index]
             .local_variable_section
             .get_variable_list(list_index as usize)[local_variable_index];
 
@@ -379,122 +382,9 @@ impl<'a> Thread<'a> {
             function_internal_index: _,
             module_index,
         } = self.pc;
-        // let func_item =
-        //     &self.context.modules[module_index].func_section.items[function_internal_index];
-        let codes_data = self.context.modules[module_index].func_section.codes_data;
-        // let dst = instruction_address + func_item.code_offset as usize + offset;
+
+        let codes_data = self.program_ref.modules[module_index].func_section.codes_data;
         let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ancvm_binary::{
-        load_modules_from_binaries,
-        module_image::{
-            data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::LocalVariableEntry,
-        },
-        utils::build_module_binary_with_single_function_and_data_sections,
-    };
-    use ancvm_types::DataType;
-
-    use crate::{
-        resizeable_memory::ResizeableMemory,
-        thread::{ProgramCounter, Thread},
-        INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
-    };
-
-    #[test]
-    fn test_thread_instance() {
-        let binary = build_module_binary_with_single_function_and_data_sections(
-            vec![DataEntry::from_i32(0x11), DataEntry::from_i64(0x13)],
-            vec![DataEntry::from_bytes(
-                vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
-                8,
-            )],
-            vec![
-                UninitDataEntry::from_i32(),
-                UninitDataEntry::from_i64(),
-                UninitDataEntry::from_i32(),
-            ],
-            vec![DataType::I32, DataType::I32],
-            vec![DataType::I64],
-            vec![LocalVariableEntry::from_i32()],
-            vec![0u8],
-        );
-
-        let binaries = vec![&binary[..]];
-        let module_images = load_modules_from_binaries(binaries).unwrap(); //.expect("module binary error");
-        let thread = Thread::new(&module_images);
-
-        let context = &thread.context;
-
-        // check index sections
-        // assert_eq!(context.module_index_section.items.len(), 1);
-        assert_eq!(context.data_index_section.ranges.len(), 1);
-        assert_eq!(context.data_index_section.items.len(), 6);
-        assert_eq!(context.func_index_section.ranges.len(), 1);
-        assert_eq!(context.func_index_section.items.len(), 1);
-
-        assert_eq!(context.modules.len(), 1);
-        let module = &context.modules[0];
-
-        // check data sections
-        assert_eq!(module.datas.len(), 3);
-
-        let mut data = [0u8; 8];
-        let dst_ptr = &mut data as *mut [u8] as *mut u8;
-
-        let ro_datas = &module.datas[0];
-        ro_datas.load_idx_32(0, 0, dst_ptr);
-        assert_eq!(&data[0..4], [0x11, 0, 0, 0]);
-        ro_datas.load_idx_64(1, 0, dst_ptr);
-        assert_eq!(data, [0x13, 0, 0, 0, 0, 0, 0, 0]);
-
-        let rw_datas = &module.datas[1];
-        rw_datas.load_idx_32(0, 0, dst_ptr);
-        assert_eq!(&data[0..4], &[0x17u8, 0x19, 0x23, 0x29]);
-        rw_datas.load_idx_32_extend_from_i16_u(0, 4, dst_ptr);
-        assert_eq!(&data[0..2], &[0x31u8, 0x37]);
-
-        let uninit_datas = &module.datas[2];
-        uninit_datas.load_idx_32(0, 0, dst_ptr);
-        assert_eq!(&data[0..4], &[0x0u8, 0, 0, 0]);
-        uninit_datas.load_idx_64(1, 0, dst_ptr);
-        assert_eq!(data, [0x0u8, 0, 0, 0, 0, 0, 0, 0]);
-        uninit_datas.load_idx_32(2, 0, dst_ptr);
-        assert_eq!(&data[0..4], &[0x0u8, 0, 0, 0]);
-
-        // check type section
-        assert_eq!(module.type_section.items.len(), 1);
-
-        // check func section
-        assert_eq!(module.func_section.items.len(), 1);
-
-        // check local variable section
-        assert_eq!(module.local_variable_section.lists.len(), 1);
-
-        // check pc
-        assert_eq!(
-            thread.pc,
-            ProgramCounter {
-                instruction_address: 0,
-                function_internal_index: 0,
-                module_index: 0
-            }
-        );
-
-        // check stack
-        assert_eq!(thread.stack.fp, 0);
-        assert_eq!(thread.stack.sp, 0);
-        assert_eq!(
-            thread.stack.get_capacity_in_pages(),
-            INIT_STACK_SIZE_IN_PAGES
-        );
-
-        // check heap
-        assert_eq!(thread.heap.get_capacity_in_pages(), INIT_HEAP_SIZE_IN_PAGES);
     }
 }

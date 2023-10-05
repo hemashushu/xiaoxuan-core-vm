@@ -4,322 +4,321 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread::Thread;
+use ancvm_thread::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
-pub fn f32_abs(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.abs());
+pub fn f32_abs(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.abs());
     InterpretResult::Move(2)
 }
 
-pub fn f32_neg(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, -v);
+pub fn f32_neg(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, -v);
     InterpretResult::Move(2)
 }
 
-pub fn f32_ceil(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.ceil());
+pub fn f32_ceil(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.ceil());
     InterpretResult::Move(2)
 }
 
-pub fn f32_floor(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.floor());
+pub fn f32_floor(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.floor());
     InterpretResult::Move(2)
 }
 
-pub fn f32_round_half_away_from_zero(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.round());
+pub fn f32_round_half_away_from_zero(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.round());
     InterpretResult::Move(2)
 }
 
-pub fn f32_trunc(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.trunc());
+pub fn f32_trunc(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.trunc());
     InterpretResult::Move(2)
 }
 
-pub fn f32_fract(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.fract());
+pub fn f32_fract(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.fract());
     InterpretResult::Move(2)
 }
 
-pub fn f32_sqrt(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.sqrt());
+pub fn f32_sqrt(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.sqrt());
     InterpretResult::Move(2)
 }
 
-pub fn f32_cbrt(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.cbrt());
+pub fn f32_cbrt(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.cbrt());
     InterpretResult::Move(2)
 }
 
-pub fn f32_pow(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left.powf(right));
+pub fn f32_pow(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left.powf(right));
     InterpretResult::Move(2)
 }
 
-pub fn f32_exp(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.exp());
+pub fn f32_exp(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.exp());
     InterpretResult::Move(2)
 }
 
-pub fn f32_exp2(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.exp2());
+pub fn f32_exp2(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.exp2());
     InterpretResult::Move(2)
 }
 
-pub fn f32_ln(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.ln());
+pub fn f32_ln(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.ln());
     InterpretResult::Move(2)
 }
 
-pub fn f32_log(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f32(thread);
-    store_f32(thread, left.log(right));
+pub fn f32_log(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f32(thread_context);
+    store_f32(thread_context, left.log(right));
     InterpretResult::Move(2)
 }
 
-pub fn f32_log2(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.log2());
+pub fn f32_log2(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.log2());
     InterpretResult::Move(2)
 }
 
-pub fn f32_log10(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.log10());
+pub fn f32_log10(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.log10());
     InterpretResult::Move(2)
 }
 
-pub fn f32_sin(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.sin());
+pub fn f32_sin(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.sin());
     InterpretResult::Move(2)
 }
 
-pub fn f32_cos(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.cos());
+pub fn f32_cos(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.cos());
     InterpretResult::Move(2)
 }
 
-pub fn f32_tan(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.tan());
+pub fn f32_tan(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.tan());
     InterpretResult::Move(2)
 }
 
-pub fn f32_asin(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.asin());
+pub fn f32_asin(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.asin());
     InterpretResult::Move(2)
 }
 
-pub fn f32_acos(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.acos());
+pub fn f32_acos(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.acos());
     InterpretResult::Move(2)
 }
 
-pub fn f32_atan(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f32(thread);
-    store_f32(thread, v.atan());
+pub fn f32_atan(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f32(thread_context);
+    store_f32(thread_context, v.atan());
     InterpretResult::Move(2)
 }
 
-pub fn f64_abs(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.abs());
+pub fn f64_abs(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.abs());
     InterpretResult::Move(2)
 }
 
-pub fn f64_neg(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, -v);
+pub fn f64_neg(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, -v);
     InterpretResult::Move(2)
 }
 
-pub fn f64_ceil(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.ceil());
+pub fn f64_ceil(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.ceil());
     InterpretResult::Move(2)
 }
 
-pub fn f64_floor(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.floor());
+pub fn f64_floor(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.floor());
     InterpretResult::Move(2)
 }
 
-pub fn f64_round_half_away_from_zero(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.round());
+pub fn f64_round_half_away_from_zero(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.round());
     InterpretResult::Move(2)
 }
 
-pub fn f64_trunc(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.trunc());
+pub fn f64_trunc(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.trunc());
     InterpretResult::Move(2)
 }
 
-pub fn f64_fract(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.fract());
+pub fn f64_fract(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.fract());
     InterpretResult::Move(2)
 }
 
-pub fn f64_sqrt(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.sqrt());
+pub fn f64_sqrt(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.sqrt());
     InterpretResult::Move(2)
 }
 
-pub fn f64_cbrt(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.cbrt());
+pub fn f64_cbrt(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.cbrt());
     InterpretResult::Move(2)
 }
 
-pub fn f64_pow(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left.powf(right));
+pub fn f64_pow(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left.powf(right));
     InterpretResult::Move(2)
 }
 
-pub fn f64_exp(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.exp());
+pub fn f64_exp(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.exp());
     InterpretResult::Move(2)
 }
 
-pub fn f64_exp2(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.exp2());
+pub fn f64_exp2(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.exp2());
     InterpretResult::Move(2)
 }
 
-pub fn f64_ln(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.ln());
+pub fn f64_ln(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.ln());
     InterpretResult::Move(2)
 }
 
-pub fn f64_log(thread: &mut Thread) -> InterpretResult {
-    let (left, right) = load_operands_f64(thread);
-    store_f64(thread, left.log(right));
+pub fn f64_log(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (left, right) = load_operands_f64(thread_context);
+    store_f64(thread_context, left.log(right));
     InterpretResult::Move(2)
 }
 
-pub fn f64_log2(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.log2());
+pub fn f64_log2(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.log2());
     InterpretResult::Move(2)
 }
 
-pub fn f64_log10(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.log10());
+pub fn f64_log10(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.log10());
     InterpretResult::Move(2)
 }
 
-pub fn f64_sin(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.sin());
+pub fn f64_sin(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.sin());
     InterpretResult::Move(2)
 }
 
-pub fn f64_cos(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.cos());
+pub fn f64_cos(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.cos());
     InterpretResult::Move(2)
 }
 
-pub fn f64_tan(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.tan());
+pub fn f64_tan(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.tan());
     InterpretResult::Move(2)
 }
 
-pub fn f64_asin(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.asin());
+pub fn f64_asin(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.asin());
     InterpretResult::Move(2)
 }
 
-pub fn f64_acos(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.acos());
+pub fn f64_acos(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.acos());
     InterpretResult::Move(2)
 }
 
-pub fn f64_atan(thread: &mut Thread) -> InterpretResult {
-    let v = load_operand_f64(thread);
-    store_f64(thread, v.atan());
+pub fn f64_atan(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_f64(thread_context);
+    store_f64(thread_context, v.atan());
     InterpretResult::Move(2)
 }
 
 #[inline]
-fn load_operand_f32(thread: &mut Thread) -> f32 {
-    thread.stack.pop_f32()
+fn load_operand_f32(thread_context: &mut ThreadContext) -> f32 {
+    thread_context.stack.pop_f32()
 }
 
 #[inline]
-fn load_operands_f32(thread: &mut Thread) -> (f32, f32) {
-    let right = thread.stack.pop_f32();
-    let left = thread.stack.pop_f32();
+fn load_operands_f32(thread_context: &mut ThreadContext) -> (f32, f32) {
+    let right = thread_context.stack.pop_f32();
+    let left = thread_context.stack.pop_f32();
     (left, right)
 }
 
 #[inline]
-fn load_operand_f64(thread: &mut Thread) -> f64 {
-    thread.stack.pop_f64()
+fn load_operand_f64(thread_context: &mut ThreadContext) -> f64 {
+    thread_context.stack.pop_f64()
 }
 
 #[inline]
-fn load_operands_f64(thread: &mut Thread) -> (f64, f64) {
-    let right = thread.stack.pop_f64();
-    let left = thread.stack.pop_f64();
+fn load_operands_f64(thread_context: &mut ThreadContext) -> (f64, f64) {
+    let right = thread_context.stack.pop_f64();
+    let left = thread_context.stack.pop_f64();
     (left, right)
 }
 
 #[inline]
-fn store_f32(thread: &mut Thread, v: f32) {
-    thread.stack.push_f32(v);
+fn store_f32(thread_context: &mut ThreadContext, v: f32) {
+    thread_context.stack.push_f32(v);
 }
 
 #[inline]
-fn store_f64(thread: &mut Thread, v: f64) {
-    thread.stack.push_f64(v);
+fn store_f64(thread_context: &mut ThreadContext, v: f64) {
+    thread_context.stack.push_f64(v);
 }
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{
-        load_modules_from_binaries,
-        utils::{build_module_binary_with_single_function, BytecodeWriter},
-    };
-    use ancvm_thread::thread::Thread;
+    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_thread::thread_context::ThreadContext;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_math_f32_a() {
-        init_runtime();
+        // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -492,11 +491,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -540,7 +540,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f32_b() {
-        init_runtime();
+        // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -710,11 +710,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -757,7 +758,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_a() {
-        init_runtime();
+        // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -873,11 +874,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![
@@ -921,7 +923,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_b() {
-        init_runtime();
+        // init_runtime();
 
         // numbers:
         //   - 0: 1.414
@@ -1035,11 +1037,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![

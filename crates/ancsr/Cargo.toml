@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 ancvm_types = { path = "../types" }
 ancvm_runtime = { path = "../runtime" }
-memmap2 = "0.8.0"
+memmap2 = "0.9.0"

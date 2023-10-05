@@ -176,7 +176,9 @@ pub enum Opcode {
     drop,                       // drop one operand (the top most operand)
     duplicate,                  // duplicate one operand (the top most operand)
     swap,                       // swap the top two operands
-    i32_imm,                    // (param immediate_number:i32)
+    // select,
+
+    i32_imm = 0x180,            // (param immediate_number:i32)
     i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
     f32_imm,                    // (param immediate_number:i32)
     f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)

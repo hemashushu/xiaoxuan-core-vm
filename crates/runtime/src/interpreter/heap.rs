@@ -4,169 +4,178 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::{memory::Memory, thread::Thread};
+use ancvm_thread::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
-pub fn heap_load(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_64(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context.heap.load_64(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context.heap.load_32(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32_i16_s(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32_i16_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32_extend_from_i16_s(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_32_extend_from_i16_s(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32_i16_u(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32_i16_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32_extend_from_i16_u(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_32_extend_from_i16_u(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32_i8_s(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32_i8_s(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32_extend_from_i8_s(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_32_extend_from_i8_s(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32_i8_u(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32_i8_u(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32_extend_from_i8_u(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_32_extend_from_i8_u(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load_f64(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_64_with_float_check(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_64_with_float_check(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32_f32(thread: &mut Thread) -> InterpretResult {
+pub fn heap_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread.stack.push_from_memory();
-    thread.heap.load_32_with_float_check(total_offset, dst_ptr);
+    let dst_ptr = thread_context.stack.push_from_memory();
+    thread_context
+        .heap
+        .load_32_with_float_check(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
 }
 
-pub fn heap_store(thread: &mut Thread) -> InterpretResult {
+pub fn heap_store(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread.stack.pop_to_memory();
-    thread.heap.store_64(src_ptr, total_offset);
+    let src_ptr = thread_context.stack.pop_to_memory();
+    thread_context.heap.store_64(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
 
-pub fn heap_store32(thread: &mut Thread) -> InterpretResult {
+pub fn heap_store32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread.stack.pop_to_memory();
-    thread.heap.store_32(src_ptr, total_offset);
+    let src_ptr = thread_context.stack.pop_to_memory();
+    thread_context.heap.store_32(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
 
-pub fn heap_store16(thread: &mut Thread) -> InterpretResult {
+pub fn heap_store16(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread.stack.pop_to_memory();
-    thread.heap.store_16(src_ptr, total_offset);
+    let src_ptr = thread_context.stack.pop_to_memory();
+    thread_context.heap.store_16(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
 
-pub fn heap_store8(thread: &mut Thread) -> InterpretResult {
+pub fn heap_store8(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread.stack.pop_to_memory();
-    thread.heap.store_8(src_ptr, total_offset);
+    let src_ptr = thread_context.stack.pop_to_memory();
+    thread_context.heap.store_8(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
 
 #[cfg(test)]
 mod tests {
-
-    use ancvm_binary::{
-        load_modules_from_binaries,
-        utils::{build_module_binary_with_single_function, BytecodeWriter},
-    };
-    use ancvm_thread::thread::Thread;
+    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_heap_load_store() {
-        init_runtime();
+        // init_runtime();
 
         //       |low address                                                              high address|
         //       |                                                                                     |
@@ -329,11 +338,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![

@@ -10,13 +10,13 @@ use std::{
 };
 
 use ancvm_types::RuntimeError;
-use ecall::init_ecall_handlers;
-use interpreter::init_interpreters;
 
-pub mod program;
-pub mod in_memory_program;
 pub mod ecall;
+pub mod in_memory_program;
 pub mod interpreter;
+pub mod jit_helper;
+pub mod program;
+pub mod program_context;
 
 const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 
@@ -25,11 +25,6 @@ const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 const RUNTIME_MAJOR_VERSION: u16 = 1;
 const RUNTIME_MINOR_VERSION: u16 = 0;
 const RUNTIME_PATCH_VERSION: u16 = 0;
-
-pub fn init_runtime() {
-    init_interpreters();
-    init_ecall_handlers();
-}
 
 #[derive(Debug)]
 pub struct InterpreterError {

@@ -4,12 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread::{ProgramCounter, Thread};
+use ancvm_thread::thread_context::{ProgramCounter, ThreadContext};
 
 use super::InterpretResult;
 
-pub fn end(thread: &mut Thread) -> InterpretResult {
-    let opt_return_pc = thread.stack.remove_frames(0);
+pub fn end(thread_context: &mut ThreadContext) -> InterpretResult {
+    let opt_return_pc = thread_context.stack.remove_frames(0);
 
     if let Some(return_pc) = opt_return_pc {
         if return_pc.instruction_address == 0 {
@@ -26,22 +26,22 @@ pub fn end(thread: &mut Thread) -> InterpretResult {
     }
 }
 
-pub fn block(thread: &mut Thread) -> InterpretResult {
+pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_index:i32)
-    let (type_index, local_variables_list_index) = thread.get_param_i32_i32();
+    let (type_index, local_variables_list_index) = thread_context.get_param_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
         function_internal_index: _,
         module_index,
-    } = thread.pc;
-    let module = &thread.context.modules[module_index];
+    } = thread_context.pc;
+    let module = &thread_context.program_ref.modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
         .list_allocate_bytes;
 
-    thread.stack.create_frame(
+    thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variables_list_index,
@@ -51,23 +51,24 @@ pub fn block(thread: &mut Thread) -> InterpretResult {
     InterpretResult::Move(12)
 }
 
-pub fn block_alt(thread: &mut Thread) -> InterpretResult {
+pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_index:i32, alt_inst_offset:i32)
-    let condition = thread.stack.pop_i32_u();
-    let (type_index, local_variables_list_index, alt_inst_offset) = thread.get_param_i32_i32_i32();
+    let condition = thread_context.stack.pop_i32_u();
+    let (type_index, local_variables_list_index, alt_inst_offset) =
+        thread_context.get_param_i32_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
         function_internal_index: _,
         module_index,
-    } = thread.pc;
-    let module = &thread.context.modules[module_index];
+    } = thread_context.pc;
+    let module = &thread_context.program_ref.modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
         .list_allocate_bytes;
 
-    thread.stack.create_frame(
+    thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variables_list_index,
@@ -82,11 +83,12 @@ pub fn block_alt(thread: &mut Thread) -> InterpretResult {
     }
 }
 
-pub fn block_nez(thread: &mut Thread) -> InterpretResult {
+pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_index:i32, next_inst_offset:i32)
 
-    let condition = thread.stack.pop_i32_u();
-    let (type_index, local_variables_list_index, alt_inst_offset) = thread.get_param_i32_i32_i32();
+    let condition = thread_context.stack.pop_i32_u();
+    let (type_index, local_variables_list_index, alt_inst_offset) =
+        thread_context.get_param_i32_i32_i32();
 
     if condition == 0 {
         InterpretResult::Move(alt_inst_offset as isize)
@@ -95,14 +97,14 @@ pub fn block_nez(thread: &mut Thread) -> InterpretResult {
             instruction_address: _,
             function_internal_index: _,
             module_index,
-        } = thread.pc;
-        let module = &thread.context.modules[module_index];
+        } = thread_context.pc;
+        let module = &thread_context.program_ref.modules[module_index];
         let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes = module.local_variable_section.lists
             [local_variables_list_index as usize]
             .list_allocate_bytes;
 
-        thread.stack.create_frame(
+        thread_context.stack.create_frame(
             type_item.params_count,
             type_item.results_count,
             local_variables_list_index,
@@ -114,24 +116,28 @@ pub fn block_nez(thread: &mut Thread) -> InterpretResult {
     }
 }
 
-pub fn break_(thread: &mut Thread) -> InterpretResult {
-    let (reversed_index, next_inst_offset) = thread.get_param_i16_i32();
-    do_break(thread, reversed_index, next_inst_offset)
+pub fn break_(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (reversed_index, next_inst_offset) = thread_context.get_param_i16_i32();
+    do_break(thread_context, reversed_index, next_inst_offset)
 }
 
-pub fn break_nez(thread: &mut Thread) -> InterpretResult {
-    let condition = thread.stack.pop_i32_u();
-    let (reversed_index, next_inst_offset) = thread.get_param_i16_i32();
+pub fn break_nez(thread_context: &mut ThreadContext) -> InterpretResult {
+    let condition = thread_context.stack.pop_i32_u();
+    let (reversed_index, next_inst_offset) = thread_context.get_param_i16_i32();
 
     if condition == 0 {
         InterpretResult::Move(8)
     } else {
-        do_break(thread, reversed_index, next_inst_offset)
+        do_break(thread_context, reversed_index, next_inst_offset)
     }
 }
 
-fn do_break(thread: &mut Thread, reversed_index: u16, next_inst_offset: u32) -> InterpretResult {
-    let opt_return_pc = thread.stack.remove_frames(reversed_index);
+fn do_break(
+    thread_context: &mut ThreadContext,
+    reversed_index: u16,
+    next_inst_offset: u32,
+) -> InterpretResult {
+    let opt_return_pc = thread_context.stack.remove_frames(reversed_index);
 
     if let Some(return_pc) = opt_return_pc {
         // the target frame is a function frame
@@ -149,24 +155,28 @@ fn do_break(thread: &mut Thread, reversed_index: u16, next_inst_offset: u32) -> 
     }
 }
 
-pub fn recur(thread: &mut Thread) -> InterpretResult {
-    let (reversed_index, start_inst_offset) = thread.get_param_i16_i32();
-    do_recur(thread, reversed_index, start_inst_offset)
+pub fn recur(thread_context: &mut ThreadContext) -> InterpretResult {
+    let (reversed_index, start_inst_offset) = thread_context.get_param_i16_i32();
+    do_recur(thread_context, reversed_index, start_inst_offset)
 }
 
-pub fn recur_nez(thread: &mut Thread) -> InterpretResult {
-    let condition = thread.stack.pop_i32_u();
-    let (reversed_index, start_inst_offset) = thread.get_param_i16_i32();
+pub fn recur_nez(thread_context: &mut ThreadContext) -> InterpretResult {
+    let condition = thread_context.stack.pop_i32_u();
+    let (reversed_index, start_inst_offset) = thread_context.get_param_i16_i32();
 
     if condition == 0 {
         InterpretResult::Move(8)
     } else {
-        do_recur(thread, reversed_index, start_inst_offset)
+        do_recur(thread_context, reversed_index, start_inst_offset)
     }
 }
 
-fn do_recur(thread: &mut Thread, reversed_index: u16, start_inst_offset: u32) -> InterpretResult {
-    let is_func = thread.stack.reset_frames(reversed_index);
+fn do_recur(
+    thread_context: &mut ThreadContext,
+    reversed_index: u16,
+    start_inst_offset: u32,
+) -> InterpretResult {
+    let is_func = thread_context.stack.reset_frames(reversed_index);
     if is_func {
         // the target frame is a function frame
         // the value of 'start_inst_offset' is ignored.
@@ -174,9 +184,10 @@ fn do_recur(thread: &mut Thread, reversed_index: u16, start_inst_offset: u32) ->
             instruction_address,
             function_internal_index,
             module_index,
-        } = thread.pc;
-        let func_item =
-            &thread.context.modules[module_index].func_section.items[function_internal_index];
+        } = thread_context.pc;
+        let func_item = &thread_context.program_ref.modules[module_index]
+            .func_section
+            .items[function_internal_index];
         let relate_offset = func_item.code_offset as isize - instruction_address as isize;
         InterpretResult::Move(relate_offset)
     } else {
@@ -185,18 +196,18 @@ fn do_recur(thread: &mut Thread, reversed_index: u16, start_inst_offset: u32) ->
     }
 }
 
-pub fn call(thread: &mut Thread) -> InterpretResult {
-    let function_public_index = thread.get_param_i32();
-    do_call(thread, function_public_index, 8)
+pub fn call(thread_context: &mut ThreadContext) -> InterpretResult {
+    let function_public_index = thread_context.get_param_i32();
+    do_call(thread_context, function_public_index, 8)
 }
 
-pub fn dcall(thread: &mut Thread) -> InterpretResult {
-    let function_public_index = thread.stack.pop_i32_u();
-    do_call(thread, function_public_index, 2)
+pub fn dcall(thread_context: &mut ThreadContext) -> InterpretResult {
+    let function_public_index = thread_context.stack.pop_i32_u();
+    do_call(thread_context, function_public_index, 2)
 }
 
 fn do_call(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     function_public_index: u32,
     instruction_length: usize,
 ) -> InterpretResult {
@@ -204,21 +215,21 @@ fn do_call(
         instruction_address: return_instruction_address,
         function_internal_index: return_function_internal_index,
         module_index: return_module_index,
-    } = thread.pc;
+    } = thread_context.pc;
 
-    let (target_module_index, target_function_internal_index) = thread
+    let (target_module_index, target_function_internal_index) = thread_context
         .get_function_internal_index_and_module_index(
             return_module_index,
             function_public_index as usize,
         );
     let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
-        thread
+        thread_context
             .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 target_function_internal_index,
             );
 
-    let type_item = &thread.context.modules[target_module_index]
+    let type_item = &thread_context.program_ref.modules[target_module_index]
         .type_section
         .items[type_index];
 
@@ -231,7 +242,7 @@ fn do_call(
         module_index: return_module_index,
     };
 
-    thread.stack.create_frame(
+    thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variables_list_index as u32,
@@ -251,7 +262,6 @@ fn do_call(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        load_modules_from_binaries,
         module_image::local_variable_section::LocalVariableEntry,
         utils::{
             build_module_binary_with_functions_and_blocks,
@@ -259,14 +269,16 @@ mod tests {
             HelperFunctionEntry,
         },
     };
-    use ancvm_thread::thread::Thread;
+
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_control_block() {
-        init_runtime();
+        // // init_runtime();
 
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
@@ -305,10 +317,11 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -322,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_args_and_results() {
-        init_runtime();
+        // init_runtime();
 
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
@@ -357,10 +370,11 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -374,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_local_vars() {
-        init_runtime();
+        // init_runtime();
 
         // func (a/2:i32, b/3:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
         //     (local c/0:i32, d/1:i32)
@@ -555,11 +569,12 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(11)],
@@ -581,7 +596,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break() {
-        init_runtime();
+        // init_runtime();
 
         // func () -> (i32, i32)
         //     (i32_imm 11)
@@ -619,10 +634,11 @@ mod tests {
             vec![],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13),]
@@ -631,7 +647,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break_block() {
-        init_runtime();
+        // init_runtime();
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -664,7 +680,7 @@ mod tests {
         // 0x004c i32_imm              0x25
         // 0x0054 end
 
-        let code1 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 11)
             .write_opcode_i32(Opcode::i32_imm, 13)
             .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
@@ -679,11 +695,11 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        let binary1 = build_module_binary_with_single_function_and_blocks(
+        let binary0 = build_module_binary_with_single_function_and_blocks(
             vec![],                                                           // params
             vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
             vec![],                                                           // local vars
-            code1,
+            code0,
             vec![HelperBlockEntry {
                 params: vec![],
                 results: vec![DataType::I32, DataType::I32],
@@ -691,12 +707,13 @@ mod tests {
             }],
         );
 
-        let image1 = load_modules_from_binaries(vec![&binary1]).unwrap();
-        let mut thread1 = Thread::new(&image1);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result1 = process_function(&mut thread1, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
-            result1.unwrap(),
+            result0.unwrap(),
             vec![
                 ForeignValue::UInt32(17),
                 ForeignValue::UInt32(19),
@@ -708,7 +725,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break_cross() {
-        init_runtime();
+        // init_runtime();
         // cross jump
         //
         // func () -> (i32, i32)
@@ -743,7 +760,7 @@ mod tests {
         // 0x004c i32_imm              0x25
         // 0x0054 end
 
-        let code2 = BytecodeWriter::new()
+        let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 11)
             .write_opcode_i32(Opcode::i32_imm, 13)
             .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
@@ -758,11 +775,11 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        let binary2 = build_module_binary_with_single_function_and_blocks(
+        let binary0 = build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
             vec![DataType::I32, DataType::I32], // results
             vec![],                             // local vars
-            code2,
+            code0,
             vec![HelperBlockEntry {
                 params: vec![],
                 results: vec![],
@@ -770,19 +787,20 @@ mod tests {
             }],
         );
 
-        let image2 = load_modules_from_binaries(vec![&binary2]).unwrap();
-        let mut thread2 = Thread::new(&image2);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result2 = process_function(&mut thread2, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
-            result2.unwrap(),
+            result0.unwrap(),
             vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
         );
     }
 
     #[test]
     fn test_process_control_if() {
-        init_runtime();
+        // init_runtime();
 
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
@@ -834,11 +852,12 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
@@ -846,7 +865,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
 
         let result1 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
@@ -856,7 +875,7 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else() {
-        init_runtime();
+        // init_runtime();
 
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
@@ -911,11 +930,12 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
@@ -923,7 +943,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
 
         let result1 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
@@ -933,7 +953,7 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else_nest() {
-        init_runtime();
+        // init_runtime();
 
         // func $level (i32) -> (i32)
         //     (local_load32 0 0)
@@ -1048,31 +1068,32 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(90)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(65)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(80)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(80)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(66)]);
 
-        let result2 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(70)]);
+        let result2 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(70)]);
         assert_eq!(result2.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result3 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(60)]);
+        let result3 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(60)]);
         assert_eq!(result3.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result4 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(50)]);
+        let result4 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(50)]);
         assert_eq!(result4.unwrap(), vec![ForeignValue::UInt32(68)]);
 
-        let result5 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(40)]);
+        let result5 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(40)]);
         assert_eq!(result5.unwrap(), vec![ForeignValue::UInt32(68)]);
     }
 
     #[test]
     fn test_process_control_switch_case() {
-        init_runtime();
+        // init_runtime();
 
         // func $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
@@ -1211,31 +1232,32 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(90)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(65)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(80)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(80)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(66)]);
 
-        let result2 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(70)]);
+        let result2 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(70)]);
         assert_eq!(result2.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result3 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(60)]);
+        let result3 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(60)]);
         assert_eq!(result3.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result4 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(50)]);
+        let result4 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(50)]);
         assert_eq!(result4.unwrap(), vec![ForeignValue::UInt32(68)]);
 
-        let result5 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(40)]);
+        let result5 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(40)]);
         assert_eq!(result5.unwrap(), vec![ForeignValue::UInt32(68)]);
     }
 
     #[test]
     fn test_process_control_while() {
-        init_runtime();
+        // init_runtime();
 
         // func $accu (n/1:i32) -> (i32)
         //     (local sum/0:i32)
@@ -1320,19 +1342,20 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
     fn test_process_control_while_functional() {
-        init_runtime();
+        // init_runtime();
         // func $accu (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1418,19 +1441,20 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
     fn test_process_control_while_opti() {
-        init_runtime();
+        // init_runtime();
         // func $accu_optimized (i32) -> (i32)
         //     zero                   ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1525,19 +1549,20 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
     fn test_process_control_do_while() {
-        init_runtime();
+        // init_runtime();
 
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
@@ -1636,19 +1661,20 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
     fn test_process_control_do_while_with_block_local_vars() {
-        init_runtime();
+        // init_runtime();
 
         // note:
         //
@@ -1756,19 +1782,20 @@ mod tests {
             }],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
     #[test]
     fn test_process_control_tco() {
-        init_runtime();
+        // init_runtime();
 
         // func $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
@@ -1854,11 +1881,12 @@ mod tests {
             }], // blocks
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
@@ -1866,7 +1894,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
         let result1 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
@@ -1876,7 +1904,7 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_opti() {
-        init_runtime();
+        // init_runtime();
 
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
@@ -1940,11 +1968,12 @@ mod tests {
             vec![], // blocks
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
@@ -1952,7 +1981,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
         let result1 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
@@ -1962,7 +1991,7 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_branch() {
-        init_runtime();
+        // init_runtime();
 
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
@@ -2039,11 +2068,12 @@ mod tests {
             }], // blocks
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
@@ -2051,7 +2081,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
         let result1 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
@@ -2061,7 +2091,7 @@ mod tests {
 
     #[test]
     fn test_process_control_call() {
-        init_runtime();
+        // init_runtime();
 
         // func $main (i32) -> (i32)
         //     (call $sum_square)
@@ -2210,16 +2240,17 @@ mod tests {
             ],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![ForeignValue::UInt32(5)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(5)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55),]);
     }
 
     #[test]
     fn test_process_control_dcall() {
-        init_runtime();
+        // init_runtime();
 
         // func $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
@@ -2328,10 +2359,11 @@ mod tests {
             vec![],
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(
             result0.unwrap(),
             vec![

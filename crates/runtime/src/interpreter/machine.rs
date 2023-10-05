@@ -6,35 +6,36 @@
 
 //! it is currently assumed that the target architecture is 64-bit.
 
-use ancvm_thread::{memory::Memory, thread::Thread};
+use ancvm_thread::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
-pub fn nop(_thread: &mut Thread) -> InterpretResult {
+pub fn nop(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn debug(_thread: &mut Thread) -> InterpretResult {
+pub fn debug(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Debug
 }
 
-pub fn host_addr_local(thread: &mut Thread) -> InterpretResult {
+pub fn host_addr_local(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 reversed_index:i16 local_variable_index:i16)
-    let (offset_bytes, reversed_index, local_variable_index) = thread.get_param_i16_i16_i16();
+    let (offset_bytes, reversed_index, local_variable_index) =
+        thread_context.get_param_i16_i16_i16();
     do_host_addr_local(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn host_addr_local_long(thread: &mut Thread) -> InterpretResult {
+pub fn host_addr_local_long(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    let (reversed_index, local_variable_index) = thread.get_param_i16_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
+    let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
     do_host_addr_local(
-        thread,
+        thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
@@ -42,64 +43,72 @@ pub fn host_addr_local_long(thread: &mut Thread) -> InterpretResult {
 }
 
 fn do_host_addr_local(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let final_offset = thread.get_local_variable_address_by_index_and_offset(
+    let final_offset = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
         offset_bytes,
     );
-    let ptr = thread.stack.get_ptr(final_offset);
+    let ptr = thread_context.stack.get_ptr(final_offset);
     let address = ptr as u64;
 
-    thread.stack.push_i64_u(address);
+    thread_context.stack.push_i64_u(address);
 
     InterpretResult::Move(8)
 }
 
-pub fn host_addr_data(thread: &mut Thread) -> InterpretResult {
+pub fn host_addr_data(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
-    let (offset_bytes, data_public_index) = thread.get_param_i16_i32();
-    do_host_addr_data(thread, data_public_index as usize, offset_bytes as usize)
+    let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
+    do_host_addr_data(
+        thread_context,
+        data_public_index as usize,
+        offset_bytes as usize,
+    )
 }
 
-pub fn host_addr_data_long(thread: &mut Thread) -> InterpretResult {
+pub fn host_addr_data_long(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
-    let data_public_index = thread.get_param_i32();
-    let offset_bytes = thread.stack.pop_i32_u();
-    do_host_addr_data(thread, data_public_index as usize, offset_bytes as usize)
+    let data_public_index = thread_context.get_param_i32();
+    let offset_bytes = thread_context.stack.pop_i32_u();
+    do_host_addr_data(
+        thread_context,
+        data_public_index as usize,
+        offset_bytes as usize,
+    )
 }
 
 fn do_host_addr_data(
-    thread: &mut Thread,
+    thread_context: &mut ThreadContext,
     data_public_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
     let (datas, _target_module_index, data_internal_index) =
-        thread.get_current_module_data_internal_index_and_datas_object(data_public_index);
+        thread_context.get_current_module_data_internal_index_and_datas_object(data_public_index);
     let final_offset = datas.get_idx_address(data_internal_index, offset_bytes);
     let ptr = datas.get_ptr(final_offset);
     let address = ptr as u64;
 
-    thread.stack.push_i64_u(address);
+    thread_context.stack.push_i64_u(address);
 
     InterpretResult::Move(8)
 }
 
-pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
+pub fn host_addr_heap(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread.get_param_i16();
-    let heap_address = thread.stack.pop_i64_u();
+    let offset_bytes = thread_context.get_param_i16();
+    let heap_address = thread_context.stack.pop_i64_u();
 
     let total_offset = heap_address as usize + offset_bytes as usize;
-    let ptr = thread.heap.get_ptr(total_offset);
+    let ptr = thread_context.heap.get_ptr(total_offset);
 
     let address = ptr as u64;
 
-    thread.stack.push_i64_u(address);
+    thread_context.stack.push_i64_u(address);
     InterpretResult::Move(4)
 }
 
@@ -107,7 +116,6 @@ pub fn host_addr_heap(thread: &mut Thread) -> InterpretResult {
 mod tests {
 
     use ancvm_binary::{
-        load_modules_from_binaries,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
@@ -118,14 +126,16 @@ mod tests {
             BytecodeWriter,
         },
     };
-    use ancvm_thread::thread::Thread;
+
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{init_runtime, interpreter::process_function};
+    use crate::{
+        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
+    };
 
     #[test]
     fn test_process_machine() {
-        init_runtime();
+        // init_runtime();
 
         // bytecodes
         //
@@ -151,11 +161,12 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
-            &mut thread0,
+            &mut thread_context0,
             0,
             0,
             &vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
@@ -168,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_process_host_address() {
-        init_runtime();
+        // init_runtime();
 
         //        read-only data section
         //       |low address    high addr|
@@ -292,10 +303,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
         // it is currently assumed that the target architecture is 64-bit.
@@ -337,7 +349,7 @@ mod tests {
 
     #[test]
     fn test_process_host_address_long() {
-        init_runtime();
+        // init_runtime();
 
         //        read-only data section
         //       |low address  high addr|
@@ -440,10 +452,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
         // it is currently assumed that the target architecture is 64-bit.
@@ -476,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_process_host_address_heap() {
-        init_runtime();
+        // init_runtime();
 
         //
         //        heap
@@ -559,10 +572,11 @@ mod tests {
             code0,
         );
 
-        let image0 = load_modules_from_binaries(vec![&binary0]).unwrap();
-        let mut thread0 = Thread::new(&image0);
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
         // it is currently assumed that the target architecture is 64-bit.
