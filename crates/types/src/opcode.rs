@@ -326,13 +326,13 @@ pub enum Opcode {
     // conversion
     //
 
-    // demote i64 to i32
+    // truncate i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_demote_i64 = 0x500,
+    i32_trunc_i64 = 0x500,
 
-    // promote i32 to i64
-    i64_promote_i32_s,
-    i64_promote_i32_u,
+    // extend i32 to i64
+    i64_extend_i32_s,
+    i64_extend_i32_u,
 
     // demote f64 to f32
     f32_demote_f64,
@@ -342,14 +342,14 @@ pub enum Opcode {
 
     // convert float to int
     // truncate fractional part
-    i32_trunc_f32_s,
-    i32_trunc_f32_u,            // note -x.xx(float) -> 0(int)
-    i32_trunc_f64_s,
-    i32_trunc_f64_u,            // note -x.xx(float) -> 0(int)
-    i64_trunc_f32_s,
-    i64_trunc_f32_u,            // note -x.xx(float) -> 0(int)
-    i64_trunc_f64_s,
-    i64_trunc_f64_u,            // note -x.xx(float) -> 0(int)
+    i32_convert_f32_s,
+    i32_convert_f32_u,            // note -x.xx(float) -> 0(int)
+    i32_convert_f64_s,
+    i32_convert_f64_u,            // note -x.xx(float) -> 0(int)
+    i64_convert_f32_s,
+    i64_convert_f32_u,            // note -x.xx(float) -> 0(int)
+    i64_convert_f64_s,
+    i64_convert_f64_u,            // note -x.xx(float) -> 0(int)
 
     // convert int to float
     f32_convert_i32_s,
@@ -464,8 +464,8 @@ pub enum Opcode {
     i32_div_u,
     i32_rem_s,                  // calculate the remainder
     i32_rem_u,
-    i32_inc,                    // (param amount:i16)
-    i32_dec,                    // (param amount:i16)
+    i32_add_imm,                // (param amount:i16)
+    i32_sub_imm,                // (param amount:i16)
 
     // remainder vs modulus
     // --------------------
@@ -535,8 +535,8 @@ pub enum Opcode {
     i64_div_u,
     i64_rem_s,
     i64_rem_u,
-    i64_inc,                    // (param amount:i16)
-    i64_dec,                    // (param amount:i16)
+    i64_add_imm,                // (param amount:i16)
+    i64_sub_imm,                // (param amount:i16)
 
     f32_add,
     f32_sub,
@@ -614,7 +614,6 @@ pub enum Opcode {
     i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
     i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
     i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-
 
     //
     // math
@@ -1157,7 +1156,7 @@ pub enum Opcode {
     //
 
     call,                       // general function call            (param func_pub_index:i32)
-    dcall,                      // closure/dynamic function call    (operand func_pub_index:i32)
+    dcall,                      // dynamic function call            (operand func_pub_index:i32)
 
     // note:
     // 'function public index' includes the imported functions, it equals to

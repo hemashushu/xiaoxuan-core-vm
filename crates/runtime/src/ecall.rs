@@ -42,8 +42,10 @@ Bytecode:
     );
 }
 
+// the initialization can be built with crates such as 'lazy_static', 'once_cell'
+// or 'rust-ctor', but it's easy to implement a simple init, so here just build manually.
 static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-static mut IS_INIT: bool = false;
+static mut HAS_INIT: bool = false;
 static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
     [unreachable; MAX_ECALLCODE_NUMBER];
 
@@ -51,10 +53,10 @@ pub fn init_ecall_handlers() {
     let _lock = INIT_LOCK.lock().unwrap();
 
     unsafe {
-        if IS_INIT {
+        if HAS_INIT {
             return;
         }
-        IS_INIT = true;
+        HAS_INIT = true;
     }
 
     let handlers = unsafe { &mut HANDLERS };
@@ -69,7 +71,7 @@ pub fn init_ecall_handlers() {
     // info
     handlers[ECallCode::runtime_name as usize] = info::runtime_name;
     handlers[ECallCode::runtime_version as usize] = info::runtime_version;
-    handlers[ECallCode::runtime_features as usize] = info::runtime_features;
+    handlers[ECallCode::features as usize] = info::features;
     // heap
     handlers[ECallCode::heap_fill as usize] = heap::heap_fill;
     handlers[ECallCode::heap_copy as usize] = heap::heap_copy;

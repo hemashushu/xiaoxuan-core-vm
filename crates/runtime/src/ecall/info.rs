@@ -42,7 +42,7 @@ pub fn runtime_version(thread: &mut Thread) {
     thread.stack.push_i64_u(version_number);
 }
 
-pub fn runtime_features(_thread: &mut Thread) {
+pub fn features(_thread: &mut Thread) {
     // `fn (buf_ptr: i64) -> feature_list_len:i32`
     unimplemented!()
 }

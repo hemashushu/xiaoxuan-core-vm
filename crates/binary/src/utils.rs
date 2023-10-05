@@ -670,19 +670,19 @@ impl<'a> BytecodeReader<'a> {
                     line.push_str(&format!("{}", offset));
                 }
                 // conversion
-                Opcode::i32_demote_i64
-                | Opcode::i64_promote_i32_s
-                | Opcode::i64_promote_i32_u
+                Opcode::i32_trunc_i64
+                | Opcode::i64_extend_i32_s
+                | Opcode::i64_extend_i32_u
                 | Opcode::f32_demote_f64
                 | Opcode::f64_promote_f32
-                | Opcode::i32_trunc_f32_s
-                | Opcode::i32_trunc_f32_u
-                | Opcode::i32_trunc_f64_s
-                | Opcode::i32_trunc_f64_u
-                | Opcode::i64_trunc_f32_s
-                | Opcode::i64_trunc_f32_u
-                | Opcode::i64_trunc_f64_s
-                | Opcode::i64_trunc_f64_u
+                | Opcode::i32_convert_f32_s
+                | Opcode::i32_convert_f32_u
+                | Opcode::i32_convert_f64_s
+                | Opcode::i32_convert_f64_u
+                | Opcode::i64_convert_f32_s
+                | Opcode::i64_convert_f32_u
+                | Opcode::i64_convert_f64_s
+                | Opcode::i64_convert_f64_u
                 | Opcode::f32_convert_i32_s
                 | Opcode::f32_convert_i32_u
                 | Opcode::f32_convert_i64_s
@@ -736,7 +736,7 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_div_u
                 | Opcode::i32_rem_s
                 | Opcode::i32_rem_u => {}
-                Opcode::i32_inc | Opcode::i32_dec => {
+                Opcode::i32_add_imm | Opcode::i32_sub_imm => {
                     let amount = self.read_param_i16();
                     line.push_str(&format!("{}", amount));
                 }
@@ -747,7 +747,7 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i64_div_u
                 | Opcode::i64_rem_s
                 | Opcode::i64_rem_u => {}
-                Opcode::i64_inc | Opcode::i64_dec => {
+                Opcode::i64_add_imm | Opcode::i64_sub_imm => {
                     let amount = self.read_param_i16();
                     line.push_str(&format!("{}", amount));
                 }

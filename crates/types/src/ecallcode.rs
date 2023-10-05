@@ -26,8 +26,8 @@ pub enum ECallCode {
                             //        |    |minor
                             //        |major
                             //
-    runtime_features,       // get a list of feature names separated by commas, e.g.
-                            // "scall,ccall,shared_memory"
+    features,               // get a list of feature names separated by commas, e.g.
+                            // "syscall,extcall"
                             //
                             // `fn (buf_ptr: i64) -> feature_list_len:i32`
     check_feature,          // `fn (name_ptr:i64, name_len:i32) -> bool`
@@ -115,8 +115,12 @@ pub enum ECallCode {
 
     // external function call
 
-    create_bridge,          // create a new host function and map it to a module function.
+    bridge_func,            // create a new host function and map it to a VM function.
                             // this host function named 'bridge funcion'
+                            //
+                            // return the existing bridge function if the bridge function corresponding
+                            // to the specified VM function has already been created.
+                            //
                             // `fn (module_index:i32 func_pub_index:i32)`
 
 
@@ -146,7 +150,8 @@ pub enum ECallCode {
     //     let func_addr = ... (virtual memory address of the bridge function)
     //
     //     /** mock pointer and address
-    //     let func_ptr = cb_func as extern "C" fn(usize, usize) as *const extern "C" fn(usize, usize);
+    //     let func_ptr = cb_func as *const extern "C" fn(usize, usize);
+    //     let func_ptr = cb_func as *const u8;
     //     let func_addr = func_ptr as usize;
     //     */
     //
@@ -178,7 +183,6 @@ pub enum ECallCode {
     //     exit(EXIT_SUCCESS);
     // }
     // ```
-
 
     // regex
 

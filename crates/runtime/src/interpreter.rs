@@ -72,8 +72,10 @@ Bytecode:
     );
 }
 
+// the initialization can be built with crates such as 'lazy_static', 'once_cell'
+// or 'rust-ctor', but it's easy to implement a simple init, so here just build manually.
 static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-static mut IS_INIT: bool = false;
+static mut HAS_INIT: bool = false;
 static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
 /// initilize the instruction interpreters
@@ -81,10 +83,10 @@ pub fn init_interpreters() {
     let _lock = INIT_LOCK.lock().unwrap();
 
     unsafe {
-        if IS_INIT {
+        if HAS_INIT {
             return;
         }
-        IS_INIT = true;
+        HAS_INIT = true;
     }
 
     let interpreters = unsafe { &mut INTERPRETERS };
@@ -175,19 +177,19 @@ pub fn init_interpreters() {
     interpreters[Opcode::heap_store8 as usize] = heap::heap_store8;
 
     // conversion
-    interpreters[Opcode::i32_demote_i64 as usize] = conversion::i32_demote_i64;
-    interpreters[Opcode::i64_promote_i32_s as usize] = conversion::i64_promote_i32_s;
-    interpreters[Opcode::i64_promote_i32_u as usize] = conversion::i64_promote_i32_u;
+    interpreters[Opcode::i32_trunc_i64 as usize] = conversion::i32_trunc_i64;
+    interpreters[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;
+    interpreters[Opcode::i64_extend_i32_u as usize] = conversion::i64_extend_i32_u;
     interpreters[Opcode::f32_demote_f64 as usize] = conversion::f32_demote_f64;
     interpreters[Opcode::f64_promote_f32 as usize] = conversion::f64_promote_f32;
-    interpreters[Opcode::i32_trunc_f32_s as usize] = conversion::i32_trunc_f32_s;
-    interpreters[Opcode::i32_trunc_f32_u as usize] = conversion::i32_trunc_f32_u;
-    interpreters[Opcode::i32_trunc_f64_s as usize] = conversion::i32_trunc_f64_s;
-    interpreters[Opcode::i32_trunc_f64_u as usize] = conversion::i32_trunc_f64_u;
-    interpreters[Opcode::i64_trunc_f32_s as usize] = conversion::i64_trunc_f32_s;
-    interpreters[Opcode::i64_trunc_f32_u as usize] = conversion::i64_trunc_f32_u;
-    interpreters[Opcode::i64_trunc_f64_s as usize] = conversion::i64_trunc_f64_s;
-    interpreters[Opcode::i64_trunc_f64_u as usize] = conversion::i64_trunc_f64_u;
+    interpreters[Opcode::i32_convert_f32_s as usize] = conversion::i32_convert_f32_s;
+    interpreters[Opcode::i32_convert_f32_u as usize] = conversion::i32_convert_f32_u;
+    interpreters[Opcode::i32_convert_f64_s as usize] = conversion::i32_convert_f64_s;
+    interpreters[Opcode::i32_convert_f64_u as usize] = conversion::i32_convert_f64_u;
+    interpreters[Opcode::i64_convert_f32_s as usize] = conversion::i64_convert_f32_s;
+    interpreters[Opcode::i64_convert_f32_u as usize] = conversion::i64_convert_f32_u;
+    interpreters[Opcode::i64_convert_f64_s as usize] = conversion::i64_convert_f64_s;
+    interpreters[Opcode::i64_convert_f64_u as usize] = conversion::i64_convert_f64_u;
     interpreters[Opcode::f32_convert_i32_s as usize] = conversion::f32_convert_i32_s;
     interpreters[Opcode::f32_convert_i32_u as usize] = conversion::f32_convert_i32_u;
     interpreters[Opcode::f32_convert_i64_s as usize] = conversion::f32_convert_i64_s;
@@ -243,8 +245,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::i32_div_u as usize] = arithmetic::i32_div_u;
     interpreters[Opcode::i32_rem_s as usize] = arithmetic::i32_rem_s;
     interpreters[Opcode::i32_rem_u as usize] = arithmetic::i32_rem_u;
-    interpreters[Opcode::i32_inc as usize] = arithmetic::i32_inc;
-    interpreters[Opcode::i32_dec as usize] = arithmetic::i32_dec;
+    interpreters[Opcode::i32_add_imm as usize] = arithmetic::i32_add_imm;
+    interpreters[Opcode::i32_sub_imm as usize] = arithmetic::i32_sub_imm;
     interpreters[Opcode::i64_add as usize] = arithmetic::i64_add;
     interpreters[Opcode::i64_sub as usize] = arithmetic::i64_sub;
     interpreters[Opcode::i64_mul as usize] = arithmetic::i64_mul;
@@ -252,8 +254,8 @@ pub fn init_interpreters() {
     interpreters[Opcode::i64_div_u as usize] = arithmetic::i64_div_u;
     interpreters[Opcode::i64_rem_s as usize] = arithmetic::i64_rem_s;
     interpreters[Opcode::i64_rem_u as usize] = arithmetic::i64_rem_u;
-    interpreters[Opcode::i64_inc as usize] = arithmetic::i64_inc;
-    interpreters[Opcode::i64_dec as usize] = arithmetic::i64_dec;
+    interpreters[Opcode::i64_add_imm as usize] = arithmetic::i64_add_imm;
+    interpreters[Opcode::i64_sub_imm as usize] = arithmetic::i64_sub_imm;
     interpreters[Opcode::f32_add as usize] = arithmetic::f32_add;
     interpreters[Opcode::f32_sub as usize] = arithmetic::f32_sub;
     interpreters[Opcode::f32_mul as usize] = arithmetic::f32_mul;

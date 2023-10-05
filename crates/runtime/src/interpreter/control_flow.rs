@@ -408,17 +408,17 @@ mod tests {
         // bytecode
         //
         // 0x0000 local_load32         0 0 2
-        // 0x0008 i32_inc              1
+        // 0x0008 i32_add_imm              1
         // 0x000c local_store32        0 0 0
         // 0x0014 local_load32         0 0 3
-        // 0x001c i32_inc              1
+        // 0x001c i32_add_imm              1
         // 0x0020 local_store32        0 0 1
         // 0x0028 block                1 1
         // 0x0034 local_load32         1 0 2
-        // 0x003c i32_dec              1
+        // 0x003c i32_sub_imm              1
         // 0x0040 local_store32        1 0 2
         // 0x0048 local_load32         1 0 3
-        // 0x0050 i32_dec              1
+        // 0x0050 i32_sub_imm              1
         // 0x0054 local_store32        1 0 3
         // 0x005c local_load32         1 0 0
         // 0x0064 local_load32         1 0 1
@@ -438,10 +438,10 @@ mod tests {
         // 0x00c6 local_load32         1 0 0
         // 0x00ce i32_add
         // 0x00d0 local_load32         2 0 1
-        // 0x00d8 i32_inc              1
+        // 0x00d8 i32_add_imm              1
         // 0x00dc local_store32        2 0 1
         // 0x00e4 local_load32         1 0 1
-        // 0x00ec i32_dec              1
+        // 0x00ec i32_sub_imm              1
         // 0x00f0 local_store32        1 0 1
         // 0x00f8 end
         // 0x00fa local_load32         0 0 0
@@ -456,21 +456,21 @@ mod tests {
         let code0 = BytecodeWriter::new()
             // c=a+1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .write_opcode_i16(Opcode::i32_inc, 1)
+            .write_opcode_i16(Opcode::i32_add_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // d=b+1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
-            .write_opcode_i16(Opcode::i32_inc, 1)
+            .write_opcode_i16(Opcode::i32_add_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // block 1
             .write_opcode_i32_i32(Opcode::block, 1, 1)
             // a=a-1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 2)
             // b=b-1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 3)
             // p=c+d
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
@@ -497,11 +497,11 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             // d=d+1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 2, 0, 1)
-            .write_opcode_i16(Opcode::i32_inc, 1)
+            .write_opcode_i16(Opcode::i32_add_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 2, 0, 1)
             // q=q-1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             //
             .write_opcode(Opcode::end)
@@ -1251,7 +1251,7 @@ mod tests {
         //         (local_store32 1 0)
         //                              ;; n = n - 1
         //         (local_load32 1)
-        //         (i32_dec)
+        //         (i32_sub_imm)
         //         (local_store32 1)
         //                              ;; recur
         //         (recur 0)
@@ -1274,7 +1274,7 @@ mod tests {
         // 0x0030 i32_add
         // 0x0032 local_store32        1 0 0
         // 0x003a local_load32         1 0 1
-        // 0x0042 i32_dec              1
+        // 0x0042 i32_sub_imm              1
         // 0x0046 local_store32        1 0 1
         // 0x004e nop
         // 0x0050 recur                0 0x44
@@ -1295,7 +1295,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
             // n = n - 1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             //
             .write_opcode_i16_i32(Opcode::recur, 0, 0x44)
@@ -1348,7 +1348,7 @@ mod tests {
         //         i32_add
         //                              ;; n - 1
         //         (local_load32 0 1)
-        //         (i32_dec 1)
+        //         (i32_sub_imm 1)
         //                              ;; recur
         //         (recur 0)
         //     end
@@ -1372,7 +1372,7 @@ mod tests {
         // 0x003c local_load32         0 0 1
         // 0x0044 i32_add
         // 0x0046 local_load32         0 0 1
-        // 0x004e i32_dec              1
+        // 0x004e i32_sub_imm              1
         // 0x0052 nop
         // 0x0054 recur                0 0x3c
         // 0x005c end
@@ -1395,7 +1395,7 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             // n - 1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             // recur
             .write_opcode_i16_i32(Opcode::recur, 0, 0x3c)
             // block end
@@ -1448,7 +1448,7 @@ mod tests {
         //         (local_store32 0 0)
         //                              ;; n = n - 1
         //         (local_load32 0 1)
-        //         (i32_dec 1)
+        //         (i32_sub_imm 1)
         //         (local_store32 0 1)
         //                              ;; recur
         //         (recur 0)
@@ -1475,7 +1475,7 @@ mod tests {
         // 0x0046 i32_add
         // 0x0048 local_store32        0 0 0
         // 0x0050 local_load32         0 0 1
-        // 0x0058 i32_dec              1
+        // 0x0058 i32_sub_imm              1
         // 0x005c local_store32        0 0 1
         // 0x0064 recur                0 0x4c
         // 0x006c end
@@ -1501,7 +1501,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // n = n - 1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // recur
             .write_opcode_i16_i32(Opcode::recur, 0, 0x4c)
@@ -1550,7 +1550,7 @@ mod tests {
         //         (local_store32 0 0)
         //                              ;; n = n - 1
         //         (local_load32 0 3)
-        //         (i32_dec 1)
+        //         (i32_sub_imm 1)
         //         (local_store32 0 1)
         //                              ;; load sum, n
         //         (local_load32 0 0)
@@ -1579,7 +1579,7 @@ mod tests {
         // 0x0028 i32_add
         // 0x002a local_store32        0 0 0
         // 0x0032 local_load32         0 0 1
-        // 0x003a i32_dec              1
+        // 0x003a i32_sub_imm              1
         // 0x003e local_store32        0 0 1
         // 0x0046 local_load32         0 0 0
         // 0x004e local_load32         0 0 1
@@ -1604,7 +1604,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
@@ -1666,7 +1666,7 @@ mod tests {
         //         (local_store32 0 0)
         //                              ;; new_n = p_n - 1
         //         (local_load32 0 3)
-        //         (i32_dec 1)
+        //         (i32_sub_imm 1)
         //         (local_store32 0 1)
         //                              ;; load new_sum, new_n
         //         (local_load32 0 0)
@@ -1696,7 +1696,7 @@ mod tests {
         // 0x0028 i32_add
         // 0x002a local_store32        0 0 0
         // 0x0032 local_load32         0 0 3
-        // 0x003a i32_dec              1
+        // 0x003a i32_sub_imm              1
         // 0x003e local_store32        0 0 1
         // 0x0046 local_load32         0 0 0
         // 0x004e local_load32         0 0 1
@@ -1721,7 +1721,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
@@ -1778,7 +1778,7 @@ mod tests {
         //     (local_store32 0 0)
         //                              ;; n = n - 1
         //     (local_load32 0 1)
-        //     (i32_dec 1)
+        //     (i32_sub_imm 1)
         //     (local_store32 0 1)
         //                              ;; if n > 0 recur (sum,n)
         //     (local_load32 0 1)
@@ -1802,7 +1802,7 @@ mod tests {
         // 0x0010 i32_add
         // 0x0012 local_store32        0 0 0
         // 0x001a local_load32         0 0 1
-        // 0x0022 i32_dec              1
+        // 0x0022 i32_sub_imm              1
         // 0x0026 local_store32        0 0 1
         // 0x002e local_load32         0 0 1
         // 0x0036 zero
@@ -1823,7 +1823,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
@@ -1885,7 +1885,7 @@ mod tests {
         //     i32_add
         //                          ;; n - 1
         //     (local_load32 1)
-        //     (i32_dec 1)
+        //     (i32_sub_imm 1)
         //                          ;; recur if n>0
         //     duplicate
         //     zero
@@ -1904,7 +1904,7 @@ mod tests {
         // 0x0008 local_load32         0 0 1
         // 0x0010 i32_add
         // 0x0012 local_load32         0 0 1
-        // 0x001a i32_dec              1
+        // 0x001a i32_sub_imm              1
         // 0x001e duplicate
         // 0x0020 zero
         // 0x0022 i32_gt_u
@@ -1918,7 +1918,7 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             //
             .write_opcode(Opcode::duplicate)
             .write_opcode(Opcode::zero)
@@ -1976,7 +1976,7 @@ mod tests {
         //         i32_add
         //                                      ;; n - 1
         //         (local_load32 1 1)
-        //         (i32_dec 1)
+        //         (i32_sub_imm 1)
         //         (recur 1)                    ;; recur
         //     end
         // end
@@ -1996,7 +1996,7 @@ mod tests {
         // 0x0034 local_load32         1 0 1
         // 0x003c i32_add
         // 0x003e local_load32         1 0 1
-        // 0x0046 i32_dec              1
+        // 0x0046 i32_sub_imm              1
         // 0x004a nop
         // 0x004c recur                1 0x0
         // 0x0054 end
@@ -2016,7 +2016,7 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             //
             .write_opcode_i16_i32(Opcode::recur, 1, 0)
             // block end
@@ -2084,7 +2084,7 @@ mod tests {
         //             i32_add
         //                                  ;; n - 1
         //             (local_load32 1 1)
-        //             (i32_dec 1)
+        //             (i32_sub_imm 1)
         //                                  ;; recur 1
         //             (recur 1)
         //         end
@@ -2125,7 +2125,7 @@ mod tests {
         // 0x0054 call                 2
         // 0x005c i32_add
         // 0x005e local_load32         0 0 1
-        // 0x0066 i32_dec              1
+        // 0x0066 i32_sub_imm              1
         // 0x006a nop
         // 0x006c recur                1 0x54
         // 0x0074 end
@@ -2150,7 +2150,7 @@ mod tests {
             .write_opcode(Opcode::i32_add)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16(Opcode::i32_sub_imm, 1)
             //
             .write_opcode_i16_i32(Opcode::recur, 1, 0x54)
             //

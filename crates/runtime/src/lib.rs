@@ -13,6 +13,8 @@ use ancvm_types::RuntimeError;
 use ecall::init_ecall_handlers;
 use interpreter::init_interpreters;
 
+pub mod program;
+pub mod in_memory_program;
 pub mod ecall;
 pub mod interpreter;
 

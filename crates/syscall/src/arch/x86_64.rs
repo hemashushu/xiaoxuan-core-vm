@@ -12,7 +12,7 @@
 // | rdi      | 1st      |
 // | rsi      | 2nd      |
 // | rdx      | 3rd      |
-// | r10      | 4th      | 'rcx' for standard function calling
+// | r10      | 4th      | !! 'rcx' for standard function calling
 // | r8       | 5th      |
 // | r9       | 6th      |
 //
@@ -32,12 +32,27 @@
 // |            |
 
 // r10, r11 for temporary, as well as the registers above are not preserved
-// across a function call, i.e., any of these registers may be used in a function
-// without have to save the original value.
-// r12-15 are callee saved.
+// across a function call.
+//
+// in short, rax, rdi, rsi, rdx, rcx and r8, r9, r10, 11 are scratch (caller saved) registers,
+//           ---  ---  ---  ---  ---     --  --  ---
+//           ret  a1   a2   a3   a4(std) a5  a6  a4(syscall)
+//
+// any of these registers may be used in a function without have to save the original value.
+// this also means that you need to save them BEFORE executing a function call
+// if you need the value of one of these registers.
+// to keep things simple, just do not use scratch registers to hold the 'long live' values.
+//
+// on the other hand, rbx, rsp, rbp, r12-15 are preserved (callee saved) registers, this
+// means that when you generate a function, you need to save these register on the stack
+// BEFORE using them and MUST RESTORE them before returning.
+//
+// ref: https://www.cs.uaf.edu/2017/fall/cs301/reference/x86_64.html
+
+// note:
 //
 // rcx and r11 are used for store the rip and rflags before syscall, when syscall is finish,
-// the old values of rcx and r11 will be restore, all these are done automatictly by 'syscall' instruction.
+// the old values of rcx and r11 will be restore, all these are done automatictly by 'syscall'.
 // because the values of rcx and r11 will be modified by the syscall, so to keep things simple,
 // it is better not to use these registers in the user program.
 

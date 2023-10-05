@@ -2,10 +2,11 @@
 members = [
     "crates/types",
     "crates/binary",
-    "crates/thread",
     "crates/syscall",
+    "crates/jit",
     "crates/extcall",
     "crates/bridge",
+    "crates/thread",
     "crates/runtime",
     "crates/ancsr",
 ]

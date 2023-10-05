@@ -10,20 +10,20 @@ use super::InterpretResult;
 
 // demote i64 to i32
 // discard the high 32 bits of an i64 number directly
-pub fn i32_demote_i64(thread: &mut Thread) -> InterpretResult {
+pub fn i32_trunc_i64(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i64_u();
     thread.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
 // promote i32 to i64
-pub fn i64_promote_i32_s(thread: &mut Thread) -> InterpretResult {
+pub fn i64_extend_i32_s(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i32_s();
     thread.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_promote_i32_u(thread: &mut Thread) -> InterpretResult {
+pub fn i64_extend_i32_u(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_i32_u();
     thread.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
@@ -45,49 +45,49 @@ pub fn f64_promote_f32(thread: &mut Thread) -> InterpretResult {
 
 // convert float to int
 // truncate fractional part
-pub fn i32_trunc_f32_s(thread: &mut Thread) -> InterpretResult {
+pub fn i32_convert_f32_s(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f32();
     thread.stack.push_i32_s(value as i32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_trunc_f32_u(thread: &mut Thread) -> InterpretResult {
+pub fn i32_convert_f32_u(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f32();
     thread.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_trunc_f64_s(thread: &mut Thread) -> InterpretResult {
+pub fn i32_convert_f64_s(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f64();
     thread.stack.push_i32_s(value as i32);
     InterpretResult::Move(2)
 }
 
-pub fn i32_trunc_f64_u(thread: &mut Thread) -> InterpretResult {
+pub fn i32_convert_f64_u(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f64();
     thread.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
 }
 
-pub fn i64_trunc_f32_s(thread: &mut Thread) -> InterpretResult {
+pub fn i64_convert_f32_s(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f32();
     thread.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_trunc_f32_u(thread: &mut Thread) -> InterpretResult {
+pub fn i64_convert_f32_u(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f32();
     thread.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_trunc_f64_s(thread: &mut Thread) -> InterpretResult {
+pub fn i64_convert_f64_s(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f64();
     thread.stack.push_i64_s(value as i64);
     InterpretResult::Move(2)
 }
 
-pub fn i64_trunc_f64_u(thread: &mut Thread) -> InterpretResult {
+pub fn i64_convert_f64_u(thread: &mut Thread) -> InterpretResult {
     let value = thread.stack.pop_f64();
     thread.stack.push_i64_u(value as u64);
     InterpretResult::Move(2)
@@ -160,13 +160,13 @@ mod tests {
         // bytecodes
         //
         // 0x0000 local_load32         0 1
-        // 0x0008 i64_promote_i32_s
+        // 0x0008 i64_extend_i32_s
         // 0x000a nop
         // 0x000c local_load32         0 1
-        // 0x0014 i64_promote_i32_u
+        // 0x0014 i64_extend_i32_u
         // 0x0016 nop
         // 0x0018 local_load           0 0
-        // 0x0020 i32_demote_i64
+        // 0x0020 i32_trunc_i64
         // 0x0022 end
         //
         // (i64, i32)  ->  (i64, i64, i32)
@@ -177,11 +177,11 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode(Opcode::i64_promote_i32_s)
+            .write_opcode(Opcode::i64_extend_i32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode(Opcode::i64_promote_i32_u)
+            .write_opcode(Opcode::i64_extend_i32_u)
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode(Opcode::i32_demote_i64)
+            .write_opcode(Opcode::i32_trunc_i64)
             .write_opcode(Opcode::end)
             .to_bytes();
 
@@ -276,52 +276,52 @@ mod tests {
         // bytecodes
         //
         // 0x0000 local_load32_f32     0 0
-        // 0x0008 i32_trunc_f32_s
+        // 0x0008 i32_convert_f32_s
         // 0x000a nop
         // 0x000c local_load32_f32     0 0
-        // 0x0014 i32_trunc_f32_u
+        // 0x0014 i32_convert_f32_u
         // 0x0016 nop
         // 0x0018 local_load32_f32     0 0
-        // 0x0020 i64_trunc_f32_s
+        // 0x0020 i64_convert_f32_s
         // 0x0022 nop
         // 0x0024 local_load32_f32     0 0
-        // 0x002c i64_trunc_f32_u
+        // 0x002c i64_convert_f32_u
         // 0x002e nop
         // 0x0030 local_load_f64       0 1
-        // 0x0038 i32_trunc_f64_s
+        // 0x0038 i32_convert_f64_s
         // 0x003a nop
         // 0x003c local_load_f64       0 1
-        // 0x0044 i32_trunc_f64_u
+        // 0x0044 i32_convert_f64_u
         // 0x0046 nop
         // 0x0048 local_load_f64       0 1
-        // 0x0050 i64_trunc_f64_s
+        // 0x0050 i64_convert_f64_s
         // 0x0052 nop
         // 0x0054 local_load_f64       0 1
-        // 0x005c i64_trunc_f64_u
+        // 0x005c i64_convert_f64_u
         // 0x005e nop
         // 0x0060 local_load32_f32     0 2
-        // 0x0068 i32_trunc_f32_s
+        // 0x0068 i32_convert_f32_s
         // 0x006a nop
         // 0x006c local_load32_f32     0 2
-        // 0x0074 i32_trunc_f32_u
+        // 0x0074 i32_convert_f32_u
         // 0x0076 nop
         // 0x0078 local_load32_f32     0 2
-        // 0x0080 i64_trunc_f32_s
+        // 0x0080 i64_convert_f32_s
         // 0x0082 nop
         // 0x0084 local_load32_f32     0 2
-        // 0x008c i64_trunc_f32_u
+        // 0x008c i64_convert_f32_u
         // 0x008e nop
         // 0x0090 local_load_f64       0 3
-        // 0x0098 i32_trunc_f64_s
+        // 0x0098 i32_convert_f64_s
         // 0x009a nop
         // 0x009c local_load_f64       0 3
-        // 0x00a4 i32_trunc_f64_u
+        // 0x00a4 i32_convert_f64_u
         // 0x00a6 nop
         // 0x00a8 local_load_f64       0 3
-        // 0x00b0 i64_trunc_f64_s
+        // 0x00b0 i64_convert_f64_s
         // 0x00b2 nop
         // 0x00b4 local_load_f64       0 3
-        // 0x00bc i64_trunc_f64_u
+        // 0x00bc i64_convert_f64_u
         // 0x00be end
         //
         // (f32,              f64,            -f32,             -f64)
@@ -335,40 +335,40 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .write_opcode(Opcode::i32_trunc_f32_s)
+            .write_opcode(Opcode::i32_convert_f32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .write_opcode(Opcode::i32_trunc_f32_u)
+            .write_opcode(Opcode::i32_convert_f32_u)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .write_opcode(Opcode::i64_trunc_f32_s)
+            .write_opcode(Opcode::i64_convert_f32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .write_opcode(Opcode::i64_trunc_f32_u)
+            .write_opcode(Opcode::i64_convert_f32_u)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .write_opcode(Opcode::i32_trunc_f64_s)
+            .write_opcode(Opcode::i32_convert_f64_s)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .write_opcode(Opcode::i32_trunc_f64_u)
+            .write_opcode(Opcode::i32_convert_f64_u)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .write_opcode(Opcode::i64_trunc_f64_s)
+            .write_opcode(Opcode::i64_convert_f64_s)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .write_opcode(Opcode::i64_trunc_f64_u)
+            .write_opcode(Opcode::i64_convert_f64_u)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .write_opcode(Opcode::i32_trunc_f32_s)
+            .write_opcode(Opcode::i32_convert_f32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .write_opcode(Opcode::i32_trunc_f32_u)
+            .write_opcode(Opcode::i32_convert_f32_u)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .write_opcode(Opcode::i64_trunc_f32_s)
+            .write_opcode(Opcode::i64_convert_f32_s)
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .write_opcode(Opcode::i64_trunc_f32_u)
+            .write_opcode(Opcode::i64_convert_f32_u)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
-            .write_opcode(Opcode::i32_trunc_f64_s)
+            .write_opcode(Opcode::i32_convert_f64_s)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
-            .write_opcode(Opcode::i32_trunc_f64_u)
+            .write_opcode(Opcode::i32_convert_f64_u)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
-            .write_opcode(Opcode::i64_trunc_f64_s)
+            .write_opcode(Opcode::i64_convert_f64_s)
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
-            .write_opcode(Opcode::i64_trunc_f64_u)
+            .write_opcode(Opcode::i64_convert_f64_u)
             //
             //
             .write_opcode(Opcode::end)
