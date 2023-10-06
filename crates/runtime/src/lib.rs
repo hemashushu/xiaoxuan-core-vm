@@ -12,6 +12,7 @@ use std::{
 use ancvm_types::RuntimeError;
 
 pub mod ecall;
+pub mod bridge;
 pub mod in_memory_program;
 pub mod interpreter;
 pub mod jit_helper;

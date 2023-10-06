@@ -19,13 +19,4 @@ impl<'a> ProgramContext<'a> {
     pub fn new_thread_context(&'a self) -> ThreadContext<'a> {
         ThreadContext::new(&self.module_images)
     }
-
-    pub fn get_function<T>(
-        &mut self,
-        module_name: &str,
-        function_name: &str,
-        thread_context: &ThreadContext,
-    ) -> T {
-        todo!()
-    }
 }

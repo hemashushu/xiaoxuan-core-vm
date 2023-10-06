@@ -4,18 +4,16 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::sync::Mutex;
-
 use ancvm_binary::utils::format_bytecodes;
 use ancvm_thread::thread_context::ThreadContext;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
-pub mod heap;
-pub mod info;
 pub mod bridge;
 pub mod extcall;
+pub mod heap;
+pub mod info;
 pub mod syscall;
 
 type EnvCallHandlerFunc = fn(&mut ThreadContext);
@@ -46,29 +44,14 @@ Bytecode:
     );
 }
 
-// static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-// static mut HAS_INIT: bool = false;
 static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
     [unreachable; MAX_ECALLCODE_NUMBER];
 
+// note:
+//
+// ensure this initialization is only called once
 pub fn init_ecall_handlers() {
-    //     let _lock = INIT_LOCK.lock().unwrap();
-    //
-    //     unsafe {
-    //         if HAS_INIT {
-    //             return;
-    //         }
-    //         HAS_INIT = true;
-    //     }
-
     let handlers = unsafe { &mut HANDLERS };
-
-    // the initialization can only be called once
-    // in the unit test environment (`$ cargo test`), the init procedure
-    // runs in parallel.
-    // if handlers[ECallCode::runtime_name as usize] == info::runtime_name {
-    //     return;
-    // }
 
     // info
     handlers[ECallCode::runtime_name as usize] = info::runtime_name;

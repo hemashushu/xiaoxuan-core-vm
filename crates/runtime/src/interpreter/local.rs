@@ -51,7 +51,7 @@ fn do_local_load(
     // the latter has a higher efficiency because it eliminates data conversion,
     // so the second method is adopted.
 
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -92,7 +92,7 @@ fn do_local_load32(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -133,7 +133,7 @@ fn do_local_load32_i16_s(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -176,7 +176,7 @@ fn do_local_load32_i16_u(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -219,7 +219,7 @@ fn do_local_load32_i8_s(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -262,7 +262,7 @@ fn do_local_load32_i8_u(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -305,7 +305,7 @@ fn do_local_load32_f32(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -348,7 +348,7 @@ fn do_local_load_f64(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -391,7 +391,7 @@ fn do_local_store(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -432,7 +432,7 @@ fn do_local_store32(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -473,7 +473,7 @@ fn do_local_store16(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,
@@ -514,7 +514,7 @@ fn do_local_store8(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_address_by_index_and_offset(
         reversed_index,
         local_variable_index,

@@ -8,7 +8,7 @@ use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
-    program_reference::ProgramReference, heap::Heap, indexed_memory::IndexedMemory, stack::Stack,
+    heap::Heap, indexed_memory::IndexedMemory, program_reference::ProgramReference, stack::Stack,
     INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
@@ -103,7 +103,7 @@ pub struct ThreadContext<'a> {
     pub pc: ProgramCounter,
 
     // external_func_table
-    // bridge_func_table
+    pub bridge_function_table: Vec<BridgeModuleItem>,
 
     pub program_ref: ProgramReference<'a>,
 }
@@ -132,6 +132,16 @@ pub struct ProgramCounter {
     pub module_index: usize,            // the module index
 }
 
+pub struct BridgeModuleItem {
+    pub target_module_index: usize,
+    pub birdge_function_items: Vec<BridgeFunctionItem>,
+}
+
+pub struct BridgeFunctionItem {
+    pub function_internal_index: usize,
+    pub bridge_function_ptr: *const u8,
+}
+
 impl<'a> ThreadContext<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_PAGES);
@@ -143,11 +153,14 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
+        let bridge_function_table = vec![];
+
         let program_ref = ProgramReference::new(module_images);
         Self {
             stack,
             heap,
             pc,
+            bridge_function_table,
             program_ref,
         }
     }
@@ -288,6 +301,56 @@ impl<'a> ThreadContext<'a> {
         local_start_address + variable_item.var_offset as usize + offset_bytes
     }
 
+    pub fn get_bridge_function(
+        &self,
+        target_module_index: usize,
+        function_internal_index: usize,
+    ) -> Option<*const u8> {
+        match self
+            .bridge_function_table
+            .iter()
+            .find(|module_item| module_item.target_module_index == target_module_index)
+        {
+            Some(item) => item
+                .birdge_function_items
+                .iter()
+                .find(|functione_item| {
+                    functione_item.function_internal_index == function_internal_index
+                })
+                .map(|function_item| function_item.bridge_function_ptr),
+            None => None,
+        }
+    }
+
+    pub fn add_bridge_function(
+        &mut self,
+        target_module_index: usize,
+        function_internal_index: usize,
+        bridge_function_ptr: *const u8,
+    ) {
+        let idx_m = self
+            .bridge_function_table
+            .iter()
+            .position(|module_item| module_item.target_module_index == target_module_index)
+            .unwrap_or_else(|| {
+                self.bridge_function_table.push(BridgeModuleItem {
+                    target_module_index,
+                    birdge_function_items: vec![],
+                });
+                self.bridge_function_table.len() - 1
+            });
+
+        let module_item = &mut self.bridge_function_table[idx_m];
+
+        // note:
+        //
+        // there is no checking here to see if the specified function already
+        // exists, so make sure don't add a function duplicated.
+        module_item.birdge_function_items.push(BridgeFunctionItem {
+            function_internal_index,
+            bridge_function_ptr,
+        })
+    }
     /// opcode, or
     /// 16 bits instruction
     /// [opcode]
@@ -383,7 +446,9 @@ impl<'a> ThreadContext<'a> {
             module_index,
         } = self.pc;
 
-        let codes_data = self.program_ref.modules[module_index].func_section.codes_data;
+        let codes_data = self.program_ref.modules[module_index]
+            .func_section
+            .codes_data;
         let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
     }

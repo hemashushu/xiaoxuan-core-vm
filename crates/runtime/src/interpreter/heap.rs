@@ -14,7 +14,7 @@ pub fn heap_load(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context.heap.load_64(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
@@ -26,7 +26,7 @@ pub fn heap_load32(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context.heap.load_32(total_offset, dst_ptr);
 
     InterpretResult::Move(4)
@@ -38,7 +38,7 @@ pub fn heap_load32_i16_s(thread_context: &mut ThreadContext) -> InterpretResult 
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_32_extend_from_i16_s(total_offset, dst_ptr);
@@ -52,7 +52,7 @@ pub fn heap_load32_i16_u(thread_context: &mut ThreadContext) -> InterpretResult 
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_32_extend_from_i16_u(total_offset, dst_ptr);
@@ -66,7 +66,7 @@ pub fn heap_load32_i8_s(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_32_extend_from_i8_s(total_offset, dst_ptr);
@@ -80,7 +80,7 @@ pub fn heap_load32_i8_u(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_32_extend_from_i8_u(total_offset, dst_ptr);
@@ -94,7 +94,7 @@ pub fn heap_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_64_with_float_check(total_offset, dst_ptr);
@@ -108,7 +108,7 @@ pub fn heap_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     thread_context
         .heap
         .load_32_with_float_check(total_offset, dst_ptr);
@@ -123,7 +123,7 @@ pub fn heap_store(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     thread_context.heap.store_64(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
@@ -135,7 +135,7 @@ pub fn heap_store32(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     thread_context.heap.store_32(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
@@ -147,7 +147,7 @@ pub fn heap_store16(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     thread_context.heap.store_16(src_ptr, total_offset);
     InterpretResult::Move(4)
 }
@@ -159,7 +159,7 @@ pub fn heap_store8(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = address as usize + offset_bytes as usize;
 
-    let src_ptr = thread_context.stack.pop_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     thread_context.heap.store_8(src_ptr, total_offset);
     InterpretResult::Move(4)
 }

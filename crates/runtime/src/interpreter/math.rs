@@ -309,7 +309,6 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
-    use ancvm_thread::thread_context::ThreadContext;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     use crate::{

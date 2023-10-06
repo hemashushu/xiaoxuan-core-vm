@@ -328,9 +328,15 @@ impl Stack {
     // it's supposed to fast than reading the value of data from
     // memory and push the value onto stack. the same purpose for
     // the function 'pop_to_memory'.
-    pub fn push_from_memory(&mut self) -> *mut u8 {
+    pub fn push_operand_from_memory(&mut self) -> *mut u8 {
         let ptr = self.get_mut_ptr(self.sp);
         self.sp += OPERAND_SIZE_IN_BYTES;
+        ptr
+    }
+
+    pub fn push_operands_from_memory(&mut self, count: usize) -> *mut u8 {
+        let ptr = self.get_mut_ptr(self.sp);
+        self.sp += OPERAND_SIZE_IN_BYTES * count;
         ptr
     }
 
@@ -344,16 +350,16 @@ impl Stack {
     // let ptr = stack.pop_to_memory();
     // memory.store_64(ptr, address);
     // ```
-    pub fn pop_to_memory(&mut self) -> *const u8 {
+    pub fn pop_operand_to_memory(&mut self) -> *const u8 {
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.get_ptr(self.sp)
     }
 
-    pub fn pop_operands(&mut self, count:usize) -> &[u8] {
-        let length = count * OPERAND_SIZE_IN_BYTES;
-        self.sp -= length;
-        &self.data[self.sp..]
-    }
+    // pub fn pop_operands(&mut self, count: usize) -> &[u8] {
+    //     let length = count * OPERAND_SIZE_IN_BYTES;
+    //     self.sp -= length;
+    //     &self.data[self.sp..]
+    // }
 
     /**
      * block frames are nested, the parameter 'reversed_index' is
@@ -464,7 +470,7 @@ impl Stack {
         self.get_frame_local_variables_start_address(fp)
     }
 
-    pub fn get_frame_local_variables_start_address(&self, fp:usize) -> usize {
+    pub fn get_frame_local_variables_start_address(&self, fp: usize) -> usize {
         fp + size_of::<FrameInfo>()
     }
 

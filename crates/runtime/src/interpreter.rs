@@ -4,13 +4,13 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::sync::Mutex;
+use std::sync::Once;
 
 use ancvm_binary::utils::format_bytecodes;
 use ancvm_thread::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
-    ForeignValue,
+    ForeignValue, OPERAND_SIZE_IN_BYTES,
 };
 
 use crate::{
@@ -76,28 +76,43 @@ Bytecode:
     );
 }
 
-// the initialization can be built with crates such as 'lazy_static', 'once_cell'
-// or 'rust-ctor', but it's easy to implement a simple init, so here just build manually.
-static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-static mut HAS_INIT: bool = false;
+// static INIT_LOCK: Mutex<i32> = Mutex::new(0);
+// static mut HAS_INIT: bool = false;
+static INIT: Once = Once::new();
 static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
-/// initilize the instruction interpreters
+// initilize the instruction interpreters
+//
+// note:
+// ensure this initialization is only called once, to do that, the 3rd party crates
+// such as 'lazy_static', 'once_cell' and 'rust-ctor' can be used.
+// the same can be done with ''
 pub fn init_interpreters() {
-    unsafe {
-        if HAS_INIT {
-            return;
-        }
-    }
+    //     unsafe {
+    //         if HAS_INIT {
+    //             return;
+    //         }
+    //     }
+    //
+    //     let _lock = INIT_LOCK.lock().unwrap();
+    //
+    //     unsafe {
+    //         if HAS_INIT {
+    //             return;
+    //         }
+    //     }
+    //
+    // ...
+    //
+    // unsafe {
+    //     HAS_INIT = true;
+    // }
+    INIT.call_once(|| {
+        init_interpreters_internal();
+    });
+}
 
-    let _lock = INIT_LOCK.lock().unwrap();
-
-    unsafe {
-        if HAS_INIT {
-            return;
-        }
-    }
-
+fn init_interpreters_internal() {
     init_ecall_handlers();
 
     let interpreters = unsafe { &mut INTERPRETERS };
@@ -372,10 +387,6 @@ pub fn init_interpreters() {
     interpreters[Opcode::host_addr_data as usize] = machine::host_addr_data;
     interpreters[Opcode::host_addr_data_long as usize] = machine::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = machine::host_addr_heap;
-
-    unsafe {
-        HAS_INIT = true;
-    }
 }
 
 pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {
@@ -416,6 +427,7 @@ pub fn process_function(
     func_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
+    // reset the statck
     thread_context.stack.reset();
 
     // find the code start address
@@ -432,7 +444,7 @@ pub fn process_function(
         .type_section
         .get_entry(type_index);
 
-    if type_entry.params.len() != arguments.len() {
+    if arguments.len() != type_entry.params.len() {
         return Err(InterpreterError::new(
             "The number of arguments does not match the specified funcion.",
         ));
@@ -475,4 +487,83 @@ pub fn process_function(
     let results = thread_context.pop_values(&type_entry.results);
 
     Ok(results)
+}
+
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn process_function_internal(
+    thread_context_ptr: *mut u8,
+    target_module_index: usize,
+    function_internal_index: usize,
+    params_ptr: *const u8,
+    results_ptr: *mut u8,
+) {
+    // params:
+    // | 8 bytes | 8 bytes | ... |
+    //
+    // results:
+    // | 8 bytes |
+
+    let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
+
+    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+        thread_context
+            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+                target_module_index,
+                function_internal_index,
+            );
+    let type_item = &thread_context.program_ref.modules[target_module_index]
+        .type_section
+        .items[type_index];
+
+    let params_count = type_item.params_count as usize;
+    let results_count = type_item.results_count as usize;
+
+    // reset the statck
+    thread_context.stack.reset();
+
+    // push arguments
+    let stack_push_ptr = thread_context.stack.push_operands_from_memory(params_count);
+    unsafe {
+        std::ptr::copy(
+            params_ptr,
+            stack_push_ptr,
+            OPERAND_SIZE_IN_BYTES * params_count,
+        )
+    };
+
+    // create function statck frame
+    thread_context.stack.create_frame(
+        type_item.params_count,
+        type_item.results_count,
+        local_variables_list_index as u32,
+        local_variables_allocate_bytes,
+        Some(ProgramCounter {
+            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread_context.
+            //
+            // the function stack frame is created only by 'call' instruction or
+            // thread beginning, the 'call' instruction will set the 'return instruction address' to
+            // the instruction next to 'call', which can't be '0'.
+            // so when a stack frame exits and the 'return address' is zero, it can only
+            // be the end of a thread_context.
+            instruction_address: 0,
+            function_internal_index: 0,
+            module_index: 0,
+        }),
+    );
+
+    // set new PC
+    thread_context.pc.module_index = target_module_index;
+    thread_context.pc.function_internal_index = function_internal_index;
+    thread_context.pc.instruction_address = code_offset;
+
+    // self.
+    process_continuous_instructions(thread_context);
+
+    // note:
+    //
+    // only 0 or 1 result is allowed for C function.
+    if results_count > 0 {
+        let stack_pop_ptr = thread_context.stack.pop_operand_to_memory();
+        unsafe { std::ptr::copy(stack_pop_ptr, results_ptr, OPERAND_SIZE_IN_BYTES) };
+    }
 }
