@@ -143,7 +143,7 @@ fn handle_syscall_with_6_args(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
-    use ancvm_syscall_util::number::SysCallNum;
+    use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
@@ -176,7 +176,125 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
 
-        assert!(matches!(results0[0], ForeignValue::UInt64(value) if value > 0));
+        let pid = std::process::id();
+
+        assert!(matches!(results0[0], ForeignValue::UInt64(value) if value == pid as u64));
         assert_eq!(results0[1], ForeignValue::UInt32(0));
+    }
+
+    #[test]
+    fn test_syscall_handler_with_2_args() {
+        // `char *getcwd(char buf[.size], size_t size);`
+
+        const BUF_LENGTH: usize = 1024;
+        let buf = [0u8; BUF_LENGTH];
+        let buf_addr = buf.as_ptr() as usize;
+
+        let code0 = BytecodeWriter::new()
+            // push syscall args from 1 to 6
+            .write_opcode_pesudo_i64(Opcode::i64_imm, buf_addr as u64) // buf addr
+            .write_opcode_pesudo_i64(Opcode::i64_imm, BUF_LENGTH as u64) // buf length
+            // prepare syscall
+            .write_opcode_i32(Opcode::i32_imm, SysCallNum::getcwd as u32) // syscall num
+            .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            //
+            .write_opcode_i32(Opcode::ecall, ECallCode::syscall as u32) // the ecall
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                             // params
+            vec![DataType::I64, DataType::I32], // results
+            vec![],                             // local vars
+            code0,
+        );
+
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let results0 = result0.unwrap();
+
+        // note
+        //
+        // this syscall in the libc returns the pointer of buf, but the
+        // raw syscall returns the length of the path (includes the NULL terminated char
+
+        let null_pos = buf.iter().position(|u| *u == 0).unwrap();
+
+        assert!(
+            matches!(results0[0], ForeignValue::UInt64(value) if value == (null_pos + 1) as u64)
+        );
+        assert_eq!(results0[1], ForeignValue::UInt32(0));
+
+        let path0 = String::from_utf8_lossy(&buf[0..null_pos]);
+        let cwd = std::env::current_dir().unwrap();
+        let cwd0 = cwd.as_os_str().to_string_lossy();
+        assert_eq!(path0, cwd0);
+    }
+
+    #[test]
+    fn test_syscall_handler_error_no() {
+        // `int open(const char *pathname, int flags)`
+
+        let file_path0 = b"/this/file/should/not/exist\0";
+        let file_path1 = b"/dev/zero\0";
+
+        let file_path_addr0 = file_path0.as_ptr() as usize;
+        let file_path_addr1 = file_path1.as_ptr() as usize;
+
+        // fn (i64) -> (i64, i32)
+        let code0 = BytecodeWriter::new()
+            // push syscall args from 1 to 6
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0) // file path addr
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // open flags
+            // prepare syscall
+            .write_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num
+            .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            //
+            .write_opcode_i32(Opcode::ecall, ECallCode::syscall as u32) // the ecall
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![DataType::I64],                // params
+            vec![DataType::I64, DataType::I32], // results
+            vec![],                             // local vars
+            code0,
+        );
+
+        let program0 = InMemoryProgram::new(vec![binary0]);
+        let program_context0 = program0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.new_thread_context();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt64(file_path_addr0 as u64)],
+        );
+        let results0 = result0.unwrap();
+
+        assert_eq!(
+            results0,
+            vec![
+                ForeignValue::UInt64(0),
+                ForeignValue::UInt32(Errno::ENOENT as u32)
+            ]
+        );
+
+        let result1 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt64(file_path_addr1 as u64)],
+        );
+        let results1 = result1.unwrap();
+
+        assert!(matches!(results1[0], ForeignValue::UInt64(value) if value > 0));
+        assert_eq!(results1[1], ForeignValue::UInt32(0));
     }
 }
