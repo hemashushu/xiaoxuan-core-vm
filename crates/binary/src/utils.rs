@@ -20,9 +20,10 @@ use crate::module_image::{
     func_index_section::{FuncIndexItem, FuncIndexSection},
     func_section::{FuncEntry, FuncSection},
     local_variable_section::{LocalVariableEntry, LocalVariableSection},
-    // module_index_section::{ModuleIndexEntry, ModuleIndexSection, ModuleShareType},
     type_section::{TypeEntry, TypeSection},
-    ModuleImage, RangeItem, SectionEntry,
+    ModuleImage,
+    RangeItem,
+    SectionEntry,
 };
 
 const DATA_ALIGN_BYTES: usize = 4;
@@ -947,6 +948,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     build_module_binary(
+        b"main".to_vec(),
         read_only_data_entries,
         read_write_data_entries,
         uninit_uninit_data_entries,
@@ -1059,6 +1061,7 @@ pub fn build_module_binary_with_functions_and_blocks(
         .collect::<Vec<_>>();
 
     build_module_binary(
+        b"main".to_vec(),
         vec![],
         vec![],
         vec![],
@@ -1070,6 +1073,7 @@ pub fn build_module_binary_with_functions_and_blocks(
 
 /// helper function for unit test
 pub fn build_module_binary(
+    name: Vec<u8>,
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
@@ -1120,19 +1124,6 @@ pub fn build_module_binary(
         lists: &local_var_lists,
         list_data: &local_var_list_data,
     };
-
-    // build module list
-//     let mod_index_entries: Vec<ModuleIndexEntry> = vec![ModuleIndexEntry::new(
-//         ModuleShareType::Local,
-//         "main".to_string(),
-//     )];
-//
-//     let (module_index_items, names_data) =
-//         ModuleIndexSection::convert_from_entries(&mod_index_entries);
-//     let mod_index_section = ModuleIndexSection {
-//         items: &module_index_items,
-//         names_data: &names_data,
-//     };
 
     // build data index
 
@@ -1210,6 +1201,7 @@ pub fn build_module_binary(
     ];
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
     let module_image = ModuleImage {
+        name: &name,
         items: &section_items,
         sections_data: &sections_data,
     };
@@ -1271,13 +1263,7 @@ mod tests {
 
         let module_image = &module_images[0];
 
-        // check module list section
-//         let module_index_section = module_image.get_module_index_section();
-//         assert_eq!(module_index_section.items.len(), 1);
-//
-//         let module_index_entry = module_index_section.get_entry(0);
-//         assert_eq!(module_index_entry.name, "main".to_string());
-//         assert_eq!(module_index_entry.module_share_type, ModuleShareType::Local);
+        assert_eq!(module_image.name, &b"main".to_vec());
 
         // check data index section
         let data_index_section = module_image.get_data_index_section();

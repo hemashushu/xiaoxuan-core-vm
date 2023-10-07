@@ -29,14 +29,12 @@ pub struct ProgramReference<'a> {
     pub data_index_section: DataIndexSection<'a>,
     pub func_index_section: FuncIndexSection<'a>,
 
-    // todo
-    // external_index_section
-
     // the modules
     pub modules: Vec<Module<'a>>,
 }
 
 pub struct Module<'a> {
+    pub name: &'a [u8],
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
@@ -52,7 +50,6 @@ impl<'a> ProgramReference<'a> {
 
         let main_module = &module_images[0];
 
-        // let module_index_section = main_module.get_module_index_section();
         let func_index_section = main_module.get_func_index_section();
         let data_index_section =
             if let Some(_idx) = main_module.get_section_index_by_id(ModuleSectionId::DataIndex) {
@@ -65,7 +62,6 @@ impl<'a> ProgramReference<'a> {
             };
 
         Self {
-            // module_index_section,
             data_index_section,
             func_index_section,
             modules,
@@ -117,6 +113,7 @@ impl<'a> Module<'a> {
         let local_variable_section = module_image.get_local_variable_section();
 
         Self {
+            name: module_image.name,
             datas: [
                 Box::new(read_only_data),
                 Box::new(read_write_data),

@@ -15,7 +15,7 @@ pub mod ecall;
 pub mod bridge;
 pub mod in_memory_program;
 pub mod interpreter;
-pub mod jit_helper;
+pub mod jit_util;
 pub mod program;
 pub mod program_context;
 

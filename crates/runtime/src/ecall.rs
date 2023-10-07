@@ -10,7 +10,9 @@ use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
-pub mod bridge;
+use self::syscall::init_syscall_handlers;
+
+pub mod callback;
 pub mod extcall;
 pub mod heap;
 pub mod info;
@@ -51,17 +53,26 @@ static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
 //
 // ensure this initialization is only called once
 pub fn init_ecall_handlers() {
+    // init the syscall handlers
+    init_syscall_handlers();
+
     let handlers = unsafe { &mut HANDLERS };
 
     // info
     handlers[ECallCode::runtime_name as usize] = info::runtime_name;
     handlers[ECallCode::runtime_version as usize] = info::runtime_version;
     handlers[ECallCode::features as usize] = info::features;
+    handlers[ECallCode::check_feature as usize] = info::check_feature;
+
     // heap
     handlers[ECallCode::heap_fill as usize] = heap::heap_fill;
     handlers[ECallCode::heap_copy as usize] = heap::heap_copy;
     handlers[ECallCode::heap_capacity as usize] = heap::heap_capacity;
     handlers[ECallCode::heap_resize as usize] = heap::heap_resize;
+
+    // system
+    handlers[ECallCode::syscall as usize] = syscall::syscall;
+    // ... extcall, callback_func
 }
 
 pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {

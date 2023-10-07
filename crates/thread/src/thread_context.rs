@@ -12,6 +12,10 @@ use crate::{
     INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
+/// one ThreadContext per thread.
+///
+/// the ThreadContext is NOT thread safe, do NOT call functions of ThreadContext
+/// from multiple threads.
 pub struct ThreadContext<'a> {
     // operand stack also includes the function/block frame info
     // when call a function or enter a block,
@@ -102,8 +106,9 @@ pub struct ThreadContext<'a> {
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
-    // external_func_table
-    pub bridge_function_table: Vec<BridgeModuleItem>,
+    // external_function_table
+    pub callback_function_table: Vec<DelegateModuleItem>,
+    pub bridge_function_table: Vec<DelegateModuleItem>,
 
     pub program_ref: ProgramReference<'a>,
 }
@@ -132,12 +137,12 @@ pub struct ProgramCounter {
     pub module_index: usize,            // the module index
 }
 
-pub struct BridgeModuleItem {
+pub struct DelegateModuleItem {
     pub target_module_index: usize,
-    pub birdge_function_items: Vec<BridgeFunctionItem>,
+    pub birdge_function_items: Vec<DelegateFunctionItem>,
 }
 
-pub struct BridgeFunctionItem {
+pub struct DelegateFunctionItem {
     pub function_internal_index: usize,
     pub bridge_function_ptr: *const u8,
 }
@@ -153,14 +158,14 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let bridge_function_table = vec![];
-
         let program_ref = ProgramReference::new(module_images);
+
         Self {
             stack,
             heap,
             pc,
-            bridge_function_table,
+            callback_function_table: vec![],
+            bridge_function_table: vec![],
             program_ref,
         }
     }
@@ -206,6 +211,16 @@ impl<'a> ThreadContext<'a> {
             .collect::<Vec<ForeignValue>>();
         reversed_results.reverse();
         reversed_results
+    }
+
+    pub fn find_function_public_index_and_module_index_by_name() -> (usize, usize) {
+        // todo
+        (0, 0)
+    }
+
+    pub fn find_data_public_index_and_module_index_by_name() -> (usize, usize) {
+        // todo
+        (0, 0)
     }
 
     /// return:
@@ -301,56 +316,58 @@ impl<'a> ThreadContext<'a> {
         local_start_address + variable_item.var_offset as usize + offset_bytes
     }
 
-    pub fn get_bridge_function(
+    pub fn find_bridge_function(
         &self,
         target_module_index: usize,
         function_internal_index: usize,
     ) -> Option<*const u8> {
-        match self
-            .bridge_function_table
-            .iter()
-            .find(|module_item| module_item.target_module_index == target_module_index)
-        {
-            Some(item) => item
-                .birdge_function_items
-                .iter()
-                .find(|functione_item| {
-                    functione_item.function_internal_index == function_internal_index
-                })
-                .map(|function_item| function_item.bridge_function_ptr),
-            None => None,
-        }
+        find_delegate_function(
+            &self.bridge_function_table,
+            target_module_index,
+            function_internal_index,
+        )
     }
 
-    pub fn add_bridge_function(
+    pub fn find_callback_function(
+        &self,
+        target_module_index: usize,
+        function_internal_index: usize,
+    ) -> Option<*const u8> {
+        find_delegate_function(
+            &self.callback_function_table,
+            target_module_index,
+            function_internal_index,
+        )
+    }
+
+    pub fn insert_bridge_function(
         &mut self,
         target_module_index: usize,
         function_internal_index: usize,
         bridge_function_ptr: *const u8,
     ) {
-        let idx_m = self
-            .bridge_function_table
-            .iter()
-            .position(|module_item| module_item.target_module_index == target_module_index)
-            .unwrap_or_else(|| {
-                self.bridge_function_table.push(BridgeModuleItem {
-                    target_module_index,
-                    birdge_function_items: vec![],
-                });
-                self.bridge_function_table.len() - 1
-            });
-
-        let module_item = &mut self.bridge_function_table[idx_m];
-
-        // note:
-        //
-        // there is no checking here to see if the specified function already
-        // exists, so make sure don't add a function duplicated.
-        module_item.birdge_function_items.push(BridgeFunctionItem {
+        insert_delegate_function(
+            &mut self.bridge_function_table,
+            target_module_index,
             function_internal_index,
             bridge_function_ptr,
-        })
+        );
     }
+
+    pub fn insert_callback_function(
+        &mut self,
+        target_module_index: usize,
+        function_internal_index: usize,
+        bridge_function_ptr: *const u8,
+    ) {
+        insert_delegate_function(
+            &mut self.callback_function_table,
+            target_module_index,
+            function_internal_index,
+            bridge_function_ptr,
+        );
+    }
+
     /// opcode, or
     /// 16 bits instruction
     /// [opcode]
@@ -452,4 +469,55 @@ impl<'a> ThreadContext<'a> {
         let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
     }
+}
+
+fn find_delegate_function(
+    delegate_function_table: &[DelegateModuleItem],
+    target_module_index: usize,
+    function_internal_index: usize,
+) -> Option<*const u8> {
+    match delegate_function_table
+        .iter()
+        .find(|module_item| module_item.target_module_index == target_module_index)
+    {
+        Some(module_item) => module_item
+            .birdge_function_items
+            .iter()
+            .find(|functione_item| {
+                functione_item.function_internal_index == function_internal_index
+            })
+            .map(|function_item| function_item.bridge_function_ptr),
+        None => None,
+    }
+}
+
+fn insert_delegate_function(
+    delegate_function_table: &mut Vec<DelegateModuleItem>,
+    target_module_index: usize,
+    function_internal_index: usize,
+    bridge_function_ptr: *const u8,
+) {
+    let idx_m = delegate_function_table
+        .iter()
+        .position(|module_item| module_item.target_module_index == target_module_index)
+        .unwrap_or_else(|| {
+            delegate_function_table.push(DelegateModuleItem {
+                target_module_index,
+                birdge_function_items: vec![],
+            });
+            delegate_function_table.len() - 1
+        });
+
+    let module_item = &mut delegate_function_table[idx_m];
+
+    // note:
+    //
+    // there is no checking here to see if the specified function already
+    // exists, so make sure don't add a function duplicated.
+    module_item
+        .birdge_function_items
+        .push(DelegateFunctionItem {
+            function_internal_index,
+            bridge_function_ptr,
+        })
 }

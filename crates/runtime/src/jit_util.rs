@@ -4,13 +4,30 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use cranelift_codegen::settings;
-use cranelift_codegen::settings::Configurable;
-use cranelift_frontend::FunctionBuilderContext;
-use cranelift_jit::{JITBuilder, JITModule};
-use cranelift_module::DataDescription;
+use std::sync::Once;
 
-pub struct JITHelper {
+use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
+use cranelift_codegen::ir::{
+    types, AbiParam, Function, InstBuilder, StackSlotData, StackSlotKind, UserFuncName,
+};
+use cranelift_codegen::settings::Configurable;
+use cranelift_codegen::{ir::Type, settings};
+use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
+use cranelift_jit::{JITBuilder, JITModule};
+use cranelift_module::{DataDescription, Linkage, Module};
+
+static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Option<JITUtil> = None;
+static INIT: Once = Once::new();
+
+fn get_jit_util_without_imported_symbols<'a>() -> &'a mut JITUtil {
+    INIT.call_once(|| {
+        unsafe { JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS = Some(JITUtil::new(vec![])) };
+    });
+
+    unsafe { JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS.as_mut().unwrap() }
+}
+
+pub struct JITUtil {
     // function builder context, for reusing across multiple FunctionBuilder.
     pub function_builder_context: FunctionBuilderContext,
 
@@ -21,7 +38,7 @@ pub struct JITHelper {
     pub module: JITModule,
 }
 
-impl JITHelper {
+impl JITUtil {
     // ref:
     // - https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/jit/examples/jit-minimal.rs
     // - https://github.com/bytecodealliance/cranelift-jit-demo/blob/main/src/jit.rs
@@ -72,6 +89,145 @@ impl JITHelper {
     }
 }
 
+fn convert_vm_data_type_to_jit_type(dt: DataType) -> Type {
+    match dt {
+        DataType::I32 => types::I32,
+        DataType::I64 => types::I64,
+        DataType::F32 => types::F32,
+        DataType::F64 => types::F64,
+    }
+}
+
+pub fn build_host_to_vm_delegate_function(
+    delegate_function_addr: usize,
+    thread_context_addr: usize,
+    target_module_index: usize,
+    function_internal_index: usize,
+    params: &[DataType],
+    results: &[DataType],
+) -> *const u8 {
+    // let jit_helper = &mut (*get_jit_helper().lock().unwrap());
+    let jit_helper = get_jit_util_without_imported_symbols();
+
+    let pointer_type = jit_helper.module.isa().pointer_type();
+
+    // the signature of the delegate function:
+    //
+    // extern "C" fn delegate_function (
+    //     thread_context_ptr: *mut u8,
+    //     target_module_index: usize,
+    //     function_internal_index: usize,
+    //     params_ptr: *const u8,
+    //     results_ptr: *mut u8) {...}
+
+    let mut fn_delegate_sig = jit_helper.module.make_signature();
+    fn_delegate_sig.params.push(AbiParam::new(pointer_type)); // thread_context_ptr
+    fn_delegate_sig.params.push(AbiParam::new(types::I64)); // target_module_index
+    fn_delegate_sig.params.push(AbiParam::new(types::I64)); // function_internal_index
+    fn_delegate_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
+    fn_delegate_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
+
+    let mut func_host_sig = jit_helper.module.make_signature();
+    for dt in params {
+        func_host_sig
+            .params
+            .push(AbiParam::new(convert_vm_data_type_to_jit_type(*dt)));
+    }
+    if !results.is_empty() {
+        func_host_sig
+            .returns
+            .push(AbiParam::new(convert_vm_data_type_to_jit_type(results[0])));
+    }
+
+    let func_host_name = format!("f{}_{}", target_module_index, function_internal_index);
+    let func_host_id = jit_helper
+        .module
+        .declare_function(&func_host_name, Linkage::Local, &func_host_sig)
+        .unwrap();
+
+    let mut func_host =
+        Function::with_name_signature(UserFuncName::user(0, func_host_id.as_u32()), func_host_sig);
+
+    // create two stack slots, one for parameters, one for results.
+    let ss0 = func_host.create_sized_stack_slot(StackSlotData::new(
+        StackSlotKind::ExplicitSlot,
+        (OPERAND_SIZE_IN_BYTES * params.len()) as u32,
+    ));
+    let ss1 = func_host.create_sized_stack_slot(StackSlotData::new(
+        StackSlotKind::ExplicitSlot,
+        OPERAND_SIZE_IN_BYTES as u32,
+    ));
+
+    let mut function_builder =
+        FunctionBuilder::new(&mut func_host, &mut jit_helper.function_builder_context);
+
+    let block_0 = function_builder.create_block();
+    function_builder.append_block_params_for_function_params(block_0);
+    function_builder.switch_to_block(block_0);
+
+    for idx in 0..params.len() {
+        let value_param = function_builder.block_params(block_0)[idx];
+        function_builder
+            .ins()
+            .stack_store(value_param, ss0, (idx * OPERAND_SIZE_IN_BYTES) as i32);
+    }
+
+    // internal call
+    let callee_0 = function_builder
+        .ins()
+        .iconst(pointer_type, delegate_function_addr as i64);
+    let param_0 = function_builder
+        .ins()
+        .iconst(types::I64, thread_context_addr as i64);
+    let param_1 = function_builder
+        .ins()
+        .iconst(types::I64, target_module_index as i64);
+    let param_2 = function_builder
+        .ins()
+        .iconst(types::I64, function_internal_index as i64);
+    let param_3 = function_builder.ins().stack_addr(pointer_type, ss0, 0);
+    let param_4 = function_builder.ins().stack_addr(pointer_type, ss1, 0);
+
+    let sig_ref0 = function_builder.import_signature(fn_delegate_sig);
+    function_builder.ins().call_indirect(
+        sig_ref0,
+        callee_0,
+        &[param_0, param_1, param_2, param_3, param_4],
+    );
+
+    if !results.is_empty() {
+        let value_ret =
+            function_builder
+                .ins()
+                .stack_load(convert_vm_data_type_to_jit_type(results[0]), ss1, 0);
+        function_builder.ins().return_(&[value_ret]);
+    } else {
+        function_builder.ins().return_(&[]);
+    }
+
+    function_builder.seal_all_blocks();
+    function_builder.finalize();
+
+    // println!("{}", func_bridge.display());
+
+    // generate the (machine/native) code of func_bridge
+    let mut codegen_context = jit_helper.module.make_context();
+    codegen_context.func = func_host;
+
+    jit_helper
+        .module
+        .define_function(func_host_id, &mut codegen_context)
+        .unwrap();
+
+    jit_helper.module.clear_context(&mut codegen_context);
+
+    // link
+    jit_helper.module.finalize_definitions().unwrap();
+
+    // get func_bridge ptr
+    jit_helper.module.get_finalized_function(func_host_id)
+}
+
 #[cfg(test)]
 mod tests {
     use cranelift_codegen::ir::{
@@ -80,11 +236,11 @@ mod tests {
     use cranelift_frontend::FunctionBuilder;
     use cranelift_module::{Linkage, Module};
 
-    use crate::jit_helper::JITHelper;
+    use crate::jit_util::JITUtil;
 
     #[test]
     fn test_jit_base() {
-        let mut jit_helper = JITHelper::new(vec![]);
+        let mut jit_helper = JITUtil::new(vec![]);
 
         // build func_a
         //
@@ -174,7 +330,8 @@ mod tests {
             let mut codegen_context = jit_helper.module.make_context();
             codegen_context.func = func_a;
 
-            jit_helper.module
+            jit_helper
+                .module
                 .define_function(func_a_id, &mut codegen_context)
                 .unwrap();
             jit_helper.module.clear_context(&mut codegen_context);
@@ -227,7 +384,8 @@ mod tests {
             let mut codegen_context = jit_helper.module.make_context();
             codegen_context.func = func_b;
 
-            jit_helper.module
+            jit_helper
+                .module
                 .define_function(func_b_id, &mut codegen_context)
                 .unwrap();
             jit_helper.module.clear_context(&mut codegen_context);
@@ -260,7 +418,7 @@ mod tests {
     fn test_jit_call_external_func_by_import_symbol() {
         let fn_add_ptr = add as *const u8; // as *const extern "C" fn(i32,i32)->i32;
 
-        let mut jit_helper = JITHelper::new(vec![("fn_add".to_string(), fn_add_ptr)]);
+        let mut jit_helper = JITUtil::new(vec![("fn_add".to_string(), fn_add_ptr)]);
 
         let mut fn_add_sig = jit_helper.module.make_signature();
         fn_add_sig.params.push(AbiParam::new(types::I32));
@@ -311,7 +469,8 @@ mod tests {
         let mut codegen_context = jit_helper.module.make_context();
         codegen_context.func = func_main;
 
-        jit_helper.module
+        jit_helper
+            .module
             .define_function(func_main_id, &mut codegen_context)
             .unwrap();
         jit_helper.module.clear_context(&mut codegen_context);
@@ -329,7 +488,7 @@ mod tests {
 
     #[test]
     fn test_jit_call_external_func_by_address() {
-        let mut jit_helper = JITHelper::new(vec![]);
+        let mut jit_helper = JITUtil::new(vec![]);
         let pointer_type = jit_helper.module.isa().pointer_type();
 
         let mut fn_add_sig = jit_helper.module.make_signature();
@@ -376,7 +535,8 @@ mod tests {
         let mut codegen_context = jit_helper.module.make_context();
         codegen_context.func = func_main;
 
-        jit_helper.module
+        jit_helper
+            .module
             .define_function(func_main_id, &mut codegen_context)
             .unwrap();
         jit_helper.module.clear_context(&mut codegen_context);
@@ -427,7 +587,7 @@ mod tests {
 
     #[test]
     fn test_jit_call_external_func_by_address_with_params_and_results() {
-        let mut jit_helper = JITHelper::new(vec![]);
+        let mut jit_helper = JITUtil::new(vec![]);
         let pointer_type = jit_helper.module.isa().pointer_type();
 
         let fn_array_addr = array as *const u8 as usize;
@@ -525,7 +685,8 @@ mod tests {
         let mut codegen_context = jit_helper.module.make_context();
         codegen_context.func = func_main;
 
-        jit_helper.module
+        jit_helper
+            .module
             .define_function(func_main_id, &mut codegen_context)
             .unwrap();
         jit_helper.module.clear_context(&mut codegen_context);

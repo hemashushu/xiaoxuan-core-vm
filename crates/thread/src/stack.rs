@@ -115,10 +115,13 @@ pub struct Stack {
 //             \-------------/ <-- stack start
 
 // note:
-// the value of 'local_variables_allocate_bytes' includes the length of
-// the function arguments. e.g.
-// a function with two i32 arguments and four i32 local variables, the
-// value of 'local_variables_allocate_bytes' = (4 * 4bytes) + (2 * 4bytes)
+//
+// - the value of 'local_variables_allocate_bytes' includes the length of
+//   the function arguments. e.g.
+//   a function with two i32 arguments and four i32 local variables, the
+//   value of 'local_variables_allocate_bytes' = (4 * 4bytes) + (2 * 4bytes)
+// - set MSB of 'return module index' to '1' to indicate that it's the END of the
+//   current function call.
 #[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct FrameInfo {
@@ -355,11 +358,11 @@ impl Stack {
         self.get_ptr(self.sp)
     }
 
-    // pub fn pop_operands(&mut self, count: usize) -> &[u8] {
-    //     let length = count * OPERAND_SIZE_IN_BYTES;
-    //     self.sp -= length;
-    //     &self.data[self.sp..]
-    // }
+    pub fn pop_operands(&mut self, count: usize) -> &[u8] {
+        let length = count * OPERAND_SIZE_IN_BYTES;
+        self.sp -= length;
+        &self.data[self.sp..]
+    }
 
     /**
      * block frames are nested, the parameter 'reversed_index' is

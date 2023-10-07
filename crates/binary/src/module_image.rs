@@ -99,11 +99,11 @@ use self::{
 // the "module image file" binary layout:
 //
 //              |--------------------------------------------------------------------------|
-//              | magic number (u64) | minor ver (u16) | major ver (u16) | padding 4 bytes |
+//              | magic number (u64) | minor ver (u16) | major ver (u16) | padding 4 bytes | 16 bytes
 //              |--------------------------------------------------------------------------|
-//              | name length (u16) | module name (256 - 2) bytes                          |
+//              | name length (u16) | module name (256 - 2) bytes                          | 256 bytes
 //              |--------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                     |
+//              | item count (u32) | (4 bytes padding)                                     | 8 bytes
 //              |--------------------------------------------------------------------------|
 //   item 0 --> | section id 0 (u32) | offset 0 (u32) | length 0 (u32)                     | <-- table
 //   item 1 --> | section id 1       | offset 1       | length 1                           |
@@ -120,6 +120,7 @@ const IMAGE_MINOR_VERSION: u16 = 0;
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
+    pub name: &'a [u8],
     pub items: &'a [ModuleSection],
     pub sections_data: &'a [u8],
 }
@@ -235,7 +236,11 @@ impl<'a> ModuleImage<'a> {
             });
         }
 
-        let image_body = &image_data[16..];
+        let name_area = &image_data[16..(16 + 256)];
+        let name_length = unsafe { std::ptr::read(name_area.as_ptr() as *const u16) };
+        let name = &image_data[(16 + 2)..(16 + 2 + (name_length as usize))];
+
+        let image_body = &image_data[(16 + 256)..];
 
         // since the structure of module image and a section are the same,
         // that is, the module image itself can be thought of
@@ -246,6 +251,7 @@ impl<'a> ModuleImage<'a> {
             load_section_with_table_and_data_area::<ModuleSection>(image_body);
 
         Ok(Self {
+            name,
             items,
             sections_data,
         })
@@ -257,6 +263,17 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(&IMAGE_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
         writer.write_all(&[0u8, 0, 0, 0])?; // padding, 4 bytes
+
+        let mut name_area = [0u8; 256];
+        unsafe { std::ptr::write(name_area.as_mut_ptr() as *mut u16, self.name.len() as u16) };
+        unsafe {
+            std::ptr::copy(
+                self.name.as_ptr(),
+                name_area.as_mut_ptr().offset(2),
+                self.name.len(),
+            )
+        };
+        writer.write_all(&name_area)?;
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
     }
@@ -491,11 +508,12 @@ mod tests {
         };
 
         // build ModuleImage instance
-
+        let name = b"main".to_vec();
         let section_entries: Vec<&dyn SectionEntry> =
             vec![&type_section, &func_section, &local_var_section];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
+            name: &name,
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -509,11 +527,16 @@ mod tests {
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
 
-        assert_eq!(&image_data[16..20], &vec![3, 0, 0, 0]); // item count
-        assert_eq!(&image_data[20..24], &vec![0, 0, 0, 0]); // padding
+        // name area
+        assert_eq!(&image_data[16..(16 + 2)], &vec![4, 0]);
+        assert_eq!(&image_data[(16 + 2)..(16 + 2 + 4)], &b"main".to_vec());
 
-        // image header 24 bytes
-        let remains = &image_data[24..];
+        // section count
+        assert_eq!(&image_data[272..276], &vec![3, 0, 0, 0]); // item count
+        assert_eq!(&image_data[276..280], &vec![0, 0, 0, 0]); // padding
+
+        // image header 16 + 256 + section count 8 bytes
+        let remains = &image_data[280..];
 
         // section table length = 12 (the record length) * 3
         let (section_table_data, remains) = remains.split_at(36);
@@ -691,24 +714,6 @@ mod tests {
 
     #[test]
     fn test_module_index_sections() {
-        // build ModuleIndexSection instance
-//         let mut module_index_entries: Vec<ModuleIndexEntry> = Vec::new();
-//         module_index_entries.push(ModuleIndexEntry::new(
-//             ModuleShareType::Local,
-//             "main".to_string(),
-//         ));
-//         module_index_entries.push(ModuleIndexEntry::new(
-//             ModuleShareType::Shared,
-//             "httpclient".to_string(),
-//         ));
-//
-//         let (module_index_items, names_data) =
-//             ModuleIndexSection::convert_from_entries(&module_index_entries);
-//         let module_index_section = ModuleIndexSection {
-//             items: &module_index_items,
-//             names_data: &names_data,
-//         };
-
         // build DataIndexSection instance
         let data_range0 = RangeItem::new(0, 3);
 
@@ -732,14 +737,12 @@ mod tests {
         };
 
         // build IndexMap instance
-
-        let section_entries: Vec<&dyn SectionEntry> = vec![
-            // &module_index_section,
-            &data_index_section,
-            &func_index_section,
-        ];
+        let name = b"std".to_vec();
+        let section_entries: Vec<&dyn SectionEntry> =
+            vec![&data_index_section, &func_index_section];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
+            name: &name,
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -753,11 +756,16 @@ mod tests {
         assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
         assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
 
-        assert_eq!(&image_data[16..20], &vec![2, 0, 0, 0]); // item count
-        assert_eq!(&image_data[20..24], &vec![0, 0, 0, 0]); // padding
+        // name area
+        assert_eq!(&image_data[16..(16 + 2)], &vec![3, 0]);
+        assert_eq!(&image_data[(16 + 2)..(16 + 2 + 3)], &b"std".to_vec());
 
-        // image header 24 bytes
-        let remains = &image_data[24..];
+        // section count
+        assert_eq!(&image_data[272..276], &vec![2, 0, 0, 0]); // item count
+        assert_eq!(&image_data[276..280], &vec![0, 0, 0, 0]); // padding
+
+        // image header 16 + 256 + section count 8 bytes
+        let remains = &image_data[280..];
 
         // section table length = 12 (record length) * 2
         let (section_table_data, remains) = remains.split_at(24);
@@ -772,35 +780,8 @@ mod tests {
                 0x41u8, 0, 0, 0, // section id 1
                 64, 0, 0, 0, // offset 1
                 28, 0, 0, 0, // length 1
-                //
-                // 0x42u8, 0, 0, 0, // section id 2
-                // 112, 0, 0, 0, // offset 2
-                // 28, 0, 0, 0, // length 2
             ]
         );
-
-//         let (module_index_section_data, remains) = remains.split_at(48);
-//
-//         assert_eq!(
-//             module_index_section_data,
-//             &vec![
-//                 2, 0, 0, 0, // item count
-//                 0, 0, 0, 0, // padding
-//                 0, 0, 0, 0, // name offset 0
-//                 4, 0, 0, 0, // name length 0
-//                 0, // module type 0
-//                 0, 0, 0, // padding
-//                 //
-//                 4, 0, 0, 0, // name offset 1
-//                 10, 0, 0, 0, // name length 1
-//                 1, // module type 1
-//                 0, 0, 0, // padding
-//                 //
-//                 109, 97, 105, 110, // b"main"
-//                 104, 116, 116, 112, 99, 108, 105, 101, 110, 116, // b"httpclient"
-//                 0, 0, // padding for 4-byte alignment
-//             ]
-//         );
 
         let (data_index_section_data, remains) = remains.split_at(64);
 
@@ -853,20 +834,6 @@ mod tests {
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
         assert_eq!(module_image_restore.items.len(), 2);
-
-//         let module_index_section_restore = module_image_restore.get_module_index_section();
-//
-//         assert_eq!(module_index_section_restore.items.len(), 2);
-//
-//         assert_eq!(
-//             module_index_section_restore.get_entry(0),
-//             ModuleIndexEntry::new(ModuleShareType::Local, "main".to_string(),)
-//         );
-//
-//         assert_eq!(
-//             module_index_section_restore.get_entry(1),
-//             ModuleIndexEntry::new(ModuleShareType::Shared, "httpclient".to_string(),)
-//         );
 
         let data_index_section_restore = module_image_restore.get_data_index_section();
 

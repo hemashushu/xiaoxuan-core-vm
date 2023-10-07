@@ -9,15 +9,27 @@ use ancvm_thread::thread_context::{ProgramCounter, ThreadContext};
 use super::InterpretResult;
 
 pub fn end(thread_context: &mut ThreadContext) -> InterpretResult {
+    // note that both instruction 'end' and 'break' can end a function.
     let opt_return_pc = thread_context.stack.remove_frames(0);
 
     if let Some(return_pc) = opt_return_pc {
-        if return_pc.instruction_address == 0 {
-            // the PC reaches the first function end, it means
-            // the program reaches the ending.
-            InterpretResult::End
+        // current function end
+        //
+        // if the value of the MSB of 'return module index' is '1',
+        // it indicates that it's the END of the current function call.
+        if return_pc.module_index & 0x80000000 == 0x80000000 {
+            // since the function call could be nested (e.g. a callback function call).
+            // it's necessary to recover the original module index.
+            let original_pc = ProgramCounter {
+                instruction_address: return_pc.instruction_address,
+                function_internal_index: return_pc.function_internal_index,
+
+                // remove the value '1' of the MSB
+                module_index: return_pc.module_index & 0x7fff_ffff,
+            };
+
+            InterpretResult::End(original_pc)
         } else {
-            // call another function or come back from another function
             InterpretResult::Jump(return_pc)
         }
     } else {
@@ -137,15 +149,26 @@ fn do_break(
     reversed_index: u16,
     next_inst_offset: u32,
 ) -> InterpretResult {
+    // note that both instruction 'end' and 'break' can end a function.
     let opt_return_pc = thread_context.stack.remove_frames(reversed_index);
 
     if let Some(return_pc) = opt_return_pc {
-        // the target frame is a function frame
-        // the value of 'next_inst_offset' is ignored.
-        if return_pc.instruction_address == 0 {
-            // the PC reaches the first function end, it means
-            // the program reaches the ending.
-            InterpretResult::End
+        // current function end
+        //
+        // if the value of the MSB of 'return module index' is '1',
+        // it indicates that it's the END of the current function call.
+        if return_pc.module_index & 0x80000000 == 0x80000000 {
+            // since the function call could be nested (e.g. a callback function call).
+            // it's necessary to recover the original module index.
+            let original_pc = ProgramCounter {
+                instruction_address: return_pc.instruction_address,
+                function_internal_index: return_pc.function_internal_index,
+
+                // remove the value '1' of the MSB
+                module_index: return_pc.module_index & 0x7fff_ffff,
+            };
+
+            InterpretResult::End(original_pc)
         } else {
             InterpretResult::Jump(return_pc)
         }
@@ -1349,7 +1372,8 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1448,7 +1472,8 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1556,7 +1581,8 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1668,7 +1694,8 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1789,7 +1816,8 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 

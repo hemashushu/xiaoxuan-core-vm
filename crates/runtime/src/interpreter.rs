@@ -39,11 +39,15 @@ pub enum InterpretResult {
 
     // jump to another function (call), or
     // return from another function (return)
-    // param (return_pc:ProgramCounter)
+    // param (return_pc: ProgramCounter)
     Jump(ProgramCounter),
 
-    // program end
-    End,
+    // the current function call end
+    // because the function call could be nested, so there is a
+    // original PC need to be restore.
+    //
+    // param (original_pc: ProgramCounter)
+    End(ProgramCounter),
 
     // pause the interpreter
     // for debug the program or the VM itself
@@ -88,41 +92,16 @@ static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_
 // such as 'lazy_static', 'once_cell' and 'rust-ctor' can be used.
 // the same can be done with ''
 pub fn init_interpreters() {
-    //     unsafe {
-    //         if HAS_INIT {
-    //             return;
-    //         }
-    //     }
-    //
-    //     let _lock = INIT_LOCK.lock().unwrap();
-    //
-    //     unsafe {
-    //         if HAS_INIT {
-    //             return;
-    //         }
-    //     }
-    //
-    // ...
-    //
-    // unsafe {
-    //     HAS_INIT = true;
-    // }
     INIT.call_once(|| {
         init_interpreters_internal();
     });
 }
 
 fn init_interpreters_internal() {
+    // init the ecall handlers
     init_ecall_handlers();
 
     let interpreters = unsafe { &mut INTERPRETERS };
-
-    // the initialization can only be called once
-    // in the unit test environment (`$ cargo test`), the init procedure
-    // runs in parallel.
-    // if interpreters[Opcode::zero as usize] == fundamental::zero {
-    //     return;
-    // }
 
     // fundamental
     interpreters[Opcode::zero as usize] = fundamental::zero;
@@ -397,8 +376,7 @@ pub fn process_next_instruction(thread_context: &mut ThreadContext) -> Interpret
 
 pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
     loop {
-        let result = //self.
-                process_next_instruction(thread_context);
+        let result = process_next_instruction(thread_context);
         match result {
             InterpretResult::Move(relate_offset_in_bytes) => {
                 let next_instruction_offset =
@@ -410,7 +388,14 @@ pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
                 thread_context.pc.function_internal_index = return_pc.function_internal_index;
                 thread_context.pc.instruction_address = return_pc.instruction_address;
             }
-            InterpretResult::End => break,
+            InterpretResult::End(original_pc) => {
+                thread_context.pc.module_index = original_pc.module_index;
+                thread_context.pc.function_internal_index = original_pc.function_internal_index;
+                thread_context.pc.instruction_address = original_pc.instruction_address;
+
+                // break the instruction processing loop
+                break;
+            }
             InterpretResult::Debug => {
                 thread_context.pc.instruction_address += 2;
             }
@@ -462,16 +447,12 @@ pub fn process_function(
         local_variables_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
-            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread_context.
-            //
-            // the function stack frame is created only by 'call' instruction or
-            // thread beginning, the 'call' instruction will set the 'return instruction address' to
-            // the instruction next to 'call', which can't be '0'.
-            // so when a stack frame exits and the 'return address' is zero, it can only
-            // be the end of a thread_context.
             instruction_address: 0,
             function_internal_index: 0,
-            module_index: 0,
+
+            // set MSB of 'return module index' to '1' to indicate that it's the END of the
+            // current function call.
+            module_index: 0x8000_0000,
         }),
     );
 
@@ -480,17 +461,17 @@ pub fn process_function(
     thread_context.pc.function_internal_index = function_internal_index;
     thread_context.pc.instruction_address = code_offset;
 
-    // self.
+    // start processing instructions
     process_continuous_instructions(thread_context);
 
-    // pop results off the stack
+    // pop the results from the stack
     let results = thread_context.pop_values(&type_entry.results);
 
     Ok(results)
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn process_function_internal(
+pub extern "C" fn process_bridge_function_call(
     thread_context_ptr: *mut u8,
     target_module_index: usize,
     function_internal_index: usize,
@@ -538,16 +519,12 @@ pub extern "C" fn process_function_internal(
         local_variables_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
-            // the '0' for 'return instruction address' is used to indicate that it's the END of the thread_context.
-            //
-            // the function stack frame is created only by 'call' instruction or
-            // thread beginning, the 'call' instruction will set the 'return instruction address' to
-            // the instruction next to 'call', which can't be '0'.
-            // so when a stack frame exits and the 'return address' is zero, it can only
-            // be the end of a thread_context.
             instruction_address: 0,
             function_internal_index: 0,
-            module_index: 0,
+
+            // set MSB of 'return module index' to '1' to indicate that it's the END of the
+            // current function call.
+            module_index: 0x8000_0000,
         }),
     );
 
@@ -556,9 +533,108 @@ pub extern "C" fn process_function_internal(
     thread_context.pc.function_internal_index = function_internal_index;
     thread_context.pc.instruction_address = code_offset;
 
-    // self.
+    // start processing instructions
     process_continuous_instructions(thread_context);
 
+    // pop the results from the stack
+    // note:
+    //
+    // only 0 or 1 result is allowed for C function.
+    if results_count > 0 {
+        let stack_pop_ptr = thread_context.stack.pop_operand_to_memory();
+        unsafe { std::ptr::copy(stack_pop_ptr, results_ptr, OPERAND_SIZE_IN_BYTES) };
+    }
+}
+
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn process_callback_function_call(
+    thread_context_ptr: *mut u8,
+    target_module_index: usize,
+    function_internal_index: usize,
+    params_ptr: *const u8,
+    results_ptr: *mut u8,
+) {
+    // params:
+    // | 8 bytes | 8 bytes | ... |
+    //
+    // results:
+    // | 8 bytes |
+
+    let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
+
+    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+        thread_context
+            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+                target_module_index,
+                function_internal_index,
+            );
+    let type_item = &thread_context.program_ref.modules[target_module_index]
+        .type_section
+        .items[type_index];
+
+    let params_count = type_item.params_count as usize;
+    let results_count = type_item.results_count as usize;
+
+    // push arguments
+    let stack_push_ptr = thread_context.stack.push_operands_from_memory(params_count);
+    unsafe {
+        std::ptr::copy(
+            params_ptr,
+            stack_push_ptr,
+            OPERAND_SIZE_IN_BYTES * params_count,
+        )
+    };
+
+    // store the current PC as return PC
+    let ProgramCounter {
+        instruction_address: return_instruction_address,
+        function_internal_index: return_function_internal_index,
+        module_index: return_module_index,
+    } = thread_context.pc;
+
+    let return_pc = ProgramCounter {
+        instruction_address: return_instruction_address,
+        function_internal_index: return_function_internal_index,
+
+        // set MSB of 'return module index' to '1' to indicate that it's the END of the
+        // current function call.
+        module_index: return_module_index & 0x8000_0000,
+    };
+
+    // module M, function A
+    //
+    // 0x0000 inst_0     callback function     module N, function B
+    // 0x0004 inst_1     interrupt
+    // 0x0008 inst_2   ----------------------> 0x0000 inst_0
+    //     \------------<----------------\     0x0004 inst_1
+    //                                   |     0x0008 inst_2
+    // InterpretResult::Move(X) --\      ^     0x000c inst_3
+    //                            |      |     0x0010 end
+    //                            |      |       |
+    // 0x000c inst_3   <----------/      \---<---/
+    // 0x0010 inst_4
+    // 0x0014 inst_5
+    // 0x0018 inst_6
+    // 0x001c end
+
+    // create function statck frame
+    thread_context.stack.create_frame(
+        type_item.params_count,
+        type_item.results_count,
+        local_variables_list_index as u32,
+        local_variables_allocate_bytes,
+        Some(return_pc),
+    );
+
+    // set new PC
+    thread_context.pc.module_index = target_module_index;
+    thread_context.pc.function_internal_index = function_internal_index;
+    thread_context.pc.instruction_address = code_offset;
+
+    // start processing instructions
+    process_continuous_instructions(thread_context);
+
+    // pop the results from the stack
     // note:
     //
     // only 0 or 1 result is allowed for C function.

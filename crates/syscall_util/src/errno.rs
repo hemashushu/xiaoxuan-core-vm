@@ -4,6 +4,63 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+// about the return value of syscall:
+//
+// when a syscall complete, the return value is stored in the 'rax' register,
+// if the operation failed, the value is a negative value (rax < 0).
+// in the C std lib, this negative value will be transmuted to a positive number (-rax)
+// and stores in the thread-local symbol:
+//
+// - '__errno_location' on linux (redox, fuchsia)
+// - '__error' on freebas (ios, macos)
+//
+// finally the std lib returns value '-1'.
+//
+// in C, the error number can be obtained by external variable 'errno' in '<errno.h>',
+// in Rust, it can be obtained by 'std::io::Error::last_os_error().raw_os_error()'
+
+// NOTE THAT THERE IS NO 'errno' if invoke syscall by assembly directly,
+// neither the 'std::io::Error::last_os_error()'.
+
+// more about the 'errno':
+//
+// to obtains the std lib errno, on linux (includes redox, fuchsia etc.), import
+// the external function '__errno_location', e.g.
+//
+// ```rust
+// extern "C" {
+//    fn __errno_location() -> *mut u32;
+// }
+// ```
+//
+// the read the errno as the following:
+//
+// ```rust
+// pub fn get_errno() -> u32 {
+//     unsafe { *__errno_location() }
+// }
+// ```
+//
+// it is the same as:
+//
+// ```rust
+// let e = std::io::Error::last_os_error();
+// if let Some(n) = e.raw_os_error() ...
+// ```
+//
+// to write the errno:
+//
+// ```rust
+// pub fn set_errno(errno: u32) {
+//     unsafe {
+//         *__errno_location() = errno;
+//     }
+// }
+// ```
+//
+// note that on the platform freebsd (and ios, macos), the
+// external function name is '__error'
+
 // the following error number list comes from Linux (kernel 6.3.3) source files:
 // 'include/uapi/asm-generic/errno.h'
 // 'include/uapi/asm-generic/errno-base.h'

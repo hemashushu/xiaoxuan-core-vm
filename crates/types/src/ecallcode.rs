@@ -113,9 +113,44 @@ pub enum ECallCode {
     backpack_get,           // `fn (bag_item_id:i32)`
     backpack_remove,        // `fn (bag_item_id:i32)`
 
-    // external function call
+    // regex
 
-    bridge_func,            // create a new host function and map it to a VM function.
+    regex_create,       // ref: https://github.com/rust-lang/regex
+    regex_match,
+    regex_test,
+    regex_remove,
+
+    // system
+
+    syscall,            // syscall
+
+    // `fn (syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
+    //
+    // the syscall arguments should be pushed on the stack first, e.g.
+    //
+    // | params_count   |
+    // | syscall_num    |
+    // | arg6           |
+    // | arg5           |
+    // | arg4           |
+    // | arg3           |
+    // | arg2           |                  | error no       |
+    // | arg1           |     return -->   | return value   |
+    // | ...            |                  | ...            |
+    // \----------------/ <-- stack start  \----------------/
+    //
+    // when a syscall complete, the return value is store into the 'rax' register,
+    // if the operation fails, the value is a negative value (rax < 0).
+    // there is no 'errno' if invoke syscall by assembly directly.
+
+    extcall,            // external function call
+                        // `fn (external_func_index:i32)`
+
+    // note that both 'scall' and 'extcall' are optional, they may be
+    // unavailable in some environment.
+    // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
+
+    callback_func,          // create a new host function and map it to a VM function.
                             // this host function named 'bridge funcion'
                             //
                             // return the existing bridge function if the bridge function corresponding
@@ -183,40 +218,6 @@ pub enum ECallCode {
     //     exit(EXIT_SUCCESS);
     // }
     // ```
-
-    // regex
-
-    regex_create,       // ref: https://github.com/rust-lang/regex
-    regex_match,
-    regex_test,
-    regex_remove,
-
-    // system
-
-    syscall,            // syscall
-                        // `fn (params_count: i32, syscall_num:i32)` -> (errno:i32, return_value:i64)
-
-    // the syscall arguments should be pushed on the stack first, e.g.
-    //
-    // | syscall_num    |
-    // | params_count   |
-    // | arg6           |
-    // | arg5           |
-    // | arg4           |
-    // | arg3           |
-    // | arg2           |                  | return value   |
-    // | arg1           |     return -->   | errno          |
-    // | other operands |                  | other operands |
-    // | ...            |                  | ...            |
-    // \----------------/ <-- stack start  \----------------/
-
-    extcall,            // external function call
-                        // `fn (params_count: i32, c_func_index:i32)`
-
-    // note that both 'scall' and 'extcall' are optional, they may be
-    // unavailable in some environment.
-    // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
-
 
     //
     // I/O functions

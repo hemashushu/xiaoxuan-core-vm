@@ -4,28 +4,118 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::sync::Once;
-
 use ancvm_thread::thread_context::ThreadContext;
-use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
-use cranelift_codegen::ir::{
-    types, AbiParam, Function, InstBuilder, StackSlotData, StackSlotKind, Type, UserFuncName,
+
+use crate::{
+    interpreter::process_bridge_function_call, jit_util::build_host_to_vm_delegate_function,
 };
-use cranelift_frontend::FunctionBuilder;
-use cranelift_module::{Linkage, Module};
 
-use crate::{interpreter::process_function_internal, jit_helper::JITHelper};
+// about the briage function:
+//
+// on C/Rust application, embeds the XiaoXuan Core VM and script as a library
+// and calls VM function as if it is a native function.
+//
+//
+//    C/Rust application                  runtime (native)
+// /------------------------\          /------------------------\          XiaoXuan VM module
+// |                        |          | bridge func table      |       /------------------------\
+// | int (*add)(int,int)=.. |          | |--------------------| |       |                        |
+// | int c = add(11,13);    | ---\     | | mod idx | func idx | | ----> | fn (i32, i32) -> (i32) |
+// | printf("%d", c);       |    |     | | 0       | 0        | |       |     i32.add            |
+// |                        |    |     | | ...     | ...      | |       | end                    |
+// \------------------------/    |     | |--------------------| |       |                        |
+//                               |     |                        |       \------------------------/
+//                               \---> | bridge func code 0     |
+//                                     | 0x0000 0xb8, 0x34,     |
+//                                     | 0x0000 0x12, 0x00...   |
+//                                     |                        |
+//                                     | bridge func code 1     |
+//                                     | ...                    |
+//                                     |                        |
+//                                     \------------------------/
+//
 
-static mut JIT_HELPER: Option<JITHelper> = None;
-static INIT: Once = Once::new();
-
-fn get_jit_helper() -> &'static mut JITHelper {
-    INIT.call_once(|| {
-        unsafe { JIT_HELPER = Some(JITHelper::new(vec![])) };
-    });
-
-    unsafe { JIT_HELPER.as_mut().unwrap() }
-}
+// 'bridge function' is actually a native function which is created at runtime (it is similar to JIT),
+// the principle of building native funtion at runtime is quite simple:
+// 1. allocates a block/region of memeory (posix_memalign/mmap, VirtualAlloc(windows))
+// 2. set the memory permission to READ+WRITE (optional, vecause this is the default permissions)
+// 3. copy the native code of function to the memory
+// 4. set the memory permission to READ+EXEC (mprotect, VirtualProtect(windows))
+//
+// the following is a snippet for creating a simple native function:
+//
+// use libc::{c_void, memset, perror, size_t, sysconf};
+// use libc::{memalign, memcpy, mprotect};
+//
+// fn main() {
+//     /** the function and its native x86_64 code:
+//         fn f() -> i64 {
+//             return 0x1234;
+//         }
+//         */
+//     let code: [u8; 6] = [
+//         0xb8, 0x34, 0x12, 0x00, 0x00, // mov $0x1234,%eax
+//         0xc3, // ret
+//     ];
+//
+//     let pagesize = sysconf(libc::_SC_PAGE_SIZE) as size_t;
+//     let buffer_length = 4 * pagesize;
+//
+//     /** allocate memory block for executable code
+//
+//         `void *aligned_alloc(size_t alignment, size_t size);`
+//         `int posix_memalign(void **memptr, size_t alignment, size_t size);`
+//         `void *memalign(size_t alignment, size_t size);` (deprecated)
+//         `mmap with MAP_ANONYMOUT option`
+//
+//         ref:
+//         https://www.gnu.org/software/libc/manual/html_node/Memory_002dmapped-I_002fO.html
+//         https://www.gnu.org/software/libc/manual/html_node/Aligned-Memory-Blocks.html
+//         */
+//     let buffer_ptr = memalign(pagesize, buffer_length);
+//
+//     /** change the permission for this memory block
+//
+//         `int mprotect(void *addr, size_t len, int prot);`
+//
+//         ref:
+//         https://www.gnu.org/software/libc/manual/html_node/Memory-Protection.html
+//         */
+//     let mprotect_result = mprotect(
+//         buffer_ptr,
+//         buffer_length,
+//         libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+//     );
+//
+//     if mprotect_result == -1 {
+//         perror(b"mprotect\0".as_ptr() as *const i8);
+//         return;
+//     }
+//
+//     /* fill memory block with instruction 'ret' (optional) */
+//     memset(buffer_ptr, 0xc3, buffer_length);
+//
+//     /* copy native code to the memory block */
+//     let func_ptr = memcpy(buffer_ptr, code.as_ptr() as *const c_void, code.len());
+//
+//     /** flush the i-cache and d-cache (only necessary on non-x86_64 arch)
+//         e.g.
+//         macos: sys_icache_invalidate
+//         windows: FlushInstructionCache
+//         linux on aarch64: dc civac, dsb ish, ic ivau, dsb ish, ish
+//         ref:
+//         - https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/caches-and-self-modifying-code
+//         */
+//
+//     /* convert function pointer into function */
+//     let func: fn() -> i64 = std::mem::transmute(func_ptr);
+//
+//     let val = func();
+//     println!("function return: 0x{:x}", val);
+// }
+//
+// however, to build native functions on various arch and platforms is boring job,
+// to make life easy, this module uses crate 'cranelift-jit' :D.
 
 pub fn get_function<T>(
     thread_context: &mut ThreadContext,
@@ -47,7 +137,7 @@ pub fn get_function<T>(
     // check if the specified (target_module_index, function_internal_index) already
     // exists in the bridge function table
     let opt_bridge_function_ptr =
-        thread_context.get_bridge_function(target_module_index, function_internal_index);
+        thread_context.find_bridge_function(target_module_index, function_internal_index);
 
     if let Some(bridge_function_ptr) = opt_bridge_function_ptr {
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&bridge_function_ptr) });
@@ -65,8 +155,10 @@ pub fn get_function<T>(
         return Err("The number of return values of the specified function is more than 1.");
     }
 
+    let delegate_function_addr = process_bridge_function_call as *const u8 as usize;
     let thread_context_addr = thread_context as *const ThreadContext as *const u8 as usize;
-    let bridge_function_ptr = build_bridge_function(
+    let bridge_function_ptr = build_host_to_vm_delegate_function(
+        delegate_function_addr,
         thread_context_addr,
         target_module_index,
         function_internal_index,
@@ -75,151 +167,13 @@ pub fn get_function<T>(
     );
 
     // store the function pointer into table
-    thread_context.add_bridge_function(
+    thread_context.insert_bridge_function(
         target_module_index,
         function_internal_index,
         bridge_function_ptr,
     );
 
     Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&bridge_function_ptr) })
-}
-
-fn convert_vm_data_type_to_jit_type(dt: DataType) -> Type {
-    match dt {
-        DataType::I32 => types::I32,
-        DataType::I64 => types::I64,
-        DataType::F32 => types::F32,
-        DataType::F64 => types::F64,
-    }
-}
-
-fn build_bridge_function(
-    thread_context_addr: usize,
-    target_module_index: usize,
-    function_internal_index: usize,
-    params: &[DataType],
-    results: &[DataType],
-) -> *const u8 {
-    let jit_helper = get_jit_helper();
-    let pointer_type = jit_helper.module.isa().pointer_type();
-    let fn_internal_addr = process_function_internal as *const u8 as usize;
-
-    // the interpreter internal call function:
-    //
-    // extern "C" fn process_function_internal(
-    //     thread_context_ptr: *mut u8,
-    //     target_module_index: usize,
-    //     function_internal_index: usize,
-    //     params_ptr: *const u8,
-    //     results_ptr: *mut u8) {...}
-
-    let mut fn_internal_sig = jit_helper.module.make_signature();
-    fn_internal_sig.params.push(AbiParam::new(pointer_type)); // thread_context_ptr
-    fn_internal_sig.params.push(AbiParam::new(types::I64)); // target_module_index
-    fn_internal_sig.params.push(AbiParam::new(types::I64)); // function_internal_index
-    fn_internal_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
-    fn_internal_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
-
-    let mut func_bridge_sig = jit_helper.module.make_signature();
-    for dt in params {
-        func_bridge_sig
-            .params
-            .push(AbiParam::new(convert_vm_data_type_to_jit_type(*dt)));
-    }
-    if !results.is_empty() {
-        func_bridge_sig
-            .returns
-            .push(AbiParam::new(convert_vm_data_type_to_jit_type(results[0])));
-    }
-
-    let func_bridge_name = format!("f{}_{}", target_module_index, function_internal_index);
-    let func_bridge_id = jit_helper
-        .module
-        .declare_function(&func_bridge_name, Linkage::Local, &func_bridge_sig)
-        .unwrap();
-
-    let mut func_bridge = Function::with_name_signature(
-        UserFuncName::user(0, func_bridge_id.as_u32()),
-        func_bridge_sig,
-    );
-
-    // create two stack slots, one for parameters, one for results.
-    let ss0 = func_bridge.create_sized_stack_slot(StackSlotData::new(
-        StackSlotKind::ExplicitSlot,
-        (OPERAND_SIZE_IN_BYTES * params.len()) as u32,
-    ));
-    let ss1 = func_bridge.create_sized_stack_slot(StackSlotData::new(
-        StackSlotKind::ExplicitSlot,
-        OPERAND_SIZE_IN_BYTES as u32,
-    ));
-
-    let mut function_builder =
-        FunctionBuilder::new(&mut func_bridge, &mut jit_helper.function_builder_context);
-
-    let block_0 = function_builder.create_block();
-    function_builder.append_block_params_for_function_params(block_0);
-    function_builder.switch_to_block(block_0);
-
-    for idx in 0..params.len() {
-        let value_param = function_builder.block_params(block_0)[idx];
-        function_builder
-            .ins()
-            .stack_store(value_param, ss0, (idx * OPERAND_SIZE_IN_BYTES) as i32);
-    }
-
-    // internal call
-    let callee_0 = function_builder
-        .ins()
-        .iconst(pointer_type, fn_internal_addr as i64);
-    let param_0 = function_builder
-        .ins()
-        .iconst(types::I64, thread_context_addr as i64);
-    let param_1 = function_builder
-        .ins()
-        .iconst(types::I64, target_module_index as i64);
-    let param_2 = function_builder
-        .ins()
-        .iconst(types::I64, function_internal_index as i64);
-    let param_3 = function_builder.ins().stack_addr(pointer_type, ss0, 0);
-    let param_4 = function_builder.ins().stack_addr(pointer_type, ss1, 0);
-
-    let sig_ref0 = function_builder.import_signature(fn_internal_sig);
-    function_builder.ins().call_indirect(
-        sig_ref0,
-        callee_0,
-        &[param_0, param_1, param_2, param_3, param_4],
-    );
-
-    if !results.is_empty() {
-        let value_ret =
-            function_builder
-                .ins()
-                .stack_load(convert_vm_data_type_to_jit_type(results[0]), ss1, 0);
-        function_builder.ins().return_(&[value_ret]);
-    } else {
-        function_builder.ins().return_(&[]);
-    }
-
-    function_builder.seal_all_blocks();
-    function_builder.finalize();
-
-    // println!("{}", func_bridge.display());
-
-    // generate the (machine/native) code of func_bridge
-    let mut codegen_context = jit_helper.module.make_context();
-    codegen_context.func = func_bridge;
-
-    jit_helper
-        .module
-        .define_function(func_bridge_id, &mut codegen_context)
-        .unwrap();
-    jit_helper.module.clear_context(&mut codegen_context);
-
-    // link
-    jit_helper.module.finalize_definitions().unwrap();
-
-    // get func_bridge ptr
-    jit_helper.module.get_finalized_function(func_bridge_id)
 }
 
 pub fn get_data<T>(
