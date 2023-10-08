@@ -551,18 +551,6 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![
-                DataEntry::from_i32(0x19171311),
-                DataEntry::from_i32(0xf0e0d0c0),
-            ],
-            vec![
-                DataEntry::from_bytes(vec![0u8; 8], 8),
-                DataEntry::from_f32(0.0f32),
-                DataEntry::from_f64(0.0f64),
-                DataEntry::from_i64(0),
-                DataEntry::from_i32(0),
-            ],
-            vec![],
             vec![DataType::F32, DataType::F64], // params
             vec![
                 DataType::I64,
@@ -581,6 +569,18 @@ mod tests {
                 LocalVariableEntry::from_i64(),
             ], // local vars
             code0,
+            vec![
+                DataEntry::from_i32(0x19171311),
+                DataEntry::from_i32(0xf0e0d0c0),
+            ],
+            vec![
+                DataEntry::from_bytes(vec![0u8; 8], 8),
+                DataEntry::from_f32(0.0f32),
+                DataEntry::from_f64(0.0f64),
+                DataEntry::from_i64(0),
+                DataEntry::from_i32(0),
+            ],
+            vec![],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);
@@ -729,18 +729,6 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![
-                DataEntry::from_i32(0x19171311),
-                DataEntry::from_i32(0xf0e0d0c0),
-            ],
-            vec![],
-            vec![
-                UninitDataEntry::from_bytes(8, 8),
-                UninitDataEntry::from_f32(),
-                UninitDataEntry::from_f64(),
-                UninitDataEntry::from_i64(),
-                UninitDataEntry::from_i32(),
-            ],
             vec![DataType::F32, DataType::F64], // params
             vec![
                 DataType::I64,
@@ -762,6 +750,18 @@ mod tests {
                 LocalVariableEntry::from_i32(),
             ], // local vars
             code0,
+            vec![
+                DataEntry::from_i32(0x19171311),
+                DataEntry::from_i32(0xf0e0d0c0),
+            ],
+            vec![],
+            vec![
+                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_f32(),
+                UninitDataEntry::from_f64(),
+                UninitDataEntry::from_i64(),
+                UninitDataEntry::from_i32(),
+            ],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);
@@ -915,12 +915,6 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![],
-            vec![],
-            vec![
-                UninitDataEntry::from_bytes(8, 8),
-                UninitDataEntry::from_bytes(8, 8),
-            ],
             vec![], // params
             vec![
                 DataType::I64,
@@ -936,6 +930,12 @@ mod tests {
             ], // results
             vec![], // local vars
             code0,
+            vec![],
+            vec![],
+            vec![
+                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_bytes(8, 8),
+            ],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);

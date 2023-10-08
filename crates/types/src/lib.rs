@@ -90,9 +90,9 @@ pub enum ForeignValue {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ExternalLibraryType {
-    User,
+    User = 0x0,
     Shared,
-    System
+    System,
 }
 
 /// sometimes you may want to get a specified type from 'dyn RuntimeError',

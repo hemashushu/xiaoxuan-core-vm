@@ -26,7 +26,7 @@ use ancvm_types::DataType;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, ModuleSectionId};
+use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct TypeSection<'a> {
@@ -345,8 +345,5 @@ mod tests {
                 results: vec![]
             }
         );
-
-        // let entries_restore = section.convert_to_entries();
-        // assert_eq!(entries, entries_restore);
     }
 }

@@ -13,7 +13,7 @@
 //  item 1 -->  | name offset 1       | name length 1       | module share type 1      |             |
 //              | ...                                                                                |
 //              |------------------------------------------------------------------------------------|
-// offset 0 --> | name string 0                                                                      | <-- data area
+// offset 0 --> | name string 0 (UTF-8)                                                              | <-- data area
 // offset 1 --> | name string 1                                                                      |
 //              | ...                                                                                |
 //              |------------------------------------------------------------------------------------|
@@ -46,7 +46,7 @@ pub struct ModuleIndexItem {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleShareType {
-    Local = 0x0,
+    User = 0x0,
     Shared,
 }
 
@@ -113,12 +113,6 @@ impl<'a> ModuleIndexSection<'a> {
             String::from_utf8(name_data.to_vec()).unwrap(),
         )
     }
-
-    // pub fn convert_to_entries(&'a self) -> Vec<ModuleIndexEntry> {
-    //     (0u32..self.items.len() as u32)
-    //         .map(|idx| self.get_entry(idx))
-    //         .collect::<Vec<ModuleIndexEntry>>()
-    // }
 
     pub fn convert_from_entries(entries: &[ModuleIndexEntry]) -> (Vec<ModuleIndexItem>, Vec<u8>) {
         let name_bytes = entries
@@ -257,8 +251,5 @@ mod tests {
             section.get_entry(1),
             ModuleIndexEntry::new(ModuleShareType::Shared, "foobar".to_string(),)
         );
-
-        // let entries_restore = section.convert_to_entries();
-        // assert_eq!(entries, entries_restore);
     }
 }

@@ -22,7 +22,7 @@
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{data_section::DataSectionType, RangeItem, SectionEntry, ModuleSectionId};
+use super::{data_section::DataSectionType, ModuleSectionId, RangeItem, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct DataIndexSection<'a> {
@@ -105,10 +105,10 @@ mod tests {
             2u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
             //
-            2, 0, 0, 0, // offset 0 (item 0)
-            3, 0, 0, 0, // count 0
-            5, 0, 0, 0, // offset 1 (item 1)
-            7, 0, 0, 0, // count 1
+            0, 0, 0, 0, // offset 0 (item 0)
+            2, 0, 0, 0, // count 0
+            2, 0, 0, 0, // offset 1 (item 1)
+            1, 0, 0, 0, // count 1
             //
             2, 0, 0, 0, // data pub index, item 0 (little endian)
             3, 0, 0, 0, // t module index
@@ -134,8 +134,8 @@ mod tests {
         let ranges = section.ranges;
 
         assert_eq!(ranges.len(), 2);
-        assert_eq!(ranges[0], RangeItem::new(2, 3,));
-        assert_eq!(ranges[1], RangeItem::new(5, 7));
+        assert_eq!(ranges[0], RangeItem::new(0, 2,));
+        assert_eq!(ranges[1], RangeItem::new(2, 1));
 
         let items = section.items;
 
@@ -161,8 +161,8 @@ mod tests {
     fn test_save_section() {
         let mut ranges: Vec<RangeItem> = Vec::new();
 
-        ranges.push(RangeItem::new(2, 3));
-        ranges.push(RangeItem::new(5, 7));
+        ranges.push(RangeItem::new(0, 2));
+        ranges.push(RangeItem::new(2, 1));
 
         let mut items: Vec<DataIndexItem> = Vec::new();
 
@@ -184,10 +184,10 @@ mod tests {
                 2u8, 0, 0, 0, // item count (little endian)
                 0, 0, 0, 0, // 4 bytes padding
                 //
-                2, 0, 0, 0, // offset 0 (item 0)
-                3, 0, 0, 0, // count 0
-                5, 0, 0, 0, // offset 1 (item 1)
-                7, 0, 0, 0, // count 1
+                0, 0, 0, 0, // offset 0 (item 0)
+                2, 0, 0, 0, // count 0
+                2, 0, 0, 0, // offset 1 (item 1)
+                1, 0, 0, 0, // count 1
                 //
                 2, 0, 0, 0, // data pub index, item 0 (little endian)
                 3, 0, 0, 0, // t module index

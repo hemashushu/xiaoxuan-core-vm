@@ -50,7 +50,7 @@ pub fn convert_from_cstring(string_ptr: *const c_char) -> Cow<'static, str> {
     unsafe { std::ffi::CStr::from_ptr(string_ptr).to_string_lossy() }
 }
 
-pub fn convert_symbol_to<T>(ptr: *mut c_void) -> T {
+pub fn transmute_symbol_to<T>(ptr: *mut c_void) -> T {
     unsafe { std::mem::transmute_copy::<*mut c_void, T>(&ptr) }
 }
 
@@ -62,7 +62,7 @@ mod tests {
 
     use crate::platform_linux::{add_null_terminated, convert_from_cstring};
 
-    use super::{convert_symbol_to, load_library, load_symbol};
+    use super::{transmute_symbol_to, load_library, load_symbol};
 
     #[test]
     fn test_load_library() {
@@ -94,19 +94,18 @@ mod tests {
         let library_ptr = load_library("libc.so.6").unwrap();
 
         let symbol0 = load_symbol(library_ptr, "getuid").unwrap();
-        let getuid: extern "C" fn() -> uid_t = convert_symbol_to(symbol0);
+        let getuid: extern "C" fn() -> uid_t = transmute_symbol_to(symbol0);
         let uid0 = getuid();
         assert!(uid0 > 0);
 
         let symbol1 = load_symbol(library_ptr, "getenv").unwrap();
-        let getenv: extern "C" fn(*const c_char) -> *mut c_char = convert_symbol_to(symbol1);
+        let getenv: extern "C" fn(*const c_char) -> *mut c_char = transmute_symbol_to(symbol1);
         let pwd0 = convert_from_cstring(getenv(add_null_terminated("PWD").as_ptr() as _));
         assert!(!pwd0.to_string().is_empty());
     }
 
     #[test]
-    #[allow(dead_code)]
-    fn test_load_local_library() {
+    fn test_load_user_library() {
         // note:
         // run 'resources/compile.sh' to build shared library 'lib-test-0' first.
 
@@ -118,11 +117,11 @@ mod tests {
         let library_ptr = load_library(lib_test_path).unwrap();
 
         let func_add_ptr = load_symbol(library_ptr, "add").unwrap();
-        let func_add: extern "C" fn(i32, i32) -> i32 = convert_symbol_to(func_add_ptr);
+        let func_add: extern "C" fn(i32, i32) -> i32 = transmute_symbol_to(func_add_ptr);
         assert_eq!(func_add(11, 13), 24);
 
         let func_mul_add_ptr = load_symbol(library_ptr, "mul_add").unwrap();
-        let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 = convert_symbol_to(func_mul_add_ptr);
+        let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 = transmute_symbol_to(func_mul_add_ptr);
         assert_eq!(func_mul_add(11, 13, 17), 160);
     }
 }

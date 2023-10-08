@@ -20,7 +20,7 @@
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, ModuleSectionId};
+use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncSection<'a> {
@@ -74,12 +74,6 @@ impl<'a> FuncSection<'a> {
             code: code_data.to_vec(),
         }
     }
-
-    // pub fn convert_to_entries(&'a self) -> Vec<FuncEntry> {
-    //     (0u32..self.items.len() as u32)
-    //         .map(|idx| self.get_entry(idx))
-    //         .collect::<Vec<FuncEntry>>()
-    // }
 
     pub fn convert_from_entries(entries: &[FuncEntry]) -> (Vec<FuncItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
@@ -230,8 +224,5 @@ mod tests {
                 code: code1
             }
         );
-
-        // let entries_restore = section.convert_to_entries();
-        // assert_eq!(entries, entries_restore);
     }
 }

@@ -4,15 +4,15 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-// "func index section" binary layout
+// "function index section" binary layout
 //
-//         |---------------------------------------------------------------|
-//         | item count (u32) | (4 bytes padding)                          |
-//         |---------------------------------------------------------------|
-// range 0 | offset 0 (u32) | count 0 (u32)                                | <-- table 0
-// range 1 | offset 1       | count 1                                      |
-//         | ...                                                           |
-//         |---------------------------------------------------------------|
+//         |--------------------------------------|
+//         | item count (u32) | (4 bytes padding) |
+//         |--------------------------------------|
+// range 0 | offset 0 (u32) | count 0 (u32)       | <-- table 0
+// range 1 | offset 1       | count 1             |
+//         | ...                                  |
+//         |--------------------------------------|
 //
 //         |------------------------------------------------------------------------------|
 //         | func public idx 0 (u32) | target mod idx 0 (u32) | func internal idx 0 (u32) | <-- table 1
@@ -22,7 +22,7 @@
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{RangeItem, SectionEntry, ModuleSectionId};
+use super::{ModuleSectionId, RangeItem, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct FuncIndexSection<'a> {
@@ -92,10 +92,10 @@ mod tests {
             2u8, 0, 0, 0, // item count (little endian)
             0, 0, 0, 0, // 4 bytes padding
             //
-            1, 0, 0, 0, // offset 0 (item 0)
+            0, 0, 0, 0, // offset 0 (item 0)
             2, 0, 0, 0, // count 0
-            3, 0, 0, 0, // offset 1 (item 1)
-            5, 0, 0, 0, // count 1
+            2, 0, 0, 0, // offset 1 (item 1)
+            1, 0, 0, 0, // count 1
             //
             1, 0, 0, 0, // func pub idx 0, item 0 (little endian)
             2, 0, 0, 0, // target module idx 0
@@ -115,8 +115,8 @@ mod tests {
         let ranges = section.ranges;
 
         assert_eq!(ranges.len(), 2);
-        assert_eq!(ranges[0], RangeItem::new(1, 2,));
-        assert_eq!(ranges[1], RangeItem::new(3, 5,));
+        assert_eq!(ranges[0], RangeItem::new(0, 2,));
+        assert_eq!(ranges[1], RangeItem::new(2, 1,));
 
         let items = section.items;
 
@@ -130,8 +130,8 @@ mod tests {
     fn test_save_section() {
         let mut ranges: Vec<RangeItem> = Vec::new();
 
-        ranges.push(RangeItem::new(1, 2));
-        ranges.push(RangeItem::new(3, 5));
+        ranges.push(RangeItem::new(0, 2));
+        ranges.push(RangeItem::new(2, 1));
 
         let mut items: Vec<FuncIndexItem> = Vec::new();
 
@@ -153,10 +153,10 @@ mod tests {
                 2u8, 0, 0, 0, // item count (little endian)
                 0, 0, 0, 0, // 4 bytes padding
                 //
-                1, 0, 0, 0, // offset 0 (item 0)
+                0, 0, 0, 0, // offset 0 (item 0)
                 2, 0, 0, 0, // count 0
-                3, 0, 0, 0, // offset 1 (item 1)
-                5, 0, 0, 0, // count 1
+                2, 0, 0, 0, // offset 1 (item 1)
+                1, 0, 0, 0, // count 1
                 //
                 1, 0, 0, 0, // func puc idx 0, item 0 (little endian)
                 2, 0, 0, 0, // target module idx 0

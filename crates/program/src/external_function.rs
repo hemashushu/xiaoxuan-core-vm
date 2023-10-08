@@ -22,7 +22,7 @@
 
 use std::ffi::c_void;
 
-use ancvm_types::{DataType, ExternalLibraryType};
+use ancvm_types::DataType;
 
 pub type WrapperFunction = extern "C" fn(
     external_function_pointer: *const c_void,
@@ -31,33 +31,33 @@ pub type WrapperFunction = extern "C" fn(
 );
 
 pub struct ExtenalFunctionTable {
-    external_function_map: Vec<ExternalFunctionMappingItem>,
-    wrapper_function_list: Vec<WrapperFunctionItem>,
-    library_pointer_list: Vec<LibraryPointerItem>,
+    // "unified external library section"  1:1
+    pub external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
+
+    // "unified external functioa section"  1:1
+    pub external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
+
+    pub wrapper_function_list: Vec<WrapperFunctionItem>,
 }
 
 impl ExtenalFunctionTable {
-    pub fn new() -> Self {
+    pub fn new(external_library_count: usize, external_function_count: usize) -> Self {
         Self {
-            external_function_map: vec![],
+            external_library_pointer_list: vec![None; external_library_count],
+            external_function_pointer_list: vec![None; external_function_count],
             wrapper_function_list: vec![],
-            library_pointer_list: vec![],
         }
     }
 }
 
-// /----------------------------------\    /---------------------------\
-// | external functioa internal index | -> | external function pointer |
-// \----------------------------------/    \---------------------------/
-pub struct ExternalFunctionMappingItem {
-    pub external_function_internal_index: usize,
-    pub external_function_pointer: *const c_void,
+#[derive(Debug, Clone)]
+pub struct UnifiedExternalFunctionPointerItem {
+    pub pointer: *const c_void,
     pub wrapper_function_index: usize,
 }
 
-pub struct LibraryPointerItem {
-    pub library_type: ExternalLibraryType,
-    pub file_path: String,
+#[derive(Debug, Clone)]
+pub struct UnifiedExternalLibraryPointerItem {
     pub pointer: *const c_void,
 }
 

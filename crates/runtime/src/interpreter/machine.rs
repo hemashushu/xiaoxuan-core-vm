@@ -276,12 +276,6 @@ mod tests {
         // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
-            vec![
-                DataEntry::from_i64(0xee), // init data
-                DataEntry::from_i32(0xff), // init data
-            ],
-            vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
             vec![], // params
             vec![
                 DataType::I64,
@@ -299,6 +293,12 @@ mod tests {
                 LocalVariableEntry::from_i32(),
             ], // local vars
             code0,
+            vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
+            vec![
+                DataEntry::from_i64(0xee), // init data
+                DataEntry::from_i32(0xff), // init data
+            ],
+            vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);
@@ -426,12 +426,6 @@ mod tests {
         // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![
-                DataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
-                DataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
-            ], // init data
-            vec![],
-            vec![],
             vec![], // params
             vec![
                 DataType::I64,
@@ -448,6 +442,12 @@ mod tests {
                 LocalVariableEntry::from_bytes(8, 8),
             ], // local vars
             code0,
+            vec![
+                DataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                DataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+            ], // init data
+            vec![],
+            vec![],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);

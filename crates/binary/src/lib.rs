@@ -9,6 +9,7 @@ use std::fmt::Display;
 use module_image::ModuleImage;
 
 pub mod module_image;
+pub mod cache_info;
 pub mod utils;
 
 #[derive(Debug)]

@@ -230,13 +230,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![],
-            vec![],
-            vec![UninitDataEntry::from_i64()],
             vec![],                             // params
             vec![DataType::I32, DataType::I64], // results
             vec![],                             // local varslist which
             code0,
+            vec![],
+            vec![],
+            vec![UninitDataEntry::from_i64()],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);

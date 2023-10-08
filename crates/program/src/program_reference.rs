@@ -22,7 +22,7 @@ use crate::{
 const EMPTY_DATA: &[u8] = &[];
 const EMPTY_DATA_ITEMS: &[DataItem] = &[];
 const EMPTY_DATA_INDEX_ITEMS: &[DataIndexItem] = &[];
-const EMPTY_DATA_INDEX_OFFSETS: &[RangeItem] = &[];
+const EMPTY_RANGE_ITEMS: &[RangeItem] = &[];
 
 pub struct ProgramReference<'a> {
     // the indices
@@ -57,7 +57,7 @@ impl<'a> ProgramReference<'a> {
             } else {
                 DataIndexSection {
                     items: EMPTY_DATA_INDEX_ITEMS,
-                    ranges: EMPTY_DATA_INDEX_OFFSETS,
+                    ranges: EMPTY_RANGE_ITEMS,
                 }
             };
 

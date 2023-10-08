@@ -21,7 +21,18 @@ pub struct ProgramContext<'a> {
 
 impl<'a> ProgramContext<'a> {
     pub fn new(program_settings: &'a ProgramSettings, module_images: Vec<ModuleImage<'a>>) -> Self {
-        let external_function_table = Arc::new(RefCell::new(ExtenalFunctionTable::new()));
+        let external_library_count = module_images[0]
+            .get_unified_external_library_section()
+            .items
+            .len();
+        let external_func_count = module_images[0]
+            .get_unified_external_func_section()
+            .items
+            .len();
+        let external_function_table = Arc::new(RefCell::new(ExtenalFunctionTable::new(
+            external_library_count,
+            external_func_count,
+        )));
 
         Self {
             program_settings,

@@ -5,12 +5,23 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 use ancvm_types::opcode::Opcode;
-use ancvm_types::DataType;
+use ancvm_types::{DataType, ExternalLibraryType};
 
 use std::io::Write;
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
+use crate::module_image::external_func_index_section::{
+    ExternalFuncIndexItem, ExternalFuncIndexSection,
+};
+use crate::module_image::external_func_section::{ExternalFuncEntry, ExternalFuncSection};
+use crate::module_image::external_library_section::{ExternalLibraryEntry, ExternalLibrarySection};
 use crate::module_image::local_variable_section::LocalVariableListEntry;
+use crate::module_image::unified_external_func_section::{
+    UnifiedExternalFuncEntry, UnifiedExternalFuncSection,
+};
+use crate::module_image::unified_external_library_section::{
+    UnifiedExternalLibraryEntry, UnifiedExternalLibrarySection,
+};
 use crate::module_image::{
     data_index_section::{DataIndexItem, DataIndexSection},
     data_section::{
@@ -21,9 +32,7 @@ use crate::module_image::{
     func_section::{FuncEntry, FuncSection},
     local_variable_section::{LocalVariableEntry, LocalVariableSection},
     type_section::{TypeEntry, TypeSection},
-    ModuleImage,
-    RangeItem,
-    SectionEntry,
+    ModuleImage, RangeItem, SectionEntry,
 };
 
 const DATA_ALIGN_BYTES: usize = 4;
@@ -283,11 +292,6 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
 
     Ok(())
 }
-
-// pub fn downcast_section_entry<'a, T>(fat: &'a dyn SectionEntry) -> &'a T {
-//     let ptr = fat as *const dyn SectionEntry as *const T;
-//     unsafe { &*ptr }
-// }
 
 impl BytecodeWriter {
     #[allow(clippy::new_without_default)]
@@ -896,6 +900,14 @@ pub struct HelperBlockEntry {
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
 }
 
+/// helper object for unit test
+pub struct HelperExternalLibraryAndFunctionEntry {
+    pub external_library_type: ExternalLibraryType,
+    pub library_name: String,
+    pub function_name: String,
+    pub type_index: usize,
+}
+
 /// helper function for unit test
 pub fn build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
@@ -904,25 +916,25 @@ pub fn build_module_binary_with_single_function(
     code: Vec<u8>,
 ) -> Vec<u8> {
     build_module_binary_with_single_function_and_data_sections(
-        vec![],
-        vec![],
-        vec![],
         param_datatypes,
         result_datatypes,
         local_variable_item_entries_without_args,
         code,
+        vec![],
+        vec![],
+        vec![],
     )
 }
 
 /// helper function for unit test
 pub fn build_module_binary_with_single_function_and_data_sections(
-    read_only_data_entries: Vec<DataEntry>,
-    read_write_data_entries: Vec<DataEntry>,
-    uninit_uninit_data_entries: Vec<UninitDataEntry>,
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
+    read_only_data_entries: Vec<DataEntry>,
+    read_write_data_entries: Vec<DataEntry>,
+    uninit_uninit_data_entries: Vec<UninitDataEntry>,
 ) -> Vec<u8> {
     let type_entry = TypeEntry {
         params: param_datatypes.clone(),
@@ -955,6 +967,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
         vec![type_entry],
         vec![func_entry],
         vec![local_var_list_entry],
+        vec![],
     )
 }
 
@@ -1068,6 +1081,46 @@ pub fn build_module_binary_with_functions_and_blocks(
         type_entries,
         func_entries,
         local_var_list_entries,
+        vec![],
+    )
+}
+
+/// helper function for unit test
+pub fn build_module_binary_with_single_function_and_external_functions(
+    type_entries: Vec<TypeEntry>,
+    type_index: usize,
+    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    code: Vec<u8>,
+    external_library_and_function_entries: Vec<HelperExternalLibraryAndFunctionEntry>,
+) -> Vec<u8> {
+    let local_variables = local_variable_item_entries_without_args.clone();
+    let params_as_variables = type_entries[type_index]
+        .params
+        .iter()
+        .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+        .collect::<Vec<_>>();
+
+    let mut variables = Vec::new();
+    variables.extend_from_slice(&local_variables);
+    variables.extend_from_slice(&params_as_variables);
+
+    let local_var_list_entry = LocalVariableListEntry { variables };
+
+    let func_entry = FuncEntry {
+        type_index,
+        local_index: 0,
+        code,
+    };
+
+    build_module_binary(
+        b"main".to_vec(),
+        vec![],
+        vec![],
+        vec![],
+        type_entries,
+        vec![func_entry],
+        vec![local_var_list_entry],
+        external_library_and_function_entries,
     )
 }
 
@@ -1080,6 +1133,7 @@ pub fn build_module_binary(
     type_entries: Vec<TypeEntry>,
     func_entries: Vec<FuncEntry>,
     local_var_list_entries: Vec<LocalVariableListEntry>,
+    external_library_and_function_entries: Vec<HelperExternalLibraryAndFunctionEntry>,
 ) -> Vec<u8> {
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
@@ -1109,7 +1163,6 @@ pub fn build_module_binary(
     };
 
     // build function section
-
     let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
     let func_section = FuncSection {
         items: &func_items,
@@ -1117,12 +1170,47 @@ pub fn build_module_binary(
     };
 
     // build local variable section
-
     let (local_var_lists, local_var_list_data) =
         LocalVariableSection::convert_from_entries(&local_var_list_entries);
     let local_var_section = LocalVariableSection {
         lists: &local_var_lists,
         list_data: &local_var_list_data,
+    };
+
+    // build external library section
+    let mut external_library_entries = external_library_and_function_entries
+        .iter()
+        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_type.clone()))
+        .collect::<Vec<_>>();
+    external_library_entries.sort_by(|left, right| left.name.cmp(&right.name));
+    external_library_entries.dedup_by(|left, right| left.name == right.name);
+    let (external_library_items, external_library_data) =
+        ExternalLibrarySection::convert_from_entries(&external_library_entries);
+    let external_library_section = ExternalLibrarySection {
+        items: &external_library_items,
+        names_data: &external_library_data,
+    };
+
+    // build external function section
+    let external_func_entries = external_library_and_function_entries
+        .iter()
+        .map(|library_and_func_entry| {
+            let library_index = external_library_entries
+                .iter()
+                .position(|library_entry| library_entry.name == library_and_func_entry.library_name)
+                .unwrap();
+            ExternalFuncEntry::new(
+                library_and_func_entry.function_name.clone(),
+                library_index,
+                library_and_func_entry.type_index,
+            )
+        })
+        .collect::<Vec<_>>();
+    let (external_func_items, external_func_data) =
+        ExternalFuncSection::convert_from_entries(&external_func_entries);
+    let external_func_section = ExternalFuncSection {
+        items: &external_func_items,
+        names_data: &external_func_data,
     };
 
     // build data index
@@ -1187,18 +1275,76 @@ pub fn build_module_binary(
         items: &func_index_items,
     };
 
+    // build unified external library section
+    let unified_external_library_entries = external_library_entries
+        .iter()
+        .map(|e| UnifiedExternalLibraryEntry {
+            name: e.name.clone(),
+            external_library_type: e.external_library_type,
+        })
+        .collect::<Vec<_>>();
+
+    let (unified_external_library_items, unified_external_library_data) =
+        UnifiedExternalLibrarySection::convert_from_entries(&unified_external_library_entries);
+    let unified_external_library_section = UnifiedExternalLibrarySection {
+        items: &unified_external_library_items,
+        names_data: &unified_external_library_data,
+    };
+
+    // build unified external function section
+    let unified_external_func_entries = external_func_entries
+        .iter()
+        .map(|e| UnifiedExternalFuncEntry {
+            name: e.name.clone(),
+            unified_external_library_index: e.external_library_index,
+        })
+        .collect::<Vec<_>>();
+
+    let (unified_external_func_items, unified_external_func_data) =
+        UnifiedExternalFuncSection::convert_from_entries(&unified_external_func_entries);
+    let unified_external_func_section = UnifiedExternalFuncSection {
+        items: &unified_external_func_items,
+        names_data: &unified_external_func_data,
+    };
+
+    // external function index section
+    let external_func_ranges: Vec<RangeItem> = vec![RangeItem {
+        offset: 0,
+        count: unified_external_func_entries.len() as u32,
+    }];
+
+    let external_func_index_items: Vec<ExternalFuncIndexItem> = (0..unified_external_func_entries
+        .len())
+        .map(|idx| {
+            let idx_u32 = idx as u32;
+            ExternalFuncIndexItem::new(idx_u32, idx_u32)
+        })
+        .collect::<Vec<_>>();
+
+    let external_func_index_section = ExternalFuncIndexSection {
+        ranges: &external_func_ranges,
+        items: &external_func_index_items,
+    };
+
     // build module image
     let section_entries: Vec<&dyn SectionEntry> = vec![
-        // &mod_index_section,
+        // index sections
         &data_index_section,
         &func_index_section,
+        &unified_external_library_section,
+        &unified_external_func_section,
+        &external_func_index_section,
+        // common sections
         &ro_data_section,
         &rw_data_section,
         &uninit_data_section,
         &type_section,
         &func_section,
         &local_var_section,
+        &external_library_section,
+        &external_func_section,
     ];
+
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
     let module_image = ModuleImage {
         name: &name,
@@ -1215,30 +1361,40 @@ pub fn build_module_binary(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
+    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, MemoryDataType};
 
     use crate::{
         load_modules_from_binaries,
         module_image::{
             data_index_section::DataIndexItem,
             data_section::{DataEntry, DataItem, DataSectionType, UninitDataEntry},
+            external_func_index_section::ExternalFuncIndexItem,
+            external_func_section::ExternalFuncEntry,
+            external_library_section::ExternalLibraryEntry,
             func_index_section::FuncIndexItem,
             func_section::FuncEntry,
             local_variable_section::{LocalVariableEntry, LocalVariableItem},
             type_section::TypeEntry,
+            unified_external_func_section::UnifiedExternalFuncEntry,
+            unified_external_library_section::UnifiedExternalLibraryEntry,
             RangeItem,
         },
         utils::{
-            build_module_binary_with_single_function_and_data_sections, BytecodeReader,
-            BytecodeWriter,
+            build_module_binary_with_single_function_and_data_sections,
+            build_module_binary_with_single_function_and_external_functions, BytecodeReader,
+            BytecodeWriter, HelperExternalLibraryAndFunctionEntry,
         },
     };
 
     use super::format_bytecodes;
 
     #[test]
-    fn test_build_single_function_module_binary_and_data_sections() {
+    fn test_build_module_binary_with_single_function_and_data_sections() {
         let binary = build_module_binary_with_single_function_and_data_sections(
+            vec![DataType::I64, DataType::I64],
+            vec![DataType::I32],
+            vec![LocalVariableEntry::from_i32()],
+            vec![0u8],
             vec![DataEntry::from_i32(0x11), DataEntry::from_i64(0x13)],
             vec![DataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
@@ -1249,20 +1405,14 @@ mod tests {
                 UninitDataEntry::from_i64(),
                 UninitDataEntry::from_i32(),
             ],
-            vec![DataType::I64, DataType::I64],
-            vec![DataType::I32],
-            vec![LocalVariableEntry::from_i32()],
-            vec![0u8],
         );
 
+        // load module
         let module_images = load_modules_from_binaries(vec![&binary]).unwrap();
-
-        // check module image
-
         assert_eq!(module_images.len(), 1);
 
+        // check module image
         let module_image = &module_images[0];
-
         assert_eq!(module_image.name, &b"main".to_vec());
 
         // check data index section
@@ -1298,7 +1448,6 @@ mod tests {
         assert_eq!(func_index_section.items, &vec![FuncIndexItem::new(0, 0, 0)]);
 
         // check data sections
-
         let ro_section = module_image.get_read_only_data_section();
         assert_eq!(
             &ro_section.items[0],
@@ -1375,6 +1524,187 @@ mod tests {
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
                 LocalVariableItem::new(16, 8, MemoryDataType::I64, 8),
             ]
+        );
+    }
+
+    #[test]
+    fn test_build_module_binary_with_functions_and_blocks() {
+        // TODO
+    }
+
+    #[test]
+    fn test_build_module_binary_with_single_function_and_external_functions() {
+        let binary = build_module_binary_with_single_function_and_external_functions(
+            vec![
+                TypeEntry {
+                    params: vec![],
+                    results: vec![],
+                },
+                TypeEntry {
+                    params: vec![DataType::I32],
+                    results: vec![],
+                },
+                TypeEntry {
+                    params: vec![DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                },
+            ],
+            0,
+            vec![],
+            vec![0u8],
+            vec![
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::System,
+                    library_name: "libc.so".to_string(),
+                    function_name: "getuid".to_string(),
+                    type_index: 1,
+                },
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::System,
+                    library_name: "libc.so".to_string(),
+                    function_name: "getenv".to_string(),
+                    type_index: 2,
+                },
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::Shared,
+                    library_name: "libmagic.so".to_string(),
+                    function_name: "magic_open".to_string(), // magic_load
+                    type_index: 2,
+                },
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::User,
+                    library_name: "libz.so".to_string(),
+                    function_name: "inflate".to_string(), // inflateInit/inflateEnd
+                    type_index: 1,
+                },
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::System,
+                    library_name: "libc.so".to_string(),
+                    function_name: "fopen".to_string(),
+                    type_index: 0,
+                },
+                HelperExternalLibraryAndFunctionEntry {
+                    external_library_type: ExternalLibraryType::Shared,
+                    library_name: "libmagic.so".to_string(),
+                    function_name: "magic_file".to_string(), // magic_close
+                    type_index: 2,
+                },
+            ],
+        );
+
+        // load module
+        let module_images = load_modules_from_binaries(vec![&binary]).unwrap();
+        assert_eq!(module_images.len(), 1);
+
+        let module_image = &module_images[0];
+
+        // check unified external library section
+        let unified_external_library_section = module_image.get_unified_external_library_section();
+        assert_eq!(
+            unified_external_library_section.get_entry(0),
+            UnifiedExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
+        );
+        assert_eq!(
+            unified_external_library_section.get_entry(1),
+            UnifiedExternalLibraryEntry::new(
+                "libmagic.so".to_string(),
+                ExternalLibraryType::Shared
+            )
+        );
+        assert_eq!(
+            unified_external_library_section.get_entry(2),
+            UnifiedExternalLibraryEntry::new("libz.so".to_string(), ExternalLibraryType::User)
+        );
+
+        // check unified external function section
+        let unified_external_func_section = module_image.get_unified_external_func_section();
+        assert_eq!(
+            unified_external_func_section.get_entry(0),
+            UnifiedExternalFuncEntry::new("getuid".to_string(), 0)
+        );
+        assert_eq!(
+            unified_external_func_section.get_entry(1),
+            UnifiedExternalFuncEntry::new("getenv".to_string(), 0)
+        );
+        assert_eq!(
+            unified_external_func_section.get_entry(2),
+            UnifiedExternalFuncEntry::new("magic_open".to_string(), 1)
+        );
+        assert_eq!(
+            unified_external_func_section.get_entry(3),
+            UnifiedExternalFuncEntry::new("inflate".to_string(), 2)
+        );
+        assert_eq!(
+            unified_external_func_section.get_entry(4),
+            UnifiedExternalFuncEntry::new("fopen".to_string(), 0)
+        );
+        assert_eq!(
+            unified_external_func_section.get_entry(5),
+            UnifiedExternalFuncEntry::new("magic_file".to_string(), 1)
+        );
+
+        // check external function index section
+        let external_func_index_section = module_image.get_external_func_index_section();
+        assert_eq!(external_func_index_section.ranges.len(), 1);
+        assert_eq!(external_func_index_section.items.len(), 6);
+
+        assert_eq!(
+            &external_func_index_section.ranges[0],
+            &RangeItem::new(0, 6)
+        );
+
+        assert_eq!(
+            external_func_index_section.items,
+            &vec![
+                ExternalFuncIndexItem::new(0, 0),
+                ExternalFuncIndexItem::new(1, 1),
+                ExternalFuncIndexItem::new(2, 2),
+                ExternalFuncIndexItem::new(3, 3),
+                ExternalFuncIndexItem::new(4, 4),
+                ExternalFuncIndexItem::new(5, 5),
+            ]
+        );
+
+        // check external library sections
+        let external_library_section = module_image.get_external_library_section();
+        assert_eq!(
+            external_library_section.get_entry(0),
+            ExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
+        );
+        assert_eq!(
+            external_library_section.get_entry(1),
+            ExternalLibraryEntry::new("libmagic.so".to_string(), ExternalLibraryType::Shared)
+        );
+        assert_eq!(
+            external_library_section.get_entry(2),
+            ExternalLibraryEntry::new("libz.so".to_string(), ExternalLibraryType::User)
+        );
+
+        // check external function section
+        let external_func_section = module_image.get_external_func_section();
+        assert_eq!(
+            external_func_section.get_entry(0),
+            ExternalFuncEntry::new("getuid".to_string(), 0, 1)
+        );
+        assert_eq!(
+            external_func_section.get_entry(1),
+            ExternalFuncEntry::new("getenv".to_string(), 0, 2)
+        );
+        assert_eq!(
+            external_func_section.get_entry(2),
+            ExternalFuncEntry::new("magic_open".to_string(), 1, 2)
+        );
+        assert_eq!(
+            external_func_section.get_entry(3),
+            ExternalFuncEntry::new("inflate".to_string(), 2, 1)
+        );
+        assert_eq!(
+            external_func_section.get_entry(4),
+            ExternalFuncEntry::new("fopen".to_string(), 0, 0)
+        );
+        assert_eq!(
+            external_func_section.get_entry(5),
+            ExternalFuncEntry::new("magic_file".to_string(), 1, 2)
         );
     }
 
@@ -1476,7 +1806,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytecode_writer_pesudo() {
+    fn test_bytecode_writer_with_pesudo_instructions() {
         // pesudo f32
         let code0 = BytecodeWriter::new()
             .write_opcode_pesudo_f32(Opcode::f32_imm, 3.1415927)
@@ -1524,7 +1854,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytecode_writer_padding() {
+    fn test_bytecode_writer_with_instructions_padding() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
             .write_opcode_i16(Opcode::heap_load, 0x2)
@@ -1588,7 +1918,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bytecode_print() {
+    fn test_format_bytecodes() {
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::i32_add)
             .write_opcode_i16(Opcode::heap_load, 0x2)

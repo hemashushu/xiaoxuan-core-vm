@@ -60,6 +60,10 @@ mod tests {
     #[test]
     fn test_in_memory_program() {
         let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![DataType::I32, DataType::I32],
+            vec![DataType::I64],
+            vec![LocalVariableEntry::from_i32()],
+            vec![0u8],
             vec![DataEntry::from_i32(0x11), DataEntry::from_i64(0x13)],
             vec![DataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
@@ -70,10 +74,6 @@ mod tests {
                 UninitDataEntry::from_i64(),
                 UninitDataEntry::from_i32(),
             ],
-            vec![DataType::I32, DataType::I32],
-            vec![DataType::I64],
-            vec![LocalVariableEntry::from_i32()],
-            vec![0u8],
         );
 
         let program0 = InMemoryProgram::new(vec![binary0]);

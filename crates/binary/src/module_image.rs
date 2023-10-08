@@ -77,10 +77,15 @@
 
 pub mod data_index_section;
 pub mod data_section;
+pub mod external_func_index_section;
+pub mod external_func_section;
+pub mod external_library_section;
 pub mod func_index_section;
 pub mod func_section;
 pub mod local_variable_section;
 pub mod type_section;
+pub mod unified_external_func_section;
+pub mod unified_external_library_section;
 
 use crate::{
     module_image::data_index_section::DataIndexSection,
@@ -93,28 +98,37 @@ use crate::{
 
 use self::{
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
+    external_func_index_section::ExternalFuncIndexSection,
+    external_func_section::ExternalFuncSection,
+    external_library_section::ExternalLibrarySection,
     local_variable_section::LocalVariableSection,
+    unified_external_func_section::UnifiedExternalFuncSection,
+    unified_external_library_section::UnifiedExternalLibrarySection,
 };
 
 // the "module image file" binary layout:
 //
+//                 header
 //              |--------------------------------------------------------------------------|
 //              | magic number (u64) | minor ver (u16) | major ver (u16) | padding 4 bytes | 16 bytes
 //              |--------------------------------------------------------------------------|
-//              | name length (u16) | module name (256 - 2) bytes                          | 256 bytes
+//              | name length (u16) | module name (256 - 2) bytes (UTF-8)                  | 256 bytes
 //              |--------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                     | 8 bytes
-//              |--------------------------------------------------------------------------|
-//   item 0 --> | section id 0 (u32) | offset 0 (u32) | length 0 (u32)                     | <-- table
-//   item 1 --> | section id 1       | offset 1       | length 1                           |
-//              | ...                                                                      |
-//              |--------------------------------------------------------------------------|
-// offset 0 --> | section data 0                                                           | <-- data
-// offset 1 --> | section data 1                                                           |
-//              | ...                                                                      |
-//              |--------------------------------------------------------------------------|
+//
+//                 body
+//              |------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                 | 8 bytes
+//              |------------------------------------------------------|
+//   item 0 --> | section id 0 (u32) | offset 0 (u32) | length 0 (u32) | <-- table
+//   item 1 --> | section id 1       | offset 1       | length 1       |
+//              | ...                                                  |
+//              |------------------------------------------------------|
+// offset 0 --> | section data 0                                       | <-- data
+// offset 1 --> | section data 1                                       |
+//              | ...                                                  |
+//              |------------------------------------------------------|
 
-const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // for "ANCS module"
+const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
 const IMAGE_MAJOR_VERSION: u16 = 1;
 const IMAGE_MINOR_VERSION: u16 = 0;
 
@@ -154,19 +168,16 @@ pub enum ModuleSectionId {
     ImportFunc,        // 0x31
     ExportData,        // 0x32
     ExportFunc,        // 0x33
-    ExternalFunc,      // 0x34
-    AutoFunc,          // 0x35
+    ExternalLibrary,   // 0x34
+    ExternalFunc,      // 0x35
+    AutoFunc,          // 0x36
     //
-    DataIndex = 0x40,  // 0x40
-    FuncIndex,         // 0x41
-    ExternalFuncIndex, // 0x42
+    DataIndex = 0x40,       // 0x40
+    FuncIndex,              // 0x41
+    UnifiedExternalLibrary, // 0x42
+    UnifiedExternalFunc,    // 0x43
+    ExternalFuncIndex,      // 0x44 (mapping ext-func to uni-ext-func)
 }
-
-// impl From<u32> for SectionId {
-//     fn from(value: u32) -> Self {
-//         unsafe { std::mem::transmute::<u32, SectionId>(value) }
-//     }
-// }
 
 // use for data index section and function index section
 //
@@ -203,6 +214,16 @@ impl RangeItem {
 }
 
 pub trait SectionEntry<'a> {
+    // there is a way to 'downcast' a section entry to section object, e.g.
+    //
+    // ```rust
+    // fn downcast_section_entry<'a, T>(entry: &'a dyn SectionEntry) -> &'a T {
+    //     /* the 'entry' is a fat pointer, it contains (object_pointer, vtable) */
+    //     let ptr = entry as *const dyn SectionEntry as *const T; /* get the first part of the fat pointer */
+    //     unsafe { &*ptr }
+    // }
+    // ```
+
     fn id(&'a self) -> ModuleSectionId;
     fn load(section_data: &'a [u8]) -> Self
     where
@@ -334,21 +355,12 @@ impl<'a> ModuleImage<'a> {
         })
     }
 
-    // pub fn get_module_index_section(&'a self) -> ModuleIndexSection<'a> {
-    //     let opt_section_data = self.get_section_data_by_id(SectionId::ModuleIndex);
-    //     if let Some(section_data) = opt_section_data {
-    //         ModuleIndexSection::load(section_data)
-    //     } else {
-    //         panic!("Can not found the module index section.")
-    //     }
-    // }
-
     pub fn get_data_index_section(&'a self) -> DataIndexSection<'a> {
         let opt_section_data = self.get_section_data_by_id(ModuleSectionId::DataIndex);
         if let Some(section_data) = opt_section_data {
             DataIndexSection::load(section_data)
         } else {
-            panic!("Can not found the data index section.")
+            panic!("Can not find the data index section.")
         }
     }
 
@@ -357,7 +369,34 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             FuncIndexSection::load(section_data)
         } else {
-            panic!("Can not found the function index section.")
+            panic!("Can not find the function index section.")
+        }
+    }
+
+    pub fn get_unified_external_library_section(&'a self) -> UnifiedExternalLibrarySection<'a> {
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UnifiedExternalLibrary);
+        if let Some(section_data) = opt_section_data {
+            UnifiedExternalLibrarySection::load(section_data)
+        } else {
+            panic!("Can not find the unified external library section.")
+        }
+    }
+
+    pub fn get_unified_external_func_section(&'a self) -> UnifiedExternalFuncSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunc);
+        if let Some(section_data) = opt_section_data {
+            UnifiedExternalFuncSection::load(section_data)
+        } else {
+            panic!("Can not find the unified external function section.")
+        }
+    }
+
+    pub fn get_external_func_index_section(&'a self) -> ExternalFuncIndexSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex);
+        if let Some(section_data) = opt_section_data {
+            ExternalFuncIndexSection::load(section_data)
+        } else {
+            panic!("Can not find the external function index section.")
         }
     }
 
@@ -366,7 +405,7 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             ReadOnlyDataSection::load(section_data)
         } else {
-            panic!("Can not found the read-only data section.")
+            panic!("Can not find the read-only data section.")
         }
     }
 
@@ -375,7 +414,7 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             ReadWriteDataSection::load(section_data)
         } else {
-            panic!("Can not found the read-write data section.")
+            panic!("Can not find the read-write data section.")
         }
     }
 
@@ -384,7 +423,7 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             UninitDataSection::load(section_data)
         } else {
-            panic!("Can not found the uninitialized data section.")
+            panic!("Can not find the uninitialized data section.")
         }
     }
 
@@ -393,7 +432,7 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             TypeSection::load(section_data)
         } else {
-            panic!("Can not found the type section.")
+            panic!("Can not find the type section.")
         }
     }
 
@@ -402,7 +441,7 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             FuncSection::load(section_data)
         } else {
-            panic!("Can not found the function section.")
+            panic!("Can not find the function section.")
         }
     }
 
@@ -411,7 +450,25 @@ impl<'a> ModuleImage<'a> {
         if let Some(section_data) = opt_section_data {
             LocalVariableSection::load(section_data)
         } else {
-            panic!("Can not found the local variable section.")
+            panic!("Can not find the local variable section.")
+        }
+    }
+
+    pub fn get_external_library_section(&'a self) -> ExternalLibrarySection<'a> {
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalLibrary);
+        if let Some(section_data) = opt_section_data {
+            ExternalLibrarySection::load(section_data)
+        } else {
+            panic!("Can not find the external library section.")
+        }
+    }
+
+    pub fn get_external_func_section(&'a self) -> ExternalFuncSection<'a> {
+        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalFunc);
+        if let Some(section_data) = opt_section_data {
+            ExternalFuncSection::load(section_data)
+        } else {
+            panic!("Can not find the external function section.")
         }
     }
 }
@@ -433,12 +490,7 @@ mod tests {
     };
 
     #[test]
-    fn test_module_data_sections() {
-        // TODO::
-    }
-
-    #[test]
-    fn test_module_function_sections() {
+    fn test_module_common_sections() {
         // build TypeSection instance
 
         let mut type_entries: Vec<TypeEntry> = Vec::new();
