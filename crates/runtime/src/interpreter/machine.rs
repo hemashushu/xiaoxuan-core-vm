@@ -6,7 +6,7 @@
 
 //! it is currently assumed that the target architecture is 64-bit.
 
-use ancvm_thread::{memory::Memory, thread_context::ThreadContext};
+use ancvm_program::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
@@ -127,11 +127,9 @@ mod tests {
         },
     };
 
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
+    use ancvm_program::program::Program;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
 
     #[test]
     fn test_process_machine() {

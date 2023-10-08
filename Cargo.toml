@@ -4,7 +4,7 @@ members = [
     "crates/binary",
     "crates/syscall_util",
     "crates/extcall_util",
-    "crates/thread",
+    "crates/program",
     "crates/runtime",
     "crates/ancsr",
 ]

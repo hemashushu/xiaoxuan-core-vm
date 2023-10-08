@@ -10,7 +10,7 @@ ancvm_types = { path = "../types" }
 ancvm_binary = { path = "../binary" }
 ancvm_syscall_util = { path = "../syscall_util" }
 ancvm_extcall_util = { path = "../extcall_util" }
-ancvm_thread = { path = "../thread" }
+ancvm_program = { path = "../program" }
 
 cranelift-codegen = "0.100.0"
 cranelift-frontend = "0.100.0"

@@ -6,8 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# ancvm_types = { path = "../types" }
-# ancvm_thread = { path = "../thread" }
 libc = "0.2"
 # windows-sys = "0.48.0"
-# winapi = "0.3.9"

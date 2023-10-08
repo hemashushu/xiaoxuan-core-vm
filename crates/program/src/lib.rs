@@ -5,15 +5,18 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 pub mod datas;
-pub mod program_reference;
-
 pub mod heap;
 pub mod indexed_memory;
 pub mod memory;
+pub mod program_reference;
+pub mod program_settings;
 pub mod resizeable_memory;
 pub mod stack;
 pub mod thread_context;
 pub mod type_memory;
+pub mod external_function;
+pub mod program_context;
+pub mod program;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 32 * 1024;
 pub const STACK_FRAME_SIZE_IN_PAGES: usize = 1;

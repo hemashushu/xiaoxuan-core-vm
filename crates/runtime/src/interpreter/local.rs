@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::{memory::Memory, thread_context::ThreadContext};
+use ancvm_program::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
@@ -538,11 +538,9 @@ mod tests {
         utils::{build_module_binary_with_single_function, BytecodeWriter},
     };
 
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
+    use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
 
     #[test]
     fn test_process_local_load_store() {

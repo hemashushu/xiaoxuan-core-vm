@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread_context::{ProgramCounter, ThreadContext};
+use ancvm_program::thread_context::{ProgramCounter, ThreadContext};
 
 use super::InterpretResult;
 
@@ -47,7 +47,7 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_ref.modules[module_index];
+    let module = &thread_context.program_reference.modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
@@ -74,7 +74,7 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_ref.modules[module_index];
+    let module = &thread_context.program_reference.modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
@@ -110,7 +110,7 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
             function_internal_index: _,
             module_index,
         } = thread_context.pc;
-        let module = &thread_context.program_ref.modules[module_index];
+        let module = &thread_context.program_reference.modules[module_index];
         let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes = module.local_variable_section.lists
             [local_variables_list_index as usize]
@@ -208,7 +208,7 @@ fn do_recur(
             function_internal_index,
             module_index,
         } = thread_context.pc;
-        let func_item = &thread_context.program_ref.modules[module_index]
+        let func_item = &thread_context.program_reference.modules[module_index]
             .func_section
             .items[function_internal_index];
         let relate_offset = func_item.code_offset as isize - instruction_address as isize;
@@ -252,7 +252,7 @@ fn do_call(
                 target_function_internal_index,
             );
 
-    let type_item = &thread_context.program_ref.modules[target_module_index]
+    let type_item = &thread_context.program_reference.modules[target_module_index]
         .type_section
         .items[type_index];
 
@@ -293,11 +293,9 @@ mod tests {
         },
     };
 
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
+    use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
 
     #[test]
     fn test_process_control_block() {

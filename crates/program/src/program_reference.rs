@@ -34,7 +34,7 @@ pub struct ProgramReference<'a> {
 }
 
 pub struct Module<'a> {
-    pub name: &'a [u8],
+    pub name: &'a str,
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
@@ -113,7 +113,7 @@ impl<'a> Module<'a> {
         let local_variable_section = module_image.get_local_variable_section();
 
         Self {
-            name: module_image.name,
+            name: std::str::from_utf8(module_image.name).unwrap(),
             datas: [
                 Box::new(read_only_data),
                 Box::new(read_write_data),

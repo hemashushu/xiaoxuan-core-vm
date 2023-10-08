@@ -13,9 +13,14 @@
 //                                   |                        |
 //                                   | external func list     |
 //                                   | |--------------------| |
-//  XiaoXuan core application        | | idx | lib  | name  | |
-// /------------------------\   /--> | | 0   | ".." | ".."  | | --\
-// |                        |   |    | |--------------------| |   |
+//                                   | | idx | lib  | name  | |
+//                              /--> | | 0   | ".." | ".."  | |
+//                              |    | |--------------------| |
+//                              |    |                        |
+//                              |    | wrapper func code 0    |
+//  XiaoXuan core application   |    | 0x0000 0xb8, 0x34,     |
+// /------------------------\   |    | 0x000a 0x12, 0x00...   | --\
+// |                        |   |    |                        |   |
 // | fn $demo () -> ()      |   |    |                        |   |
 // |   extcall do_something | --/    | callback func table    |   |
 // | end                    |        | |--------------------| |   |
@@ -24,17 +29,17 @@
 // |   ...                  |        | | ...     | ...      | |   \--> | void do_something (  |
 // | end                    |        | |--------------------| |        |     void* () cb) {   |
 // |                        |        |                        |        |     ...              |
-// \------------------------/        | callback func code 0   | <----- |     (cb)(11, 13)     |
+// \------------------------/        | bridge func code 0     | <----- |     (cb)(11, 13)     |
 //                                   | 0x0000 0xb8, 0x34,     |        | }                    |
-//                                   | 0x0000 0x12, 0x00...   |        |                      |
+//                                   | 0x000a 0x12, 0x00...   |        |                      |
 //                                   |                        |        \----------------------/
-//                                   | callback func code 1   |
+//                                   | bridge func code 1     |
 //                                   | ...                    |
 //                                   |                        |
 //                                   \------------------------/
 //
 
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 
 use crate::{
     interpreter::process_callback_function_call, jit_util::build_host_to_vm_delegate_function,
@@ -54,11 +59,11 @@ fn get_callback_function<T>(
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&callback_function_ptr) });
     }
 
-    let type_index = thread_context.program_ref.modules[target_module_index]
+    let type_index = thread_context.program_reference.modules[target_module_index]
         .func_section
         .items[function_internal_index]
         .type_index;
-    let (params, results) = thread_context.program_ref.modules[target_module_index]
+    let (params, results) = thread_context.program_reference.modules[target_module_index]
         .type_section
         .get_params_and_results_list(type_index as usize);
 

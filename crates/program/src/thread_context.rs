@@ -4,11 +4,14 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use std::{cell::RefCell, sync::Arc};
+
 use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
-    heap::Heap, indexed_memory::IndexedMemory, program_reference::ProgramReference, stack::Stack,
+    external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
+    program_reference::ProgramReference, program_settings::ProgramSettings, stack::Stack,
     INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
@@ -106,11 +109,12 @@ pub struct ThreadContext<'a> {
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
-    // external_function_table
-    pub callback_function_table: Vec<DelegateModuleItem>,
     pub bridge_function_table: Vec<DelegateModuleItem>,
+    pub callback_function_table: Vec<DelegateModuleItem>,
+    pub external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
 
-    pub program_ref: ProgramReference<'a>,
+    pub program_reference: ProgramReference<'a>,
+    pub program_settings: &'a ProgramSettings,
 }
 
 /// unlike the ELF and Linux runting environment, which all data and code of execuatable binary
@@ -148,7 +152,11 @@ pub struct DelegateFunctionItem {
 }
 
 impl<'a> ThreadContext<'a> {
-    pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
+    pub fn new(
+        external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
+        program_settings: &'a ProgramSettings,
+        module_images: &'a [ModuleImage<'a>],
+    ) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_PAGES);
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
 
@@ -158,15 +166,17 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let program_ref = ProgramReference::new(module_images);
+        let program_reference = ProgramReference::new(module_images);
 
         Self {
             stack,
             heap,
             pc,
-            callback_function_table: vec![],
             bridge_function_table: vec![],
-            program_ref,
+            callback_function_table: vec![],
+            external_function_table,
+            program_reference,
+            program_settings,
         }
     }
 
@@ -231,12 +241,12 @@ impl<'a> ThreadContext<'a> {
     ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
-        let range = &self.program_ref.data_index_section.ranges[module_index];
-        let data_index_item =
-            &self.program_ref.data_index_section.items[range.offset as usize + data_public_index];
+        let range = &self.program_reference.data_index_section.ranges[module_index];
+        let data_index_item = &self.program_reference.data_index_section.items
+            [range.offset as usize + data_public_index];
 
         let target_module_index = data_index_item.target_module_index as usize;
-        let target_module = &mut self.program_ref.modules[target_module_index];
+        let target_module = &mut self.program_reference.modules[target_module_index];
         let data_internal_index = data_index_item.data_internal_index as usize;
         let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
 
@@ -250,8 +260,8 @@ impl<'a> ThreadContext<'a> {
         module_index: usize,
         function_public_index: usize,
     ) -> (usize, usize) {
-        let range_item = &self.program_ref.func_index_section.ranges[module_index];
-        let func_index_items = &self.program_ref.func_index_section.items
+        let range_item = &self.program_reference.func_index_section.ranges[module_index];
+        let func_index_items = &self.program_reference.func_index_section.items
             [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
         let func_index_item = &func_index_items[function_public_index];
 
@@ -267,14 +277,15 @@ impl<'a> ThreadContext<'a> {
         module_index: usize,
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
-        let func_item =
-            &self.program_ref.modules[module_index].func_section.items[function_internal_index];
+        let func_item = &self.program_reference.modules[module_index]
+            .func_section
+            .items[function_internal_index];
 
         let type_index = func_item.type_index as usize;
         let local_index = func_item.local_index as usize;
         let code_offset = func_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.program_ref.modules[module_index]
+        let local_variables_allocate_bytes = self.program_reference.modules[module_index]
             .local_variable_section
             .lists[local_index]
             .list_allocate_bytes;
@@ -308,7 +319,7 @@ impl<'a> ThreadContext<'a> {
             )
         };
 
-        let variable_item = &self.program_ref.modules[module_index]
+        let variable_item = &self.program_reference.modules[module_index]
             .local_variable_section
             .get_variable_list(list_index as usize)[local_variable_index];
 
@@ -463,7 +474,7 @@ impl<'a> ThreadContext<'a> {
             module_index,
         } = self.pc;
 
-        let codes_data = self.program_ref.modules[module_index]
+        let codes_data = self.program_reference.modules[module_index]
             .func_section
             .codes_data;
         let dst = instruction_address + offset;

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 
 use crate::{
     interpreter::process_bridge_function_call, jit_util::build_host_to_vm_delegate_function,
@@ -143,11 +143,11 @@ pub fn get_function<T>(
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&bridge_function_ptr) });
     }
 
-    let type_index = thread_context.program_ref.modules[target_module_index]
+    let type_index = thread_context.program_reference.modules[target_module_index]
         .func_section
         .items[function_internal_index]
         .type_index;
-    let (params, results) = thread_context.program_ref.modules[target_module_index]
+    let (params, results) = thread_context.program_reference.modules[target_module_index]
         .type_section
         .get_params_and_results_list(type_index as usize);
 
@@ -188,9 +188,10 @@ pub fn get_data<T>(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType};
 
-    use crate::{in_memory_program::InMemoryProgram, program::Program};
+    use crate::in_memory_program::InMemoryProgram;
 
     use super::get_function;
 

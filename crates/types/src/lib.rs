@@ -87,6 +87,14 @@ pub enum ForeignValue {
     Float64(f64),
 }
 
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ExternalLibraryType {
+    User,
+    Shared,
+    System
+}
+
 /// sometimes you may want to get a specified type from 'dyn RuntimeError',
 /// there is a way to downcast the 'dyn RuntimeError' object to a specified type, e.g.
 ///

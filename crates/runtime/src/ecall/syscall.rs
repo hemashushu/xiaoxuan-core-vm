@@ -8,7 +8,7 @@ use ancvm_syscall_util::call::{
     syscall_with_1_arg, syscall_with_2_args, syscall_with_3_args, syscall_with_4_args,
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 
 type SysCallHandlerFunc = fn(&mut ThreadContext, usize) -> Result<usize, usize>;
 
@@ -144,11 +144,10 @@ fn handle_syscall_with_6_args(
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
+    use ancvm_program::program::Program;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
 
     #[test]
     fn test_syscall_handler_without_args() {

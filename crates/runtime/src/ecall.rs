@@ -5,7 +5,7 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 use ancvm_binary::utils::format_bytecodes;
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 use ancvm_types::ecallcode::{ECallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
@@ -22,10 +22,10 @@ type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
 fn unreachable(thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
-    let func_item = &thread_context.program_ref.modules[pc.module_index]
+    let func_item = &thread_context.program_reference.modules[pc.module_index]
         .func_section
         .items[pc.function_internal_index];
-    let codes = &thread_context.program_ref.modules[pc.module_index]
+    let codes = &thread_context.program_reference.modules[pc.module_index]
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
@@ -93,11 +93,12 @@ mod tests {
             build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
         },
     };
+    use ancvm_program::program::Program;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        in_memory_program::InMemoryProgram, interpreter::process_function, RUNTIME_CODE_NAME,
+        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     #[test]

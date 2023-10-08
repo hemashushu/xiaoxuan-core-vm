@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
@@ -74,12 +74,10 @@ pub fn f64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
 
 #[cfg(test)]
 mod tests {
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
 
     #[test]
     fn test_process_operand_zero() {
@@ -106,7 +104,8 @@ mod tests {
         let program_context0 = program0.build_program_context().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(233)]);
+        let result0 =
+            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(233)]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(233), ForeignValue::UInt32(0)]

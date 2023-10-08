@@ -5,10 +5,14 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 use ancvm_binary::load_modules_from_binaries;
+use ancvm_program::{
+    program::Program, program_context::ProgramContext, program_settings::ProgramSettings,
+};
 
-use crate::{interpreter::init_interpreters, program::Program, program_context::ProgramContext};
+use crate::interpreter::init_interpreters;
 
 pub struct InMemoryProgram {
+    program_settings: ProgramSettings,
     module_binaries: Vec<Vec<u8>>,
 }
 
@@ -17,7 +21,10 @@ impl InMemoryProgram {
         // initialize interpreters
         init_interpreters();
 
-        Self { module_binaries }
+        Self {
+            module_binaries,
+            program_settings: ProgramSettings::default(),
+        }
     }
 }
 
@@ -29,7 +36,7 @@ impl Program for InMemoryProgram {
             .map(|e| &e[..])
             .collect::<Vec<_>>();
         let module_images = load_modules_from_binaries(binaries_ref)?;
-        Ok(ProgramContext::new(module_images))
+        Ok(ProgramContext::new(&self.program_settings, module_images))
     }
 }
 
@@ -42,13 +49,13 @@ mod tests {
         },
         utils::build_module_binary_with_single_function_and_data_sections,
     };
-    use ancvm_thread::{
-        resizeable_memory::ResizeableMemory, thread_context::ProgramCounter,
+    use ancvm_program::{
+        program::Program, resizeable_memory::ResizeableMemory, thread_context::ProgramCounter,
         INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
     };
     use ancvm_types::DataType;
 
-    use crate::{in_memory_program::InMemoryProgram, program::Program};
+    use crate::in_memory_program::InMemoryProgram;
 
     #[test]
     fn test_in_memory_program() {
@@ -73,7 +80,7 @@ mod tests {
         let program_context0 = program0.build_program_context().unwrap();
         let thread_context0 = program_context0.new_thread_context();
 
-        let program_ref = &thread_context0.program_ref;
+        let program_ref = &thread_context0.program_reference;
 
         // check index sections
         assert_eq!(program_ref.data_index_section.ranges.len(), 1);

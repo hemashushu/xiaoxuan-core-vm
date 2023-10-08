@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_thread::thread_context::ThreadContext;
+use ancvm_program::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
@@ -218,12 +218,10 @@ fn store_i64_u(thread_context: &mut ThreadContext, v: u64) {
 
 #[cfg(test)]
 mod tests {
+    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, program::Program,
-    };
 
     #[test]
     fn test_process_bitwise_i32() {
