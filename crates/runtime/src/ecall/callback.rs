@@ -39,11 +39,9 @@
 //                                   \------------------------/
 //
 
-use ancvm_program::thread_context::ThreadContext;
+use ancvm_program::{thread_context::ThreadContext, jit_util::build_host_to_vm_function};
 
-use crate::{
-    interpreter::process_callback_function_call, jit_util::build_host_to_vm_delegate_function,
-};
+use crate::interpreter::process_callback_function_call;
 
 fn get_callback_function<T>(
     thread_context: &mut ThreadContext,
@@ -73,7 +71,7 @@ fn get_callback_function<T>(
 
     let delegate_function_addr = process_callback_function_call as *const u8 as usize;
     let thread_context_addr = thread_context as *const ThreadContext as *const u8 as usize;
-    let callback_function_ptr = build_host_to_vm_delegate_function(
+    let callback_function_ptr = build_host_to_vm_function(
         delegate_function_addr,
         thread_context_addr,
         target_module_index,

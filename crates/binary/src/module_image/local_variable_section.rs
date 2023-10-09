@@ -44,7 +44,7 @@ use ancvm_types::{DataType, MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
-use super::{SectionEntry, ModuleSectionId};
+use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct LocalVariableSection<'a> {
@@ -316,11 +316,12 @@ mod tests {
     use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
-        local_variable_section::{LocalVariableItem, LocalVariableList, LocalVariableListEntry},
+        local_variable_section::{
+            LocalVariableEntry, LocalVariableItem, LocalVariableList, LocalVariableListEntry,
+            LocalVariableSection,
+        },
         SectionEntry,
     };
-
-    use super::{LocalVariableEntry, LocalVariableSection};
 
     #[test]
     fn test_save_section() {

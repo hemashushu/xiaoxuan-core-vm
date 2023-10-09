@@ -15,7 +15,6 @@ pub mod ecall;
 pub mod bridge;
 pub mod in_memory_program;
 pub mod interpreter;
-pub mod jit_util;
 
 const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 

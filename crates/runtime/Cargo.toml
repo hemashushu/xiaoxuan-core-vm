@@ -9,11 +9,5 @@ edition = "2021"
 ancvm_types = { path = "../types" }
 ancvm_binary = { path = "../binary" }
 ancvm_syscall_util = { path = "../syscall_util" }
-ancvm_extcall_util = { path = "../extcall_util" }
+ancvm_extfunc_util = { path = "../extfunc_util" }
 ancvm_program = { path = "../program" }
-
-cranelift-codegen = "0.100.0"
-cranelift-frontend = "0.100.0"
-cranelift-module = "0.100.0"
-cranelift-jit = "0.100.0"
-cranelift-native = "0.100.0"

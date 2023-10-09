@@ -4,11 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use ancvm_program::thread_context::ThreadContext;
+use ancvm_program::{jit_util::build_host_to_vm_function, thread_context::ThreadContext};
 
-use crate::{
-    interpreter::process_bridge_function_call, jit_util::build_host_to_vm_delegate_function,
-};
+use crate::interpreter::process_bridge_function_call;
 
 // about the briage function:
 //
@@ -152,12 +150,12 @@ pub fn get_function<T>(
         .get_params_and_results_list(type_index as usize);
 
     if results.len() > 1 {
-        return Err("The number of return values of the specified function is more than 1.");
+        return Err("Only functions with one return value are allowed.");
     }
 
     let delegate_function_addr = process_bridge_function_call as *const u8 as usize;
     let thread_context_addr = thread_context as *const ThreadContext as *const u8 as usize;
-    let bridge_function_ptr = build_host_to_vm_delegate_function(
+    let bridge_function_ptr = build_host_to_vm_function(
         delegate_function_addr,
         thread_context_addr,
         target_module_index,
@@ -191,9 +189,7 @@ mod tests {
     use ancvm_program::program::Program;
     use ancvm_types::{opcode::Opcode, DataType};
 
-    use crate::in_memory_program::InMemoryProgram;
-
-    use super::get_function;
+    use crate::{bridge::get_function, in_memory_program::InMemoryProgram};
 
     #[test]
     fn test_get_function() {

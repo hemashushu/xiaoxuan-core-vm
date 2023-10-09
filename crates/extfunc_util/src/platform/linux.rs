@@ -5,53 +5,43 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 use core::ffi::c_void;
-use std::{borrow::Cow, ffi::c_char};
 
 use libc::{dlerror, dlopen, dlsym, RTLD_LAZY};
+
+use crate::{cstr_pointer_to_str, str_to_cstring};
 
 // when the path contains char '/', this function load the
 // library with the relative/absolute path. otherwise loads the
 // system wide shared library (see `ldconfig`)
-pub fn load_library(path: &str) -> Result<*mut c_void, String> {
+pub fn load_library(file_path_or_name: &str) -> Result<*mut c_void, &'static str> {
     // clear the last error msg, see `$ man 3 dlerror`
     let _last_msg = unsafe { dlerror() };
-    let library_ptr = unsafe { dlopen(add_null_terminated(path).as_ptr() as *const i8, RTLD_LAZY) };
+    let library_ptr = unsafe {
+        dlopen(
+            str_to_cstring(file_path_or_name).as_ptr() as *const i8,
+            RTLD_LAZY,
+        )
+    };
 
     if library_ptr.is_null() {
         let msg = unsafe { dlerror() };
-        let msg_string = unsafe { std::ffi::CStr::from_ptr(msg).to_string_lossy().to_string() };
-        Err(msg_string)
+        Err(cstr_pointer_to_str(msg))
     } else {
         Ok(library_ptr)
     }
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub fn load_symbol(library_ptr: *mut c_void, name: &str) -> Result<*mut c_void, String> {
+pub fn load_symbol(library_ptr: *mut c_void, name: &str) -> Result<*mut c_void, &'static str> {
     let _last_msg = unsafe { dlerror() };
-    let symbol_ptr = unsafe { dlsym(library_ptr, add_null_terminated(name).as_ptr() as *const i8) };
+    let symbol_ptr = unsafe { dlsym(library_ptr, str_to_cstring(name).as_ptr()) };
 
     if symbol_ptr.is_null() {
         let msg = unsafe { dlerror() };
-        Err(convert_from_cstring(msg).to_string())
+        Err(cstr_pointer_to_str(msg))
     } else {
         Ok(symbol_ptr)
     }
-}
-
-pub fn add_null_terminated(s: &str) -> Vec<u8> {
-    let mut bytes = s.as_bytes().to_vec();
-    bytes.push(0);
-    bytes
-}
-
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub fn convert_from_cstring(string_ptr: *const c_char) -> Cow<'static, str> {
-    unsafe { std::ffi::CStr::from_ptr(string_ptr).to_string_lossy() }
-}
-
-pub fn transmute_symbol_to<T>(ptr: *mut c_void) -> T {
-    unsafe { std::mem::transmute_copy::<*mut c_void, T>(&ptr) }
 }
 
 #[cfg(test)]
@@ -60,9 +50,9 @@ mod tests {
 
     use libc::uid_t;
 
-    use crate::platform_linux::{add_null_terminated, convert_from_cstring};
-
-    use super::{transmute_symbol_to, load_library, load_symbol};
+    use crate::{
+        cstr_pointer_to_str, load_library, load_symbol, str_to_cstring, transmute_symbol_to,
+    };
 
     #[test]
     fn test_load_library() {
@@ -100,7 +90,7 @@ mod tests {
 
         let symbol1 = load_symbol(library_ptr, "getenv").unwrap();
         let getenv: extern "C" fn(*const c_char) -> *mut c_char = transmute_symbol_to(symbol1);
-        let pwd0 = convert_from_cstring(getenv(add_null_terminated("PWD").as_ptr() as _));
+        let pwd0 = cstr_pointer_to_str(getenv(str_to_cstring("PWD").as_ptr()));
         assert!(!pwd0.to_string().is_empty());
     }
 
@@ -121,7 +111,8 @@ mod tests {
         assert_eq!(func_add(11, 13), 24);
 
         let func_mul_add_ptr = load_symbol(library_ptr, "mul_add").unwrap();
-        let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 = transmute_symbol_to(func_mul_add_ptr);
+        let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 =
+            transmute_symbol_to(func_mul_add_ptr);
         assert_eq!(func_mul_add(11, 13, 17), 160);
     }
 }

@@ -118,7 +118,11 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
                 let name_length = name_bytes[idx].len() as u32;
                 next_offset += name_length; // for next offset
 
-                UnifiedExternalLibraryItem::new(name_offset, name_length, entry.external_library_type)
+                UnifiedExternalLibraryItem::new(
+                    name_offset,
+                    name_length,
+                    entry.external_library_type,
+                )
             })
             .collect::<Vec<UnifiedExternalLibraryItem>>();
 
@@ -180,7 +184,11 @@ mod tests {
     fn test_save_section() {
         let mut items: Vec<UnifiedExternalLibraryItem> = Vec::new();
 
-        items.push(UnifiedExternalLibraryItem::new(0, 3, ExternalLibraryType::User));
+        items.push(UnifiedExternalLibraryItem::new(
+            0,
+            3,
+            ExternalLibraryType::User,
+        ));
         items.push(UnifiedExternalLibraryItem::new(
             3,
             5,

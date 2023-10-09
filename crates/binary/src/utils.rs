@@ -1381,12 +1381,10 @@ mod tests {
         },
         utils::{
             build_module_binary_with_single_function_and_data_sections,
-            build_module_binary_with_single_function_and_external_functions, BytecodeReader,
-            BytecodeWriter, HelperExternalLibraryAndFunctionEntry,
+            build_module_binary_with_single_function_and_external_functions, format_bytecodes,
+            BytecodeReader, BytecodeWriter, HelperExternalLibraryAndFunctionEntry,
         },
     };
-
-    use super::format_bytecodes;
 
     #[test]
     fn test_build_module_binary_with_single_function_and_data_sections() {

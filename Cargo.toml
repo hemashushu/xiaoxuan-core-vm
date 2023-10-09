@@ -3,7 +3,7 @@ members = [
     "crates/types",
     "crates/binary",
     "crates/syscall_util",
-    "crates/extcall_util",
+    "crates/extfunc_util",
     "crates/program",
     "crates/runtime",
     "crates/ancsr",

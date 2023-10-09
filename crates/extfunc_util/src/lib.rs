@@ -18,11 +18,30 @@
 // - windows:
 //   LoadLibraryW(LoadLibraryExW, GetModuleHandleExW)/GetProcAddress/FreeLibrary
 
-#[cfg(target_family="unix")]
-pub mod platform_linux;
+mod platform;
 
-#[cfg(target_family="windows")]
-pub mod platform_windows;
+use std::{
+    ffi::{c_char, CString, OsString},
+    os::raw::c_void,
+};
 
-#[cfg(target_family="unix")]
-pub use platform_linux::*;
+#[cfg(target_family = "unix")]
+pub use platform::linux::*;
+
+pub fn str_to_osstring(s: &str) -> OsString {
+    let oss: OsString = OsString::from(s);
+    oss
+}
+
+pub fn str_to_cstring(s: &str) -> CString {
+    CString::new(s).unwrap()
+}
+
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub fn cstr_pointer_to_str(cstr_ptr: *const c_char) -> &'static str {
+    unsafe { std::ffi::CStr::from_ptr(cstr_ptr).to_str().unwrap() }
+}
+
+pub fn transmute_symbol_to<T>(ptr: *mut c_void) -> T {
+    unsafe { std::mem::transmute_copy::<*mut c_void, T>(&ptr) }
+}
