@@ -97,10 +97,11 @@ mod tests {
     #[test]
     fn test_load_user_library() {
         // note:
-        // run 'resources/compile.sh' to build shared library 'lib-test-0' first.
+        // run 'test/lib/compile.sh' to build shared library 'lib-test-0' first.
 
         let mut pwd = env::current_dir().unwrap();
-        pwd.push("resources");
+        pwd.push("tests");
+        pwd.push("lib");
         pwd.push("lib-test-0.so.1.0.0");
         let lib_test_path = pwd.to_str().unwrap();
 

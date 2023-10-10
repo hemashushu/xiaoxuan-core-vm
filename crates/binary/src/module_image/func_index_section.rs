@@ -79,6 +79,23 @@ impl FuncIndexItem {
     }
 }
 
+impl<'a> FuncIndexSection<'a> {
+    pub fn get_item_target_module_index_and_function_internal_index(
+        &self,
+        module_index: usize,
+        function_public_index: usize,
+    ) -> (usize, usize) {
+        let range = &self.ranges[module_index];
+        // check bound?
+        let item_index = range.offset as usize + function_public_index;
+        let item = &self.items[item_index];
+        (
+            item.target_module_index as usize,
+            item.function_internal_index as usize,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
@@ -124,6 +141,22 @@ mod tests {
         assert_eq!(items[0], FuncIndexItem::new(1, 2, 3,));
         assert_eq!(items[1], FuncIndexItem::new(5, 7, 11,));
         assert_eq!(items[2], FuncIndexItem::new(13, 17, 19,));
+
+        // test get index item
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(0, 0),
+            (2, 3,)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(0, 1),
+            (7, 11,)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(1, 0),
+            (17, 19,)
+        );
     }
 
     #[test]

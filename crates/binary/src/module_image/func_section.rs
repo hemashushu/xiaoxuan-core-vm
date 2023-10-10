@@ -60,19 +60,22 @@ impl<'a> SectionEntry<'a> for FuncSection<'a> {
 }
 
 impl<'a> FuncSection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> FuncEntry {
+    pub fn get_item_type_index_and_local_variable_index_and_code(
+        &'a self,
+        idx: usize,
+    ) -> (usize, usize, &'a [u8]) {
         let items = self.items;
         let codes_data = self.codes_data;
 
-        let item = &items[idx as usize];
+        let item = &items[idx];
         let code_data =
             &codes_data[item.code_offset as usize..(item.code_offset + item.code_length) as usize];
 
-        FuncEntry {
-            type_index: item.type_index as usize,
-            local_index: item.local_index as usize,
-            code: code_data.to_vec(),
-        }
+        (
+            item.type_index as usize,
+            item.local_index as usize,
+            code_data,
+        )
     }
 
     pub fn convert_from_entries(entries: &[FuncEntry]) -> (Vec<FuncItem>, Vec<u8>) {
@@ -208,21 +211,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            FuncEntry {
-                type_index: 7,
-                local_index: 9,
-                code: code0
-            }
+            section.get_item_type_index_and_local_variable_index_and_code(0),
+            (7, 9, code0.as_ref())
         );
 
         assert_eq!(
-            section.get_entry(1),
-            FuncEntry {
-                type_index: 11,
-                local_index: 13,
-                code: code1
-            }
+            section.get_item_type_index_and_local_variable_index_and_code(1),
+            (11, 13, code1.as_ref())
         );
     }
 }

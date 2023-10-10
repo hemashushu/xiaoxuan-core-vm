@@ -42,6 +42,8 @@ pub fn syscall(thread_context: &mut ThreadContext) {
     let handler = unsafe { &HANDLERS[params_count as usize] };
     let result = handler(thread_context, syscall_num as usize);
 
+    // push the result on the stack
+
     match result {
         Ok(value) => {
             thread_context.stack.push_i64_u(value as u64);
@@ -168,9 +170,9 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgramSource::new(vec![binary0]);
-        let program_context0 = program0.build_program().unwrap();
-        let mut thread_context0 = program_context0.new_thread_context();
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
@@ -209,9 +211,9 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgramSource::new(vec![binary0]);
-        let program_context0 = program0.build_program().unwrap();
-        let mut thread_context0 = program_context0.new_thread_context();
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
@@ -265,9 +267,9 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgramSource::new(vec![binary0]);
-        let program_context0 = program0.build_program().unwrap();
-        let mut thread_context0 = program_context0.new_thread_context();
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

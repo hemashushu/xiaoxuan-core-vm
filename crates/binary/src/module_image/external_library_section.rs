@@ -86,16 +86,19 @@ impl<'a> SectionEntry<'a> for ExternalLibrarySection<'a> {
 }
 
 impl<'a> ExternalLibrarySection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> ExternalLibraryEntry {
+    pub fn get_item_name_and_external_library_type(
+        &'a self,
+        idx: usize,
+    ) -> (&'a str, ExternalLibraryType) {
         let items = self.items;
         let names_data = self.names_data;
 
-        let item = &items[idx as usize];
+        let item = &items[idx];
         let name_data =
             &names_data[item.name_offset as usize..(item.name_offset + item.name_length) as usize];
 
-        ExternalLibraryEntry::new(
-            String::from_utf8(name_data.to_vec()).unwrap(),
+        (
+            std::str::from_utf8(name_data).unwrap(),
             item.external_library_type,
         )
     }
@@ -233,13 +236,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            ExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryType::User,)
+            section.get_item_name_and_external_library_type(0),
+            ("foobar", ExternalLibraryType::User,)
         );
 
         assert_eq!(
-            section.get_entry(1),
-            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Shared,)
+            section.get_item_name_and_external_library_type(1),
+            ("helloworld", ExternalLibraryType::Shared,)
         );
     }
 }

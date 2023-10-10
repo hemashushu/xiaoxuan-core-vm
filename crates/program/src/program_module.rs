@@ -83,7 +83,7 @@ impl<'a> ProgramModule<'a> {
                 });
 
         Self {
-            name: std::str::from_utf8(module_image.name).unwrap(),
+            name: module_image.name,
             type_section,
             func_section,
             local_variable_section,

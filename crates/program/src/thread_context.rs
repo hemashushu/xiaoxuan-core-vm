@@ -241,14 +241,16 @@ impl<'a> ThreadContext<'a> {
     ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
-        let range = &self.program_context.data_index_section.ranges[module_index];
-        let data_index_item = &self.program_context.data_index_section.items
-            [range.offset as usize + data_public_index];
+        let (target_module_index, data_internal_index, target_data_section_type) = self
+            .program_context
+            .data_index_section
+            .get_item_target_module_index_and_data_internal_index_and_data_section_type(
+                module_index,
+                data_public_index,
+            );
 
-        let target_module_index = data_index_item.target_module_index as usize;
         let target_module = &mut self.program_context.program_modules[target_module_index];
-        let data_internal_index = data_index_item.data_internal_index as usize;
-        let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
+        let datas = target_module.datas[target_data_section_type as usize].as_mut();
 
         (datas, target_module_index, data_internal_index)
     }
@@ -260,13 +262,13 @@ impl<'a> ThreadContext<'a> {
         module_index: usize,
         function_public_index: usize,
     ) -> (usize, usize) {
-        let range_item = &self.program_context.func_index_section.ranges[module_index];
-        let func_index_items = &self.program_context.func_index_section.items
-            [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
-        let func_index_item = &func_index_items[function_public_index];
-
-        let target_module_index = func_index_item.target_module_index as usize;
-        let function_internal_index = func_index_item.function_internal_index as usize;
+        let (target_module_index, function_internal_index) = self
+            .program_context
+            .func_index_section
+            .get_item_target_module_index_and_function_internal_index(
+                module_index,
+                function_public_index,
+            );
         (target_module_index, function_internal_index)
     }
 

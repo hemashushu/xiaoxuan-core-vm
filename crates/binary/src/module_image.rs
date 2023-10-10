@@ -69,8 +69,10 @@
 //   sections.
 // - instructions are executed directly on the (binary) bytecode and all sores of indices of the module.
 //
-// these allow the XiaoXuan applications to have almost no startup-wating time,
-// the application is suitable for using as 'function' in other applications or scripts.
+// these allow the XiaoXuan applications to have almost no startup time.
+//
+// since XiaoXuan application starts up almost instantly, it is suitable for
+// using as 'function' in other applications or scripts.
 
 // the data type of fields:
 //
@@ -141,7 +143,7 @@ const IMAGE_MINOR_VERSION: u16 = 0;
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
-    pub name: &'a [u8],
+    pub name: &'a str,
     pub items: &'a [ModuleSection],
     pub sections_data: &'a [u8],
 }
@@ -267,7 +269,8 @@ impl<'a> ModuleImage<'a> {
 
         let name_area = &image_data[16..(16 + 256)];
         let name_length = unsafe { std::ptr::read(name_area.as_ptr() as *const u16) };
-        let name = &image_data[(16 + 2)..(16 + 2 + (name_length as usize))];
+        let name_data = &image_data[(16 + 2)..(16 + 2 + (name_length as usize))];
+        let name = std::str::from_utf8(name_data).unwrap();
 
         let image_body = &image_data[(16 + 256)..];
 
@@ -487,7 +490,7 @@ mod tests {
     };
 
     #[test]
-    fn test_module_common_sections() {
+    fn test_module_common_sections_save_and_load() {
         // build TypeSection instance
 
         let mut type_entries: Vec<TypeEntry> = Vec::new();
@@ -515,8 +518,8 @@ mod tests {
         // build FuncSection instance
 
         let mut func_entries: Vec<FuncEntry> = Vec::new();
-        let code0: Vec<u8> = vec![1u8, 2, 3, 5, 7];
-        let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29];
+        let code0: Vec<u8> = vec![1u8, 2, 3, 5, 7]; // arbitrary code
+        let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29]; // arbitrary code
 
         func_entries.push(FuncEntry {
             type_index: 2,
@@ -557,12 +560,11 @@ mod tests {
         };
 
         // build ModuleImage instance
-        let name = b"main".to_vec();
         let section_entries: Vec<&dyn SectionEntry> =
             vec![&type_section, &func_section, &local_var_section];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
-            name: &name,
+            name: "main",
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -704,19 +706,13 @@ mod tests {
         assert_eq!(type_section_restore.items.len(), 2);
 
         assert_eq!(
-            type_section_restore.get_entry(0),
-            TypeEntry {
-                params: type0,
-                results: type1,
-            }
+            type_section_restore.get_item_params_and_results(0),
+            (type0.as_ref(), type1.as_ref(),)
         );
 
         assert_eq!(
-            type_section_restore.get_entry(1),
-            TypeEntry {
-                params: type2,
-                results: type3,
-            }
+            type_section_restore.get_item_params_and_results(1),
+            (type2.as_ref(), type3.as_ref(),)
         );
 
         // check func
@@ -725,21 +721,13 @@ mod tests {
         assert_eq!(func_section_restore.items.len(), 2);
 
         assert_eq!(
-            func_section_restore.get_entry(0),
-            FuncEntry {
-                type_index: 2,
-                local_index: 3,
-                code: code0,
-            }
+            func_section_restore.get_item_type_index_and_local_variable_index_and_code(0),
+            (2, 3, code0.as_ref(),)
         );
 
         assert_eq!(
-            func_section_restore.get_entry(1),
-            FuncEntry {
-                type_index: 5,
-                local_index: 7,
-                code: code1,
-            }
+            func_section_restore.get_item_type_index_and_local_variable_index_and_code(1),
+            (5, 7, code1.as_ref(),)
         );
 
         // check local vars
@@ -762,13 +750,13 @@ mod tests {
     }
 
     #[test]
-    fn test_module_index_sections() {
+    fn test_module_index_sections_save_and_load() {
         // build DataIndexSection instance
         let data_range0 = RangeItem::new(0, 3);
 
-        let data_index_item0 = DataIndexItem::new(0, 1, DataSectionType::ReadOnly, 2);
-        let data_index_item1 = DataIndexItem::new(3, 5, DataSectionType::ReadWrite, 7);
-        let data_index_item2 = DataIndexItem::new(11, 13, DataSectionType::Uninit, 17);
+        let data_index_item0 = DataIndexItem::new(0, 1, 2, DataSectionType::ReadOnly);
+        let data_index_item1 = DataIndexItem::new(3, 5, 7, DataSectionType::ReadWrite);
+        let data_index_item2 = DataIndexItem::new(11, 13, 17, DataSectionType::Uninit);
 
         let data_index_section = DataIndexSection {
             ranges: &vec![data_range0],
@@ -786,12 +774,11 @@ mod tests {
         };
 
         // build module image
-        let name = b"std".to_vec();
         let section_entries: Vec<&dyn SectionEntry> =
             vec![&data_index_section, &func_index_section];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
-            name: &name,
+            name: "std",
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -845,21 +832,21 @@ mod tests {
                 /* table 1 */
                 0, 0, 0, 0, // data idx 0
                 1, 0, 0, 0, // target module idx 0
+                2, 0, 0, 0, // target data idx 0
                 0, // target data section type 0
                 0, 0, 0, // padding 0
-                2, 0, 0, 0, // target data idx 0
                 //
                 3, 0, 0, 0, // data idx 1
                 5, 0, 0, 0, // target module idx 1
+                7, 0, 0, 0, // target data idx 1
                 1, // target data section type 1
                 0, 0, 0, // padding 1
-                7, 0, 0, 0, // target data idx 1
                 //
                 11, 0, 0, 0, // data idx 2
                 13, 0, 0, 0, // target module idx 2
+                17, 0, 0, 0, // target data idx 2
                 2, // target data section type 2
                 0, 0, 0, // padding 2
-                17, 0, 0, 0, // target data idx 2
             ]
         );
 
@@ -895,15 +882,15 @@ mod tests {
 
         assert_eq!(
             &data_index_section_restore.items[0],
-            &DataIndexItem::new(0, 1, DataSectionType::ReadOnly, 2)
+            &DataIndexItem::new(0, 1, 2, DataSectionType::ReadOnly,)
         );
         assert_eq!(
             &data_index_section_restore.items[1],
-            &DataIndexItem::new(3, 5, DataSectionType::ReadWrite, 7)
+            &DataIndexItem::new(3, 5, 7, DataSectionType::ReadWrite,)
         );
         assert_eq!(
             &data_index_section_restore.items[2],
-            &DataIndexItem::new(11, 13, DataSectionType::Uninit, 17)
+            &DataIndexItem::new(11, 13, 17, DataSectionType::Uninit,)
         );
 
         let func_index_section_restore = module_image_restore.get_func_index_section();

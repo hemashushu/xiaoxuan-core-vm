@@ -78,16 +78,19 @@ impl<'a> SectionEntry<'a> for UnifiedExternalFuncSection<'a> {
 }
 
 impl<'a> UnifiedExternalFuncSection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> UnifiedExternalFuncEntry {
+    pub fn get_item_name_and_unified_external_library_index(
+        &'a self,
+        idx: usize,
+    ) -> (&'a str, usize) {
         let items = self.items;
         let names_data = self.names_data;
 
-        let item = &items[idx as usize];
+        let item = &items[idx];
         let name_data =
             &names_data[item.name_offset as usize..(item.name_offset + item.name_length) as usize];
 
-        UnifiedExternalFuncEntry::new(
-            String::from_utf8(name_data.to_vec()).unwrap(),
+        (
+            std::str::from_utf8(name_data).unwrap(),
             item.unified_external_library_index as usize,
         )
     }
@@ -129,7 +132,10 @@ impl<'a> UnifiedExternalFuncSection<'a> {
 
 impl Default for UnifiedExternalFuncSection<'_> {
     fn default() -> Self {
-        Self { items: Default::default(), names_data: Default::default() }
+        Self {
+            items: Default::default(),
+            names_data: Default::default(),
+        }
     }
 }
 
@@ -217,13 +223,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            UnifiedExternalFuncEntry::new("foobar".to_string(), 17)
+            section.get_item_name_and_unified_external_library_index(0),
+            ("foobar", 17)
         );
 
         assert_eq!(
-            section.get_entry(1),
-            UnifiedExternalFuncEntry::new("helloworld".to_string(), 19)
+            section.get_item_name_and_unified_external_library_index(1),
+            ("helloworld", 19)
         );
     }
 }

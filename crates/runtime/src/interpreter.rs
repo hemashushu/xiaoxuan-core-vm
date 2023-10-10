@@ -425,11 +425,14 @@ pub fn process_function(
                 function_internal_index,
             );
 
-    let type_entry = thread_context.program_context.program_modules[target_module_index]
-        .type_section
-        .get_entry(type_index);
+    let (params, results) = {
+        let pars = thread_context.program_context.program_modules[target_module_index]
+            .type_section
+            .get_item_params_and_results(type_index);
+        (pars.0.to_vec(), pars.1.to_vec())
+    };
 
-    if arguments.len() != type_entry.params.len() {
+    if arguments.len() != params.len() {
         return Err(InterpreterError::new(
             "The number of arguments does not match the specified funcion.",
         ));
@@ -442,8 +445,8 @@ pub fn process_function(
 
     // create function statck frame
     thread_context.stack.create_frame(
-        type_entry.params.len() as u16,
-        type_entry.results.len() as u16,
+        params.len() as u16,
+        results.len() as u16,
         local_variables_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
@@ -465,7 +468,7 @@ pub fn process_function(
     process_continuous_instructions(thread_context);
 
     // pop the results from the stack
-    let results = thread_context.pop_values(&type_entry.results);
+    let results = thread_context.pop_values(&results);
 
     Ok(results)
 }

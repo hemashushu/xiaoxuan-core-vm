@@ -147,7 +147,7 @@ pub fn get_function<T>(
         .type_index;
     let (params, results) = thread_context.program_context.program_modules[target_module_index]
         .type_section
-        .get_params_and_results_list(type_index as usize);
+        .get_item_params_and_results(type_index as usize);
 
     if results.len() > 1 {
         return Err("Only functions with one return value are allowed.");
@@ -212,9 +212,9 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgramSource::new(vec![binary0]);
-        let program_context0 = program0.build_program().unwrap();
-        let mut thread_context0 = program_context0.new_thread_context();
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
 
         let fn_add: extern "C" fn(i32, i32) -> i32 =
             get_function(&mut thread_context0, "main", "add").unwrap();

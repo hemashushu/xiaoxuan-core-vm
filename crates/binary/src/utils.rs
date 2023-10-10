@@ -901,7 +901,7 @@ pub struct HelperBlockEntry {
 }
 
 /// helper object for unit test
-pub struct HelperExternalLibraryAndFunctionEntry {
+pub struct HelperExternalFunctionEntry {
     pub external_library_type: ExternalLibraryType,
     pub library_name: String,
     pub function_name: String,
@@ -960,7 +960,7 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     };
 
     build_module_binary(
-        b"main".to_vec(),
+        "main",
         read_only_data_entries,
         read_write_data_entries,
         uninit_uninit_data_entries,
@@ -991,7 +991,7 @@ pub fn build_module_binary_with_single_function_and_blocks(
 
 /// helper function for unit test
 pub fn build_module_binary_with_functions_and_blocks(
-    helper_func_entries: Vec<HelperFunctionEntry>,
+    helper_function_entries: Vec<HelperFunctionEntry>,
     helper_block_entries: Vec<HelperBlockEntry>,
 ) -> Vec<u8> {
     // build type entries
@@ -999,7 +999,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let func_type_entries = helper_func_entries
+    let func_type_entries = helper_function_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -1024,7 +1024,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let func_local_var_list_entries = helper_func_entries
+    let func_local_var_list_entries = helper_function_entries
         .iter()
         .map(|entry| {
             let mut variables = entry.local_variable_item_entries_without_args.clone();
@@ -1063,7 +1063,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     local_var_list_entries.extend_from_slice(&block_local_var_list_entries);
 
     // build func entries
-    let func_entries = helper_func_entries
+    let func_entries = helper_function_entries
         .iter()
         .enumerate()
         .map(|(idx, entry)| FuncEntry {
@@ -1074,7 +1074,7 @@ pub fn build_module_binary_with_functions_and_blocks(
         .collect::<Vec<_>>();
 
     build_module_binary(
-        b"main".to_vec(),
+        "main",
         vec![],
         vec![],
         vec![],
@@ -1091,7 +1091,7 @@ pub fn build_module_binary_with_single_function_and_external_functions(
     type_index: usize,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
-    external_library_and_function_entries: Vec<HelperExternalLibraryAndFunctionEntry>,
+    helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     let local_variables = local_variable_item_entries_without_args.clone();
     let params_as_variables = type_entries[type_index]
@@ -1113,27 +1113,27 @@ pub fn build_module_binary_with_single_function_and_external_functions(
     };
 
     build_module_binary(
-        b"main".to_vec(),
+        "main",
         vec![],
         vec![],
         vec![],
         type_entries,
         vec![func_entry],
         vec![local_var_list_entry],
-        external_library_and_function_entries,
+        helper_external_function_entries,
     )
 }
 
 /// helper function for unit test
 pub fn build_module_binary(
-    name: Vec<u8>,
+    name: &str,
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
     func_entries: Vec<FuncEntry>,
     local_var_list_entries: Vec<LocalVariableListEntry>,
-    external_library_and_function_entries: Vec<HelperExternalLibraryAndFunctionEntry>,
+    helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
@@ -1178,7 +1178,7 @@ pub fn build_module_binary(
     };
 
     // build external library section
-    let mut external_library_entries = external_library_and_function_entries
+    let mut external_library_entries = helper_external_function_entries
         .iter()
         .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_type.clone()))
         .collect::<Vec<_>>();
@@ -1192,7 +1192,7 @@ pub fn build_module_binary(
     };
 
     // build external function section
-    let external_func_entries = external_library_and_function_entries
+    let external_func_entries = helper_external_function_entries
         .iter()
         .map(|library_and_func_entry| {
             let library_index = external_library_entries
@@ -1247,8 +1247,8 @@ pub fn build_module_binary(
         data_index_items.push(DataIndexItem::new(
             total_data_index as u32,
             0,
-            data_section_type,
             idx as u32,
+            data_section_type,
         ));
     }
 
@@ -1276,6 +1276,7 @@ pub fn build_module_binary(
     };
 
     // build unified external library section
+    // it's 1:1 to the external_library_entries
     let unified_external_library_entries = external_library_entries
         .iter()
         .map(|e| UnifiedExternalLibraryEntry {
@@ -1292,6 +1293,7 @@ pub fn build_module_binary(
     };
 
     // build unified external function section
+    // it's 1:1 to external_func_entries
     let unified_external_func_entries = external_func_entries
         .iter()
         .map(|e| UnifiedExternalFuncEntry {
@@ -1313,11 +1315,11 @@ pub fn build_module_binary(
         count: unified_external_func_entries.len() as u32,
     }];
 
-    let external_func_index_items: Vec<ExternalFuncIndexItem> = (0..unified_external_func_entries
-        .len())
-        .map(|idx| {
-            let idx_u32 = idx as u32;
-            ExternalFuncIndexItem::new(idx_u32, idx_u32)
+    let external_func_index_items: Vec<ExternalFuncIndexItem> = external_func_entries
+        .iter()
+        .enumerate()
+        .map(|(idx, item)| {
+            ExternalFuncIndexItem::new(idx as u32, idx as u32, item.type_index as u32)
         })
         .collect::<Vec<_>>();
 
@@ -1347,7 +1349,7 @@ pub fn build_module_binary(
 
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
     let module_image = ModuleImage {
-        name: &name,
+        name,
         items: &section_items,
         sections_data: &sections_data,
     };
@@ -1369,20 +1371,15 @@ mod tests {
             data_index_section::DataIndexItem,
             data_section::{DataEntry, DataItem, DataSectionType, UninitDataEntry},
             external_func_index_section::ExternalFuncIndexItem,
-            external_func_section::ExternalFuncEntry,
-            external_library_section::ExternalLibraryEntry,
             func_index_section::FuncIndexItem,
-            func_section::FuncEntry,
             local_variable_section::{LocalVariableEntry, LocalVariableItem},
             type_section::TypeEntry,
-            unified_external_func_section::UnifiedExternalFuncEntry,
-            unified_external_library_section::UnifiedExternalLibraryEntry,
             RangeItem,
         },
         utils::{
             build_module_binary_with_single_function_and_data_sections,
             build_module_binary_with_single_function_and_external_functions, format_bytecodes,
-            BytecodeReader, BytecodeWriter, HelperExternalLibraryAndFunctionEntry,
+            BytecodeReader, BytecodeWriter, HelperExternalFunctionEntry,
         },
     };
 
@@ -1411,7 +1408,7 @@ mod tests {
 
         // check module image
         let module_image = &module_images[0];
-        assert_eq!(module_image.name, &b"main".to_vec());
+        assert_eq!(module_image.name, "main");
 
         // check data index section
         let data_index_section = module_image.get_optional_data_index_section().unwrap();
@@ -1425,14 +1422,14 @@ mod tests {
             // 2,1,3
             &vec![
                 //
-                DataIndexItem::new(0, 0, DataSectionType::ReadOnly, 0),
-                DataIndexItem::new(1, 0, DataSectionType::ReadOnly, 1),
+                DataIndexItem::new(0, 0, 0, DataSectionType::ReadOnly,),
+                DataIndexItem::new(1, 0, 1, DataSectionType::ReadOnly,),
                 //
-                DataIndexItem::new(2, 0, DataSectionType::ReadWrite, 0),
+                DataIndexItem::new(2, 0, 0, DataSectionType::ReadWrite,),
                 //
-                DataIndexItem::new(3, 0, DataSectionType::Uninit, 0),
-                DataIndexItem::new(4, 0, DataSectionType::Uninit, 1),
-                DataIndexItem::new(5, 0, DataSectionType::Uninit, 2),
+                DataIndexItem::new(3, 0, 0, DataSectionType::Uninit,),
+                DataIndexItem::new(4, 0, 1, DataSectionType::Uninit,),
+                DataIndexItem::new(5, 0, 2, DataSectionType::Uninit,),
             ]
         );
 
@@ -1492,11 +1489,11 @@ mod tests {
         let type_section = module_image.get_type_section();
         assert_eq!(type_section.items.len(), 1);
         assert_eq!(
-            type_section.get_entry(0),
-            TypeEntry {
-                params: vec![DataType::I64, DataType::I64],
-                results: vec![DataType::I32]
-            }
+            type_section.get_item_params_and_results(0),
+            (
+                vec![DataType::I64, DataType::I64].as_ref(),
+                vec![DataType::I32].as_ref()
+            )
         );
 
         // check func section
@@ -1504,12 +1501,8 @@ mod tests {
         assert_eq!(func_section.items.len(), 1);
 
         assert_eq!(
-            func_section.get_entry(0),
-            FuncEntry {
-                type_index: 0,
-                local_index: 0,
-                code: vec![0u8]
-            }
+            func_section.get_item_type_index_and_local_variable_index_and_code(0),
+            (0, 0, vec![0u8].as_ref())
         );
 
         // check local variable section
@@ -1551,37 +1544,37 @@ mod tests {
             vec![],
             vec![0u8],
             vec![
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "getuid".to_string(),
                     type_index: 1,
                 },
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "getenv".to_string(),
                     type_index: 2,
                 },
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::Shared,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_open".to_string(), // magic_load
                     type_index: 2,
                 },
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::User,
                     library_name: "libz.so".to_string(),
                     function_name: "inflate".to_string(), // inflateInit/inflateEnd
                     type_index: 1,
                 },
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "fopen".to_string(),
                     type_index: 0,
                 },
-                HelperExternalLibraryAndFunctionEntry {
+                HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::Shared,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_file".to_string(), // magic_close
@@ -1601,19 +1594,16 @@ mod tests {
             .get_optional_unified_external_library_section()
             .unwrap();
         assert_eq!(
-            unified_external_library_section.get_entry(0),
-            UnifiedExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
+            unified_external_library_section.get_item_name_and_external_library_type(0),
+            ("libc.so", ExternalLibraryType::System)
         );
         assert_eq!(
-            unified_external_library_section.get_entry(1),
-            UnifiedExternalLibraryEntry::new(
-                "libmagic.so".to_string(),
-                ExternalLibraryType::Shared
-            )
+            unified_external_library_section.get_item_name_and_external_library_type(1),
+            ("libmagic.so", ExternalLibraryType::Shared)
         );
         assert_eq!(
-            unified_external_library_section.get_entry(2),
-            UnifiedExternalLibraryEntry::new("libz.so".to_string(), ExternalLibraryType::User)
+            unified_external_library_section.get_item_name_and_external_library_type(2),
+            ("libz.so", ExternalLibraryType::User)
         );
 
         // check unified external function section
@@ -1621,28 +1611,28 @@ mod tests {
             .get_optional_unified_external_func_section()
             .unwrap();
         assert_eq!(
-            unified_external_func_section.get_entry(0),
-            UnifiedExternalFuncEntry::new("getuid".to_string(), 0)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(0),
+            ("getuid", 0)
         );
         assert_eq!(
-            unified_external_func_section.get_entry(1),
-            UnifiedExternalFuncEntry::new("getenv".to_string(), 0)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(1),
+            ("getenv", 0)
         );
         assert_eq!(
-            unified_external_func_section.get_entry(2),
-            UnifiedExternalFuncEntry::new("magic_open".to_string(), 1)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(2),
+            ("magic_open", 1)
         );
         assert_eq!(
-            unified_external_func_section.get_entry(3),
-            UnifiedExternalFuncEntry::new("inflate".to_string(), 2)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(3),
+            ("inflate", 2)
         );
         assert_eq!(
-            unified_external_func_section.get_entry(4),
-            UnifiedExternalFuncEntry::new("fopen".to_string(), 0)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(4),
+            ("fopen", 0)
         );
         assert_eq!(
-            unified_external_func_section.get_entry(5),
-            UnifiedExternalFuncEntry::new("magic_file".to_string(), 1)
+            unified_external_func_section.get_item_name_and_unified_external_library_index(5),
+            ("magic_file", 1)
         );
 
         // check external function index section
@@ -1660,12 +1650,12 @@ mod tests {
         assert_eq!(
             external_func_index_section.items,
             &vec![
-                ExternalFuncIndexItem::new(0, 0),
-                ExternalFuncIndexItem::new(1, 1),
-                ExternalFuncIndexItem::new(2, 2),
-                ExternalFuncIndexItem::new(3, 3),
-                ExternalFuncIndexItem::new(4, 4),
-                ExternalFuncIndexItem::new(5, 5),
+                ExternalFuncIndexItem::new(0, 0, 1),
+                ExternalFuncIndexItem::new(1, 1, 2),
+                ExternalFuncIndexItem::new(2, 2, 2),
+                ExternalFuncIndexItem::new(3, 3, 1),
+                ExternalFuncIndexItem::new(4, 4, 0),
+                ExternalFuncIndexItem::new(5, 5, 2),
             ]
         );
 
@@ -1674,43 +1664,43 @@ mod tests {
             .get_optional_external_library_section()
             .unwrap();
         assert_eq!(
-            external_library_section.get_entry(0),
-            ExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
+            external_library_section.get_item_name_and_external_library_type(0),
+            ("libc.so", ExternalLibraryType::System)
         );
         assert_eq!(
-            external_library_section.get_entry(1),
-            ExternalLibraryEntry::new("libmagic.so".to_string(), ExternalLibraryType::Shared)
+            external_library_section.get_item_name_and_external_library_type(1),
+            ("libmagic.so", ExternalLibraryType::Shared)
         );
         assert_eq!(
-            external_library_section.get_entry(2),
-            ExternalLibraryEntry::new("libz.so".to_string(), ExternalLibraryType::User)
+            external_library_section.get_item_name_and_external_library_type(2),
+            ("libz.so", ExternalLibraryType::User)
         );
 
         // check external function section
         let external_func_section = module_image.get_optional_external_func_section().unwrap();
         assert_eq!(
-            external_func_section.get_entry(0),
-            ExternalFuncEntry::new("getuid".to_string(), 0, 1)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(0),
+            ("getuid", 0, 1)
         );
         assert_eq!(
-            external_func_section.get_entry(1),
-            ExternalFuncEntry::new("getenv".to_string(), 0, 2)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(1),
+            ("getenv", 0, 2)
         );
         assert_eq!(
-            external_func_section.get_entry(2),
-            ExternalFuncEntry::new("magic_open".to_string(), 1, 2)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(2),
+            ("magic_open", 1, 2)
         );
         assert_eq!(
-            external_func_section.get_entry(3),
-            ExternalFuncEntry::new("inflate".to_string(), 2, 1)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(3),
+            ("inflate", 2, 1)
         );
         assert_eq!(
-            external_func_section.get_entry(4),
-            ExternalFuncEntry::new("fopen".to_string(), 0, 0)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(4),
+            ("fopen", 0, 0)
         );
         assert_eq!(
-            external_func_section.get_entry(5),
-            ExternalFuncEntry::new("magic_file".to_string(), 1, 2)
+            external_func_section.get_item_name_and_external_library_index_and_type_index(5),
+            ("magic_file", 1, 2)
         );
     }
 

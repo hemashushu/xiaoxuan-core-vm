@@ -87,16 +87,19 @@ impl<'a> SectionEntry<'a> for ExternalFuncSection<'a> {
 }
 
 impl<'a> ExternalFuncSection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> ExternalFuncEntry {
+    pub fn get_item_name_and_external_library_index_and_type_index(
+        &'a self,
+        idx: usize,
+    ) -> (&'a str, usize, usize) {
         let items = self.items;
         let names_data = self.names_data;
 
-        let item = &items[idx as usize];
+        let item = &items[idx];
         let name_data =
             &names_data[item.name_offset as usize..(item.name_offset + item.name_length) as usize];
 
-        ExternalFuncEntry::new(
-            String::from_utf8(name_data.to_vec()).unwrap(),
+        (
+            std::str::from_utf8(name_data).unwrap(),
             item.external_library_index as usize,
             item.type_index as usize,
         )
@@ -222,13 +225,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            ExternalFuncEntry::new("foobar".to_string(), 17, 19)
+            section.get_item_name_and_external_library_index_and_type_index(0),
+            ("foobar", 17, 19)
         );
 
         assert_eq!(
-            section.get_entry(1),
-            ExternalFuncEntry::new("helloworld".to_string(), 23, 29)
+            section.get_item_name_and_external_library_index_and_type_index(1),
+            ("helloworld", 23, 29)
         );
     }
 }

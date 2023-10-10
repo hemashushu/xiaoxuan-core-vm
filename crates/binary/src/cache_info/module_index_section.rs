@@ -100,7 +100,7 @@ impl<'a> SectionEntry<'a> for ModuleIndexSection<'a> {
 }
 
 impl<'a> ModuleIndexSection<'a> {
-    pub fn get_entry(&'a self, idx: u32) -> ModuleIndexEntry {
+    pub fn get_item_name_and_module_share_type(&'a self, idx: u32) -> (&'a str, ModuleShareType) {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -108,9 +108,9 @@ impl<'a> ModuleIndexSection<'a> {
         let name_data =
             &names_data[item.name_offset as usize..(item.name_offset + item.name_length) as usize];
 
-        ModuleIndexEntry::new(
+        (
+            std::str::from_utf8(name_data).unwrap(),
             item.module_share_type,
-            String::from_utf8(name_data.to_vec()).unwrap(),
         )
     }
 
@@ -243,13 +243,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            ModuleIndexEntry::new(ModuleShareType::Local, "helloworld".to_string(),)
+            section.get_item_name_and_module_share_type(0),
+            ("helloworld", ModuleShareType::Local,)
         );
 
         assert_eq!(
-            section.get_entry(1),
-            ModuleIndexEntry::new(ModuleShareType::Shared, "foobar".to_string(),)
+            section.get_item_name_and_module_share_type(1),
+            ("foobar", ModuleShareType::Shared,)
         );
     }
 }

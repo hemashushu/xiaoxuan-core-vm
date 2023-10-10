@@ -73,7 +73,10 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_params_and_results_list(&'a self, idx: usize) -> (&'a [DataType], &'a [DataType]) {
+    pub fn get_item_params_and_results(
+        &'a self,
+        idx: usize,
+    ) -> (&'a [DataType], &'a [DataType]) {
         let items = self.items;
         let types_data = self.types_data;
 
@@ -99,14 +102,6 @@ impl<'a> TypeSection<'a> {
         };
 
         (params_slice, results_slice)
-    }
-
-    pub fn get_entry(&'a self, idx: usize) -> TypeEntry {
-        let (params_slice, results_slice) = self.get_params_and_results_list(idx);
-        TypeEntry {
-            params: params_slice.to_vec(),
-            results: results_slice.to_vec(),
-        }
     }
 
     pub fn convert_from_entries(entries: &[TypeEntry]) -> (Vec<TypeItem>, Vec<u8>) {
@@ -331,19 +326,16 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_entry(0),
-            TypeEntry {
-                params: vec![DataType::I32, DataType::I64],
-                results: vec![DataType::I32]
-            }
+            section.get_item_params_and_results(0),
+            (
+                vec![DataType::I32, DataType::I64].as_ref(),
+                vec![DataType::I32].as_ref()
+            )
         );
 
         assert_eq!(
-            section.get_entry(3),
-            TypeEntry {
-                params: vec![],
-                results: vec![]
-            }
+            section.get_item_params_and_results(3),
+            ([].as_ref(), [].as_ref())
         );
     }
 }

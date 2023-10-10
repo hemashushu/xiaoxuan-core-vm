@@ -63,7 +63,7 @@ fn get_callback_function<T>(
         .type_index;
     let (params, results) = thread_context.program_context.program_modules[target_module_index]
         .type_section
-        .get_params_and_results_list(type_index as usize);
+        .get_item_params_and_results(type_index as usize);
 
     if results.len() > 1 {
         return Err("The number of return values of the specified function is more than 1.");

@@ -19,11 +19,11 @@
 //         | ...                                  |
 //         |--------------------------------------|
 //
-//         |---------------------------------------------------------------|
-//         | external func idx 0 (u32) | unified external func idx 0 (u32) | <-- table 1
-//         | external func idx 1       | unified external func idx 1       |
-//         | ...                                                           |
-//         |---------------------------------------------------------------|
+//         |------------------------------------------------------------------------------------|
+//         | external func idx 0 (u32) | unified external func idx 0 (u32) | type index 0 (u32) | <-- table 1
+//         | external func idx 1       | unified external func idx 1       | type index 1       |
+//         | ...                                                                                |
+//         |------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -40,6 +40,10 @@ pub struct ExternalFuncIndexSection<'a> {
 pub struct ExternalFuncIndexItem {
     pub external_func_index: u32,
     pub unified_external_func_index: u32,
+
+    // copy the type_index from ExternalFuncSection of the specific module,
+    // so that the ExternalFuncSection can be omitted at runtime.
+    pub type_index: u32,
 }
 
 impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
@@ -60,17 +64,42 @@ impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
 }
 
 impl ExternalFuncIndexItem {
-    pub fn new(external_func_index: u32, unified_external_func_index: u32) -> Self {
+    pub fn new(
+        external_func_index: u32,
+        unified_external_func_index: u32,
+        type_index: u32,
+    ) -> Self {
         Self {
             external_func_index,
             unified_external_func_index,
+            type_index,
         }
     }
 }
 
 impl Default for ExternalFuncIndexSection<'_> {
     fn default() -> Self {
-        Self { ranges: Default::default(), items: Default::default() }
+        Self {
+            ranges: Default::default(),
+            items: Default::default(),
+        }
+    }
+}
+
+impl<'a> ExternalFuncIndexSection<'a> {
+    pub fn get_item_unified_external_func_index_and_type_index(
+        &self,
+        module_index: usize,
+        external_function_index: usize,
+    ) -> (usize, usize) {
+        let range = &self.ranges[module_index];
+        // check bound?
+        let item_index = range.offset as usize + external_function_index;
+        let item = &self.items[item_index];
+        (
+            item.unified_external_func_index as usize,
+            item.type_index as usize,
+        )
     }
 }
 
@@ -94,12 +123,15 @@ mod tests {
             //
             2, 0, 0, 0, // external func idx 0, item 0 (little endian)
             3, 0, 0, 0, // uni external func idx 0
+            5, 0, 0, 0, // type index 0
             //
-            5, 0, 0, 0, // external func idx 1, item 1
-            7, 0, 0, 0, // uni external func idx 1
+            7, 0, 0, 0, // external func idx 1, item 1
+            11, 0, 0, 0, // uni external func idx 1
+            13, 0, 0, 0, // type index 1
             //
-            11, 0, 0, 0, // external func idx 2, item 2
-            13, 0, 0, 0, // uni external func idx 2
+            17, 0, 0, 0, // external func idx 2, item 2
+            19, 0, 0, 0, // uni external func idx 2
+            23, 0, 0, 0, // type index 2
         ];
 
         let section = ExternalFuncIndexSection::load(&section_data);
@@ -113,9 +145,25 @@ mod tests {
         let items = section.items;
 
         assert_eq!(items.len(), 3);
-        assert_eq!(items[0], ExternalFuncIndexItem::new(2, 3,));
-        assert_eq!(items[1], ExternalFuncIndexItem::new(5, 7,));
-        assert_eq!(items[2], ExternalFuncIndexItem::new(11, 13,));
+        assert_eq!(items[0], ExternalFuncIndexItem::new(2, 3, 5));
+        assert_eq!(items[1], ExternalFuncIndexItem::new(7, 11, 13));
+        assert_eq!(items[2], ExternalFuncIndexItem::new(17, 19, 23));
+
+        // test get index item
+        assert_eq!(
+            section.get_item_unified_external_func_index_and_type_index(0, 0),
+            (3, 5)
+        );
+
+        assert_eq!(
+            section.get_item_unified_external_func_index_and_type_index(0, 1),
+            (11, 13)
+        );
+
+        assert_eq!(
+            section.get_item_unified_external_func_index_and_type_index(1, 0),
+            (19, 23)
+        );
     }
 
     #[test]
@@ -127,9 +175,9 @@ mod tests {
 
         let mut items: Vec<ExternalFuncIndexItem> = Vec::new();
 
-        items.push(ExternalFuncIndexItem::new(2, 3));
-        items.push(ExternalFuncIndexItem::new(5, 7));
-        items.push(ExternalFuncIndexItem::new(11, 13));
+        items.push(ExternalFuncIndexItem::new(2, 3, 5));
+        items.push(ExternalFuncIndexItem::new(7, 11, 13));
+        items.push(ExternalFuncIndexItem::new(17, 19, 23));
 
         let section = ExternalFuncIndexSection {
             ranges: &ranges,
@@ -152,12 +200,15 @@ mod tests {
                 //
                 2, 0, 0, 0, // external func idx 0, item 0 (little endian)
                 3, 0, 0, 0, // uni external func idx 0
+                5, 0, 0, 0, // type index 0
                 //
-                5, 0, 0, 0, // external func idx 1, item 1
-                7, 0, 0, 0, // uni external func idx 1
+                7, 0, 0, 0, // external func idx 1, item 1
+                11, 0, 0, 0, // uni external func idx 1
+                13, 0, 0, 0, // type index 1
                 //
-                11, 0, 0, 0, // external func idx 2, item 2
-                13, 0, 0, 0, // uni external func idx 2
+                17, 0, 0, 0, // external func idx 2, item 2
+                19, 0, 0, 0, // uni external func idx 2
+                23, 0, 0, 0, // type index 2
             ]
         );
     }

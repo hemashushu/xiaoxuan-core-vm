@@ -51,3 +51,114 @@ pub fn check_feature(_thread: &mut ThreadContext) {
     // `fn (name_ptr:i64, name_len:i32) -> bool`
     unimplemented!()
 }
+
+#[cfg(test)]
+mod tests {
+    use ancvm_binary::{
+        module_image::data_section::UninitDataEntry,
+        utils::{
+            build_module_binary_with_single_function,
+            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+        },
+    };
+    use ancvm_program::program_source::ProgramSource;
+    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
+
+    use crate::{
+        in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
+        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+    };
+
+    #[test]
+    fn test_ecall_runtime_version() {
+        // init_runtime();
+
+        // bytecodes
+        //
+        // 0x0000 ecall                257
+        // 0x0008 end
+        //
+        // () -> (i64)
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::ecall, ECallCode::runtime_version as u32)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", BytecodeReader::new(&code0).to_text());
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],              // params
+            vec![DataType::I64], // results
+            vec![],              // local varslist which
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+
+        let expect_version_number = RUNTIME_PATCH_VERSION as u64
+            | (RUNTIME_MINOR_VERSION as u64) << 16
+            | (RUNTIME_MAJOR_VERSION as u64) << 32;
+
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::UInt64(expect_version_number)]
+        );
+    }
+
+    #[test]
+    fn test_ecall_runtime_name() {
+        // bytecodes
+        //
+        // 0x0000 host_addr_data       0 0
+        // 0x0008 ecall                256
+        // 0x0010 data_load            0 0
+        // 0x0018 end
+        //
+        // () -> (i32, i64)
+        //        ^    ^
+        //        |    |name buffer (8 bytes)
+        //        |name length
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .write_opcode_i32(Opcode::ecall, ECallCode::runtime_name as u32)
+            .write_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![],                             // params
+            vec![DataType::I32, DataType::I64], // results
+            vec![],                             // local varslist which
+            code0,
+            vec![],
+            vec![],
+            vec![UninitDataEntry::from_i64()],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let fvs1 = result0.unwrap();
+        let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
+            i
+        } else {
+            0
+        };
+        let name_u64 = if let ForeignValue::UInt64(i) = fvs1[1] {
+            i
+        } else {
+            0
+        };
+
+        let name_data = name_u64.to_le_bytes();
+        assert_eq!(&RUNTIME_CODE_NAME[..], &name_data[0..name_len as usize]);
+    }
+}

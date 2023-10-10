@@ -116,6 +116,17 @@ fn convert_vm_data_type_to_jit_type(dt: DataType) -> Type {
 // | \----------------------------/ |
 // \--------------------------------/
 //
+// about the exported function:
+//
+// extern "C" fn exported_function (
+//     param0,
+//     param1,
+//     paramN) -> ? {
+//     1. create stack slots
+//     2. put parameters to stack slots
+//     3. call delegate_function (...stack slots...)
+//     4. return value
+// }
 pub fn build_host_to_vm_function(
     delegate_function_addr: usize,
     thread_context_addr: usize,
@@ -144,17 +155,12 @@ pub fn build_host_to_vm_function(
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
 
-    // the exported function:
+    // the signature of the exported function:
     //
     // extern "C" fn exported_function (
     //     param0,
     //     param1,
-    //     paramN) -> ? {
-    //     1. create stack slots
-    //     2. put parameters to stack slots
-    //     3. call delegate_function (...stack slots...)
-    //     4. return value
-    // }
+    //     paramN) -> ?;
 
     let mut func_exported_sig = jit_helper.module.make_signature();
     for dt in params {
@@ -280,7 +286,17 @@ pub fn build_host_to_vm_function(
 // | fn external_func (a:i32, b:i32) -> i32 {...} |
 // |                                              |
 // \----------------------------------------------/
-
+//
+// the wrapper function:
+//
+// extern "C" fn wrapper_function (
+//     external_function_pointer: *const c_void,
+//     params_ptr: *const u8,
+//     results_ptr: *mut u8) {
+//     1. read params from memory of 'params'
+//     2. call external function
+//     3. write return value to memory of 'results'
+// }
 pub fn build_vm_to_external_function(
     wrapper_function_index: usize,
     params: &[DataType],
@@ -309,16 +325,12 @@ pub fn build_vm_to_external_function(
             .push(AbiParam::new(convert_vm_data_type_to_jit_type(results[0])));
     }
 
-    // the wrapper function:
+    // the signature of the wrapper function:
     //
     // extern "C" fn wrapper_function (
     //     external_function_pointer: *const c_void,
     //     params_ptr: *const u8,
-    //     results_ptr: *mut u8) {
-    //     1. read params from memory of 'params'
-    //     2. call external function
-    //     3. write return value to memory of 'results'
-    // }
+    //     results_ptr: *mut u8);
 
     let mut func_wrapper_sig = jit_helper.module.make_signature();
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // external_function_pointer

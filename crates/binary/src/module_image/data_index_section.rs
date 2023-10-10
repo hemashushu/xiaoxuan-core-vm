@@ -15,8 +15,8 @@
 //         |--------------------------------------|
 //
 //         |--------------------------------------------------------------------------------------------------------------------------------|
-//         | data public idx 0 (u32) | target mod idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | data internal idx 0 (u32) | <-- table 1
-//         | data public idx 1       | target mod idx 1       | target data section type 1      |               | data internal idx 1       |
+//         | data public idx 0 (u32) | target mod idx 0 (u32) | data internal idx 0 (u32) | target data section type 0 (u8) | pad (3 bytes) | <-- table 1
+//         | data public idx 1       | target mod idx 1       | data internal idx 1       | target data section type 1      |               |
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
@@ -47,15 +47,15 @@ pub struct DataIndexItem {
     // target module index
     pub target_module_index: u32,
 
-    // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
-    pub target_data_section_type: DataSectionType,
-    _padding0: [u8; 3],
-
     // the index of the internal data item in a specified data section (in a specified module)
     //
     // this index is the actual index of the internal data item in a specified data section
     // i.e., it excludes the imported data items.
     pub data_internal_index: u32,
+
+    // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
+    pub target_data_section_type: DataSectionType,
+    _padding0: [u8; 3],
 }
 
 impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
@@ -78,22 +78,43 @@ impl DataIndexItem {
     pub fn new(
         data_public_index: u32,
         target_module_index: u32,
-        target_data_section_type: DataSectionType,
         data_internal_index: u32,
+        target_data_section_type: DataSectionType,
     ) -> Self {
         Self {
             data_public_index,
             target_module_index,
+            data_internal_index,
             target_data_section_type,
             _padding0: [0, 0, 0],
-            data_internal_index,
         }
     }
 }
 
 impl Default for DataIndexSection<'_> {
     fn default() -> Self {
-        Self { ranges: Default::default(), items: Default::default() }
+        Self {
+            ranges: Default::default(),
+            items: Default::default(),
+        }
+    }
+}
+
+impl<'a> DataIndexSection<'a> {
+    pub fn get_item_target_module_index_and_data_internal_index_and_data_section_type(
+        &self,
+        module_index: usize,
+        data_public_index: usize,
+    ) -> (usize, usize, DataSectionType) {
+        let range = &self.ranges[module_index];
+        // check bound?
+        let item_index = range.offset as usize + data_public_index;
+        let item = &self.items[item_index];
+        (
+            item.target_module_index as usize,
+            item.data_internal_index as usize,
+            item.target_data_section_type,
+        )
     }
 }
 
@@ -118,21 +139,21 @@ mod tests {
             //
             2, 0, 0, 0, // data pub index, item 0 (little endian)
             3, 0, 0, 0, // t module index
+            5, 0, 0, 0, // data internal idx
             0, // t data section type
             0, 0, 0, // padding
-            5, 0, 0, 0, // data internal idx
             //
             7, 0, 0, 0, // data pub index, item 1 (little endian)
             11, 0, 0, 0, // t module index
+            13, 0, 0, 0, // data internal idx
             1, // t data section type
             0, 0, 0, // padding
-            13, 0, 0, 0, // data internal idx
             //
             17, 0, 0, 0, // data pub index, item 2 (little endian)
-            11, 0, 0, 0, // t module index
+            19, 0, 0, 0, // t module index
+            23, 0, 0, 0, // data internal idx
             1, // t data section type
             0, 0, 0, // padding
-            19, 0, 0, 0, // data internal idx
         ];
 
         let section = DataIndexSection::load(&section_data);
@@ -149,17 +170,36 @@ mod tests {
 
         assert_eq!(
             items[0],
-            DataIndexItem::new(2, 3, DataSectionType::ReadOnly, 5)
+            DataIndexItem::new(2, 3, 5, DataSectionType::ReadOnly,)
         );
 
         assert_eq!(
             items[1],
-            DataIndexItem::new(7, 11, DataSectionType::ReadWrite, 13,)
+            DataIndexItem::new(7, 11, 13, DataSectionType::ReadWrite,)
         );
 
         assert_eq!(
             items[2],
-            DataIndexItem::new(17, 11, DataSectionType::ReadWrite, 19,)
+            DataIndexItem::new(17, 19, 23, DataSectionType::ReadWrite,)
+        );
+
+        // test get index item
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(0, 0),
+            (3, 5, DataSectionType::ReadOnly)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(0, 1),
+            (11, 13, DataSectionType::ReadWrite,)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(1, 0),
+            (19, 23, DataSectionType::ReadWrite)
         );
     }
 
@@ -172,9 +212,9 @@ mod tests {
 
         let mut items: Vec<DataIndexItem> = Vec::new();
 
-        items.push(DataIndexItem::new(2, 3, DataSectionType::ReadOnly, 5));
-        items.push(DataIndexItem::new(7, 11, DataSectionType::ReadWrite, 13));
-        items.push(DataIndexItem::new(17, 11, DataSectionType::ReadWrite, 19));
+        items.push(DataIndexItem::new(2, 3, 5, DataSectionType::ReadOnly));
+        items.push(DataIndexItem::new(7, 11, 13, DataSectionType::ReadWrite));
+        items.push(DataIndexItem::new(17, 19, 23, DataSectionType::ReadWrite));
 
         let section = DataIndexSection {
             ranges: &ranges,
@@ -197,21 +237,21 @@ mod tests {
                 //
                 2, 0, 0, 0, // data pub index, item 0 (little endian)
                 3, 0, 0, 0, // t module index
+                5, 0, 0, 0, // data internal idx
                 0, // t data section type
                 0, 0, 0, // padding
-                5, 0, 0, 0, // data internal idx
                 //
                 7, 0, 0, 0, // data pub index, item 1 (little endian)
                 11, 0, 0, 0, // t module index
+                13, 0, 0, 0, // datainternal  idx
                 1, // t data section type
                 0, 0, 0, // padding
-                13, 0, 0, 0, // datainternal  idx
                 //
                 17, 0, 0, 0, // data pub index, item 2 (little endian)
-                11, 0, 0, 0, // t module index
+                19, 0, 0, 0, // t module index
+                23, 0, 0, 0, // data internal idx
                 1, // t data section type
                 0, 0, 0, // padding
-                19, 0, 0, 0, // data internal idx
             ]
         );
     }

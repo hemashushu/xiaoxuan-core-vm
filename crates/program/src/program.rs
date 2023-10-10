@@ -15,6 +15,9 @@ use crate::{
 
 pub struct Program<'a> {
     program_settings: &'a ProgramSettings,
+
+    // since the 'loadlibrary' is process-scope, the external function (pointer) table
+    // should be placed at the 'Program' instead of 'ThreadContext'
     external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
     module_images: Vec<ModuleImage<'a>>,
 }
