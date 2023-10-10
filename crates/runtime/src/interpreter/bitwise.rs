@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i32() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 0xff0000ff
@@ -422,7 +422,7 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i64() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 0xff00ff00_00ff00ff

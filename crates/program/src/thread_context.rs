@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use ancvm_binary::module_image::ModuleImage;
 use ancvm_types::{DataType, ForeignValue};
@@ -111,7 +111,7 @@ pub struct ThreadContext<'a> {
 
     pub bridge_function_table: Vec<DelegateModuleItem>,
     pub callback_function_table: Vec<DelegateModuleItem>,
-    pub external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
+    pub external_function_table: Rc<RefCell<ExtenalFunctionTable>>,
 
     pub program_context: ProgramContext<'a>,
     pub program_settings: &'a ProgramSettings,
@@ -153,7 +153,7 @@ pub struct DelegateFunctionItem {
 
 impl<'a> ThreadContext<'a> {
     pub fn new(
-        external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
+        external_function_table: Rc<RefCell<ExtenalFunctionTable>>,
         program_settings: &'a ProgramSettings,
         module_images: &'a [ModuleImage<'a>],
     ) -> Self {

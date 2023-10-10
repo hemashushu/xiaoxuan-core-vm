@@ -433,8 +433,6 @@ mod tests {
 
     #[test]
     fn test_process_data_load_store() {
-        // init_runtime();
-
         //        read-only data section
         //       |low address    high addr|
         //       |                        |
@@ -617,8 +615,6 @@ mod tests {
 
     #[test]
     fn test_process_data_load_store_uninitialized() {
-        // init_runtime();
-
         //        read-only data section
         //       |low address    high addr|
         //       |                        |
@@ -798,8 +794,6 @@ mod tests {
 
     #[test]
     fn test_process_data_long_load_store() {
-        // init_runtime();
-
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |

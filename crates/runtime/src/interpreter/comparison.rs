@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_process_comparison_i32() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 0
@@ -526,7 +526,7 @@ mod tests {
 
     #[test]
     fn test_process_comparison_i64() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 0
@@ -771,7 +771,7 @@ mod tests {
 
     #[test]
     fn test_process_comparison_f32() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 1.414
@@ -958,7 +958,7 @@ mod tests {
 
     #[test]
     fn test_process_comparison_f64() {
-        // // init_runtime();
+        //
 
         // numbers:
         //   - 0: 1.414

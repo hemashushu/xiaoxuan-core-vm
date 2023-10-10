@@ -4,6 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+#[derive(Default)]
 pub struct ProgramSettings {
     pub source_path: String,
     pub is_multiple_scripts: bool,
@@ -23,17 +24,6 @@ impl ProgramSettings {
             is_multiple_scripts,
             cache_path: cache_path.to_owned(),
             runtime_path: runtime_path.to_owned(),
-        }
-    }
-}
-
-impl Default for ProgramSettings {
-    fn default() -> Self {
-        Self {
-            source_path: Default::default(),
-            is_multiple_scripts: Default::default(),
-            cache_path: Default::default(),
-            runtime_path: Default::default(),
         }
     }
 }

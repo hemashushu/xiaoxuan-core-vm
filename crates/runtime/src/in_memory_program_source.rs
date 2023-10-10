@@ -6,8 +6,7 @@
 
 use ancvm_binary::load_modules_from_binaries;
 use ancvm_program::{
-    program::Program, program_settings::ProgramSettings,
-    program_source::ProgramSource,
+    program::Program, program_settings::ProgramSettings, program_source::ProgramSource,
 };
 
 use crate::interpreter::init_interpreters;
@@ -22,6 +21,13 @@ impl InMemoryProgramSource {
         Self {
             module_binaries,
             program_settings: ProgramSettings::default(),
+        }
+    }
+
+    pub fn with_settings(module_binaries: Vec<Vec<u8>>, program_settings: ProgramSettings) -> Self {
+        Self {
+            module_binaries,
+            program_settings,
         }
     }
 }

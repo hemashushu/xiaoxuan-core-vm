@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use ancvm_binary::module_image::ModuleImage;
 
@@ -18,7 +18,7 @@ pub struct Program<'a> {
 
     // since the 'loadlibrary' is process-scope, the external function (pointer) table
     // should be placed at the 'Program' instead of 'ThreadContext'
-    external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
+    external_function_table: Rc<RefCell<ExtenalFunctionTable>>,
     module_images: Vec<ModuleImage<'a>>,
 }
 
@@ -30,7 +30,7 @@ impl<'a> Program<'a> {
         let external_func_count = module_images[0]
             .get_optional_unified_external_func_section()
             .map_or(0, |section| section.items.len());
-        let external_function_table = Arc::new(RefCell::new(ExtenalFunctionTable::new(
+        let external_function_table = Rc::new(RefCell::new(ExtenalFunctionTable::new(
             external_library_count,
             external_func_count,
         )));
@@ -43,10 +43,10 @@ impl<'a> Program<'a> {
     }
 
     pub fn new_thread_context(&'a self) -> ThreadContext<'a> {
-        let external_function_table = Arc::clone(&self.external_function_table);
+        let external_function_table = Rc::clone(&self.external_function_table);
         ThreadContext::new(
             external_function_table,
-            &self.program_settings,
+            self.program_settings,
             &self.module_images,
         )
     }

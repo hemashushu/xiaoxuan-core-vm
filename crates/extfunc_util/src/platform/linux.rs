@@ -18,7 +18,7 @@ pub fn load_library(file_path_or_name: &str) -> Result<*mut c_void, &'static str
     let _last_msg = unsafe { dlerror() };
     let library_ptr = unsafe {
         dlopen(
-            str_to_cstring(file_path_or_name).as_ptr() as *const i8,
+            str_to_cstring(file_path_or_name).as_ptr(),
             RTLD_LAZY,
         )
     };

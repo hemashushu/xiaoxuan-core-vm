@@ -24,7 +24,7 @@ use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{data_section::DataSectionType, ModuleSectionId, RangeItem, SectionEntry};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct DataIndexSection<'a> {
     pub ranges: &'a [RangeItem],
     pub items: &'a [DataIndexItem],
@@ -87,15 +87,6 @@ impl DataIndexItem {
             data_internal_index,
             target_data_section_type,
             _padding0: [0, 0, 0],
-        }
-    }
-}
-
-impl Default for DataIndexSection<'_> {
-    fn default() -> Self {
-        Self {
-            ranges: Default::default(),
-            items: Default::default(),
         }
     }
 }

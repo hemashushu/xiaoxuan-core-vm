@@ -215,8 +215,6 @@ mod tests {
 
     #[test]
     fn test_process_immediate_int() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 i32_imm              0x17

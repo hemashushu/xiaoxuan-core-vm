@@ -133,8 +133,6 @@ mod tests {
 
     #[test]
     fn test_process_machine() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 nop
@@ -177,8 +175,6 @@ mod tests {
 
     #[test]
     fn test_process_host_address() {
-        // init_runtime();
-
         //        read-only data section
         //       |low address    high addr|
         //       |                        |
@@ -347,8 +343,6 @@ mod tests {
 
     #[test]
     fn test_process_host_address_long() {
-        // init_runtime();
-
         //        read-only data section
         //       |low address  high addr|
         //       |                      |
@@ -487,8 +481,6 @@ mod tests {
 
     #[test]
     fn test_process_host_address_heap() {
-        // init_runtime();
-
         //
         //        heap
         //       |low address                high addr|

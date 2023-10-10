@@ -71,8 +71,6 @@ mod tests {
 
     #[test]
     fn test_ecall_runtime_version() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 ecall                257

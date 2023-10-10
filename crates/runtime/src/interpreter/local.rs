@@ -544,8 +544,6 @@ mod tests {
 
     #[test]
     fn test_process_local_load_store() {
-        // init_runtime();
-
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0                                  1      2      3                         4         |
@@ -701,8 +699,6 @@ mod tests {
 
     #[test]
     fn test_process_local_long_load_store() {
-        // init_runtime();
-
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |

@@ -151,8 +151,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_extend_and_trunc() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 local_load32         0 1
@@ -272,8 +270,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_float_to_int() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 local_load32_f32     0 0

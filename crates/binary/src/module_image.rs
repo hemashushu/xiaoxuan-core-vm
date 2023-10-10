@@ -371,7 +371,7 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::Type)
             .map_or_else(
                 || panic!("Can not find the type section."),
-                |section_data| TypeSection::load(section_data),
+                TypeSection::load,
             )
     }
 
@@ -380,7 +380,7 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::Func)
             .map_or_else(
                 || panic!("Can not find the function section."),
-                |section_data| FuncSection::load(section_data),
+                FuncSection::load,
             )
     }
 
@@ -389,7 +389,7 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::LocalVariable)
             .map_or_else(
                 || panic!("Can not find the local variable section."),
-                |section_data| LocalVariableSection::load(section_data),
+                LocalVariableSection::load,
             )
     }
 
@@ -398,26 +398,26 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::FuncIndex)
             .map_or_else(
                 || panic!("Can not find the function index section."),
-                |section_data| FuncIndexSection::load(section_data),
+                FuncIndexSection::load,
             )
     }
 
     // optional section
     pub fn get_optional_read_only_data_section(&'a self) -> Option<ReadOnlyDataSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ReadOnlyData)
-            .map(|section_data| ReadOnlyDataSection::load(section_data))
+            .map(ReadOnlyDataSection::load)
     }
 
     // optional section
     pub fn get_optional_read_write_data_section(&'a self) -> Option<ReadWriteDataSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ReadWriteData)
-            .map(|section_data| ReadWriteDataSection::load(section_data))
+            .map(ReadWriteDataSection::load)
     }
 
     // optional section
     pub fn get_optional_uninit_data_section(&'a self) -> Option<UninitDataSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::UninitData)
-            .map(|section_data| UninitDataSection::load(section_data))
+            .map(UninitDataSection::load)
     }
 
     // todo get_optional_auto_func_section
@@ -433,19 +433,19 @@ impl<'a> ModuleImage<'a> {
     // optional
     pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ExternalLibrary)
-            .map(|section_data| ExternalLibrarySection::load(section_data))
+            .map(ExternalLibrarySection::load)
     }
 
     // optional
     pub fn get_optional_external_func_section(&'a self) -> Option<ExternalFuncSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFunc)
-            .map(|section_data| ExternalFuncSection::load(section_data))
+            .map(ExternalFuncSection::load)
     }
 
     // optional
     pub fn get_optional_data_index_section(&'a self) -> Option<DataIndexSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::DataIndex)
-            .map(|section_data| DataIndexSection::load(section_data))
+            .map(DataIndexSection::load)
     }
 
     // optional
@@ -453,7 +453,7 @@ impl<'a> ModuleImage<'a> {
         &'a self,
     ) -> Option<UnifiedExternalLibrarySection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::UnifiedExternalLibrary)
-            .map(|section_data| UnifiedExternalLibrarySection::load(section_data))
+            .map(UnifiedExternalLibrarySection::load)
     }
 
     // optional
@@ -461,7 +461,7 @@ impl<'a> ModuleImage<'a> {
         &'a self,
     ) -> Option<UnifiedExternalFuncSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunc)
-            .map(|section_data| UnifiedExternalFuncSection::load(section_data))
+            .map(UnifiedExternalFuncSection::load)
     }
 
     // optional
@@ -469,7 +469,7 @@ impl<'a> ModuleImage<'a> {
         &'a self,
     ) -> Option<ExternalFuncIndexSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex)
-            .map(|section_data| ExternalFuncIndexSection::load(section_data))
+            .map(ExternalFuncIndexSection::load)
     }
 }
 

@@ -315,7 +315,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f32_a() {
-        // init_runtime();
+
 
         // numbers:
         //   - 0: 1.414
@@ -537,7 +537,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f32_b() {
-        // init_runtime();
+
 
         // numbers:
         //   - 0: 1.414
@@ -755,7 +755,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_a() {
-        // init_runtime();
+
 
         // numbers:
         //   - 0: 1.414
@@ -920,7 +920,7 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_b() {
-        // init_runtime();
+
 
         // numbers:
         //   - 0: 1.414

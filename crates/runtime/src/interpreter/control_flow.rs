@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_process_control_block() {
-        // // init_runtime();
+        //
 
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_args_and_results() {
-        // init_runtime();
+
 
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_local_vars() {
-        // init_runtime();
+
 
         // func (a/2:i32, b/3:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
         //     (local c/0:i32, d/1:i32)
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break() {
-        // init_runtime();
+
 
         // func () -> (i32, i32)
         //     (i32_imm 11)
@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break_block() {
-        // init_runtime();
+
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -746,7 +746,7 @@ mod tests {
 
     #[test]
     fn test_process_control_break_cross() {
-        // init_runtime();
+
         // cross jump
         //
         // func () -> (i32, i32)
@@ -821,7 +821,7 @@ mod tests {
 
     #[test]
     fn test_process_control_if() {
-        // init_runtime();
+
 
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
@@ -896,7 +896,7 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else() {
-        // init_runtime();
+
 
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
@@ -974,7 +974,7 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else_nest() {
-        // init_runtime();
+
 
         // func $level (i32) -> (i32)
         //     (local_load32 0 0)
@@ -1114,7 +1114,7 @@ mod tests {
 
     #[test]
     fn test_process_control_switch_case() {
-        // init_runtime();
+
 
         // func $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
@@ -1278,7 +1278,7 @@ mod tests {
 
     #[test]
     fn test_process_control_while() {
-        // init_runtime();
+
 
         // func $accu (n/1:i32) -> (i32)
         //     (local sum/0:i32)
@@ -1377,7 +1377,7 @@ mod tests {
 
     #[test]
     fn test_process_control_while_functional() {
-        // init_runtime();
+
         // func $accu (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1477,7 +1477,7 @@ mod tests {
 
     #[test]
     fn test_process_control_while_opti() {
-        // init_runtime();
+
         // func $accu_optimized (i32) -> (i32)
         //     zero                   ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1586,7 +1586,7 @@ mod tests {
 
     #[test]
     fn test_process_control_do_while() {
-        // init_runtime();
+
 
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
@@ -1699,7 +1699,7 @@ mod tests {
 
     #[test]
     fn test_process_control_do_while_with_block_local_vars() {
-        // init_runtime();
+
 
         // note:
         //
@@ -1821,7 +1821,7 @@ mod tests {
 
     #[test]
     fn test_process_control_tco() {
-        // init_runtime();
+
 
         // func $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
@@ -1930,7 +1930,7 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_opti() {
-        // init_runtime();
+
 
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
@@ -2017,7 +2017,7 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_branch() {
-        // init_runtime();
+
 
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
@@ -2117,7 +2117,7 @@ mod tests {
 
     #[test]
     fn test_process_control_call() {
-        // init_runtime();
+
 
         // func $main (i32) -> (i32)
         //     (call $sum_square)
@@ -2276,7 +2276,7 @@ mod tests {
 
     #[test]
     fn test_process_control_dcall() {
-        // init_runtime();
+
 
         // func $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)

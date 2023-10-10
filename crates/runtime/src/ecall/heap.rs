@@ -50,8 +50,6 @@ mod tests {
 
     #[test]
     fn test_ecall_heap_capacity() {
-        // init_runtime();
-
         // bytecodes
         //
         // 0x0000 ecall                261

@@ -22,7 +22,7 @@ use crate::utils::{load_section_with_table_and_data_area, save_section_with_tabl
 
 use super::{ModuleSectionId, SectionEntry};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct UnifiedExternalFuncSection<'a> {
     pub items: &'a [UnifiedExternalFuncItem],
     pub names_data: &'a [u8],
@@ -127,15 +127,6 @@ impl<'a> UnifiedExternalFuncSection<'a> {
             .collect::<Vec<u8>>();
 
         (items, names_data)
-    }
-}
-
-impl Default for UnifiedExternalFuncSection<'_> {
-    fn default() -> Self {
-        Self {
-            items: Default::default(),
-            names_data: Default::default(),
-        }
     }
 }
 

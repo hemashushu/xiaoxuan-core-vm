@@ -82,6 +82,8 @@ pub struct DataItem {
     // the align field is not necessary for data loading and storing, because the value of 'data_offset'
     // is aligned at compilation time, it is only needed when copying data into other memory, such as
     // copying a struct from data section into heap.
+    //
+    // the value of this field should not be '0'
     pub data_align: u16,
 }
 
@@ -98,14 +100,14 @@ pub struct DataEntry {
     pub memory_data_type: MemoryDataType,
     pub data: Vec<u8>,
     pub length: u32,
-    pub align: u16,
+    pub align: u16, // should not be '0'
 }
 
 #[derive(Debug)]
 pub struct UninitDataEntry {
     pub memory_data_type: MemoryDataType,
     pub length: u32,
-    pub align: u16,
+    pub align: u16, // should not be '0'
 }
 
 impl DataEntry {

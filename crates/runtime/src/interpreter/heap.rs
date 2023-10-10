@@ -173,8 +173,6 @@ mod tests {
 
     #[test]
     fn test_process_heap_load_store() {
-        // init_runtime();
-
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |

@@ -29,7 +29,7 @@ use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{ModuleSectionId, RangeItem, SectionEntry};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct ExternalFuncIndexSection<'a> {
     pub ranges: &'a [RangeItem],
     pub items: &'a [ExternalFuncIndexItem],
@@ -73,15 +73,6 @@ impl ExternalFuncIndexItem {
             external_func_index,
             unified_external_func_index,
             type_index,
-        }
-    }
-}
-
-impl Default for ExternalFuncIndexSection<'_> {
-    fn default() -> Self {
-        Self {
-            ranges: Default::default(),
-            items: Default::default(),
         }
     }
 }

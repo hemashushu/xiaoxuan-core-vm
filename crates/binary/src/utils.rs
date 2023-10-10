@@ -1086,11 +1086,15 @@ pub fn build_module_binary_with_functions_and_blocks(
 }
 
 /// helper function for unit test
+#[allow(clippy::too_many_arguments)]
 pub fn build_module_binary_with_single_function_and_external_functions(
     type_entries: Vec<TypeEntry>,
     type_index: usize,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
+    read_only_data_entries: Vec<DataEntry>,
+    read_write_data_entries: Vec<DataEntry>,
+    uninit_uninit_data_entries: Vec<UninitDataEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     let local_variables = local_variable_item_entries_without_args.clone();
@@ -1114,9 +1118,9 @@ pub fn build_module_binary_with_single_function_and_external_functions(
 
     build_module_binary(
         "main",
-        vec![],
-        vec![],
-        vec![],
+        read_only_data_entries,
+        read_write_data_entries,
+        uninit_uninit_data_entries,
         type_entries,
         vec![func_entry],
         vec![local_var_list_entry],
@@ -1125,6 +1129,7 @@ pub fn build_module_binary_with_single_function_and_external_functions(
 }
 
 /// helper function for unit test
+#[allow(clippy::too_many_arguments)]
 pub fn build_module_binary(
     name: &str,
     read_only_data_entries: Vec<DataEntry>,
@@ -1180,7 +1185,7 @@ pub fn build_module_binary(
     // build external library section
     let mut external_library_entries = helper_external_function_entries
         .iter()
-        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_type.clone()))
+        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_type))
         .collect::<Vec<_>>();
     external_library_entries.sort_by(|left, right| left.name.cmp(&right.name));
     external_library_entries.dedup_by(|left, right| left.name == right.name);
@@ -1543,6 +1548,9 @@ mod tests {
             0,
             vec![],
             vec![0u8],
+            vec![],
+            vec![],
+            vec![],
             vec![
                 HelperExternalFunctionEntry {
                     external_library_type: ExternalLibraryType::System,

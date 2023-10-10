@@ -110,14 +110,17 @@ pub fn extcall(thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use ancvm_binary::{
-        module_image::type_section::TypeEntry,
+        module_image::{data_section::DataEntry, type_section::TypeEntry},
         utils::{
             build_module_binary_with_single_function_and_external_functions, BytecodeWriter,
             HelperExternalFunctionEntry,
         },
     };
-    use ancvm_program::program_source::ProgramSource;
+    use ancvm_extfunc_util::cstr_pointer_to_str;
+    use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
     use ancvm_types::{
         ecallcode::ECallCode, opcode::Opcode, DataType, ExternalLibraryType, ForeignValue,
     };
@@ -125,25 +128,9 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_ecall_heap_capacity() {
-        // init_runtime();
-
-        // bytecodes
-        //
-        // 0x0000 ecall                261
-        // 0x0008 i32_imm              0x2
-        // 0x0010 ecall                262
-        // 0x0018 i32_imm              0x4
-        // 0x0020 ecall                262
-        // 0x0028 i32_imm              0x1
-        // 0x0030 ecall                262
-        // 0x0038 ecall                261
-        // 0x0040 end
-        //
-        // () -> (i64, i64, i64, i64, i64)
-
+    fn test_ecall_extcall_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
             .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
             //
             .write_opcode(Opcode::end)
@@ -166,9 +153,12 @@ mod tests {
             1,
             vec![], // local varslist which
             code0,
+            vec![],
+            vec![],
+            vec![],
             vec![HelperExternalFunctionEntry {
                 external_library_type: ExternalLibraryType::System,
-                library_name: "libc.so".to_string(),
+                library_name: "libc.so.6".to_string(),
                 function_name: "getuid".to_string(),
                 type_index: 0,
             }],
@@ -180,6 +170,128 @@ mod tests {
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
-        assert!(matches!(results0[0], ForeignValue::UInt64(uid) if uid > 0 ));
+
+        assert!(matches!(results0[0], ForeignValue::UInt32(uid) if uid > 0 ));
+    }
+
+    #[test]
+    fn test_ecall_extcall_system_libc_getenv() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // `man 3 getenv`
+        // 'char *getenv(const char *name);'
+
+        let binary0 = build_module_binary_with_single_function_and_external_functions(
+            vec![
+                TypeEntry {
+                    params: vec![DataType::I64],  // pointer
+                    results: vec![DataType::I64], // pointer
+                }, // getenv
+                TypeEntry {
+                    params: vec![],
+                    results: vec![DataType::I64], // pointer
+                }, // main
+            ], // params
+            1,
+            vec![], // local varslist which
+            code0,
+            vec![DataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
+            vec![],
+            vec![],
+            vec![HelperExternalFunctionEntry {
+                external_library_type: ExternalLibraryType::System,
+                library_name: "libc.so.6".to_string(),
+                function_name: "getenv".to_string(),
+                type_index: 0,
+            }],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let results0 = result0.unwrap();
+
+        assert!(matches!(results0[0], ForeignValue::UInt64(addr) if {
+            let pwd0 = cstr_pointer_to_str(addr as *const i8);
+            !pwd0.to_string().is_empty()
+        }));
+    }
+
+    #[test]
+    fn test_ecall_extcall_user_lib() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 0
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        // `man 3 getenv`
+        // 'char *getenv(const char *name);'
+
+        let binary0 = build_module_binary_with_single_function_and_external_functions(
+            vec![
+                TypeEntry {
+                    params: vec![DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                }, // getenv
+                TypeEntry {
+                    params: vec![DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                }, // main
+            ], // params
+            1,
+            vec![], // local varslist which
+            code0,
+            vec![],
+            vec![],
+            vec![],
+            vec![HelperExternalFunctionEntry {
+                external_library_type: ExternalLibraryType::User,
+                library_name: "lib-test-0.so.1.0.0".to_string(),
+                function_name: "add".to_string(),
+                type_index: 0,
+            }],
+        );
+
+        let mut pwd = env::current_dir().unwrap();
+        pwd.push("tests");
+        let program_source_path = pwd.to_str().unwrap();
+
+        let program_source0 = InMemoryProgramSource::with_settings(
+            vec![binary0],
+            ProgramSettings::new(program_source_path, true, "", ""),
+        );
+
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(24)]);
+
+        let result1 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
+        );
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(434)]);
     }
 }

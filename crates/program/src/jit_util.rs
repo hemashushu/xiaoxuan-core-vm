@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::sync::Once;
+use std::sync::{Mutex, Once};
 
 use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{
@@ -15,9 +15,11 @@ use cranelift_codegen::{ir::Type, settings};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{DataDescription, Linkage, Module};
+use rand::Rng;
 
 static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Option<JITUtil> = None;
 static INIT: Once = Once::new();
+static LOCKER: Mutex<String> = Mutex::new(String::new());
 
 fn get_jit_util_without_imported_symbols<'a>() -> &'a mut JITUtil {
     INIT.call_once(|| {
@@ -135,6 +137,8 @@ pub fn build_host_to_vm_function(
     params: &[DataType],
     results: &[DataType],
 ) -> *const u8 {
+    let _locker = LOCKER.lock().unwrap();
+
     let jit_helper = get_jit_util_without_imported_symbols();
 
     let pointer_type = jit_helper.module.isa().pointer_type();
@@ -174,10 +178,12 @@ pub fn build_host_to_vm_function(
             .push(AbiParam::new(convert_vm_data_type_to_jit_type(results[0])));
     }
 
-    let func_exported_name = format!(
-        "exported_{}_{}",
-        target_module_index, function_internal_index
-    );
+    let func_exported_name = format!("exported_{}", rand::thread_rng().gen::<u32>());
+    // format!(
+    //     "exported_{}_{}",
+    //     target_module_index, function_internal_index
+    // )
+
     let func_exported_id = jit_helper
         .module
         .declare_function(&func_exported_name, Linkage::Local, &func_exported_sig)
@@ -269,7 +275,6 @@ pub fn build_host_to_vm_function(
     jit_helper.module.get_finalized_function(func_exported_id)
 }
 
-
 //      VM Runtime
 // /------------------------------------\
 // |                    VM module       |
@@ -298,10 +303,12 @@ pub fn build_host_to_vm_function(
 //     3. write return value to memory of 'results'
 // }
 pub fn build_vm_to_external_function(
-    wrapper_function_index: usize,
+    _wrapper_function_index: usize,
     params: &[DataType],
     results: &[DataType],
 ) -> *const u8 {
+    let _locker = LOCKER.lock().unwrap();
+
     let jit_helper = get_jit_util_without_imported_symbols();
 
     let pointer_type = jit_helper.module.isa().pointer_type();
@@ -337,7 +344,9 @@ pub fn build_vm_to_external_function(
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
 
-    let func_wrapper_name = format!("wrapper_{}", wrapper_function_index);
+    let func_wrapper_name = format!("wrapper_{}", rand::thread_rng().gen::<u32>());
+    // format!("wrapper_{}", wrapper_function_index)
+
     let func_wrapper_id = jit_helper
         .module
         .declare_function(&func_wrapper_name, Linkage::Local, &func_wrapper_sig)
@@ -388,7 +397,7 @@ pub fn build_vm_to_external_function(
     function_builder.seal_all_blocks();
     function_builder.finalize();
 
-    println!("{}", func_wrapper.display());
+    // println!("{}", func_wrapper.display());
 
     // generate the (machine/native) code of func_bridge
     let mut codegen_context = jit_helper.module.make_context();
