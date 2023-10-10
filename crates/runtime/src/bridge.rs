@@ -141,11 +141,11 @@ pub fn get_function<T>(
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&bridge_function_ptr) });
     }
 
-    let type_index = thread_context.program_reference.modules[target_module_index]
+    let type_index = thread_context.program_context.program_modules[target_module_index]
         .func_section
         .items[function_internal_index]
         .type_index;
-    let (params, results) = thread_context.program_reference.modules[target_module_index]
+    let (params, results) = thread_context.program_context.program_modules[target_module_index]
         .type_section
         .get_params_and_results_list(type_index as usize);
 
@@ -186,10 +186,10 @@ pub fn get_data<T>(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
-    use ancvm_program::program::Program;
+    use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType};
 
-    use crate::{bridge::get_function, in_memory_program::InMemoryProgram};
+    use crate::{bridge::get_function, in_memory_program_source::InMemoryProgramSource};
 
     #[test]
     fn test_get_function() {
@@ -212,8 +212,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let fn_add: extern "C" fn(i32, i32) -> i32 =

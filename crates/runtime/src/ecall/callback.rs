@@ -57,11 +57,11 @@ fn get_callback_function<T>(
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&callback_function_ptr) });
     }
 
-    let type_index = thread_context.program_reference.modules[target_module_index]
+    let type_index = thread_context.program_context.program_modules[target_module_index]
         .func_section
         .items[function_internal_index]
         .type_index;
-    let (params, results) = thread_context.program_reference.modules[target_module_index]
+    let (params, results) = thread_context.program_context.program_modules[target_module_index]
         .type_section
         .get_params_and_results_list(type_index as usize);
 

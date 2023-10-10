@@ -22,10 +22,10 @@ type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
 fn unreachable(thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
-    let func_item = &thread_context.program_reference.modules[pc.module_index]
+    let func_item = &thread_context.program_context.program_modules[pc.module_index]
         .func_section
         .items[pc.function_internal_index];
-    let codes = &thread_context.program_reference.modules[pc.module_index]
+    let codes = &thread_context.program_context.program_modules[pc.module_index]
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
@@ -72,7 +72,7 @@ pub fn init_ecall_handlers() {
 
     // system
     handlers[ECallCode::syscall as usize] = syscall::syscall;
-    // ... extcall, callback_func
+    handlers[ECallCode::extcall as usize] = extcall::extcall;
 }
 
 pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {
@@ -93,11 +93,11 @@ mod tests {
             build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
         },
     };
-    use ancvm_program::program::Program;
+    use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        in_memory_program::InMemoryProgram, interpreter::process_function, RUNTIME_CODE_NAME,
+        in_memory_program_source::InMemoryProgramSource, interpreter::process_function, RUNTIME_CODE_NAME,
         RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
@@ -149,8 +149,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -192,8 +192,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -239,8 +239,8 @@ mod tests {
             vec![UninitDataEntry::from_i64()],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);

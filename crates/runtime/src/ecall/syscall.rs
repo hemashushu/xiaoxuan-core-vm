@@ -144,10 +144,10 @@ fn handle_syscall_with_6_args(
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
-    use ancvm_program::program::Program;
+    use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
+    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
     fn test_syscall_handler_without_args() {
@@ -168,8 +168,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -209,8 +209,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -265,8 +265,8 @@ mod tests {
             code0,
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(

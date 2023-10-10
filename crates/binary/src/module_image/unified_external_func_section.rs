@@ -127,6 +127,12 @@ impl<'a> UnifiedExternalFuncSection<'a> {
     }
 }
 
+impl Default for UnifiedExternalFuncSection<'_> {
+    fn default() -> Self {
+        Self { items: Default::default(), names_data: Default::default() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::module_image::{

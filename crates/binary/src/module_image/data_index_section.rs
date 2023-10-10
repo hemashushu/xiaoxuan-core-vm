@@ -91,6 +91,12 @@ impl DataIndexItem {
     }
 }
 
+impl Default for DataIndexSection<'_> {
+    fn default() -> Self {
+        Self { ranges: Default::default(), items: Default::default() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::module_image::{

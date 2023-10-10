@@ -1414,7 +1414,7 @@ mod tests {
         assert_eq!(module_image.name, &b"main".to_vec());
 
         // check data index section
-        let data_index_section = module_image.get_data_index_section();
+        let data_index_section = module_image.get_optional_data_index_section().unwrap();
         assert_eq!(data_index_section.ranges.len(), 1);
         assert_eq!(data_index_section.items.len(), 6);
 
@@ -1446,7 +1446,7 @@ mod tests {
         assert_eq!(func_index_section.items, &vec![FuncIndexItem::new(0, 0, 0)]);
 
         // check data sections
-        let ro_section = module_image.get_read_only_data_section();
+        let ro_section = module_image.get_optional_read_only_data_section().unwrap();
         assert_eq!(
             &ro_section.items[0],
             &DataItem::new(0, 4, MemoryDataType::I32, 4)
@@ -1464,7 +1464,7 @@ mod tests {
             [0x13, 0, 0, 0, 0, 0, 0, 0]
         );
 
-        let rw_section = module_image.get_read_write_data_section();
+        let rw_section = module_image.get_optional_read_write_data_section().unwrap();
         assert_eq!(
             &rw_section.items[0],
             &DataItem::new(0, 6, MemoryDataType::BYTES, 8)
@@ -1474,7 +1474,7 @@ mod tests {
             &[0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37]
         );
 
-        let uninit_section = module_image.get_uninit_data_section();
+        let uninit_section = module_image.get_optional_uninit_data_section().unwrap();
         assert_eq!(
             &uninit_section.items[0],
             &DataItem::new(0, 4, MemoryDataType::I32, 4)
@@ -1597,7 +1597,9 @@ mod tests {
         let module_image = &module_images[0];
 
         // check unified external library section
-        let unified_external_library_section = module_image.get_unified_external_library_section();
+        let unified_external_library_section = module_image
+            .get_optional_unified_external_library_section()
+            .unwrap();
         assert_eq!(
             unified_external_library_section.get_entry(0),
             UnifiedExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
@@ -1615,7 +1617,9 @@ mod tests {
         );
 
         // check unified external function section
-        let unified_external_func_section = module_image.get_unified_external_func_section();
+        let unified_external_func_section = module_image
+            .get_optional_unified_external_func_section()
+            .unwrap();
         assert_eq!(
             unified_external_func_section.get_entry(0),
             UnifiedExternalFuncEntry::new("getuid".to_string(), 0)
@@ -1642,7 +1646,9 @@ mod tests {
         );
 
         // check external function index section
-        let external_func_index_section = module_image.get_external_func_index_section();
+        let external_func_index_section = module_image
+            .get_optional_external_func_index_section()
+            .unwrap();
         assert_eq!(external_func_index_section.ranges.len(), 1);
         assert_eq!(external_func_index_section.items.len(), 6);
 
@@ -1664,7 +1670,9 @@ mod tests {
         );
 
         // check external library sections
-        let external_library_section = module_image.get_external_library_section();
+        let external_library_section = module_image
+            .get_optional_external_library_section()
+            .unwrap();
         assert_eq!(
             external_library_section.get_entry(0),
             ExternalLibraryEntry::new("libc.so".to_string(), ExternalLibraryType::System)
@@ -1679,7 +1687,7 @@ mod tests {
         );
 
         // check external function section
-        let external_func_section = module_image.get_external_func_section();
+        let external_func_section = module_image.get_optional_external_func_section().unwrap();
         assert_eq!(
             external_func_section.get_entry(0),
             ExternalFuncEntry::new("getuid".to_string(), 0, 1)

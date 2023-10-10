@@ -7,63 +7,70 @@
 // a module consists of two parts, data and code (i.e., instructions), which
 // are spread out in the following sections:
 //
-// - import data section (optional)
-// - data sections (optional)
-//   there are 3 kinds of data sections: read-only, read-write, uninit(ialized)
-//   all data are thread-local, so the read-write section will be cloned and the
-//   uninitialized section will be allocated when a new thread is created.
-//
 // - function type section
-//   the signature of a function, the types are also applied to the code blocks.
-// - import function section (optional)
+//   the signature of a function, the types are also applied to the code blocks and external functions.
 // - function section
 // - local variable section
 //   a function is consists of a type, a local variable list, and instructions
-//
-// - (import) external C function section (optional)
-//   a list of external C functions
-// - export data section (optional)
-// - export function section (optional)
-// - auto function index list section (optional)
-//   the index of functions:
-//   - which executes before application start (constructor function)
-//   - which executes before application exit (destructor function)
+// - data sections
+//   there are 3 kinds of data sections: read-only, read-write, uninit(ialized)
+//   all data are thread-local, so the read-write section will be cloned and the
+//   uninitialized section will be allocated when a new thread is created.
+// - auto function index list section
+//   presists the index of these functions:
+//   - which executes before application start (constructor function, one per module)
+//   - which executes before application exit (destructor function, one per module)
 //   - the entry function (main function)
-//
+// - import function section
+// - export function section
+// - import data section
+// - export data section
+// - external library section
+// - external function section
+
 // a minimal module only requires 3 sections:
 //
 // - function type section
 // - function section
 // - local variable section
 //
-// of these, the following sections are not required during the runtime, they are generally used for debuging
+// and there are optional sections:
+// - read-only data section
+// - read-write data section
+// - uninitial data section
+//
+// the following sections are not required during the runtime, they are generally used for debuging
 // and linking.
 //
-// - import data section
 // - import function section
-// - export data section
 // - export function section
-//
-// because in the modules linking stage (which follows the compiling stage), all imports and exports
+// - import data section
+// - export data section
+// - external library section
+// - external function section
+
+// in the stage of linking modules (which follows the stage compiling), all imports and exports
 // are resolved and stored the indices in the following sections,
-// this help speeding up the next time the program loading:
+// this help speeding up the program loading:
 //
-// - data index section (optional)
 // - func index section
-// - external func index section (optional)
+// - data index section (optional)
+// - unified external library section (optional)
+// - unified external functon section (optional)
+// - external function index section (optional)
 //
 // note that only the application main module contains these sections.
-//
+
 // about the design of module:
 //
 // the loading and startup of XiaoXuan modules are extremely fast, because:
-// - there is no parsing process, the loading process actually does only two things: maps
+// - there is no parsing process and zero-copy, the loading process actually does only two things: maps
 //   the module image file into memory, and locates the start and end positions of echo
 //   sections.
-// - instructions are executed directly on the binary (bytecode of the module)
+// - instructions are executed directly on the (binary) bytecode and all sores of indices of the module.
 //
-// these allow the XiaoXuan applications to have almost no startup time, and are suitable
-// for using as 'function' in scripts.
+// these allow the XiaoXuan applications to have almost no startup-wating time,
+// the application is suitable for using as 'function' in other applications or scripts.
 
 // the data type of fields:
 //
@@ -156,24 +163,25 @@ impl ModuleSection {
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleSectionId {
-    ReadOnlyData = 0x10, // 0x10
-    ReadWriteData,       // 0x11
-    UninitData,          // 0x12
-    //
-    Type = 0x20,   // 0x20
-    Func,          // 0x21
-    LocalVariable, // 0x22
-    //
-    ImportData = 0x30, // 0x30
-    ImportFunc,        // 0x31
-    ExportData,        // 0x32
-    ExportFunc,        // 0x33
+    // essential
+    Type = 0x10,   // 0x10
+    Func,          // 0x11
+    LocalVariable, // 0x12
+    // optional
+    ReadOnlyData = 0x20, // 0x20
+    ReadWriteData,       // 0x21
+    UninitData,          // 0x22
+    AutoFunc,            // 0x23
+    // for debuging and linking
+    ImportFunc = 0x30, // 0x30
+    ExportFunc,        // 0x31
+    ImportData,        // 0x32
+    ExportData,        // 0x33
     ExternalLibrary,   // 0x34
     ExternalFunc,      // 0x35
-    AutoFunc,          // 0x36
-    //
-    DataIndex = 0x40,       // 0x40
-    FuncIndex,              // 0x41
+    // indices
+    FuncIndex = 0x40,       // 0x40
+    DataIndex,              // 0x41
     UnifiedExternalLibrary, // 0x42
     UnifiedExternalFunc,    // 0x43
     ExternalFuncIndex,      // 0x44 (mapping ext-func to uni-ext-func)
@@ -355,121 +363,110 @@ impl<'a> ModuleImage<'a> {
         })
     }
 
-    pub fn get_data_index_section(&'a self) -> DataIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::DataIndex);
-        if let Some(section_data) = opt_section_data {
-            DataIndexSection::load(section_data)
-        } else {
-            panic!("Can not find the data index section.")
-        }
-    }
-
-    pub fn get_func_index_section(&'a self) -> FuncIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::FuncIndex);
-        if let Some(section_data) = opt_section_data {
-            FuncIndexSection::load(section_data)
-        } else {
-            panic!("Can not find the function index section.")
-        }
-    }
-
-    pub fn get_unified_external_library_section(&'a self) -> UnifiedExternalLibrarySection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UnifiedExternalLibrary);
-        if let Some(section_data) = opt_section_data {
-            UnifiedExternalLibrarySection::load(section_data)
-        } else {
-            panic!("Can not find the unified external library section.")
-        }
-    }
-
-    pub fn get_unified_external_func_section(&'a self) -> UnifiedExternalFuncSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunc);
-        if let Some(section_data) = opt_section_data {
-            UnifiedExternalFuncSection::load(section_data)
-        } else {
-            panic!("Can not find the unified external function section.")
-        }
-    }
-
-    pub fn get_external_func_index_section(&'a self) -> ExternalFuncIndexSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex);
-        if let Some(section_data) = opt_section_data {
-            ExternalFuncIndexSection::load(section_data)
-        } else {
-            panic!("Can not find the external function index section.")
-        }
-    }
-
-    pub fn get_read_only_data_section(&'a self) -> ReadOnlyDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ReadOnlyData);
-        if let Some(section_data) = opt_section_data {
-            ReadOnlyDataSection::load(section_data)
-        } else {
-            panic!("Can not find the read-only data section.")
-        }
-    }
-
-    pub fn get_read_write_data_section(&'a self) -> ReadWriteDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ReadWriteData);
-        if let Some(section_data) = opt_section_data {
-            ReadWriteDataSection::load(section_data)
-        } else {
-            panic!("Can not find the read-write data section.")
-        }
-    }
-
-    pub fn get_uninit_data_section(&'a self) -> UninitDataSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::UninitData);
-        if let Some(section_data) = opt_section_data {
-            UninitDataSection::load(section_data)
-        } else {
-            panic!("Can not find the uninitialized data section.")
-        }
-    }
-
+    // essential section
     pub fn get_type_section(&'a self) -> TypeSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::Type);
-        if let Some(section_data) = opt_section_data {
-            TypeSection::load(section_data)
-        } else {
-            panic!("Can not find the type section.")
-        }
+        self.get_section_data_by_id(ModuleSectionId::Type)
+            .map_or_else(
+                || panic!("Can not find the type section."),
+                |section_data| TypeSection::load(section_data),
+            )
     }
 
+    // essential section
     pub fn get_func_section(&'a self) -> FuncSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::Func);
-        if let Some(section_data) = opt_section_data {
-            FuncSection::load(section_data)
-        } else {
-            panic!("Can not find the function section.")
-        }
+        self.get_section_data_by_id(ModuleSectionId::Func)
+            .map_or_else(
+                || panic!("Can not find the function section."),
+                |section_data| FuncSection::load(section_data),
+            )
     }
 
+    // essential section
     pub fn get_local_variable_section(&'a self) -> LocalVariableSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::LocalVariable);
-        if let Some(section_data) = opt_section_data {
-            LocalVariableSection::load(section_data)
-        } else {
-            panic!("Can not find the local variable section.")
-        }
+        self.get_section_data_by_id(ModuleSectionId::LocalVariable)
+            .map_or_else(
+                || panic!("Can not find the local variable section."),
+                |section_data| LocalVariableSection::load(section_data),
+            )
     }
 
-    pub fn get_external_library_section(&'a self) -> ExternalLibrarySection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalLibrary);
-        if let Some(section_data) = opt_section_data {
-            ExternalLibrarySection::load(section_data)
-        } else {
-            panic!("Can not find the external library section.")
-        }
+    // essential section
+    pub fn get_func_index_section(&'a self) -> FuncIndexSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::FuncIndex)
+            .map_or_else(
+                || panic!("Can not find the function index section."),
+                |section_data| FuncIndexSection::load(section_data),
+            )
     }
 
-    pub fn get_external_func_section(&'a self) -> ExternalFuncSection<'a> {
-        let opt_section_data = self.get_section_data_by_id(ModuleSectionId::ExternalFunc);
-        if let Some(section_data) = opt_section_data {
-            ExternalFuncSection::load(section_data)
-        } else {
-            panic!("Can not find the external function section.")
-        }
+    // optional section
+    pub fn get_optional_read_only_data_section(&'a self) -> Option<ReadOnlyDataSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ReadOnlyData)
+            .map(|section_data| ReadOnlyDataSection::load(section_data))
+    }
+
+    // optional section
+    pub fn get_optional_read_write_data_section(&'a self) -> Option<ReadWriteDataSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ReadWriteData)
+            .map(|section_data| ReadWriteDataSection::load(section_data))
+    }
+
+    // optional section
+    pub fn get_optional_uninit_data_section(&'a self) -> Option<UninitDataSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::UninitData)
+            .map(|section_data| UninitDataSection::load(section_data))
+    }
+
+    // todo get_optional_auto_func_section
+
+    // todo get_optional_import_func_section
+
+    // todo get_optional_export_func_section
+
+    // todo get_optional_import_data_section
+
+    // todo get_optional_export_data_section
+
+    // optional
+    pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalLibrary)
+            .map(|section_data| ExternalLibrarySection::load(section_data))
+    }
+
+    // optional
+    pub fn get_optional_external_func_section(&'a self) -> Option<ExternalFuncSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalFunc)
+            .map(|section_data| ExternalFuncSection::load(section_data))
+    }
+
+    // optional
+    pub fn get_optional_data_index_section(&'a self) -> Option<DataIndexSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::DataIndex)
+            .map(|section_data| DataIndexSection::load(section_data))
+    }
+
+    // optional
+    pub fn get_optional_unified_external_library_section(
+        &'a self,
+    ) -> Option<UnifiedExternalLibrarySection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::UnifiedExternalLibrary)
+            .map(|section_data| UnifiedExternalLibrarySection::load(section_data))
+    }
+
+    // optional
+    pub fn get_optional_unified_external_func_section(
+        &'a self,
+    ) -> Option<UnifiedExternalFuncSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunc)
+            .map(|section_data| UnifiedExternalFuncSection::load(section_data))
+    }
+
+    // optional
+    pub fn get_optional_external_func_index_section(
+        &'a self,
+    ) -> Option<ExternalFuncIndexSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex)
+            .map(|section_data| ExternalFuncIndexSection::load(section_data))
     }
 }
 
@@ -596,15 +593,15 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                0x20u8, 0, 0, 0, // section id
+                0x10u8, 0, 0, 0, // section id, type section
                 0, 0, 0, 0, // offset 0
                 36, 0, 0, 0, // length 0
                 //
-                0x21u8, 0, 0, 0, // section id
+                0x11u8, 0, 0, 0, // section id, func section
                 36, 0, 0, 0, // offset 1
                 52, 0, 0, 0, // length 1
                 //
-                0x22u8, 0, 0, 0, // section id
+                0x12u8, 0, 0, 0, // section id, local variable section
                 88, 0, 0, 0, // offset 1
                 68, 0, 0, 0, // length 1
             ]
@@ -788,7 +785,7 @@ mod tests {
             items: &vec![func_index_item0],
         };
 
-        // build IndexMap instance
+        // build module image
         let name = b"std".to_vec();
         let section_entries: Vec<&dyn SectionEntry> =
             vec![&data_index_section, &func_index_section];
@@ -825,11 +822,11 @@ mod tests {
         assert_eq!(
             section_table_data,
             &vec![
-                0x40u8, 0, 0, 0, // section id 0
+                0x41u8, 0, 0, 0, // section id 0, data index
                 0, 0, 0, 0, // offset 0
                 64, 0, 0, 0, // length 0
                 //
-                0x41u8, 0, 0, 0, // section id 1
+                0x40u8, 0, 0, 0, // section id 1, func index
                 64, 0, 0, 0, // offset 1
                 28, 0, 0, 0, // length 1
             ]
@@ -887,7 +884,9 @@ mod tests {
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
         assert_eq!(module_image_restore.items.len(), 2);
 
-        let data_index_section_restore = module_image_restore.get_data_index_section();
+        let data_index_section_restore = module_image_restore
+            .get_optional_data_index_section()
+            .unwrap();
 
         assert_eq!(data_index_section_restore.ranges.len(), 1);
         assert_eq!(data_index_section_restore.items.len(), 3);

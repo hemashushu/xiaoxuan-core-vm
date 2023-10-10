@@ -47,7 +47,7 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_reference.modules[module_index];
+    let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
@@ -74,7 +74,7 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_reference.modules[module_index];
+    let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
         [local_variables_list_index as usize]
@@ -110,7 +110,7 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
             function_internal_index: _,
             module_index,
         } = thread_context.pc;
-        let module = &thread_context.program_reference.modules[module_index];
+        let module = &thread_context.program_context.program_modules[module_index];
         let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes = module.local_variable_section.lists
             [local_variables_list_index as usize]
@@ -208,7 +208,7 @@ fn do_recur(
             function_internal_index,
             module_index,
         } = thread_context.pc;
-        let func_item = &thread_context.program_reference.modules[module_index]
+        let func_item = &thread_context.program_context.program_modules[module_index]
             .func_section
             .items[function_internal_index];
         let relate_offset = func_item.code_offset as isize - instruction_address as isize;
@@ -252,7 +252,7 @@ fn do_call(
                 target_function_internal_index,
             );
 
-    let type_item = &thread_context.program_reference.modules[target_module_index]
+    let type_item = &thread_context.program_context.program_modules[target_module_index]
         .type_section
         .items[type_index];
 
@@ -293,8 +293,8 @@ mod tests {
         },
     };
 
-    use crate::{in_memory_program::InMemoryProgram, interpreter::process_function};
-    use ancvm_program::program::Program;
+    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+    use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
@@ -338,8 +338,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -391,8 +391,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -590,8 +590,8 @@ mod tests {
             ],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -655,8 +655,8 @@ mod tests {
             vec![],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -728,8 +728,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -808,8 +808,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
@@ -873,8 +873,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -951,8 +951,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -1089,8 +1089,8 @@ mod tests {
             ],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
@@ -1253,8 +1253,8 @@ mod tests {
             ],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
@@ -1363,8 +1363,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1463,8 +1463,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1572,8 +1572,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1685,8 +1685,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1807,8 +1807,8 @@ mod tests {
             }],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
@@ -1907,8 +1907,8 @@ mod tests {
             }], // blocks
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -1994,8 +1994,8 @@ mod tests {
             vec![], // blocks
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -2094,8 +2094,8 @@ mod tests {
             }], // blocks
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(
@@ -2266,8 +2266,8 @@ mod tests {
             ],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(5)]);
@@ -2385,8 +2385,8 @@ mod tests {
             vec![],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let mut thread_context0 = program_context0.new_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);

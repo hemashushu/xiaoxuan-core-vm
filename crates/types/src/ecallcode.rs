@@ -150,7 +150,7 @@ pub enum ECallCode {
     // unavailable in some environment.
     // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
 
-    callback_func,          // create a new host function and map it to a VM function.
+    host_addr_func,         // create a new host function and map it to a VM function.
                             // this host function named 'bridge funcion'
                             //
                             // return the existing bridge function if the bridge function corresponding

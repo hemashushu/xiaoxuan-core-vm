@@ -135,6 +135,12 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
     }
 }
 
+impl Default for UnifiedExternalLibrarySection<'_> {
+    fn default() -> Self {
+        Self { items: Default::default(), names_data: Default::default() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ancvm_types::ExternalLibraryType;

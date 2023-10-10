@@ -13,7 +13,7 @@ use ancvm_types::RuntimeError;
 
 pub mod ecall;
 pub mod bridge;
-pub mod in_memory_program;
+pub mod in_memory_program_source;
 pub mod interpreter;
 
 const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";

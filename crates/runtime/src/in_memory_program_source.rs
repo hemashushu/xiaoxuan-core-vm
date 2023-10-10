@@ -6,21 +6,19 @@
 
 use ancvm_binary::load_modules_from_binaries;
 use ancvm_program::{
-    program::Program, program_context::ProgramContext, program_settings::ProgramSettings,
+    program::Program, program_settings::ProgramSettings,
+    program_source::ProgramSource,
 };
 
 use crate::interpreter::init_interpreters;
 
-pub struct InMemoryProgram {
+pub struct InMemoryProgramSource {
     program_settings: ProgramSettings,
     module_binaries: Vec<Vec<u8>>,
 }
 
-impl InMemoryProgram {
+impl InMemoryProgramSource {
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
-        // initialize interpreters
-        init_interpreters();
-
         Self {
             module_binaries,
             program_settings: ProgramSettings::default(),
@@ -28,15 +26,17 @@ impl InMemoryProgram {
     }
 }
 
-impl Program for InMemoryProgram {
-    fn build_program_context(&self) -> Result<ProgramContext, ancvm_binary::BinaryError> {
+impl ProgramSource for InMemoryProgramSource {
+    fn build_program(&self) -> Result<Program, ancvm_binary::BinaryError> {
+        init_interpreters(); // initialize interpreters
+
         let binaries_ref = self
             .module_binaries
             .iter()
             .map(|e| &e[..])
             .collect::<Vec<_>>();
         let module_images = load_modules_from_binaries(binaries_ref)?;
-        Ok(ProgramContext::new(&self.program_settings, module_images))
+        Ok(Program::new(&self.program_settings, module_images))
     }
 }
 
@@ -50,12 +50,12 @@ mod tests {
         utils::build_module_binary_with_single_function_and_data_sections,
     };
     use ancvm_program::{
-        program::Program, resizeable_memory::ResizeableMemory, thread_context::ProgramCounter,
-        INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
+        program_source::ProgramSource, resizeable_memory::ResizeableMemory,
+        thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
     };
     use ancvm_types::DataType;
 
-    use crate::in_memory_program::InMemoryProgram;
+    use crate::in_memory_program_source::InMemoryProgramSource;
 
     #[test]
     fn test_in_memory_program() {
@@ -76,11 +76,11 @@ mod tests {
             ],
         );
 
-        let program0 = InMemoryProgram::new(vec![binary0]);
-        let program_context0 = program0.build_program_context().unwrap();
+        let program0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_context0 = program0.build_program().unwrap();
         let thread_context0 = program_context0.new_thread_context();
 
-        let program_ref = &thread_context0.program_reference;
+        let program_ref = &thread_context0.program_context;
 
         // check index sections
         assert_eq!(program_ref.data_index_section.ranges.len(), 1);
@@ -88,8 +88,8 @@ mod tests {
         assert_eq!(program_ref.func_index_section.ranges.len(), 1);
         assert_eq!(program_ref.func_index_section.items.len(), 1);
 
-        assert_eq!(program_ref.modules.len(), 1);
-        let module = &program_ref.modules[0];
+        assert_eq!(program_ref.program_modules.len(), 1);
+        let module = &program_ref.program_modules[0];
 
         // check data sections
         assert_eq!(module.datas.len(), 3);

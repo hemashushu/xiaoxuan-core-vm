@@ -11,7 +11,7 @@ use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
     external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    program_reference::ProgramReference, program_settings::ProgramSettings, stack::Stack,
+    program_context::ProgramContext, program_settings::ProgramSettings, stack::Stack,
     INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
 };
 
@@ -113,7 +113,7 @@ pub struct ThreadContext<'a> {
     pub callback_function_table: Vec<DelegateModuleItem>,
     pub external_function_table: Arc<RefCell<ExtenalFunctionTable>>,
 
-    pub program_reference: ProgramReference<'a>,
+    pub program_context: ProgramContext<'a>,
     pub program_settings: &'a ProgramSettings,
 }
 
@@ -166,7 +166,7 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let program_reference = ProgramReference::new(module_images);
+        let program_context = ProgramContext::new(module_images);
 
         Self {
             stack,
@@ -175,7 +175,7 @@ impl<'a> ThreadContext<'a> {
             bridge_function_table: vec![],
             callback_function_table: vec![],
             external_function_table,
-            program_reference,
+            program_context,
             program_settings,
         }
     }
@@ -241,12 +241,12 @@ impl<'a> ThreadContext<'a> {
     ) -> (&mut dyn IndexedMemory, usize, usize) {
         let module_index = self.pc.module_index;
 
-        let range = &self.program_reference.data_index_section.ranges[module_index];
-        let data_index_item = &self.program_reference.data_index_section.items
+        let range = &self.program_context.data_index_section.ranges[module_index];
+        let data_index_item = &self.program_context.data_index_section.items
             [range.offset as usize + data_public_index];
 
         let target_module_index = data_index_item.target_module_index as usize;
-        let target_module = &mut self.program_reference.modules[target_module_index];
+        let target_module = &mut self.program_context.program_modules[target_module_index];
         let data_internal_index = data_index_item.data_internal_index as usize;
         let datas = target_module.datas[data_index_item.target_data_section_type as usize].as_mut();
 
@@ -260,8 +260,8 @@ impl<'a> ThreadContext<'a> {
         module_index: usize,
         function_public_index: usize,
     ) -> (usize, usize) {
-        let range_item = &self.program_reference.func_index_section.ranges[module_index];
-        let func_index_items = &self.program_reference.func_index_section.items
+        let range_item = &self.program_context.func_index_section.ranges[module_index];
+        let func_index_items = &self.program_context.func_index_section.items
             [range_item.offset as usize..(range_item.offset + range_item.count) as usize];
         let func_index_item = &func_index_items[function_public_index];
 
@@ -277,7 +277,7 @@ impl<'a> ThreadContext<'a> {
         module_index: usize,
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
-        let func_item = &self.program_reference.modules[module_index]
+        let func_item = &self.program_context.program_modules[module_index]
             .func_section
             .items[function_internal_index];
 
@@ -285,7 +285,7 @@ impl<'a> ThreadContext<'a> {
         let local_index = func_item.local_index as usize;
         let code_offset = func_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.program_reference.modules[module_index]
+        let local_variables_allocate_bytes = self.program_context.program_modules[module_index]
             .local_variable_section
             .lists[local_index]
             .list_allocate_bytes;
@@ -319,7 +319,7 @@ impl<'a> ThreadContext<'a> {
             )
         };
 
-        let variable_item = &self.program_reference.modules[module_index]
+        let variable_item = &self.program_context.program_modules[module_index]
             .local_variable_section
             .get_variable_list(list_index as usize)[local_variable_index];
 
@@ -474,7 +474,7 @@ impl<'a> ThreadContext<'a> {
             module_index,
         } = self.pc;
 
-        let codes_data = self.program_reference.modules[module_index]
+        let codes_data = self.program_context.program_modules[module_index]
             .func_section
             .codes_data;
         let dst = instruction_address + offset;
