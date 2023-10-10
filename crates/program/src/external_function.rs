@@ -80,7 +80,7 @@ impl ExtenalFunctionTable {
         result_datatypes: &[DataType],
     ) -> Result<(*mut c_void, WrapperFunction), &'static str> {
         if result_datatypes.len() > 1 {
-            return Err("Only functions with one return value are allowed.");
+            return Err("The specified function has more than 1 return value.");
         }
 
         // find library pointer

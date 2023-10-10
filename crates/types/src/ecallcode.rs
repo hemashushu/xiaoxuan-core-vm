@@ -94,15 +94,15 @@ pub enum ECallCode {
     // by default the XiaoXuan has no 'global' data or variables.
     // threads can comunicate through message box or shared-memory.
 
-    thread_id,          // get the current thread id
-    thread_create,      // craete a new thread, return the mailbox id
-    thread_msg_send,    // (param mailbox_id:i32)
-    thread_msg_reply,   // reply message to parent thread
-    thread_exit,        //
-                        // ref:
-                        // - https://doc.rust-lang.org/std/sync/mpsc/index.html
-                        // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
-                        // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
+    thread_id,              // get the current thread id
+    thread_create,          // craete a new thread, return the mailbox id
+    thread_msg_send,        // (param mailbox_id:i32)
+    thread_msg_reply,       // reply message to parent thread
+    thread_exit,            //
+                            // ref:
+                            // - https://doc.rust-lang.org/std/sync/mpsc/index.html
+                            // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
+                            // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
     // backpack
     //
@@ -115,14 +115,14 @@ pub enum ECallCode {
 
     // regex
 
-    regex_create,       // ref: https://github.com/rust-lang/regex
+    regex_create,           // ref: https://github.com/rust-lang/regex
     regex_match,
     regex_test,
     regex_remove,
 
     // system
 
-    syscall,            // syscall
+    syscall,                // syscall
 
     // `fn (syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
     //
@@ -143,8 +143,8 @@ pub enum ECallCode {
     // if the operation fails, the value is a negative value (rax < 0).
     // there is no 'errno' if invoke syscall by assembly directly.
 
-    extcall,            // external function call
-                        // `fn (external_func_index:i32)`
+    extcall,                // external function call
+                            // `fn (external_func_index:i32)`
 
     // note that both 'scall' and 'extcall' are optional, they may be
     // unavailable in some environment.
@@ -153,10 +153,10 @@ pub enum ECallCode {
     host_addr_func,         // create a new host function and map it to a VM function.
                             // this host function named 'bridge funcion'
                             //
-                            // return the existing bridge function if the bridge function corresponding
-                            // to the specified VM function has already been created.
-                            //
-                            // `fn (module_index:i32 func_pub_index:i32)`
+                            // `fn (func_pub_index:i32)`
+
+    // return the existing bridge function if the bridge function corresponding
+    // to the specified VM function has already been created.
 
 
     // it's commonly used for creating a callback function pointer for external C function.
@@ -223,14 +223,14 @@ pub enum ECallCode {
     // I/O functions
     //
 
-    print_char = 0x200, // `fn (fd:i32 char:i32)`
-    print_i32,          // `fn (fd:i32 value:i32)`
-    print_i64,          // `fn (fd:i32 value:i64)`
+    print_char = 0x200,     // `fn (fd:i32 char:i32)`
+    print_i32,              // `fn (fd:i32 value:i32)`
+    print_i64,              // `fn (fd:i32 value:i64)`
 
     //
     // delegate to std I/O
     //
-    write,              // `fn (fd:i32 addr:i64 length:i64)`
+    write,                  // `fn (fd:i32 addr:i64 length:i64)`
 }
 
 pub const MAX_ECALLCODE_NUMBER:usize = 0x400;

@@ -65,8 +65,75 @@
 // - `$ /path/to/app-source-dir/main.ancs`
 // - `$ [/usr/bin/]app-name` (a symblic link to '/path/to/app-source-dir/main.ancs')
 
+use ancvm_binary::{
+    module_image::type_section::TypeEntry,
+    utils::{
+        build_module_binary_with_functions_and_external_functions, BytecodeWriter,
+        HelperExternalFunctionEntry, HelperSlimFunctionEntry,
+    },
+};
+use ancvm_program::program_source::ProgramSource;
+use ancvm_runtime::{
+    in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
+};
+use ancvm_types::{
+    ecallcode::ECallCode, opcode::Opcode, DataType, ExternalLibraryType, ForeignValue,
+};
+
 fn main() {
-    println!("Hello");
+    print_uid()
+}
+
+fn print_uid() {
+    let code0 = BytecodeWriter::new()
+        .write_opcode_i32(Opcode::i32_imm, 0) // external func index
+        .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+        //
+        .write_opcode(Opcode::end)
+        .to_bytes();
+
+    // `man 3 getuid`
+    // 'uid_t getuid(void);'
+
+    let binary0 = build_module_binary_with_functions_and_external_functions(
+        vec![
+            TypeEntry {
+                params: vec![],
+                results: vec![DataType::I32],
+            }, // getuid
+            TypeEntry {
+                params: vec![],
+                results: vec![DataType::I32],
+            }, // main
+        ], // types
+        vec![HelperSlimFunctionEntry {
+            type_index: 1,
+            local_variable_item_entries_without_args: vec![],
+            code: code0,
+        }],
+        vec![],
+        vec![],
+        vec![],
+        vec![HelperExternalFunctionEntry {
+            external_library_type: ExternalLibraryType::System,
+            library_name: "libc.so.6".to_string(),
+            function_name: "getuid".to_string(),
+            type_index: 0,
+        }],
+    );
+
+    let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+    let program0 = program_source0.build_program().unwrap();
+    let mut thread_context0 = program0.new_thread_context();
+
+    let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+    let results0 = result0.unwrap();
+
+    if let ForeignValue::UInt32(uid) = results0[0] {
+        println!("uid: {}", uid);
+    } else {
+        println!("getuid failed.")
+    }
 }
 
 #[cfg(test)]

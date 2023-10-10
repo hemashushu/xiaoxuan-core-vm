@@ -130,7 +130,7 @@ pub fn get_function<T>(
     //
 
     let (target_module_index, function_internal_index) =
-        thread_context.get_function_internal_index_and_module_index(0, 0);
+        thread_context.get_function_target_module_index_and_internal_index(0, 0);
 
     // check if the specified (target_module_index, function_internal_index) already
     // exists in the bridge function table
@@ -150,7 +150,7 @@ pub fn get_function<T>(
         .get_item_params_and_results(type_index as usize);
 
     if results.len() > 1 {
-        return Err("Only functions with one return value are allowed.");
+        return Err("The specified function has more than 1 return value.");
     }
 
     let delegate_function_addr = process_bridge_function_call as *const u8 as usize;

@@ -39,8 +39,8 @@ pub fn end(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (param type_index:i32, local_index:i32)
-    let (type_index, local_variables_list_index) = thread_context.get_param_i32_i32();
+    // (param type_index:i32, local_variable_list_index:i32)
+    let (type_index, local_variable_list_index) = thread_context.get_param_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
@@ -50,13 +50,13 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
     let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
-        [local_variables_list_index as usize]
+        [local_variable_list_index as usize]
         .list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variables_list_index,
+        local_variable_list_index,
         local_variables_allocate_bytes,
         None,
     );
@@ -64,9 +64,9 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (param type_index:i32, local_index:i32, alt_inst_offset:i32)
+    // (param type_index:i32, local_variable_list_index:i32, alt_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_variables_list_index, alt_inst_offset) =
+    let (type_index, local_variable_list_index, alt_inst_offset) =
         thread_context.get_param_i32_i32_i32();
 
     let ProgramCounter {
@@ -77,13 +77,13 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
     let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes = module.local_variable_section.lists
-        [local_variables_list_index as usize]
+        [local_variable_list_index as usize]
         .list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variables_list_index,
+        local_variable_list_index,
         local_variables_allocate_bytes,
         None,
     );
@@ -96,10 +96,10 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (param type_index:i32, local_index:i32, next_inst_offset:i32)
+    // (param type_index:i32, local_variable_list_index:i32, next_inst_offset:i32)
 
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_variables_list_index, alt_inst_offset) =
+    let (type_index, local_variable_list_index, alt_inst_offset) =
         thread_context.get_param_i32_i32_i32();
 
     if condition == 0 {
@@ -113,13 +113,13 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
         let module = &thread_context.program_context.program_modules[module_index];
         let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes = module.local_variable_section.lists
-            [local_variables_list_index as usize]
+            [local_variable_list_index as usize]
             .list_allocate_bytes;
 
         thread_context.stack.create_frame(
             type_item.params_count,
             type_item.results_count,
-            local_variables_list_index,
+            local_variable_list_index,
             local_variables_allocate_bytes,
             None,
         );
@@ -241,13 +241,13 @@ fn do_call(
     } = thread_context.pc;
 
     let (target_module_index, target_function_internal_index) = thread_context
-        .get_function_internal_index_and_module_index(
+        .get_function_target_module_index_and_internal_index(
             return_module_index,
             function_public_index as usize,
         );
-    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 target_function_internal_index,
             );
@@ -268,7 +268,7 @@ fn do_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variables_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(return_pc),
     );
@@ -317,7 +317,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 11)
             .write_opcode_i32(Opcode::i32_imm, 13)
-            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local index = 1
+            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
             .write_opcode_i32(Opcode::i32_imm, 17)
             .write_opcode_i32(Opcode::i32_imm, 19)
             .write_opcode(Opcode::end)
@@ -372,7 +372,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 11)
             .write_opcode_i32(Opcode::i32_imm, 13)
-            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local index = 1
+            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
             .write_opcode_i32(Opcode::i32_imm, 17)
             .write_opcode(Opcode::end)
             .write_opcode_i32(Opcode::i32_imm, 19)

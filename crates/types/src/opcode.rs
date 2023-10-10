@@ -686,7 +686,7 @@ pub enum Opcode {
     // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
 
-    block,                      // (param type_index:i32, local_index:i32)
+    block,                      // (param type_index:i32, local_variable_list_index:i32)
                                 //
                                 // create a block scope. a block is similar to a function, it also has
                                 // parameters and results, it shares the type with function, so the 'block'
@@ -814,7 +814,7 @@ pub enum Opcode {
     // 0d0032 end
     // ```
 
-    block_alt,          // (param type_index:i32, local_index:i32, alt_inst_offset:i32)
+    block_alt,          // (param type_index:i32, local_variable_list_index:i32, alt_inst_offset:i32)
 
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
@@ -854,7 +854,7 @@ pub enum Opcode {
     //
     // (+ => execute, - => pass)
 
-    block_nez,          // (param type_index:i32, local_index:i32, next_inst_offset:i32)
+    block_nez,          // (param type_index:i32, local_variable_list_index:i32, next_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is
     // NOT equals to ZERO (logic TRUE).

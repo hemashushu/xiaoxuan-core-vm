@@ -16,12 +16,7 @@ use crate::{cstr_pointer_to_str, str_to_cstring};
 pub fn load_library(file_path_or_name: &str) -> Result<*mut c_void, &'static str> {
     // clear the last error msg, see `$ man 3 dlerror`
     let _last_msg = unsafe { dlerror() };
-    let library_ptr = unsafe {
-        dlopen(
-            str_to_cstring(file_path_or_name).as_ptr(),
-            RTLD_LAZY,
-        )
-    };
+    let library_ptr = unsafe { dlopen(str_to_cstring(file_path_or_name).as_ptr(), RTLD_LAZY) };
 
     if library_ptr.is_null() {
         let msg = unsafe { dlerror() };
@@ -109,11 +104,23 @@ mod tests {
 
         let func_add_ptr = load_symbol(library_ptr, "add").unwrap();
         let func_add: extern "C" fn(i32, i32) -> i32 = transmute_symbol_to(func_add_ptr);
-        assert_eq!(func_add(11, 13), 24);
+        assert_eq!(func_add(11, 13), 11 + 13);
 
         let func_mul_add_ptr = load_symbol(library_ptr, "mul_add").unwrap();
         let func_mul_add: extern "C" fn(i32, i32, i32) -> i32 =
             transmute_symbol_to(func_mul_add_ptr);
-        assert_eq!(func_mul_add(11, 13, 17), 160);
+        assert_eq!(func_mul_add(11, 13, 17), 11 * 13 + 17);
+
+        let func_do_something_ptr = load_symbol(library_ptr, "do_something").unwrap();
+        let func_do_something: extern "C" fn(*const u8, i32, i32) -> i32 =
+            transmute_symbol_to(func_do_something_ptr);
+        assert_eq!(
+            func_do_something(user_callback as *const u8, 13, 17),
+            13 * 2 + 17
+        );
+    }
+
+    extern "C" fn user_callback(n: i32) -> i32 {
+        n * 2
     }
 }

@@ -178,11 +178,15 @@ pub fn build_host_to_vm_function(
             .push(AbiParam::new(convert_vm_data_type_to_jit_type(results[0])));
     }
 
+    // failed in unit test because the multiple Program(s) create duplicated id.
+    /*
+    let func_exported_name = format!(
+        "exported_{}_{}",
+        target_module_index, function_internal_index
+    );
+     */
+
     let func_exported_name = format!("exported_{}", rand::thread_rng().gen::<u32>());
-    // format!(
-    //     "exported_{}_{}",
-    //     target_module_index, function_internal_index
-    // )
 
     let func_exported_id = jit_helper
         .module
@@ -344,8 +348,11 @@ pub fn build_vm_to_external_function(
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
 
+    // failed in unit test because the multiple Program(s) create duplicated id.
+    /*
+    let func_wrapper_name = format!("wrapper_{}", wrapper_function_index);
+     */
     let func_wrapper_name = format!("wrapper_{}", rand::thread_rng().gen::<u32>());
-    // format!("wrapper_{}", wrapper_function_index)
 
     let func_wrapper_id = jit_helper
         .module

@@ -109,8 +109,8 @@ pub struct ThreadContext<'a> {
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
-    pub bridge_function_table: Vec<DelegateModuleItem>,
-    pub callback_function_table: Vec<DelegateModuleItem>,
+    pub bridge_function_table: Vec<DelegateLibraryItem>,
+    pub callback_function_table: Vec<DelegateLibraryItem>,
     pub external_function_table: Rc<RefCell<ExtenalFunctionTable>>,
 
     pub program_context: ProgramContext<'a>,
@@ -141,7 +141,7 @@ pub struct ProgramCounter {
     pub module_index: usize,            // the module index
 }
 
-pub struct DelegateModuleItem {
+pub struct DelegateLibraryItem {
     pub target_module_index: usize,
     pub birdge_function_items: Vec<DelegateFunctionItem>,
 }
@@ -223,22 +223,22 @@ impl<'a> ThreadContext<'a> {
         reversed_results
     }
 
-    pub fn find_function_public_index_and_module_index_by_name() -> (usize, usize) {
+    pub fn find_function_target_module_index_and_public_index_by_name() -> (usize, usize) {
         // todo
         (0, 0)
     }
 
-    pub fn find_data_public_index_and_module_index_by_name() -> (usize, usize) {
+    pub fn find_data_target_module_index_and_public_index_by_name() -> (usize, usize) {
         // todo
         (0, 0)
     }
 
     /// return:
-    /// (dyn IndexedMemory, target_module_index:usize, data_internal_index:usize)
-    pub fn get_current_module_data_internal_index_and_datas_object(
+    /// (target_module_index:usize, data_internal_index:usize, dyn IndexedMemory)
+    pub fn get_current_module_data_target_module_index_and_internal_index_and_data_object(
         &mut self,
         data_public_index: usize,
-    ) -> (&mut dyn IndexedMemory, usize, usize) {
+    ) -> (usize, usize, &mut dyn IndexedMemory) {
         let module_index = self.pc.module_index;
 
         let (target_module_index, data_internal_index, target_data_section_type) = self
@@ -250,14 +250,14 @@ impl<'a> ThreadContext<'a> {
             );
 
         let target_module = &mut self.program_context.program_modules[target_module_index];
-        let datas = target_module.datas[target_data_section_type as usize].as_mut();
+        let data_object = target_module.datas[target_data_section_type as usize].as_mut();
 
-        (datas, target_module_index, data_internal_index)
+        (target_module_index, data_internal_index, data_object)
     }
 
     /// return:
     /// (target_module_index, function_internal_index)
-    pub fn get_function_internal_index_and_module_index(
+    pub fn get_function_target_module_index_and_internal_index(
         &self,
         module_index: usize,
         function_public_index: usize,
@@ -273,8 +273,8 @@ impl<'a> ThreadContext<'a> {
     }
 
     /// return:
-    /// (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes)
-    pub fn get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+    /// (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes)
+    pub fn get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
         &self,
         module_index: usize,
         function_internal_index: usize,
@@ -284,17 +284,17 @@ impl<'a> ThreadContext<'a> {
             .items[function_internal_index];
 
         let type_index = func_item.type_index as usize;
-        let local_index = func_item.local_index as usize;
+        let local_variable_list_index = func_item.local_variable_list_index as usize;
         let code_offset = func_item.code_offset as usize;
 
         let local_variables_allocate_bytes = self.program_context.program_modules[module_index]
             .local_variable_section
-            .lists[local_index]
+            .lists[local_variable_list_index]
             .list_allocate_bytes;
 
         (
             type_index,
-            local_index,
+            local_variable_list_index,
             code_offset,
             local_variables_allocate_bytes,
         )
@@ -303,7 +303,7 @@ impl<'a> ThreadContext<'a> {
     pub fn get_local_variable_address_by_index_and_offset(
         &self,
         reversed_index: u16,
-        local_variable_index: usize,
+        local_variable_index: usize, // note that this is different from 'local_variable_list_index'
         offset_bytes: usize,
     ) -> usize {
         // get the local variable info
@@ -313,17 +313,17 @@ impl<'a> ThreadContext<'a> {
             module_index,
         } = self.pc;
 
-        let (fp, list_index) = {
+        let (fp, local_variable_list_index) = {
             let frame_pack = self.stack.get_frame_pack(reversed_index);
             (
                 frame_pack.address,
-                frame_pack.frame_info.local_variables_list_index,
+                frame_pack.frame_info.local_variable_list_index,
             )
         };
 
         let variable_item = &self.program_context.program_modules[module_index]
             .local_variable_section
-            .get_variable_list(list_index as usize)[local_variable_index];
+            .get_variable_list(local_variable_list_index as usize)[local_variable_index];
 
         let local_start_address = self.stack.get_frame_local_variables_start_address(fp);
         local_start_address + variable_item.var_offset as usize + offset_bytes
@@ -485,7 +485,7 @@ impl<'a> ThreadContext<'a> {
 }
 
 fn find_delegate_function(
-    delegate_function_table: &[DelegateModuleItem],
+    delegate_function_table: &[DelegateLibraryItem],
     target_module_index: usize,
     function_internal_index: usize,
 ) -> Option<*const u8> {
@@ -505,7 +505,7 @@ fn find_delegate_function(
 }
 
 fn insert_delegate_function(
-    delegate_function_table: &mut Vec<DelegateModuleItem>,
+    delegate_function_table: &mut Vec<DelegateLibraryItem>,
     target_module_index: usize,
     function_internal_index: usize,
     bridge_function_ptr: *const u8,
@@ -514,7 +514,7 @@ fn insert_delegate_function(
         .iter()
         .position(|module_item| module_item.target_module_index == target_module_index)
         .unwrap_or_else(|| {
-            delegate_function_table.push(DelegateModuleItem {
+            delegate_function_table.push(DelegateLibraryItem {
                 target_module_index,
                 birdge_function_items: vec![],
             });

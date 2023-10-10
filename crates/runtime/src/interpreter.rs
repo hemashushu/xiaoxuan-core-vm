@@ -417,10 +417,10 @@ pub fn process_function(
 
     // find the code start address
     let (target_module_index, function_internal_index) = thread_context
-        .get_function_internal_index_and_module_index(module_index, func_public_index);
-    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+        .get_function_target_module_index_and_internal_index(module_index, func_public_index);
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
@@ -447,7 +447,7 @@ pub fn process_function(
     thread_context.stack.create_frame(
         params.len() as u16,
         results.len() as u16,
-        local_variables_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
             instruction_address: 0,
@@ -489,9 +489,9 @@ pub extern "C" fn process_bridge_function_call(
 
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
@@ -519,7 +519,7 @@ pub extern "C" fn process_bridge_function_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variables_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
             instruction_address: 0,
@@ -542,7 +542,7 @@ pub extern "C" fn process_bridge_function_call(
     // pop the results from the stack
     // note:
     //
-    // only 0 or 1 result is allowed for C function.
+    // only 1 return value is allowed for C function.
     if results_count > 0 {
         let stack_pop_ptr = thread_context.stack.pop_operand_to_memory();
         unsafe { std::ptr::copy(stack_pop_ptr, results_ptr, OPERAND_SIZE_IN_BYTES) };
@@ -565,9 +565,9 @@ pub extern "C" fn process_callback_function_call(
 
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_variables_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
@@ -601,7 +601,7 @@ pub extern "C" fn process_callback_function_call(
 
         // set MSB of 'return module index' to '1' to indicate that it's the END of the
         // current function call.
-        module_index: return_module_index & 0x8000_0000,
+        module_index: return_module_index | 0x8000_0000,
     };
 
     // module M, function A
@@ -624,7 +624,7 @@ pub extern "C" fn process_callback_function_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variables_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(return_pc),
     );

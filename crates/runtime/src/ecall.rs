@@ -73,6 +73,7 @@ pub fn init_ecall_handlers() {
     // system
     handlers[ECallCode::syscall as usize] = syscall::syscall;
     handlers[ECallCode::extcall as usize] = extcall::extcall;
+    handlers[ECallCode::host_addr_func as usize] = callback::host_addr_func;
 }
 
 pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {

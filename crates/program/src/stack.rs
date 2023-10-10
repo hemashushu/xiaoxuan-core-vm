@@ -58,7 +58,7 @@ pub struct Stack {
 // | return func idx        |                                   | 0                      | <-- 0
 // | return module idx      |                                   | 0                      | <-- 0
 // | local vars alloc bytes |                                   | local vars alloc bytes |
-// | local vars list idx    |                                   | local vars list index  |
+// | local vars idx         |                                   | local vars index       |
 // | params/results count   |                                   | params/results count   |
 // | function FP            |                                   | function FP            |
 // | previous FP            | <-- frame info                    | previous FP            |
@@ -129,7 +129,7 @@ pub struct FrameInfo {
     pub function_frame_address: u32,         //--/  8 bytes
     pub params_count: u16,                   //--\
     pub results_count: u16,                  //  |  8 bytes
-    pub local_variables_list_index: u32,     //--/
+    pub local_variable_list_index: u32,          //--/
     pub local_variables_allocate_bytes: u32, //--\
     pub return_module_index: u32,            //--/  8 bytes
     pub return_function_internal_index: u32, //--\  8 bytes
@@ -537,7 +537,7 @@ impl Stack {
         &mut self,
         params_count: u16,
         results_count: u16,
-        local_variables_list_index: u32,
+        local_variable_list_index: u32,
         local_variables_allocate_bytes: u32,
         opt_return_pc: Option<ProgramCounter>,
     ) {
@@ -567,7 +567,7 @@ impl Stack {
         frame_info.function_frame_address = func_fp;
         frame_info.params_count = params_count;
         frame_info.results_count = results_count;
-        frame_info.local_variables_list_index = local_variables_list_index;
+        frame_info.local_variable_list_index = local_variable_list_index;
 
         frame_info.local_variables_allocate_bytes = local_variables_allocate_bytes;
 
@@ -1015,7 +1015,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 2,
                 results_count: 0,
-                local_variables_list_index: 73,
+                local_variable_list_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
@@ -1129,7 +1129,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 1,
                 results_count: 2,
-                local_variables_list_index: 97,
+                local_variable_list_index: 97,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 0,
                 return_function_internal_index: 0,
@@ -1233,7 +1233,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 0,
                 results_count: 0,
-                local_variables_list_index: 701,
+                local_variable_list_index: 701,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
                 return_function_internal_index: 0,
@@ -1335,7 +1335,7 @@ mod tests {
                 function_frame_address: fp3 as u32,
                 params_count: 1,
                 results_count: 3,
-                local_variables_list_index: 709,
+                local_variable_list_index: 709,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 113,
                 return_function_internal_index: 109,
@@ -1643,7 +1643,7 @@ mod tests {
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                local_variables_list_index: 73,
+                local_variable_list_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
@@ -1792,7 +1792,7 @@ mod tests {
                 function_frame_address: 16,
                 params_count: 1,
                 results_count: 2,
-                local_variables_list_index: 97,
+                local_variable_list_index: 97,
                 local_variables_allocate_bytes: 16,
                 return_module_index: 0,
                 return_function_internal_index: 0,

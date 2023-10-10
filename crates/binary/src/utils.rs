@@ -837,8 +837,8 @@ impl<'a> BytecodeReader<'a> {
                 // control flow
                 Opcode::end => {}
                 Opcode::block => {
-                    let (type_idx, local_index) = self.read_param_i32_i32();
-                    line.push_str(&format!("{} {}", type_idx, local_index));
+                    let (type_idx, local_variable_list_index) = self.read_param_i32_i32();
+                    line.push_str(&format!("{} {}", type_idx, local_variable_list_index));
                 }
                 Opcode::block_alt | Opcode::block_nez => {
                     let (type_idx, local_idx, offset) = self.read_param_i32_i32_i32();
@@ -893,6 +893,12 @@ pub struct HelperFunctionEntry {
     pub code: Vec<u8>,
 }
 
+pub struct HelperSlimFunctionEntry {
+    pub type_index: usize,
+    pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    pub code: Vec<u8>,
+}
+
 /// helper object for unit test
 pub struct HelperBlockEntry {
     pub params: Vec<DataType>,
@@ -941,21 +947,23 @@ pub fn build_module_binary_with_single_function_and_data_sections(
         results: result_datatypes.clone(),
     };
 
-    let local_variables = local_variable_item_entries_without_args.clone();
-    let params_as_variables = param_datatypes
+    let original_local_variables = local_variable_item_entries_without_args.clone();
+    let params_as_local_variables = param_datatypes
         .iter()
         .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
         .collect::<Vec<_>>();
 
-    let mut variables = Vec::new();
-    variables.extend_from_slice(&local_variables);
-    variables.extend_from_slice(&params_as_variables);
+    let mut local_variables = Vec::new();
+    local_variables.extend_from_slice(&original_local_variables);
+    local_variables.extend_from_slice(&params_as_local_variables);
 
-    let local_var_list_entry = LocalVariableListEntry { variables };
+    let local_var_list_entry = LocalVariableListEntry {
+        variables: local_variables,
+    };
 
     let func_entry = FuncEntry {
         type_index: 0,
-        local_index: 0,
+        local_variable_list_index: 0,
         code,
     };
 
@@ -1027,34 +1035,40 @@ pub fn build_module_binary_with_functions_and_blocks(
     let func_local_var_list_entries = helper_function_entries
         .iter()
         .map(|entry| {
-            let mut variables = entry.local_variable_item_entries_without_args.clone();
-
-            let params_as_variables = entry
+            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
+            let params_as_local_variables = entry
                 .params
                 .iter()
                 .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
                 .collect::<Vec<_>>();
 
-            variables.extend_from_slice(&params_as_variables);
+            let mut local_variables = Vec::new();
+            local_variables.extend_from_slice(&original_local_variables);
+            local_variables.extend_from_slice(&params_as_local_variables);
 
-            LocalVariableListEntry { variables }
+            LocalVariableListEntry {
+                variables: local_variables,
+            }
         })
         .collect::<Vec<_>>();
 
     let block_local_var_list_entries = helper_block_entries
         .iter()
         .map(|entry| {
-            let mut variables = entry.local_variable_item_entries_without_args.clone();
-
-            let params_as_variables = entry
+            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
+            let params_as_local_variables = entry
                 .params
                 .iter()
                 .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
                 .collect::<Vec<_>>();
 
-            variables.extend_from_slice(&params_as_variables);
+            let mut local_variables = Vec::new();
+            local_variables.extend_from_slice(&original_local_variables);
+            local_variables.extend_from_slice(&params_as_local_variables);
 
-            LocalVariableListEntry { variables }
+            LocalVariableListEntry {
+                variables: local_variables,
+            }
         })
         .collect::<Vec<_>>();
 
@@ -1068,7 +1082,7 @@ pub fn build_module_binary_with_functions_and_blocks(
         .enumerate()
         .map(|(idx, entry)| FuncEntry {
             type_index: idx,
-            local_index: idx,
+            local_variable_list_index: idx,
             code: entry.code.clone(),
         })
         .collect::<Vec<_>>();
@@ -1087,34 +1101,42 @@ pub fn build_module_binary_with_functions_and_blocks(
 
 /// helper function for unit test
 #[allow(clippy::too_many_arguments)]
-pub fn build_module_binary_with_single_function_and_external_functions(
+pub fn build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
-    type_index: usize,
-    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
-    code: Vec<u8>,
+    slim_function_entries: Vec<HelperSlimFunctionEntry>,
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
-    let local_variables = local_variable_item_entries_without_args.clone();
-    let params_as_variables = type_entries[type_index]
-        .params
-        .iter()
-        .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
-        .collect::<Vec<_>>();
+    let mut func_entries = vec![];
+    let mut local_var_list_entries = vec![];
 
-    let mut variables = Vec::new();
-    variables.extend_from_slice(&local_variables);
-    variables.extend_from_slice(&params_as_variables);
+    slim_function_entries.iter().enumerate().for_each(|(idx, entry)| {
+        let original_local_variables = entry.local_variable_item_entries_without_args.clone();
+        let params_as_local_variables = type_entries[entry.type_index]
+            .params
+            .iter()
+            .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+            .collect::<Vec<_>>();
 
-    let local_var_list_entry = LocalVariableListEntry { variables };
+        let mut local_variables = Vec::new();
+        local_variables.extend_from_slice(&original_local_variables);
+        local_variables.extend_from_slice(&params_as_local_variables);
 
-    let func_entry = FuncEntry {
-        type_index,
-        local_index: 0,
-        code,
-    };
+        let local_var_list_entry = LocalVariableListEntry {
+            variables: local_variables,
+        };
+
+        let func_entry = FuncEntry {
+            type_index: entry.type_index,
+            local_variable_list_index: idx,
+            code: entry.code.clone(),
+        };
+
+        func_entries.push(func_entry);
+        local_var_list_entries.push(local_var_list_entry);
+    });
 
     build_module_binary(
         "main",
@@ -1122,8 +1144,8 @@ pub fn build_module_binary_with_single_function_and_external_functions(
         read_write_data_entries,
         uninit_uninit_data_entries,
         type_entries,
-        vec![func_entry],
-        vec![local_var_list_entry],
+        func_entries,
+        local_var_list_entries,
         helper_external_function_entries,
     )
 }
@@ -1382,9 +1404,9 @@ mod tests {
             RangeItem,
         },
         utils::{
-            build_module_binary_with_single_function_and_data_sections,
-            build_module_binary_with_single_function_and_external_functions, format_bytecodes,
-            BytecodeReader, BytecodeWriter, HelperExternalFunctionEntry,
+            build_module_binary_with_functions_and_external_functions,
+            build_module_binary_with_single_function_and_data_sections, format_bytecodes,
+            BytecodeReader, BytecodeWriter, HelperExternalFunctionEntry, HelperSlimFunctionEntry,
         },
     };
 
@@ -1530,7 +1552,7 @@ mod tests {
 
     #[test]
     fn test_build_module_binary_with_single_function_and_external_functions() {
-        let binary = build_module_binary_with_single_function_and_external_functions(
+        let binary = build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![],
@@ -1545,9 +1567,11 @@ mod tests {
                     results: vec![DataType::I32],
                 },
             ],
-            0,
-            vec![],
-            vec![0u8],
+            vec![HelperSlimFunctionEntry {
+                type_index: 0,
+                local_variable_item_entries_without_args: vec![],
+                code: vec![0u8],
+            }],
             vec![],
             vec![],
             vec![],

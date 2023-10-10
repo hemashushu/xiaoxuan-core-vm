@@ -39,22 +39,41 @@
 //                                   \------------------------/
 //
 
-use ancvm_program::{thread_context::ThreadContext, jit_util::build_host_to_vm_function};
+use ancvm_program::{jit_util::build_host_to_vm_function, thread_context::ThreadContext};
 
 use crate::interpreter::process_callback_function_call;
 
-fn get_callback_function<T>(
+pub fn host_addr_func(thread_context: &mut ThreadContext) {
+    // `fn (func_pub_index:i32)`
+
+    let function_public_index = thread_context.stack.pop_i32_u() as usize;
+    let module_index = thread_context.pc.module_index;
+
+    // get the internal index of function
+    let (target_module_index, function_internal_index) = thread_context
+        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
+
+    let callback_function_ptr =
+        get_callback_function_ptr(thread_context, target_module_index, function_internal_index)
+            .unwrap();
+
+    let callback_function_addr = callback_function_ptr as u64;
+
+    thread_context.stack.push_i64_u(callback_function_addr);
+}
+
+fn get_callback_function_ptr(
     thread_context: &mut ThreadContext,
     target_module_index: usize,
     function_internal_index: usize,
-) -> Result<T, &'static str> {
+) -> Result<*const u8, &'static str> {
     // check if the specified (target_module_index, function_internal_index) already
     // exists in the callback function table
     let opt_callback_function_ptr =
         thread_context.find_callback_function(target_module_index, function_internal_index);
 
     if let Some(callback_function_ptr) = opt_callback_function_ptr {
-        return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&callback_function_ptr) });
+        return Ok(callback_function_ptr);
     }
 
     let type_index = thread_context.program_context.program_modules[target_module_index]
@@ -66,7 +85,7 @@ fn get_callback_function<T>(
         .get_item_params_and_results(type_index as usize);
 
     if results.len() > 1 {
-        return Err("The number of return values of the specified function is more than 1.");
+        return Err("The specified function has more than 1 return value.");
     }
 
     let delegate_function_addr = process_callback_function_call as *const u8 as usize;
@@ -87,5 +106,131 @@ fn get_callback_function<T>(
         callback_function_ptr,
     );
 
-    Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&callback_function_ptr) })
+    Ok(callback_function_ptr)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+
+    use ancvm_binary::{
+        module_image::type_section::TypeEntry,
+        utils::{
+            build_module_binary_with_functions_and_external_functions, BytecodeWriter,
+            HelperExternalFunctionEntry, HelperSlimFunctionEntry,
+        },
+    };
+    use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
+    use ancvm_types::{
+        ecallcode::ECallCode, opcode::Opcode, DataType, ExternalLibraryType, ForeignValue,
+    };
+
+    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+
+    #[test]
+    fn test_ecall_host_addr_func_ie_callback_function() {
+        // extern "C" do_something(callback_func, a:i32, b:i32) -> i32 {
+        //     callback_func(a) + b
+        // }
+        //
+        // func0 (a:i32, b:i32)->i32 {
+        //     do_something(func1, a, b)
+        // }
+        //
+        // func1 (a:i32) -> i32 {
+        //     a*2
+        // }
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 1) // func1 index
+            .write_opcode_i32(Opcode::ecall, ECallCode::host_addr_func as u32) // get host address of the func1
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 1
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 2
+            //
+            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let code1 = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .write_opcode_i32(Opcode::i32_imm, 2)
+            .write_opcode(Opcode::i32_mul)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_functions_and_external_functions(
+            vec![
+                TypeEntry {
+                    params: vec![DataType::I64, DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                }, // do_something
+                TypeEntry {
+                    params: vec![DataType::I32, DataType::I32],
+                    results: vec![DataType::I32],
+                }, // func0
+                TypeEntry {
+                    params: vec![DataType::I32],
+                    results: vec![DataType::I32],
+                }, // func1
+            ], // types
+            vec![
+                HelperSlimFunctionEntry {
+                    type_index: 1,
+                    local_variable_item_entries_without_args: vec![],
+                    code: code0,
+                },
+                HelperSlimFunctionEntry {
+                    type_index: 2,
+                    local_variable_item_entries_without_args: vec![],
+                    code: code1,
+                },
+            ],
+            vec![],
+            vec![],
+            vec![],
+            vec![HelperExternalFunctionEntry {
+                external_library_type: ExternalLibraryType::User,
+                library_name: "lib-test-0.so.1.0.0".to_string(),
+                function_name: "do_something".to_string(),
+                type_index: 0,
+            }],
+        );
+
+        let mut pwd = env::current_dir().unwrap();
+        if !pwd.ends_with("runtime") {
+            // in the VSCode debug mode
+            pwd.push("crates");
+            pwd.push("runtime");
+        }
+        pwd.push("tests");
+        let program_source_path = pwd.to_str().unwrap();
+
+        let program_source0 = InMemoryProgramSource::with_settings(
+            vec![binary0],
+            ProgramSettings::new(program_source_path, true, "", ""),
+        );
+
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.new_thread_context();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(11 * 2 + 13)]);
+
+        let result1 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &vec![ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
+        );
+        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(211 * 2 + 223)]);
+    }
 }

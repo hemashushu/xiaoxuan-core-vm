@@ -15,7 +15,7 @@ pub fn extcall(thread_context: &mut ThreadContext) {
     // the 'external_func_index' is the index within a specific module, it is not
     // the 'unified_external_func_index'.
 
-    let external_function_index = thread_context.stack.pop_i64_u() as usize;
+    let external_function_index = thread_context.stack.pop_i32_u() as usize;
     let module_index = thread_context.pc.module_index;
 
     // get the unified external function index
@@ -115,8 +115,8 @@ mod tests {
     use ancvm_binary::{
         module_image::{data_section::DataEntry, type_section::TypeEntry},
         utils::{
-            build_module_binary_with_single_function_and_external_functions, BytecodeWriter,
-            HelperExternalFunctionEntry,
+            build_module_binary_with_functions_and_external_functions, BytecodeWriter,
+            HelperExternalFunctionEntry, HelperSlimFunctionEntry,
         },
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
@@ -131,7 +131,7 @@ mod tests {
     fn test_ecall_extcall_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -139,7 +139,7 @@ mod tests {
         // `man 3 getuid`
         // 'uid_t getuid(void);'
 
-        let binary0 = build_module_binary_with_single_function_and_external_functions(
+        let binary0 = build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![],
@@ -149,10 +149,12 @@ mod tests {
                     params: vec![],
                     results: vec![DataType::I32],
                 }, // main
-            ], // params
-            1,
-            vec![], // local varslist which
-            code0,
+            ], // types
+            vec![HelperSlimFunctionEntry {
+                type_index: 1,
+                local_variable_item_entries_without_args: vec![],
+                code: code0,
+            }],
             vec![],
             vec![],
             vec![],
@@ -180,7 +182,7 @@ mod tests {
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -188,7 +190,7 @@ mod tests {
         // `man 3 getenv`
         // 'char *getenv(const char *name);'
 
-        let binary0 = build_module_binary_with_single_function_and_external_functions(
+        let binary0 = build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![DataType::I64],  // pointer
@@ -198,10 +200,12 @@ mod tests {
                     params: vec![],
                     results: vec![DataType::I64], // pointer
                 }, // main
-            ], // params
-            1,
-            vec![], // local varslist which
-            code0,
+            ], // types
+            vec![HelperSlimFunctionEntry {
+                type_index: 1,
+                local_variable_item_entries_without_args: vec![],
+                code: code0,
+            }],
             vec![DataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
             vec![],
             vec![],
@@ -230,10 +234,10 @@ mod tests {
     fn test_ecall_extcall_user_lib() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 0
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1
             //
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32)
+            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -241,7 +245,7 @@ mod tests {
         // `man 3 getenv`
         // 'char *getenv(const char *name);'
 
-        let binary0 = build_module_binary_with_single_function_and_external_functions(
+        let binary0 = build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![DataType::I32, DataType::I32],
@@ -251,10 +255,12 @@ mod tests {
                     params: vec![DataType::I32, DataType::I32],
                     results: vec![DataType::I32],
                 }, // main
-            ], // params
-            1,
-            vec![], // local varslist which
-            code0,
+            ], // types
+            vec![HelperSlimFunctionEntry {
+                type_index: 1,
+                local_variable_item_entries_without_args: vec![],
+                code: code0,
+            }],
             vec![],
             vec![],
             vec![],

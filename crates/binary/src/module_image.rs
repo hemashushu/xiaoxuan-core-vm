@@ -523,12 +523,12 @@ mod tests {
 
         func_entries.push(FuncEntry {
             type_index: 2,
-            local_index: 3,
+            local_variable_list_index: 3,
             code: code0.clone(),
         });
         func_entries.push(FuncEntry {
             type_index: 5,
-            local_index: 7,
+            local_variable_list_index: 7,
             code: code1.clone(),
         });
 
@@ -643,12 +643,12 @@ mod tests {
                 0, 0, 0, 0, // code offset 0
                 5, 0, 0, 0, // code len 0
                 2, 0, 0, 0, // func type index 0
-                3, 0, 0, 0, // local index 0
+                3, 0, 0, 0, // local variable index 0
                 //
                 5, 0, 0, 0, // code offset 1
                 6, 0, 0, 0, // code len 1
                 5, 0, 0, 0, // func type index 1
-                7, 0, 0, 0, // local index 1
+                7, 0, 0, 0, // local variable index 1
                 //
                 1, 2, 3, 5, 7, // code 0
                 11, 13, 17, 19, 23, 29, // code 1

@@ -87,10 +87,12 @@ fn do_host_addr_data(
     data_public_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let (datas, _target_module_index, data_internal_index) =
-        thread_context.get_current_module_data_internal_index_and_datas_object(data_public_index);
-    let final_offset = datas.get_idx_address(data_internal_index, offset_bytes);
-    let ptr = datas.get_ptr(final_offset);
+    let (_target_module_index, data_internal_index, data_object) = thread_context
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+            data_public_index,
+        );
+    let total_offset = data_object.get_idx_address(data_internal_index, offset_bytes);
+    let ptr = data_object.get_ptr(total_offset);
     let address = ptr as u64;
 
     thread_context.stack.push_i64_u(address);
@@ -105,7 +107,6 @@ pub fn host_addr_heap(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = heap_address as usize + offset_bytes as usize;
     let ptr = thread_context.heap.get_ptr(total_offset);
-
     let address = ptr as u64;
 
     thread_context.stack.push_i64_u(address);

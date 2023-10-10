@@ -16,5 +16,11 @@ int mul_add(int a, int b, int c)
     return a * b + c;
 }
 
+int do_something(int (*callback_func)(int), int a, int b)
+{
+    int s = (callback_func)(a);
+    return s + b;
+}
+
 // compile this file with the command:
 // `$ gcc -Wall -g -fpic -shared -Wl,-soname,lib-test-0.so.1 -o lib-test-0.so.1.0.0 lib-test-0.c`
