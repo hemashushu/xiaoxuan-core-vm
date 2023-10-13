@@ -4,9 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::sync::{Mutex, Once};
+use std::sync::{Mutex, MutexGuard, Once};
 
-use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{
     types, AbiParam, Function, InstBuilder, MemFlags, StackSlotData, StackSlotKind, UserFuncName,
 };
@@ -17,16 +16,21 @@ use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{DataDescription, Linkage, Module};
 use rand::Rng;
 
-static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Option<JITUtil> = None;
-static INIT: Once = Once::new();
-static LOCKER: Mutex<String> = Mutex::new(String::new());
+use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
 
-fn get_jit_util_without_imported_symbols<'a>() -> &'a mut JITUtil {
+static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Mutex<Option<JITUtil>> = Mutex::new(None);
+static INIT: Once = Once::new();
+// static LOCKER: Mutex<()> = Mutex::new(());
+
+fn get_jit_util_without_imported_symbols() -> MutexGuard<'static, Option<JITUtil>> {
     INIT.call_once(|| {
-        unsafe { JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS = Some(JITUtil::new(vec![])) };
+        unsafe { JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS = Mutex::new(Some(JITUtil::new(vec![]))) };
     });
 
-    unsafe { JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS.as_mut().unwrap() }
+    unsafe {
+        let a = JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS.lock().unwrap();
+        a
+    }
 }
 
 pub struct JITUtil {
@@ -137,9 +141,8 @@ pub fn build_host_to_vm_function(
     params: &[DataType],
     results: &[DataType],
 ) -> *const u8 {
-    let _locker = LOCKER.lock().unwrap();
-
-    let jit_helper = get_jit_util_without_imported_symbols();
+    let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
+    let jit_helper = mutex_jit_helper.as_mut().unwrap();
 
     let pointer_type = jit_helper.module.isa().pointer_type();
 
@@ -311,9 +314,8 @@ pub fn build_vm_to_external_function(
     params: &[DataType],
     results: &[DataType],
 ) -> *const u8 {
-    let _locker = LOCKER.lock().unwrap();
-
-    let jit_helper = get_jit_util_without_imported_symbols();
+    let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
+    let jit_helper = mutex_jit_helper.as_mut().unwrap();
 
     let pointer_type = jit_helper.module.isa().pointer_type();
     let mem_flags = MemFlags::new();

@@ -215,7 +215,7 @@ mod tests {
         );
 
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

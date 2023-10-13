@@ -4,9 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
+use std::sync::Mutex;
+
 use ancvm_binary::load_modules_from_binaries;
 use ancvm_program::{
-    program::Program, program_settings::ProgramSettings, program_source::ProgramSource,
+    external_function::ExtenalFunctionTable, program::Program, program_settings::ProgramSettings,
+    program_source::ProgramSource,
 };
 
 use crate::interpreter::init_interpreters;
@@ -14,6 +17,7 @@ use crate::interpreter::init_interpreters;
 pub struct InMemoryProgramSource {
     program_settings: ProgramSettings,
     module_binaries: Vec<Vec<u8>>,
+    extenal_function_table: Mutex<ExtenalFunctionTable>,
 }
 
 impl InMemoryProgramSource {
@@ -21,6 +25,7 @@ impl InMemoryProgramSource {
         Self {
             module_binaries,
             program_settings: ProgramSettings::default(),
+            extenal_function_table: Mutex::new(ExtenalFunctionTable::new()),
         }
     }
 
@@ -28,6 +33,7 @@ impl InMemoryProgramSource {
         Self {
             module_binaries,
             program_settings,
+            extenal_function_table: Mutex::new(ExtenalFunctionTable::new()),
         }
     }
 }
@@ -41,8 +47,14 @@ impl ProgramSource for InMemoryProgramSource {
             .iter()
             .map(|e| &e[..])
             .collect::<Vec<_>>();
+
         let module_images = load_modules_from_binaries(binaries_ref)?;
-        Ok(Program::new(&self.program_settings, module_images))
+
+        Ok(Program::new(
+            &self.program_settings,
+            &self.extenal_function_table,
+            module_images,
+        ))
     }
 }
 
@@ -84,7 +96,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let thread_context0 = program0.new_thread_context();
+        let thread_context0 = program0.create_thread_context();
 
         let program_ref = &thread_context0.program_context;
 

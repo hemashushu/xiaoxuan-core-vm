@@ -52,33 +52,27 @@ pub enum ECallCode {
 
     // the XiaoXuan VM thread model:
     //
-    //     thread
-    //   /--------------------------------------\
-    //   |                                      |-\
-    //   |  /---------------\                   | |  pipe
-    //   |  | child threads |-----------------------------\
-    //   |  \---------------/  /-----------\    | |       |
-    //   |                     | parent th |----| |-------|-\
-    //   |                     \-----------/    | |       | |
-    //   |                                      | |       | |
-    //   |  /---------------\                   | | <-----/ |
-    //   |  | message box   | <-----------------------------/
-    //   |  \---------------/                   | |
-    //   |                                      | |
+    //     thread                                             pipe              upstrem thread
+    //   /--------------------------------------\          /-----------\      /----------\
+    //   |                                      |-\        |  receive  |      |          |
+    //   |                                 RX <---------------------------------- TX     |
+    //   |                                 TX ----------------------------------> RX     |
+    //   |                                      | |        |  send     |      |          |
+    //   |                                      | |        \-----------/      \----------/
     //   |  /----------\  /------\  /-------\   | |
     //   |  | backpack |  | heap |  | stack |   | |
     //   |  \----------/  \------/  \-------/   | |
     //   |                                      | |
     //   |  /-----------------\                 | |
-    //   |  | SP, FP, PC      |                 | |         processor
+    //   |  | SP, FP, PC      |                 | |          runtime
     //   |  \-----------------/                 | |        /-------------\
     //   |                                      | | -----> | interpreter |
     //   |    module image                      | | <----- |             |
     //   |  /-----------------------\           | |        \-------------/
-    //   |  | read-only data (ref)  |-\         | |
-    //   |  | read-write data       | |         | |         a set of stateless
-    //   |  | uninit. data          | |         | |         functions
-    //   |  |-----------------------| |         | |
+    //   |  | read-write data       |-\         | |
+    //   |  | uninit. data          | |         | |         a set of stateless
+    //   |  |-----------------------| |         | |         functions
+    //   |  | read-only data (ref)  | |         | |
     //   |  | types (ref)           | |         | |
     //   |  | functions (ref)       | |         | |
     //   |  | local vars (ref)      | |         | |
@@ -94,24 +88,38 @@ pub enum ECallCode {
     // by default the XiaoXuan has no 'global' data or variables.
     // threads can comunicate through message box or shared-memory.
 
-    thread_id,              // get the current thread id
-    thread_create,          // craete a new thread, return the mailbox id
-    thread_msg_send,        // (param mailbox_id:i32)
-    thread_msg_reply,       // reply message to parent thread
-    thread_exit,            //
-                            // ref:
-                            // - https://doc.rust-lang.org/std/sync/mpsc/index.html
-                            // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
-                            // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
+    // about the message pipe:
+    //
+    // threads communicate through message pipe, the raw type of message is u8 array, so it can be:
+    // - primitive data
+    // - (the address of) a struct
+    // - (the address of) a function
+    // - (the address of) a closure function
+
+    thread_id,                  // get the current thread id
+    thread_create,              // craete a new thread
+    thread_msg_recive,          // receive message from the upstream (parent) thread
+    thread_msg_send,            // send message to the upstream (parent) thread
+
+    thread_msg_receive_from,    // receive message from the specified (child) thread
+    thread_msg_send_to,         // send message to the specified (child) thread
+    thread_status,              // check whether the specified (child) thread is finish
+    thread_exit,                // drop the specified (child) thread
+
+    // ref:
+    // - https://doc.rust-lang.org/std/sync/mpsc/index.html
+    // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
+    // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
     // backpack
     //
     // 'backpack' is a thread-local data hash map
-
+    /*
     backpack_add,           // add a data item to backpack
                             // `fn (is_ref_type:i8, data:bytes)`
     backpack_get,           // `fn (bag_item_id:i32)`
     backpack_remove,        // `fn (bag_item_id:i32)`
+    */
 
     // regex
 
@@ -222,15 +230,18 @@ pub enum ECallCode {
     //
     // I/O functions
     //
-
+    /*
     print_char = 0x200,     // `fn (fd:i32 char:i32)`
     print_i32,              // `fn (fd:i32 value:i32)`
     print_i64,              // `fn (fd:i32 value:i64)`
+    */
 
     //
     // delegate to std I/O
     //
+    /*
     write,                  // `fn (fd:i32 addr:i64 length:i64)`
+    */
 }
 
 pub const MAX_ECALLCODE_NUMBER:usize = 0x400;

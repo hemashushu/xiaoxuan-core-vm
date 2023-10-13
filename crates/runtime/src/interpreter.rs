@@ -80,8 +80,6 @@ Bytecode:
     );
 }
 
-// static INIT_LOCK: Mutex<i32> = Mutex::new(0);
-// static mut HAS_INIT: bool = false;
 static INIT: Once = Once::new();
 static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
 
@@ -98,7 +96,7 @@ pub fn init_interpreters() {
 }
 
 fn init_interpreters_internal() {
-    // init the ecall handlers
+    // other initializations
     init_ecall_handlers();
 
     let interpreters = unsafe { &mut INTERPRETERS };

@@ -67,7 +67,7 @@ pub fn load_section_with_two_tables<T0, T1>(section_data: &[u8]) -> (&[T0], &[T1
     let ptr = section_data.as_ptr();
     let item_count0 = unsafe { std::ptr::read(ptr as *const u32) } as usize;
 
-    // there is a "safe" way to read a number from pointer, e.g.
+    // there is a "safe" approach to read a number from pointer, e.g.
     //
     // ```rust
     //     let mut buf = [0u8; 4];

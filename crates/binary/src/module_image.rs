@@ -224,7 +224,7 @@ impl RangeItem {
 }
 
 pub trait SectionEntry<'a> {
-    // there is a way to 'downcast' a section entry to section object, e.g.
+    // there is a approach to 'downcast' a section entry to section object, e.g.
     //
     // ```rust
     // fn downcast_section_entry<'a, T>(entry: &'a dyn SectionEntry) -> &'a T {
@@ -250,7 +250,8 @@ impl<'a> ModuleImage<'a> {
             });
         }
 
-        // the another safe way
+        // there is another safe approach for obtaining the version number:
+        //
         // ```rust
         //     let version_data: [u8;4] = (&image_data[4..8]).try_into().unwrap();
         //     let version = u32::from_le_bytes(version_data);

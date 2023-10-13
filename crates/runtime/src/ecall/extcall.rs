@@ -31,7 +31,7 @@ pub fn extcall(thread_context: &mut ThreadContext) {
         .get_item_params_and_results(type_index);
 
     let opt_func_pointer_and_wrapper = {
-        let table = thread_context.external_function_table.as_ref().borrow();
+        let table = thread_context.external_function_table.lock().unwrap();
         table.get_external_function_pointer_and_wrapper_function(unified_external_function_index)
     };
 
@@ -68,7 +68,7 @@ pub fn extcall(thread_context: &mut ThreadContext) {
             ExternalLibraryType::System => external_library_name.to_owned(),
         };
 
-        let mut table = thread_context.external_function_table.as_ref().borrow_mut();
+        let mut table = thread_context.external_function_table.lock().unwrap();
         table
             .add_external_function(
                 unified_external_function_index,
@@ -168,7 +168,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
@@ -219,7 +219,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let results0 = result0.unwrap();
@@ -282,7 +282,7 @@ mod tests {
         );
 
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

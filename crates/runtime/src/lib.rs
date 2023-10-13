@@ -6,15 +6,19 @@
 
 use std::{
     any::Any,
+    cell::RefCell,
+    collections::BTreeMap,
     fmt::{Debug, Display},
+    sync::mpsc::{Receiver, Sender},
 };
 
 use ancvm_types::RuntimeError;
 
-pub mod ecall;
 pub mod bridge;
+pub mod ecall;
 pub mod in_memory_program_source;
 pub mod interpreter;
+pub mod multithread_program;
 
 const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 
@@ -23,6 +27,21 @@ const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
 const RUNTIME_MAJOR_VERSION: u16 = 1;
 const RUNTIME_MINOR_VERSION: u16 = 0;
 const RUNTIME_PATCH_VERSION: u16 = 0;
+
+// about the Tx and Rx:
+//
+// threads communicate through message pipe, the raw type of message is u8 array, so it can be:
+// - primitive data
+// - (the address of) a struct
+// - (the address of) a function
+// - (the address of) a closure function
+thread_local! {
+    pub static CHILD_THREADS:RefCell<BTreeMap<u32, String>> = RefCell::new(BTreeMap::new());
+    pub static CHILD_THREAD_MAX_ID:RefCell<u32> = RefCell::new(0);
+    pub static CURRENT_THREAD_ID:RefCell<u32> = RefCell::new(0);
+    pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = RefCell::new(None);
+    pub static TX:RefCell<Option<Sender<Vec<u8>>>> = RefCell::new(None);
+}
 
 #[derive(Debug)]
 pub struct InterpreterError {

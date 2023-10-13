@@ -490,7 +490,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -709,7 +709,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -873,7 +873,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -1036,7 +1036,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

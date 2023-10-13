@@ -38,7 +38,7 @@ fn do_local_load(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    // there are two ways to transfer data from memory to stack, one way
+    // there are two approachs to transfer data from memory to stack, one
     // is to read data from memory to a (integer) variable and then
     // push the variable onto the stack, e.g.
     //
@@ -47,7 +47,7 @@ fn do_local_load(
     // stack.push_u64(data);
     // ```
     //
-    // the another way is the 'memcpy'.
+    // the another approach is the 'memcpy'.
     // the latter has a higher efficiency because it eliminates data conversion,
     // so the second method is adopted.
 
@@ -667,7 +667,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -838,7 +838,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.new_thread_context();
+        let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         assert_eq!(

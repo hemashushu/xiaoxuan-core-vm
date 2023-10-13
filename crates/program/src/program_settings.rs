@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ProgramSettings {
     pub source_path: String,
     pub is_multiple_scripts: bool,

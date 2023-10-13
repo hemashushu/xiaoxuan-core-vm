@@ -20,7 +20,7 @@
 //                                   |                        |
 //                                   \------------------------/
 
-use std::ffi::c_void;
+use std::{ffi::c_void, sync::Once};
 
 use ancvm_extfunc_util::{load_library, load_symbol, transmute_symbol_to};
 use ancvm_types::DataType;
@@ -36,20 +36,63 @@ pub type WrapperFunction = extern "C" fn(
 
 pub struct ExtenalFunctionTable {
     // "unified external library section"  1:1
-    pub external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
+    pub unified_external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
 
     // "unified external functioa section"  1:1
-    pub external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
+    pub unified_external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
 
     pub wrapper_function_list: Vec<WrapperFunctionItem>,
 }
 
+#[derive(Debug, Clone)]
+pub struct UnifiedExternalLibraryPointerItem {
+    pub address: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct UnifiedExternalFunctionPointerItem {
+    pub address: usize,
+    pub wrapper_function_index: usize,
+}
+
+pub struct WrapperFunctionItem {
+    pub param_datatypes: Vec<DataType>,
+    pub result_datatypes: Vec<DataType>,
+    pub wrapper_function: WrapperFunction,
+}
+
+static INIT: Once = Once::new();
+
 impl ExtenalFunctionTable {
-    pub fn new(external_library_count: usize, external_function_count: usize) -> Self {
+    // pub fn new(external_library_count: usize, external_function_count: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            external_library_pointer_list: vec![None; external_library_count],
-            external_function_pointer_list: vec![None; external_function_count],
+            unified_external_library_pointer_list: vec![],
+            unified_external_function_pointer_list: vec![],
             wrapper_function_list: vec![],
+        }
+    }
+
+    pub fn init(
+        &mut self,
+        unified_external_library_count: usize,
+        unified_external_function_count: usize,
+    ) {
+        // https://doc.rust-lang.org/reference/conditional-compilation.html#debug_assertions
+        if cfg!(debug_assertions) {
+            // unit test or NOT release
+            self.unified_external_library_pointer_list
+                .resize(unified_external_library_count, None);
+            self.unified_external_function_pointer_list
+                .resize(unified_external_function_count, None);
+        } else {
+            // profile release
+            INIT.call_once(|| {
+                self.unified_external_library_pointer_list
+                    .resize(unified_external_library_count, None);
+                self.unified_external_function_pointer_list
+                    .resize(unified_external_function_count, None);
+            });
         }
     }
 
@@ -57,14 +100,18 @@ impl ExtenalFunctionTable {
         &self,
         unified_external_function_index: usize,
     ) -> Option<(*mut c_void, WrapperFunction)> {
-        let opt_pointer = &self.external_function_pointer_list[unified_external_function_index];
+        let opt_unified_external_function_pointer_item =
+            &self.unified_external_function_pointer_list[unified_external_function_index];
 
-        match opt_pointer {
-            Some(ext_func_ptr_item) => {
-                let wrapper_func_item =
-                    &self.wrapper_function_list[ext_func_ptr_item.wrapper_function_index];
-                let wrapper_func = wrapper_func_item.wrapper_function;
-                Some((ext_func_ptr_item.pointer, wrapper_func))
+        match opt_unified_external_function_pointer_item {
+            Some(unified_external_function_pointer_item) => {
+                let wrapper_function_item = &self.wrapper_function_list
+                    [unified_external_function_pointer_item.wrapper_function_index];
+                let wrapper_function = wrapper_function_item.wrapper_function;
+                Some((
+                    unified_external_function_pointer_item.address as *mut c_void,
+                    wrapper_function,
+                ))
             }
             _ => None,
         }
@@ -84,10 +131,10 @@ impl ExtenalFunctionTable {
         }
 
         // find library pointer
-        let ext_library_pointer = if let Some(uni_ext_lib_ptr_item) =
-            &self.external_library_pointer_list[unified_external_library_index]
+        let library_pointer = if let Some(unified_external_library_pointer_item) =
+            &self.unified_external_library_pointer_list[unified_external_library_index]
         {
-            uni_ext_lib_ptr_item.pointer
+            unified_external_library_pointer_item.address as *mut c_void
         } else {
             self.add_external_library(
                 unified_external_library_index,
@@ -95,15 +142,15 @@ impl ExtenalFunctionTable {
             )?
         };
 
-        let ext_func_pointer = load_symbol(ext_library_pointer, external_function_name)?;
+        let function_pointer = load_symbol(library_pointer, external_function_name)?;
 
         // find wrapper function index
         let wrapper_function_index = if let Some(wrapper_function_index) = self
             .wrapper_function_list
             .iter()
-            .position(|wrapper_func_item| {
-                wrapper_func_item.param_types == param_datatypes
-                    && wrapper_func_item.result_types == result_datatypes
+            .position(|wrapper_function_item| {
+                wrapper_function_item.param_datatypes == param_datatypes
+                    && wrapper_function_item.result_datatypes == result_datatypes
             }) {
             wrapper_function_index
         } else {
@@ -111,18 +158,17 @@ impl ExtenalFunctionTable {
         };
 
         // update external_function_pointer_list
-        let uni_ext_func_ptr_item = UnifiedExternalFunctionPointerItem {
-            pointer: ext_func_pointer,
+        let unified_external_function_pointer_item = UnifiedExternalFunctionPointerItem {
+            address: function_pointer as usize,
             wrapper_function_index,
         };
 
-        self.external_function_pointer_list[unified_external_function_index] =
-            Some(uni_ext_func_ptr_item);
+        self.unified_external_function_pointer_list[unified_external_function_index] =
+            Some(unified_external_function_pointer_item);
 
-        Ok((
-            ext_func_pointer,
-            self.wrapper_function_list[wrapper_function_index].wrapper_function,
-        ))
+        let wrapper_function = self.wrapper_function_list[wrapper_function_index].wrapper_function;
+
+        Ok((function_pointer, wrapper_function))
     }
 
     fn add_external_library(
@@ -130,10 +176,12 @@ impl ExtenalFunctionTable {
         unified_external_library_index: usize,
         external_library_file_path_or_name: &str,
     ) -> Result<*mut c_void, &'static str> {
-        let pointer = load_library(external_library_file_path_or_name)?;
-        self.external_library_pointer_list[unified_external_library_index] =
-            Some(UnifiedExternalLibraryPointerItem { pointer });
-        Ok(pointer)
+        let library_pointer = load_library(external_library_file_path_or_name)?;
+        self.unified_external_library_pointer_list[unified_external_library_index] =
+            Some(UnifiedExternalLibraryPointerItem {
+                address: library_pointer as usize,
+            });
+        Ok(library_pointer)
     }
 
     fn add_wrapper_function(
@@ -144,39 +192,19 @@ impl ExtenalFunctionTable {
         // build wrapper function
         let wrapper_function_index = self.wrapper_function_list.len();
 
-        let wrapper_function_ptr = build_vm_to_external_function(
-            wrapper_function_index,
-            param_types,
-            result_types,
-        );
+        let wrapper_function_pointer =
+            build_vm_to_external_function(wrapper_function_index, param_types, result_types);
 
-        let item = WrapperFunctionItem {
-            param_types: param_types.to_vec(),
-            result_types: result_types.to_vec(),
+        let wrapper_function_item = WrapperFunctionItem {
+            param_datatypes: param_types.to_vec(),
+            result_datatypes: result_types.to_vec(),
             wrapper_function: transmute_symbol_to::<WrapperFunction>(
-                wrapper_function_ptr as *mut c_void,
+                wrapper_function_pointer as *mut c_void,
             ),
         };
 
-        self.wrapper_function_list.push(item);
+        self.wrapper_function_list.push(wrapper_function_item);
 
         wrapper_function_index
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct UnifiedExternalFunctionPointerItem {
-    pub pointer: *mut c_void,
-    pub wrapper_function_index: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct UnifiedExternalLibraryPointerItem {
-    pub pointer: *mut c_void,
-}
-
-pub struct WrapperFunctionItem {
-    pub param_types: Vec<DataType>,
-    pub result_types: Vec<DataType>,
-    pub wrapper_function: WrapperFunction,
 }

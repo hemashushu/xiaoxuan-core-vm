@@ -12,10 +12,11 @@ use crate::interpreter::InterpretResult;
 
 use self::syscall::init_syscall_handlers;
 
-pub mod callback;
 pub mod extcall;
+pub mod function_address;
 pub mod heap;
-pub mod info;
+pub mod multithread;
+pub mod runtime_info;
 pub mod syscall;
 
 type EnvCallHandlerFunc = fn(&mut ThreadContext);
@@ -53,16 +54,16 @@ static mut HANDLERS: [EnvCallHandlerFunc; MAX_ECALLCODE_NUMBER] =
 //
 // ensure this initialization is only called once
 pub fn init_ecall_handlers() {
-    // init the syscall handlers
+    // other initializations
     init_syscall_handlers();
 
     let handlers = unsafe { &mut HANDLERS };
 
-    // info
-    handlers[ECallCode::runtime_name as usize] = info::runtime_name;
-    handlers[ECallCode::runtime_version as usize] = info::runtime_version;
-    handlers[ECallCode::features as usize] = info::features;
-    handlers[ECallCode::check_feature as usize] = info::check_feature;
+    // runtime info
+    handlers[ECallCode::runtime_name as usize] = runtime_info::runtime_name;
+    handlers[ECallCode::runtime_version as usize] = runtime_info::runtime_version;
+    handlers[ECallCode::features as usize] = runtime_info::features;
+    handlers[ECallCode::check_feature as usize] = runtime_info::check_feature;
 
     // heap
     handlers[ECallCode::heap_fill as usize] = heap::heap_fill;
@@ -70,10 +71,13 @@ pub fn init_ecall_handlers() {
     handlers[ECallCode::heap_capacity as usize] = heap::heap_capacity;
     handlers[ECallCode::heap_resize as usize] = heap::heap_resize;
 
-    // system
+    // function
     handlers[ECallCode::syscall as usize] = syscall::syscall;
     handlers[ECallCode::extcall as usize] = extcall::extcall;
-    handlers[ECallCode::host_addr_func as usize] = callback::host_addr_func;
+    handlers[ECallCode::host_addr_func as usize] = function_address::host_addr_func;
+
+    // multiple thread
+    handlers[ECallCode::thread_id as usize] = multithread::thread_id;
 }
 
 pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {

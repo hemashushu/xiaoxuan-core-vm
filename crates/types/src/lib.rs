@@ -96,7 +96,7 @@ pub enum ExternalLibraryType {
 }
 
 /// sometimes you may want to get a specified type from 'dyn RuntimeError',
-/// there is a way to downcast the 'dyn RuntimeError' object to a specified type, e.g.
+/// there is a approach to downcast the 'dyn RuntimeError' object to a specified type, e.g.
 ///
 /// let some_error:T = unsafe {
 ///     &*(runtime_error as *const dyn RuntimeError as *const T)
