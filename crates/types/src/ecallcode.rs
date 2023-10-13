@@ -103,25 +103,26 @@ pub enum ECallCode {
     thread_create,              // craete a new thread and run the specified function.
                                 //
                                 // '``
-                                // fn (module_idx: u32, function_public_idx: u32,
-                                //    thread_start_data_address: u32, thread_start_data_length: u32) -> child_thread_id: u32
+                                // fn (module_index:u32, func_public_index:u32,
+                                //    thread_start_data_address:u32, thread_start_data_length:u32) -> child_thread_id:u32
                                 // ```
                                 //
                                 // the value of 'thread_start_data_address' is the address of a data block in the heap
                                 //
-                                // the specified function should only has one parameter, the value of argument
-                                // is the length of 'thread_start_data'.
+                                // the signature of the thread start function MUST be:
+                                // 'fn (thread_start_data_length:u32) -> result:u32'
 
     thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function
-                                // 'fn (child_thread_id:u32) -> (status, [value])'
-                                // status: 0=success, 1=not_found
+                                // 'fn (child_thread_id:u32) -> (wait_status:u32, thread_exit_code:u32)'
+                                // wait_status: 0=success, 1=not_found
+                                // thread_exit_code: 0=thread exit with success, 1=thread exit with failure
                                 //
                                 // when the child thread finish, it will be removed from
                                 // the 'child thread collection' automatically.
 
-    thread_status,              // check whether the specified (child) thread is finish
-                                // 'fn (child_thread_id:u32) -> status'
-                                // status:  0=running, 1=finish, 2=not_found
+    thread_running_status,      // check whether the specified (child) thread is finish
+                                // 'fn (child_thread_id:u32) -> running_status:u32'
+                                // running_status:  0=running, 1=finish, 2=not_found
 
     thread_exit,                // drop the specified (child) thread
                                 // 'fn (child_thread_id:u32)'
@@ -139,7 +140,7 @@ pub enum ECallCode {
                                 // automatically.
 
     thread_msg_send,            // send message (from heap) to the upstream (parent) thread
-                                // 'fn (src_address:u64, length:u32) -> result'
+                                // 'fn (src_address:u64, length:u32) -> result:u32'
                                 //
                                 // result: 0=success, 1=failed.
 
@@ -147,12 +148,12 @@ pub enum ECallCode {
     thread_msg_send_to,         // send message to the specified (child) thread
 
     thread_start_data_read,     // read/copy the thread start data to heap
-                                // 'fn (offset:u32, length:u32) -> result'
+                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
                                 //
                                 // result: 0=success, 1=failed.
 
     thread_msg_read,            // read/copy the last received message to heap
-                                // 'fn (offset:u32, length: u32, dst_address:u64) -> result'
+                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
                                 //
                                 // result: 0=success, 1=failed.
 

@@ -43,7 +43,7 @@ thread_local! {
     pub static CURRENT_THREAD_ID:RefCell<u32> = RefCell::new(0);
     pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = RefCell::new(None);
     pub static TX:RefCell<Option<Sender<Vec<u8>>>> = RefCell::new(None);
-    pub static LAST_THREAD_START_DATA:RefCell<Vec<u8>> = RefCell::new(vec![]);
+    pub static THREAD_START_DATA:RefCell<Vec<u8>> = RefCell::new(vec![]);
     pub static LAST_MESSAGE:RefCell<Vec<u8>> = RefCell::new(vec![]);
 }
 

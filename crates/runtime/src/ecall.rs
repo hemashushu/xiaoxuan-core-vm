@@ -33,7 +33,7 @@ fn unreachable(thread_context: &mut ThreadContext) {
     let code_text = format_bytecodes(codes);
 
     unreachable!(
-        "Invalid environment call number: 0x{:04x}
+        "Invalid ecall number: 0x{:04x}
 Module index: {}
 Function index: {}
 Instruction address: 0x{:04x}
@@ -78,6 +78,9 @@ pub fn init_ecall_handlers() {
 
     // multiple thread
     handlers[ECallCode::thread_id as usize] = multithread::thread_id;
+    handlers[ECallCode::thread_start_data_read as usize] = multithread::thread_start_data_read;
+    handlers[ECallCode::thread_create as usize] = multithread::thread_create;
+    handlers[ECallCode::thread_wait_for_finish as usize] = multithread::thread_wait_for_finish;
 }
 
 pub fn ecall(thread_context: &mut ThreadContext) -> InterpretResult {

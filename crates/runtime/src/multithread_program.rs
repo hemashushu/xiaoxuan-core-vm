@@ -4,25 +4,26 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-use std::{
-    cell::RefCell,
-    sync::{Arc, Once},
-};
+use std::{cell::RefCell, sync::Arc};
 
-use ancvm_program::program_source::ProgramSource;
+use ancvm_program::{program_source::ProgramSource, ProgramSourceType};
 use ancvm_types::{ForeignValue, RuntimeError};
 
 use crate::{
     interpreter::process_function, ChildThread, CHILD_THREADS, CHILD_THREAD_MAX_ID,
-    CURRENT_THREAD_ID, LAST_THREAD_START_DATA, RX, TX,
+    CURRENT_THREAD_ID, RX, THREAD_START_DATA, TX,
 };
 
-static INIT: Once = Once::new();
-static mut MT_PROGRAM_ADDRESS: usize = 0;
+// these values should be 'process-global', but the unit test
+// runs on parallel, so change to thread-local to avoid overwrite by unit tests
+thread_local! {
+    pub static MT_PROGRAM_OBJECT_ADDRESS: RefCell<usize> = RefCell::new(0);
+    pub static MT_PROGRAM_SOURCE_TYPE: RefCell<ProgramSourceType> = RefCell::new(ProgramSourceType::InMemory);
+}
 
 pub struct MultithreadProgram<T>
 where
-    T: ProgramSource,
+    T: ProgramSource, //  + ?Sized,
 {
     pub program_source: Arc<T>,
 }
@@ -39,7 +40,7 @@ where
 }
 
 pub fn create_thread<T>(
-    mt_program: &MultithreadProgram<T>,
+    mt_program: &MultithreadProgram<T>, // dyn ProgramSource + std::marker::Send + std::marker::Sync + 'static,
     module_index: usize,
     func_public_index: usize,
     thread_start_data: Vec<u8>,
@@ -47,10 +48,9 @@ pub fn create_thread<T>(
 where
     T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
 {
-    let mt_program_address = mt_program as *const MultithreadProgram<T> as *const u8 as usize;
-    INIT.call_once(|| {
-        unsafe { MT_PROGRAM_ADDRESS = mt_program_address };
-    });
+    let mt_program_object_address =
+        mt_program as *const MultithreadProgram<_> as *const u8 as usize;
+    let mt_program_source_type = mt_program.program_source.get_source_type();
 
     let mut next_thread_id: u32 = 0;
 
@@ -74,6 +74,15 @@ where
 
     let join_handle = thread_builder
         .spawn(move || {
+            // store the information of program object
+            MT_PROGRAM_OBJECT_ADDRESS.with(|addr_cell| {
+                *addr_cell.borrow_mut() = mt_program_object_address;
+            });
+
+            MT_PROGRAM_SOURCE_TYPE.with(|source_type_cell| {
+                *source_type_cell.borrow_mut() = mt_program_source_type;
+            });
+
             // set up the local properties
             CURRENT_THREAD_ID.with(|id_cell| {
                 *id_cell.borrow_mut() = next_thread_id;
@@ -90,7 +99,7 @@ where
             // store the thread additional data
             let thread_start_data_length = thread_start_data.len();
 
-            LAST_THREAD_START_DATA.with(|data| {
+            THREAD_START_DATA.with(|data| {
                 data.replace(thread_start_data);
             });
 

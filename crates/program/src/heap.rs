@@ -67,4 +67,8 @@ impl Heap {
             dst.copy_from_slice(&src[offset..(offset + length_in_bytes)]);
         }
     }
+
+    pub fn load_data(&self, address: usize, count: usize) -> &[u8] {
+        &self.data[address..(address + count)]
+    }
 }

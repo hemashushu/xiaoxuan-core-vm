@@ -20,7 +20,6 @@ use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
 
 static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Mutex<Option<JITUtil>> = Mutex::new(None);
 static INIT: Once = Once::new();
-// static LOCKER: Mutex<()> = Mutex::new(());
 
 fn get_jit_util_without_imported_symbols() -> MutexGuard<'static, Option<JITUtil>> {
     INIT.call_once(|| {

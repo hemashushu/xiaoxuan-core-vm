@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use ancvm_binary::load_modules_from_binaries;
 use ancvm_program::{
     external_function::ExtenalFunctionTable, program::Program, program_settings::ProgramSettings,
-    program_source::ProgramSource,
+    program_source::ProgramSource, ProgramSourceType,
 };
 
 use crate::interpreter::init_interpreters;
@@ -55,6 +55,10 @@ impl ProgramSource for InMemoryProgramSource {
             &self.extenal_function_table,
             module_images,
         ))
+    }
+
+    fn get_source_type(&self) -> ProgramSourceType {
+        ProgramSourceType::InMemory
     }
 }
 

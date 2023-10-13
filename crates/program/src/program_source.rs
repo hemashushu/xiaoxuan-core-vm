@@ -6,8 +6,9 @@
 
 use ancvm_binary::BinaryError;
 
-use crate::program::Program;
+use crate::{program::Program, ProgramSourceType};
 
 pub trait ProgramSource {
     fn build_program(&self) -> Result<Program, BinaryError>;
+    fn get_source_type(&self) -> ProgramSourceType;
 }
