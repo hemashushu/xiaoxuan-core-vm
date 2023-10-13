@@ -126,7 +126,7 @@ fn print_uid() {
     let program0 = program_source0.build_program().unwrap();
     let mut thread_context0 = program0.create_thread_context();
 
-    let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+    let result0 = process_function(&mut thread_context0, 0, 0, &[]);
     let results0 = result0.unwrap();
 
     if let ForeignValue::UInt32(uid) = results0[0] {

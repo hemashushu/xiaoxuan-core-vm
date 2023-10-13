@@ -49,8 +49,8 @@ impl<'a> Program<'a> {
 
     pub fn create_thread_context(&'a self) -> ThreadContext<'a> {
         ThreadContext::new(
-            &self.external_function_table,
-            &self.program_settings,
+            self.external_function_table,
+            self.program_settings,
             &self.module_images,
         )
     }

@@ -25,7 +25,7 @@ impl InMemoryProgramSource {
         Self {
             module_binaries,
             program_settings: ProgramSettings::default(),
-            extenal_function_table: Mutex::new(ExtenalFunctionTable::new()),
+            extenal_function_table: Mutex::new(ExtenalFunctionTable::default()),
         }
     }
 
@@ -33,7 +33,7 @@ impl InMemoryProgramSource {
         Self {
             module_binaries,
             program_settings,
-            extenal_function_table: Mutex::new(ExtenalFunctionTable::new()),
+            extenal_function_table: Mutex::new(ExtenalFunctionTable::default()),
         }
     }
 }

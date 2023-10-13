@@ -6,17 +6,19 @@
 
 use std::{
     cell::RefCell,
-    sync::{
-        mpsc::{Receiver, Sender},
-        Arc,
-    },
-    thread::JoinHandle,
+    sync::{Arc, Once},
 };
 
 use ancvm_program::program_source::ProgramSource;
 use ancvm_types::{ForeignValue, RuntimeError};
 
-use crate::{interpreter::process_function, CHILD_THREAD_MAX_ID, CURRENT_THREAD_ID, RX, TX};
+use crate::{
+    interpreter::process_function, ChildThread, CHILD_THREADS, CHILD_THREAD_MAX_ID,
+    CURRENT_THREAD_ID, LAST_THREAD_START_DATA, RX, TX,
+};
+
+static INIT: Once = Once::new();
+static mut MT_PROGRAM_ADDRESS: usize = 0;
 
 pub struct MultithreadProgram<T>
 where
@@ -34,35 +36,47 @@ where
             program_source: Arc::new(program_source),
         }
     }
+}
 
-    pub fn create_thread(
-        &self,
-        module_index: usize,
-        func_public_index: usize,
-        arguments: Vec<ForeignValue>,
-    ) -> ChildThread
-    // JoinHandle<Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>>
-    where
-        T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
-    {
-        let mut next_thread_id: u32 = 0;
+pub fn create_thread<T>(
+    mt_program: &MultithreadProgram<T>,
+    module_index: usize,
+    func_public_index: usize,
+    thread_start_data: Vec<u8>,
+) -> u32
+where
+    T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+{
+    let mt_program_address = mt_program as *const MultithreadProgram<T> as *const u8 as usize;
+    INIT.call_once(|| {
+        unsafe { MT_PROGRAM_ADDRESS = mt_program_address };
+    });
 
-        CHILD_THREAD_MAX_ID.with(|max_id_cell| {
-            let max_id = *max_id_cell.borrow();
-            next_thread_id = max_id + 1;
-            *max_id_cell.borrow_mut() = next_thread_id;
-        });
+    let mut next_thread_id: u32 = 0;
 
-        let (parent_tx, child_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-        let (child_tx, parent_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    CHILD_THREAD_MAX_ID.with(|max_id_cell| {
+        let max_id = *max_id_cell.borrow();
+        next_thread_id = max_id + 1;
+        *max_id_cell.borrow_mut() = next_thread_id;
+    });
 
-        let cloned_next_thread_id = next_thread_id;
-        let cloned_program_source = Arc::clone(&self.program_source);
+    let (parent_tx, child_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    let (child_tx, parent_rx) = std::sync::mpsc::channel::<Vec<u8>>();
 
-        let join_handle = std::thread::spawn(move || {
+    let cloned_program_source = Arc::clone(&mt_program.program_source);
+
+    const HOST_THREAD_STACK_SIZE: usize = 128 * 1024; // 128 KB
+
+    // the default stack size is 2MB
+    // https://doc.rust-lang.org/stable/std/thread/index.html#stack-size
+    // change to a smaller size
+    let thread_builder = std::thread::Builder::new().stack_size(HOST_THREAD_STACK_SIZE);
+
+    let join_handle = thread_builder
+        .spawn(move || {
             // set up the local properties
             CURRENT_THREAD_ID.with(|id_cell| {
-                *id_cell.borrow_mut() = cloned_next_thread_id;
+                *id_cell.borrow_mut() = next_thread_id;
             });
 
             RX.with(|rx| {
@@ -73,6 +87,13 @@ where
                 tx.replace(Some(child_tx));
             });
 
+            // store the thread additional data
+            let thread_start_data_length = thread_start_data.len();
+
+            LAST_THREAD_START_DATA.with(|data| {
+                data.replace(thread_start_data);
+            });
+
             let rst_program = cloned_program_source.build_program();
             match rst_program {
                 Ok(program) => {
@@ -81,7 +102,9 @@ where
                         &mut thread_context,
                         module_index,
                         func_public_index,
-                        &arguments,
+                        // the specified function should only has one or zero parameters, the value of argument
+                        // is the length of 'thread_start_data'.
+                        &[ForeignValue::UInt32(thread_start_data_length as u32)],
                     );
 
                     // Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>
@@ -95,65 +118,20 @@ where
                     Err(Box::new(e) as Box<dyn RuntimeError + Send>)
                 }
             }
-        });
+        })
+        .unwrap();
 
-        ChildThread {
-            join_handle,
-            rx: RefCell::new(Some(parent_rx)),
-            tx: RefCell::new(Some(parent_tx)),
-        }
-    }
-}
-
-pub struct ChildThread {
-    pub join_handle: JoinHandle<Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>>,
-    pub rx: RefCell<Option<Receiver<Vec<u8>>>>,
-    pub tx: RefCell<Option<Sender<Vec<u8>>>>,
-}
-
-#[cfg(test)]
-mod tests {
-    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
-    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource, multithread_program::MultithreadProgram,
+    let child_thread = ChildThread {
+        join_handle,
+        rx: RefCell::new(Some(parent_rx)),
+        tx: RefCell::new(Some(parent_tx)),
     };
 
-    #[test]
-    fn test_multithread_base() {
-        let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode(Opcode::i32_add)
-            .write_opcode_i32(Opcode::ecall, ECallCode::thread_id as u32)
-            .write_opcode(Opcode::end)
-            .to_bytes();
+    CHILD_THREADS.with(|child_threads| {
+        child_threads
+            .borrow_mut()
+            .insert(next_thread_id, child_thread);
+    });
 
-        let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32, DataType::I32], // results
-            vec![],                             // local varslist which
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let multithread_program0 = MultithreadProgram::new(program_source0);
-        let child_thread0 = multithread_program0.create_thread(
-            0,
-            0,
-            vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
-        );
-
-        const FIRST_CHILD_THREAD_ID: u32 = 1;
-
-        let result0 = child_thread0.join_handle.join().unwrap();
-        assert_eq!(
-            result0.unwrap(),
-            vec![
-                ForeignValue::UInt32(11 + 13),
-                ForeignValue::UInt32(FIRST_CHILD_THREAD_ID)
-            ]
-        );
-    }
+    next_thread_id
 }
