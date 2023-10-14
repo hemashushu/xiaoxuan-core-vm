@@ -29,9 +29,9 @@ impl RuntimeError for BinaryError {
         self
     }
 
-    fn get_message(&self) -> &str {
-        &self.message
-    }
+    // fn get_message(&self) -> &str {
+    //     &self.message
+    // }
 }
 
 pub fn load_modules_from_binaries(

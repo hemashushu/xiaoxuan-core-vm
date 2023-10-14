@@ -194,39 +194,37 @@ pub enum Opcode {
     // | f32       | 4             |
     // | f64       | 8             |
 
-    //
-    // local variables loading and storing
+    // local variables loading and storing:
     //
     // load the specified local variable and push onto to the stack, or
     // pop one operand off the stack and set the specified local variable.
     //
-    // note that you CAN ALSO load/store function arguments using these
-    // instructions. the index of arguments are follow the local variables, e.g.
+    // note that arguments of function or block are also local variables, the index of arguments are
+    // follow the local variables, e.g. consider there are 4 local variables in a function which has
+    // 2 parameters, the indices of them are as the following:
     //
     //     local variable      arguments
     //     [i32 i32 i64 i64]  [i32 i32]
     // idx  0   1   2   3      4   5
-    //
-    //
-    // note about the local variable (data, function) INDEX:
+
+    // note about the INDEX of local variable (data, function):
     //
     // using the 'index', rather than the 'address/pointer' to access local variables (including
     // data in the data section and functions talked about in the following sections) is the
     // security strategy of the XiaoXuan ISA and VM.
-    // because the 'index' includes the type, data length (range), location information of the 'object',
+    // because the 'index' includes the type, data length and location (the safe access range) of the 'object',
     // when accessing the object, the VM can check whether the type of the object, and the range is legal
-    // or not, so it can prevent a lot of errors.
+    // or not, so it can prevent a lot of unsafe accessing.
     // for example, the traditional method of using pointers to access a array is very easy
     // to read/write data outside the range.
 
     // note:
-    // in the default VM implementation, the arguments of a function are placed on the top
+    // in some stack base VM, the arguments of a function are placed on the top
     // of the stack, so it is also possible to read the arguments directly in the function
     // using instructions with the POP function (e.g. the comparison instructions, the arithmetic
     // instructions).
     // this feature can be used as a trick to improve performance, but the XiaoXuan ISA doesn't
-    // guarantee that this feature will always be available, so for general programs, use the
-    // stable method of accessing the arguments, i.e. the index.
+    // provide this feature. please note that to access arguments you should always using the index.
 
     local_load = 0x200,         // load local variable              (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     local_load32,               //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)

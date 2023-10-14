@@ -49,20 +49,38 @@ thread_local! {
 
 #[derive(Debug)]
 pub struct InterpreterError {
-    message: String,
+    pub error_type: InterpreterErrorType,
+}
+
+#[repr(u16)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum InterpreterErrorType {
+    InvalidFunctionCall, // The number of arguments does not match the specified funcion.
+    DataTypeMissmatch,   // data type does not match
+    InvalidOperation, // such as invoke 'popx' instructions when there is no operands on the stack
+    IndexNotFound,    // the index of function (data, local variables) not found
+    OutOfBoundary,    // out of boundary
 }
 
 impl InterpreterError {
-    pub fn new(message: &str) -> Self {
+    pub fn new(error_type: InterpreterErrorType) -> Self {
         Self {
-            message: message.to_owned(),
+            error_type
         }
     }
 }
 
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("vm error: {}", self.message))
+        let error_code = match self.error_type {
+            InterpreterErrorType::InvalidFunctionCall => "invalid_function_call",
+            InterpreterErrorType::DataTypeMissmatch => "data_type_missmatch",
+            InterpreterErrorType::InvalidOperation => "invalid_operation",
+            InterpreterErrorType::IndexNotFound => "index_not_found",
+            InterpreterErrorType::OutOfBoundary => "out_of_boundary",
+        };
+
+        f.write_fmt(format_args!("interpreter error: {}", error_code))
     }
 }
 
@@ -71,9 +89,9 @@ impl RuntimeError for InterpreterError {
         self
     }
 
-    fn get_message(&self) -> &str {
-        &self.message
-    }
+    // fn get_message(&self) -> &str {
+    //     &self.message
+    // }
 }
 
 pub struct ChildThread {

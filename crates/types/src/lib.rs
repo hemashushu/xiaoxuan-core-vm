@@ -123,6 +123,6 @@ pub enum ExternalLibraryType {
 /// - https://doc.rust-lang.org/std/any/
 /// - https://bennett.dev/rust/downcast-trait-object/
 pub trait RuntimeError: Debug + Display {
-    fn get_message(&self) -> &str;
+    // fn get_message(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
 }

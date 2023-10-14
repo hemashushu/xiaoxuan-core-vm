@@ -15,7 +15,7 @@ use ancvm_types::{
 
 use crate::{
     ecall::{self, init_ecall_handlers},
-    InterpreterError,
+    InterpreterError, InterpreterErrorType,
 };
 
 type InterpretFunc = fn(&mut ThreadContext) -> InterpretResult;
@@ -430,9 +430,10 @@ pub fn process_function(
         (pars.0.to_vec(), pars.1.to_vec())
     };
 
+    // the number of arguments does not match the specified funcion.
     if arguments.len() != params.len() {
         return Err(InterpreterError::new(
-            "The number of arguments does not match the specified funcion.",
+            InterpreterErrorType::InvalidFunctionCall,
         ));
     }
 

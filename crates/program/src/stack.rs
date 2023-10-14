@@ -39,7 +39,31 @@ pub struct Stack {
     pub fp: usize,
 }
 
-// the frame structure and the frame information
+// the complete VM stack consists of 3 ISOLATED sub-stacks:
+// - frame info stack
+// - local variables stack
+// - operand stack
+//
+//           |                 |             |                 |                 |                 |
+//           |                 |             |                 |                 |                 |
+//           |-----------------|             |-----------------|                 |-----------------|
+//           | frame info N    |             | local variables |     one         | operands        |     one
+//           |                 |   locate    |                 |     frame       |                 |     frame
+// one       |                 | ----------> |-----------------| <-- start  /--> |-----------------| <-- start
+// frame     |                 | ---\        | ...             |            |    | ...             |
+// start --> |-----------------|    |                                       |
+//           | frame info 2    |    \---------------------------------------/
+//           |-----------------|                                   locate
+//           | frame info 1    |
+//           |-----------------|
+//           | frame info 0    |
+//           \=================/ <-- stack start
+
+// note:
+// for simplicity, the current implementation of the VM stack is to
+// combine 3 sub-stacks into 1 stack.
+//
+// the frame structure and the frame information:
 //
 // | ...                    |                                   | ...                    |
 // | ...                    |                                   | ...                    |
@@ -68,8 +92,10 @@ pub struct Stack {
 // \------------------------/ <-- stack start                   \------------------------/
 //      function frame                                                block frame
 //
-// note:
+// please note that:
+//
 // - function arguments are part of local variables.
+//
 //   |                 |
 //   |-----------------| <------
 //   | arg 1 (local 5) |     ^
@@ -82,9 +108,18 @@ pub struct Stack {
 //   | frame info      |
 //   \-----------------/ <-- frame start
 //
-// - block frame also has arguments and local variables.
+// - block frame also has local variables (and arguments).
 // - block frame has NO return PC.
+// - the value of 'local_variables_allocate_bytes' includes the length of
+//   the arguments of function and block. e.g.
+//   a function with two i32 arguments and four i32 local variables, the
+//   value of 'local_variables_allocate_bytes' is (4 * 4 bytes) + (2 * 4 bytes) = 24 bytes
+// - if the MSB of 'return module index' is '1', it indicates that it's the starting frame of the
+//   current function call.
 
+// because the length of frame is vaiable, so there are a pointer 'previous frame pointer' in each
+// stack frame, all these pointers form a single linked list.
+//
 // the chain of frames
 //                                                      Stack.sp    Stack.bp
 //             |             |                          --------    --------
@@ -114,14 +149,6 @@ pub struct Stack {
 //             |             |
 //             \-------------/ <-- stack start
 
-// note:
-//
-// - the value of 'local_variables_allocate_bytes' includes the length of
-//   the function arguments. e.g.
-//   a function with two i32 arguments and four i32 local variables, the
-//   value of 'local_variables_allocate_bytes' = (4 * 4bytes) + (2 * 4bytes)
-// - set MSB of 'return module index' to '1' to indicate that it's the END of the
-//   current function call.
 #[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct FrameInfo {
