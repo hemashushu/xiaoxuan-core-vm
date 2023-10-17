@@ -13,6 +13,8 @@ impl Opcode {
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
             Opcode::swap => "swap",
+            Opcode::select_nez => "select_nez",
+            //
             Opcode::i32_imm => "i32_imm",
             Opcode::i64_imm => "i64_imm",
             Opcode::f32_imm => "f32_imm",

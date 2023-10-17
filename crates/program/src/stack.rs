@@ -448,18 +448,35 @@ impl Stack {
      * return the FFP (FP of function) and FuncFrame.
      */
     pub fn get_function_frame_pack(&self) -> FramePack {
-        // the FFP pointer:
+        // the FFP pointer
         //
-        //       |         |           |         |
-        //       |---------|           |---------|
-        //       | ...     |           | ...     |
-        //       | Func FP |----\      | Func FP |
-        //       | prev FP |    |      | prev FP |
-        // FP -> |---------|    \----> |---------|
-        //       | ...     |           | ...     |
-        //       \---------/           \---------/
+        // case 1:
         //
-        // the function FP sometimes point to the frame itself when the frame
+        //             |         |
+        //             |---------|
+        //             | ...     |
+        // block frame | Func FP | ---\
+        //             | prev FP |    |
+        //       FP -> |---------|    |
+        //             | ...     |    |
+        //             | Func FP |    |
+        //  func frame | prev FP |    |
+        //             |---------| <--/
+        //             | ...     |
+        //             \---------/
+        //
+        // case 2:
+        //
+        //             |         |
+        //             |---------|
+        //             | ...     |
+        //  func frame | Func FP | ---\
+        //             | prev FP |    |
+        //       FP -> |---------| <--/
+        //             | ...     |
+        //             \---------/
+        //
+        // in the case 2, the function FP point to the frame itself when the frame
         // is "function stack frame".
 
         let frame_info = self.read_frame_info(self.fp);

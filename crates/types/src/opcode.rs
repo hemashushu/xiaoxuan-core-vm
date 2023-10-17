@@ -176,12 +176,23 @@ pub enum Opcode {
     drop,                       // drop one operand (the top most operand)
     duplicate,                  // duplicate one operand (the top most operand)
     swap,                       // swap the top two operands
-    // select,
+    select_nez,                 // pop operands a,b and c, push c if a!=0, otherwise push b.
+                                // b and c should be the same data type.
 
     i32_imm = 0x180,            // (param immediate_number:i32)
     i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
     f32_imm,                    // (param immediate_number:i32)
     f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
+
+    // some ISA (VM or real machine) place the immediate numbers in a list of constants
+    // in the program image, and then load the constants by address to archieve the
+    // purpose of loading the immediate numbers, the ARM ISA has a similar scheme, it
+    // pace large immediate numbers in the instruction area outside of the current function
+    // (or inside the function and using instruction 'jump' to skip these area so that they
+    // are not parsed as instructions).
+    // however, the XixoaXuan VM ISA are designed as variable-length and don't necessarily
+    // require the program to have a data section or heap,so the immediate numbers are
+    // placed directly after the 'imm' instruction.
 
     // i32/i64/f32/f64 load/store instructions require the address and offset alignment:
     //
@@ -712,7 +723,7 @@ pub enum Opcode {
     // ```bytecode
     // 0d0000 block 0           ;; the size of instruction 'block' is 8 bytes
     // 0d0008   nop             ;;
-    // 0d0010   break 0 14      ;; the size of instruction 'break' is 8 bytes, (14 = 24 - 10) --\
+    // 0d0010   break 0 14      ;; the size of instruction 'break' is 8 bytes, (14 = 24 - 10) ---\
     // 0d0018   nop             ;;                                                               |
     // 0d0020   nop             ;;                                                               |
     // 0d0022 end               ;;                                                               |

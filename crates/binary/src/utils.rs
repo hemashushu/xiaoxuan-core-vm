@@ -585,7 +585,11 @@ impl<'a> BytecodeReader<'a> {
 
             match opcode {
                 // fundemental
-                Opcode::zero | Opcode::drop | Opcode::duplicate | Opcode::swap => {}
+                Opcode::zero
+                | Opcode::drop
+                | Opcode::duplicate
+                | Opcode::swap
+                | Opcode::select_nez => {}
                 Opcode::i32_imm | Opcode::f32_imm => {
                     let v = self.read_param_i32();
                     line.push_str(&format!("0x{:x}", v));
@@ -1112,31 +1116,34 @@ pub fn build_module_binary_with_functions_and_external_functions(
     let mut func_entries = vec![];
     let mut local_var_list_entries = vec![];
 
-    slim_function_entries.iter().enumerate().for_each(|(idx, entry)| {
-        let original_local_variables = entry.local_variable_item_entries_without_args.clone();
-        let params_as_local_variables = type_entries[entry.type_index]
-            .params
-            .iter()
-            .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
-            .collect::<Vec<_>>();
+    slim_function_entries
+        .iter()
+        .enumerate()
+        .for_each(|(idx, entry)| {
+            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
+            let params_as_local_variables = type_entries[entry.type_index]
+                .params
+                .iter()
+                .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
+                .collect::<Vec<_>>();
 
-        let mut local_variables = Vec::new();
-        local_variables.extend_from_slice(&original_local_variables);
-        local_variables.extend_from_slice(&params_as_local_variables);
+            let mut local_variables = Vec::new();
+            local_variables.extend_from_slice(&original_local_variables);
+            local_variables.extend_from_slice(&params_as_local_variables);
 
-        let local_var_list_entry = LocalVariableListEntry {
-            variables: local_variables,
-        };
+            let local_var_list_entry = LocalVariableListEntry {
+                variables: local_variables,
+            };
 
-        let func_entry = FuncEntry {
-            type_index: entry.type_index,
-            local_variable_list_index: idx,
-            code: entry.code.clone(),
-        };
+            let func_entry = FuncEntry {
+                type_index: entry.type_index,
+                local_variable_list_index: idx,
+                code: entry.code.clone(),
+            };
 
-        func_entries.push(func_entry);
-        local_var_list_entries.push(local_var_list_entry);
-    });
+            func_entries.push(func_entry);
+            local_var_list_entries.push(local_var_list_entry);
+        });
 
     build_module_binary(
         "main",

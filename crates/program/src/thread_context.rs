@@ -95,6 +95,14 @@ pub struct ThreadContext<'a> {
     // |   ...   |
     // \---------/
     //
+    // returning multiple values:
+    //
+    // on most architecture, only one value can be returned in a function, or two values (e.g.
+    // rax/rdx on x86_64, x0/x1 on aarch64, a0/a1 on riscv), but the XiaoXuan ISA allows
+    // return multiple values in a function or a block, this is a kind of convenience when building
+    // functions or control flow blocks.
+    // however, when a XiaoXuan program need to interact with other programs built with other languages,
+    // it is recommended that keep the function return only one value.
     pub stack: Stack,
 
     // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,

@@ -106,6 +106,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::drop as usize] = fundamental::drop_;
     interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
     interpreters[Opcode::swap as usize] = fundamental::swap;
+    interpreters[Opcode::select_nez as usize] = fundamental::select_nez;
     interpreters[Opcode::i32_imm as usize] = fundamental::i32_imm;
     interpreters[Opcode::i64_imm as usize] = fundamental::i64_imm;
     interpreters[Opcode::f32_imm as usize] = fundamental::f32_imm;

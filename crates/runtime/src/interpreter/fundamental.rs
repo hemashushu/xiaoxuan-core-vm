@@ -31,6 +31,19 @@ pub fn swap(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
+pub fn select_nez(thread_context: &mut ThreadContext) -> InterpretResult {
+    // pop (cond, a, b)
+    // push b if cond != 0
+    let cond = thread_context.stack.pop_i32_u();
+    let a = thread_context.stack.pop_i64_u();
+    if cond == 0 {
+        thread_context.stack.drop_();
+        thread_context.stack.push_i64_u(a);
+    }
+
+    InterpretResult::Move(2)
+}
+
 pub fn i32_imm(thread_context: &mut ThreadContext) -> InterpretResult {
     let value = thread_context.get_param_i32();
     thread_context.stack.push_i32_u(value);
@@ -80,13 +93,13 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_operand_zero() {
+    fn test_process_fundamental_zero() {
         // bytecodes
         //
         // 0x0000 zero
         // 0x0002 end
         //
-        // (i32) -> (i32, i32)
+        // () -> (i32)
 
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::zero)
@@ -94,9 +107,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32],                // params
-            vec![DataType::I32, DataType::I32], // results
-            vec![],                             // local vars
+            vec![],              // params
+            vec![DataType::I32], // results
+            vec![],              // local vars
             code0,
         );
 
@@ -104,31 +117,27 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(233)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
-            vec![ForeignValue::UInt32(233), ForeignValue::UInt32(0)]
+            vec![ForeignValue::UInt32(0)]
         );
     }
 
     #[test]
-    fn test_process_operand_drop() {
-        // bytecodes
-        //
-        // 0x0000 drop
-        // 0x0002 end
-        //
-        // (i32, i32) -> (i32)
+    fn test_process_fundamental_drop() {
+        // () -> (i32)
         let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::i32_imm, 17)
             .write_opcode(Opcode::drop)
             .write_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
-            vec![],                             // local vars
+            vec![],              // params
+            vec![DataType::I32], // results
+            vec![],              // local vars
             code0,
         );
 
@@ -136,30 +145,21 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(
-            &mut thread_context0,
-            0,
-            0,
-            &vec![ForeignValue::UInt32(13), ForeignValue::UInt32(17)],
-        );
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
     }
 
     #[test]
-    fn test_process_operand_duplicate() {
-        // bytecodes
-        //
-        // 0x0000 duplicate
-        // 0x0002 end
-        //
-        // (i32) -> (i32, i32)
+    fn test_process_fundamental_duplicate() {
+        // () -> (i32, i32)
         let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 19)
             .write_opcode(Opcode::duplicate)
             .write_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32],                // params
+            vec![],                             // params
             vec![DataType::I32, DataType::I32], // results
             vec![],                             // local vars
             code0,
@@ -169,7 +169,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(19)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(19), ForeignValue::UInt32(19)]
@@ -177,21 +177,18 @@ mod tests {
     }
 
     #[test]
-    fn test_process_operand_swap() {
-        // bytecodes
-        //
-        // 0x0000 swap
-        // 0x0002 end
-        //
-        // (i32) -> (i32, i32)
+    fn test_process_fundamental_swap() {
+        // () -> (i32, i32)
 
         let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 211)
+            .write_opcode_i32(Opcode::i32_imm, 223)
             .write_opcode(Opcode::swap)
             .write_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
+            vec![],                             // params
             vec![DataType::I32, DataType::I32], // results
             vec![],                             // local vars
             code0,
@@ -201,16 +198,61 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(
-            &mut thread_context0,
-            0,
-            0,
-            &vec![ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
-        );
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(223), ForeignValue::UInt32(211)]
         );
+    }
+
+    #[test]
+    fn test_process_fundamental_select_nez() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode(Opcode::zero)
+            .write_opcode(Opcode::select_nez)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],              // params
+            vec![DataType::I32], // results
+            vec![],              // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
+    }
+
+    #[test]
+    fn test_process_fundamental_select_nez_alt() {
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i32(Opcode::i32_imm, 13)
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode(Opcode::select_nez)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],              // params
+            vec![DataType::I32], // results
+            vec![],              // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(11)]);
     }
 
     #[test]
