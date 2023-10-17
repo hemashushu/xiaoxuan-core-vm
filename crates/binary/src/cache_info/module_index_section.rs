@@ -40,16 +40,6 @@ pub struct ModuleIndexItem {
     _padding0: [u8; 3],
 }
 
-// specify the data type of enum
-// see also:
-// https://doc.rust-lang.org/nomicon/other-reprs.html
-#[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ModuleShareType {
-    User = 0x0,
-    Shared,
-}
-
 // impl From<u8> for ModuleShareType {
 //     fn from(value: u8) -> Self {
 //         unsafe { std::mem::transmute::<u8, ModuleShareType>(value) }

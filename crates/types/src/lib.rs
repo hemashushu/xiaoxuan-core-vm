@@ -55,6 +55,7 @@ pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 /// assert_eq!(a, 2);
 /// ```
 #[repr(u8)]
+// https://doc.rust-lang.org/nomicon/other-reprs.html
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum DataType {
     I32 = 0x0,
@@ -85,6 +86,13 @@ pub enum ForeignValue {
     UInt64(u64),
     Float32(f32),
     Float64(f64),
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ModuleShareType {
+    User = 0x0,
+    Shared,
 }
 
 #[repr(u8)]
@@ -123,6 +131,18 @@ pub enum ExternalLibraryType {
 /// - https://doc.rust-lang.org/std/any/
 /// - https://bennett.dev/rust/downcast-trait-object/
 pub trait RuntimeError: Debug + Display {
-    // fn get_message(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
+}
+
+#[derive(Debug)]
+pub struct CompileError {
+    pub message: String,
+}
+
+impl CompileError {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+        }
+    }
 }
