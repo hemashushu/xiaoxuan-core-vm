@@ -100,7 +100,7 @@ where
         self.buffer.peek(offset)
     }
 
-    pub fn equals(&self, offset: usize, expect: &T) -> bool {
+    pub fn look_ahead(&self, offset: usize, expect: &T) -> bool {
         let value = self.peek(offset);
         matches!(value, Some(actual) if actual == expect)
     }
@@ -120,18 +120,18 @@ mod tests {
         assert_eq!(&Some('0'), pt.peek(0));
         assert_eq!(&Some('1'), pt.peek(1));
         assert_eq!(&Some('2'), pt.peek(2));
-        assert!(!pt.equals(0, &'1'));
-        assert!(pt.equals(1, &'1'));
-        assert!(!pt.equals(2, &'1'));
+        assert!(!pt.look_ahead(0, &'1'));
+        assert!(pt.look_ahead(1, &'1'));
+        assert!(!pt.look_ahead(2, &'1'));
 
         // consume one item
         assert_eq!(Some('0'), pt.next());
         assert_eq!(&Some('1'), pt.peek(0));
         assert_eq!(&Some('2'), pt.peek(1));
         assert_eq!(&Some('3'), pt.peek(2));
-        assert!(pt.equals(0, &'1'));
-        assert!(!pt.equals(1, &'1'));
-        assert!(!pt.equals(2, &'1'));
+        assert!(pt.look_ahead(0, &'1'));
+        assert!(!pt.look_ahead(1, &'1'));
+        assert!(!pt.look_ahead(2, &'1'));
 
         assert_eq!(Some('1'), pt.next());
         assert_eq!(&Some('2'), pt.peek(0));
