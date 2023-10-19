@@ -50,14 +50,14 @@ pub fn i32_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn i32_add_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn i32_inc(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, value + amount as u32);
     InterpretResult::Move(4)
 }
 
-pub fn i32_sub_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn i32_dec(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, value - amount as u32);
@@ -106,14 +106,14 @@ pub fn i64_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn i64_add_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn i64_inc(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, value + amount as u64);
     InterpretResult::Move(4)
 }
 
-pub fn i64_sub_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn i64_dec(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, value - amount as u64);
@@ -308,13 +308,13 @@ mod tests {
         // 0x0074 local_load32         0 0 1
         // 0x007c i32_rem_u
         // 0x007e local_load32         0 0 0
-        // 0x0086 i32_add_imm              3
+        // 0x0086 i32_inc              3
         // 0x008a local_load32         0 0 0
-        // 0x0092 i32_sub_imm              3
+        // 0x0092 i32_dec              3
         // 0x0096 local_load32         0 0 2
-        // 0x009e i32_add_imm              3
+        // 0x009e i32_inc              3
         // 0x00a2 local_load32         0 0 2
-        // 0x00aa i32_sub_imm              3
+        // 0x00aa i32_dec              3
         // 0x00ae end
 
         let code0 = BytecodeWriter::new()
@@ -342,13 +342,13 @@ mod tests {
             .write_opcode(Opcode::i32_rem_u)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i16(Opcode::i32_add_imm, 3)
+            .write_opcode_i16(Opcode::i32_inc, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i16(Opcode::i32_sub_imm, 3)
+            .write_opcode_i16(Opcode::i32_dec, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .write_opcode_i16(Opcode::i32_add_imm, 3)
+            .write_opcode_i16(Opcode::i32_inc, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .write_opcode_i16(Opcode::i32_sub_imm, 3)
+            .write_opcode_i16(Opcode::i32_dec, 3)
             .write_opcode(Opcode::end)
             .to_bytes();
 
@@ -460,13 +460,13 @@ mod tests {
         // 0x0074 local_load           0 0 1
         // 0x007c i64_rem_u
         // 0x007e local_load           0 0 0
-        // 0x0086 i64_add_imm              3
+        // 0x0086 i64_inc              3
         // 0x008a local_load           0 0 0
-        // 0x0092 i64_sub_imm              3
+        // 0x0092 i64_dec              3
         // 0x0096 local_load           0 0 2
-        // 0x009e i64_add_imm              3
+        // 0x009e i64_inc              3
         // 0x00a2 local_load           0 0 2
-        // 0x00aa i64_sub_imm              3
+        // 0x00aa i64_dec              3
         // 0x00ae end
 
         let code0 = BytecodeWriter::new()
@@ -494,13 +494,13 @@ mod tests {
             .write_opcode(Opcode::i64_rem_u)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_i16(Opcode::i64_add_imm, 3)
+            .write_opcode_i16(Opcode::i64_inc, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_i16(Opcode::i64_sub_imm, 3)
+            .write_opcode_i16(Opcode::i64_dec, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 2)
-            .write_opcode_i16(Opcode::i64_add_imm, 3)
+            .write_opcode_i16(Opcode::i64_inc, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 2)
-            .write_opcode_i16(Opcode::i64_sub_imm, 3)
+            .write_opcode_i16(Opcode::i64_dec, 3)
             //
             .write_opcode(Opcode::end)
             .to_bytes();

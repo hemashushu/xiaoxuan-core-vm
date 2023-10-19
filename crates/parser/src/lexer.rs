@@ -10,16 +10,16 @@
 //   '$' + /a-zA-Z0-9_/+, should not starts with number, e.g.
 //   $add, $some_func, $print2
 // - symbol:
-//   /a-zA-Z0-9_/+, should not starts with number, e.g.
-//   local, i32, i32_imm, user
+//   /a-zA-Z0-9_./+, should not starts with number, e.g.
+//   local, i32, i32.imm, i32.div_s, user
 // - number: supportes decimal, binary, hexadecimal and float point numbers e.g.
 //   211, 0x11, 0x11_22, 0b1100, 3.14
-// - string: a string surround by double quotes, multiline is supported. e.g.
+// - string: a char sequence surround by double quotes, multiline is supported. e.g.
 //   "abc文字😊", "\t\r\n\\\""\u{2d}\u{6587}\0"
 //   "line 0
 //    line 1"
 // - bytes:
-//   a string surrounded by char 'b' and double quotes, two hex digital number per byte,
+//   a char sequence surrounded by char 'b' and double quotes, two hex digital number per byte,
 //   separator chars / -\t\r\n/ are allowed, e.g.
 //   b"0011aabb", b"00 11 AA BB", b"00-11-aa-bb", b"00 11\nAA BB"
 // - line comment: from the double semi-colon to the end of the line, e.g.
@@ -27,7 +27,7 @@
 // - block comment: any block of text surround by '(;' and ';)' pair, nested block comments are allowed, e.g.
 //   (; block comment ;)
 //   (; one (; two ;);)
-//   (; one // line comments within the block comment are ignored ;)
+//   (; one ;; line comments within the block comment are ignored ;)
 //   (; one #( node comments within the block comment are ignored) ;)
 // - node comment: a hash mark at the front of the left parenthesis, nested node comments are allowed, e.g.
 //   #(add 11 (mul 13 17))
@@ -62,14 +62,14 @@
 // assembly text examples:
 //
 // '(local $a i32)'
-// '(i32_imm 211)'
-// '(i32_imm 0x223) ;; comment'
-// '(i32_imm (; also comment ;) 0x11)'
-// '(i32_imm (; nest (; comment ;);) 0x11_22)'
-// '(i32_sub            ;; multiple lines
-//      (i32_imm 11)   ;; left-hand-side
-//      #(i32_imm 13)  ;; node comment
-//      (i32_imm (;right hand side;) 17)
+// '(i32.imm 211)'
+// '(i32.imm 0x223) ;; comment'
+// '(i32.imm (; also comment ;) 0x11)'
+// '(i32.imm (; nested (; comment ;);) 0x11_22)'
+// '(i32.div_s          ;; multiple lines
+//      (i32.imm 11)    ;; left-hand-side
+//      #(i32.imm 13)   ;; node comment
+//      (i32.imm (;right hand side;) 17)
 //  )'
 // '(import $math (module (user "math")))'
 // '(import $add (module 0) (func "add" (param $left i32) (param $right i32) (result i32)))'
@@ -571,7 +571,7 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
 }
 
 fn lex_symbol(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
-    // i32_imm  //
+    // i32.imm  //
     // ^_______ verified/current char
 
     let mut s = String::new();
@@ -579,7 +579,7 @@ fn lex_symbol(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, Comp
 
     while let Some(nc) = iter.peek(0) {
         match *nc {
-            '0'..='9' | 'a'..='z' | 'A'..='Z' | '_' => {
+            '0'..='9' | 'a'..='z' | 'A'..='Z' | '_' | '.' => {
                 s.push(*nc);
                 iter.next();
             }
@@ -1192,6 +1192,16 @@ mod tests {
         );
 
         assert_eq!(
+            lex_from_str("i32.imm").unwrap(),
+            vec![Token::Symbol("i32.imm".to_owned())]
+        );
+
+        assert_eq!(
+            lex_from_str("i32.div_s").unwrap(),
+            vec![Token::Symbol("i32.div_s".to_owned())]
+        );
+
+        assert_eq!(
             lex_from_str("(name)").unwrap(),
             vec![
                 Token::LeftParen,
@@ -1251,13 +1261,13 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (i32_imm 211)
+            (i32.imm 211)
             "#
             )
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("211".to_owned()),
                 Token::RightParen,
             ]
@@ -1266,13 +1276,13 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (i32_imm 0x223) ;; comment
+            (i32.imm 0x223) ;; comment
             "#
             )
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("0x223".to_owned()),
                 Token::RightParen,
             ]
@@ -1281,13 +1291,13 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (i32_imm (; also comment ;) 0x11)
+            (i32.imm (; also comment ;) 0x11)
             "#
             )
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("0x11".to_owned()),
                 Token::RightParen,
             ]
@@ -1296,13 +1306,13 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (i32_imm (; nest (; comment ;);) 0x11_22)
+            (i32.imm (; nest (; comment ;);) 0x11_22)
             "#
             )
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("0x11_22".to_owned()),
                 Token::RightParen,
             ]
@@ -1311,23 +1321,23 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (i32_sub            ;; multiple lines
-                (i32_imm 11)    ;; left-hand-side
-                #(i32_imm 13)   ;; node comment
-                (i32_imm (;right hand side;) 17)
+            (i32.div_s          ;; multiple lines
+                (i32.imm 11)    ;; left-hand-side
+                #(i32.imm 13)   ;; node comment
+                (i32.imm (;right hand side;) 17)
             )
             "#
             )
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32_sub".to_owned()),
+                Token::Symbol("i32.div_s".to_owned()),
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("11".to_owned()),
                 Token::RightParen,
                 Token::LeftParen,
-                Token::Symbol("i32_imm".to_owned()),
+                Token::Symbol("i32.imm".to_owned()),
                 Token::Number("17".to_owned()),
                 Token::RightParen,
                 Token::RightParen,

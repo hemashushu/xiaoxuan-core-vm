@@ -745,7 +745,7 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i32_div_u
                 | Opcode::i32_rem_s
                 | Opcode::i32_rem_u => {}
-                Opcode::i32_add_imm | Opcode::i32_sub_imm => {
+                Opcode::i32_inc | Opcode::i32_dec => {
                     let amount = self.read_param_i16();
                     line.push_str(&format!("{}", amount));
                 }
@@ -756,7 +756,7 @@ impl<'a> BytecodeReader<'a> {
                 | Opcode::i64_div_u
                 | Opcode::i64_rem_s
                 | Opcode::i64_rem_u => {}
-                Opcode::i64_add_imm | Opcode::i64_sub_imm => {
+                Opcode::i64_inc | Opcode::i64_dec => {
                     let amount = self.read_param_i16();
                     line.push_str(&format!("{}", amount));
                 }
