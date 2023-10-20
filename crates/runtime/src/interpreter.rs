@@ -10,7 +10,7 @@ use ancvm_binary::utils::format_bytecodes;
 use ancvm_program::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
-    ForeignValue, OPERAND_SIZE_IN_BYTES,
+    DataType, ForeignValue, OPERAND_SIZE_IN_BYTES,
 };
 
 use crate::{
@@ -441,7 +441,20 @@ pub fn process_function(
     // for simplicity, does not check the data type of arguments for now.
 
     // push arguments
-    thread_context.push_values(arguments);
+    // the first value will be first inserted, and placed at the stack bottom:
+    //
+    // array [0, 1, 2] -> |  2  |
+    //                    |  1  |
+    //                    |  0  |
+    //                    \-----/
+    for value in arguments {
+        match value {
+            ForeignValue::UInt32(value) => thread_context.stack.push_i32_u(*value),
+            ForeignValue::UInt64(value) => thread_context.stack.push_i64_u(*value),
+            ForeignValue::Float32(value) => thread_context.stack.push_f32(*value),
+            ForeignValue::Float64(value) => thread_context.stack.push_f64(*value),
+        }
+    }
 
     // create function statck frame
     thread_context.stack.create_frame(
@@ -468,9 +481,45 @@ pub fn process_function(
     process_continuous_instructions(thread_context);
 
     // pop the results from the stack
-    let results = thread_context.pop_values(&results);
+    //
+    // the values on the stack top will be poped first and became
+    // the LAST element of the array
+    //
+    // |  2  | -> array [0, 1, 2]
+    // |  1  |
+    // |  0  |
+    // \-----/
+    let result_operands = thread_context
+        .stack
+        .pop_operands_without_bound_check(results.len());
+    let result_values = results
+        .iter()
+        .enumerate()
+        .map(|(idx, dt)| match dt {
+            DataType::I32 => ForeignValue::UInt32(u32::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            DataType::I64 => ForeignValue::UInt64(u64::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            DataType::F32 => ForeignValue::Float32(f32::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            DataType::F64 => ForeignValue::Float64(f64::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
+                    .try_into()
+                    .unwrap(),
+            )),
+        })
+        .collect::<Vec<_>>();
 
-    Ok(results)
+    Ok(result_values)
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -542,10 +591,10 @@ pub extern "C" fn process_bridge_function_call(
     // pop the results from the stack
     // note:
     //
-    // only 1 return value is allowed for C function.
+    // only 0 or 1 return value is allowed for C function.
     if results_count > 0 {
-        let stack_pop_ptr = thread_context.stack.pop_operand_to_memory();
-        unsafe { std::ptr::copy(stack_pop_ptr, results_ptr, OPERAND_SIZE_IN_BYTES) };
+        let result_operands = thread_context.stack.pop_operands_without_bound_check(1);
+        unsafe { std::ptr::copy(result_operands.as_ptr(), results_ptr, OPERAND_SIZE_IN_BYTES) };
     }
 }
 
@@ -640,9 +689,9 @@ pub extern "C" fn process_callback_function_call(
     // pop the results from the stack
     // note:
     //
-    // only 0 or 1 result is allowed for C function.
+    // only 0 or 1 return value is allowed for C function.
     if results_count > 0 {
-        let stack_pop_ptr = thread_context.stack.pop_operand_to_memory();
-        unsafe { std::ptr::copy(stack_pop_ptr, results_ptr, OPERAND_SIZE_IN_BYTES) };
+        let result_operands = thread_context.stack.pop_operands_without_bound_check(1);
+        unsafe { std::ptr::copy(result_operands.as_ptr(), results_ptr, OPERAND_SIZE_IN_BYTES) };
     }
 }

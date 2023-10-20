@@ -40,24 +40,35 @@ pub struct Stack {
 }
 
 // the complete VM stack consists of 3 ISOLATED sub-stacks:
-// - frame info stack
+// - info stack
 // - local variables stack
 // - operand stack
 //
-//           |                 |             |                 |                 |                 |
-//           |                 |             |                 |                 |                 |
-//           |-----------------|             |-----------------|                 |-----------------|
-//           | frame info N    |             | local variables |     one         | operands        |     one
-//           |                 |   locate    |                 |     frame       |                 |     frame
-// one       |                 | ----------> |-----------------| <-- start  /--> |-----------------| <-- start
-// frame     |                 | ---\        | ...             |            |    | ...             |
-// start --> |-----------------|    |                                       |
-//           | frame info 2    |    \---------------------------------------/
-//           |-----------------|                                   locate
-//           | frame info 1    |
-//           |-----------------|
-//           | frame info 0    |
-//           \=================/ <-- stack start
+//           |                 |                 |                 |                  |                 |
+//           |                 |                 |                 |                  |                 |
+//           |-----------------|                 |-----------------|                  |-----------------|
+//           | info 3          |                 | local vars 3    |                  | operands 3      |
+//           |                 |      locate     |                 |     frame 3      |                 |     frame 3
+//           |                 | --------------> |-----------------| <-- start   /--> |-----------------| <-- start
+//           |                 | ---\            |                 |             |    |                 |
+//           |                 |    |            |                 |             |    |                 |
+//           |                 |    \-----------=====================------------/    |                 |
+// frame 3   |                 |                 |                 |    locate        |                 |
+// start --> |-----------------|                 |                 |                  |                 |
+//           | info 2          |                 | local vars 2    |                  | operands 2      |
+//           |                 |      locate     |                 |     frame 2      |                 |     frame 2
+//           |                 | --------------> |-----------------| <-- start   /--> |-----------------| <-- start
+//           |                 | ---\            |                 |             |    |                 |
+//           |                 |    |            |                 |             |    |                 |
+//           |                 |    \-----------=====================------------/    |                 |
+// frame 2   |                 |                 |                 |    locate        |                 |
+// start --> |-----------------|                 |                 |                  |                 |
+//           | info 1          |                 | local vars 1    |                  | operands 1      |
+//           |-----------------|                 |-----------------|                  |-----------------|
+// stack     | info 0          |                 | local vars 0    |                  | operands 0      |
+// start --> \=================/                 \=================/                  \=================/
+//
+//                info stack                     local variables stack                   operands stack
 
 // note:
 // for simplicity, the current implementation of the VM stack is to
@@ -156,7 +167,7 @@ pub struct FrameInfo {
     pub function_frame_address: u32,         //--/  8 bytes
     pub params_count: u16,                   //--\
     pub results_count: u16,                  //  |  8 bytes
-    pub local_variable_list_index: u32,          //--/
+    pub local_variable_list_index: u32,      //--/
     pub local_variables_allocate_bytes: u32, //--\
     pub return_module_index: u32,            //--/  8 bytes
     pub return_function_internal_index: u32, //--\  8 bytes
@@ -246,6 +257,19 @@ impl Stack {
         }
     }
 
+    pub fn drop_(&mut self) {
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+    }
+
+    pub fn duplicate(&mut self) {
+        let src = self.data[self.sp - OPERAND_SIZE_IN_BYTES..].as_ptr();
+        let dst = self.data[self.sp..].as_mut_ptr();
+        unsafe {
+            std::ptr::copy(src, dst, OPERAND_SIZE_IN_BYTES);
+        }
+        self.sp += OPERAND_SIZE_IN_BYTES;
+    }
+
     pub fn push_i32_s(&mut self, value: i32) {
         self.write_i32_s(self.sp, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
@@ -276,73 +300,6 @@ impl Stack {
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    pub fn peek_i32_s(&self) -> i32 {
-        self.read_i32_s(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn peek_i32_u(&self) -> u32 {
-        self.read_i32_u(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn peek_i64_s(&self) -> i64 {
-        self.read_i64_s(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn peek_i64_u(&self) -> u64 {
-        self.read_i64_u(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn peek_f32(&self) -> f32 {
-        self.read_f32(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn peek_f64(&self) -> f64 {
-        self.read_f64(self.sp - OPERAND_SIZE_IN_BYTES)
-    }
-
-    pub fn pop_i32_s(&mut self) -> i32 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i32_s(self.sp)
-    }
-
-    pub fn pop_i32_u(&mut self) -> u32 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i32_u(self.sp)
-    }
-
-    pub fn pop_i64_s(&mut self) -> i64 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i64_s(self.sp)
-    }
-
-    pub fn pop_i64_u(&mut self) -> u64 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_i64_u(self.sp)
-    }
-
-    pub fn pop_f32(&mut self) -> f32 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_f32(self.sp)
-    }
-
-    pub fn pop_f64(&mut self) -> f64 {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_f64(self.sp)
-    }
-
-    pub fn drop_(&mut self) {
-        self.sp -= OPERAND_SIZE_IN_BYTES;
-    }
-
-    pub fn duplicate(&mut self) {
-        let src = self.data[self.sp - OPERAND_SIZE_IN_BYTES..].as_ptr();
-        let dst = self.data[self.sp..].as_mut_ptr();
-        unsafe {
-            std::ptr::copy(src, dst, OPERAND_SIZE_IN_BYTES);
-        }
-        self.sp += OPERAND_SIZE_IN_BYTES;
-    }
-
     // note:
     // this is unsafe function.
     // the caller should write data to stack immediately after calling this function.
@@ -370,6 +327,72 @@ impl Stack {
         ptr
     }
 
+    pub fn peek_i32_s(&self) -> i32 {
+        self.read_i32_s(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_i32_u(&self) -> u32 {
+        self.read_i32_u(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_i64_s(&self) -> i64 {
+        self.read_i64_s(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_i64_u(&self) -> u64 {
+        self.read_i64_u(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_f32(&self) -> f32 {
+        self.read_f32(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn peek_f64(&self) -> f64 {
+        self.read_f64(self.sp - OPERAND_SIZE_IN_BYTES)
+    }
+
+    pub fn pop_i32_s(&mut self) -> i32 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_i32_s(self.sp)
+    }
+
+    pub fn pop_i32_u(&mut self) -> u32 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_i32_u(self.sp)
+    }
+
+    pub fn pop_i64_s(&mut self) -> i64 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_i64_s(self.sp)
+    }
+
+    pub fn pop_i64_u(&mut self) -> u64 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_i64_u(self.sp)
+    }
+
+    pub fn pop_f32(&mut self) -> f32 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_f32(self.sp)
+    }
+
+    pub fn pop_f64(&mut self) -> f64 {
+        self.operands_stack_bounds_check(1);
+
+        self.sp -= OPERAND_SIZE_IN_BYTES;
+        self.read_f64(self.sp)
+    }
+
     // note:
     // this is an unsafe function.
     // the caller should write data to memory immediately after calling this function.
@@ -381,14 +404,43 @@ impl Stack {
     // memory.store_64(ptr, address);
     // ```
     pub fn pop_operand_to_memory(&mut self) -> *const u8 {
+        self.operands_stack_bounds_check(1);
+
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.get_ptr(self.sp)
     }
 
     pub fn pop_operands(&mut self, count: usize) -> &[u8] {
+        self.operands_stack_bounds_check(count);
+
         let length = count * OPERAND_SIZE_IN_BYTES;
         self.sp -= length;
         &self.data[self.sp..]
+    }
+
+    // because the info stack, local variable stack and operands stack are combined as
+    // one stack, so there is a 'bound check' when perform a regular 'pop' operation,
+    // but when the entry function is finish, there is no 'frame' on the stack, so the
+    // 'bound check' operation will be failed.
+    pub fn pop_operands_without_bound_check(&mut self, count: usize) -> &[u8] {
+        let length = count * OPERAND_SIZE_IN_BYTES;
+        self.sp -= length;
+        &self.data[self.sp..]
+    }
+
+    #[inline]
+    fn operands_stack_bounds_check(&self, operands_count: usize) {
+        #[cfg(debug_assertions)]
+        {
+            let frame_info = self.read_frame_info(self.fp);
+            let local_variables_allocate_bytes = frame_info.local_variables_allocate_bytes as usize;
+
+            if self.sp - (operands_count * OPERAND_SIZE_IN_BYTES)
+                < self.fp + size_of::<FrameInfo>() + local_variables_allocate_bytes
+            {
+                panic!("Reach the start postition of the current operand stack frame")
+            }
+        }
     }
 
     /**
@@ -713,9 +765,10 @@ impl Stack {
             )
         };
 
+        /* DEPREACTED:: force using 'local_load..' to access the arguments.
         // optimized for the looping in the current frame, when:
         // - the specified frame is the current frame (the top most frame)
-        // - there is no other operands than local vars and parameters on the top of stack
+        // - there is no other operands than the local vars and parameters on the top of stack
         //
         // diagram:
         //
@@ -760,6 +813,7 @@ impl Stack {
 
             return false;
         }
+        */
 
         // move the specified number of operands to swap
         self.move_operands_to_swap(params_count);
@@ -829,7 +883,7 @@ mod tests {
         MEMORY_PAGE_SIZE_IN_BYTES, STACK_FRAME_SIZE_IN_PAGES,
     };
 
-    /// private functions for helping unit test
+    // private functions for helping unit test
     impl Stack {
         fn read_local_by_offset_i32(&self, reversed_index: u16, offset: usize) -> i32 {
             self.read_i32_s(self.get_local_variables_start_address(reversed_index) + offset)
@@ -841,28 +895,42 @@ mod tests {
                 value,
             )
         }
+
+        // because there is bounds check in the 'pop..' operations, the 'pop..' functions
+        // will panic without a frame.
+        fn create_empty_frame(&mut self) {
+            let frame_size_in_bytes = size_of::<FrameInfo>();
+            // do not write any data, just move the FP and SP
+
+            // let dst = self.data.as_mut_ptr();
+            // unsafe {
+            //     std::ptr::write_bytes(dst, 0, frame_size_in_bytes);
+            // }
+
+            self.fp = 0;
+            self.sp = frame_size_in_bytes;
+        }
     }
 
     #[test]
     fn test_stack_capacity() {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
-        assert_eq!(stack.sp, 0);
-        assert_eq!(stack.fp, 0);
 
         // check the initial size
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES);
-        stack.ensure_stack_space();
-        assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES);
+        assert_eq!(stack.sp, 0);
+        assert_eq!(stack.fp, 0);
 
-        // add one operand
-        stack.push_i32_u(11);
-        assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES);
+        // because there is bounds check in the 'pop..' operations, the 'pop..' functions
+        // will panic without a frame.
+        stack.create_empty_frame();
+
+        const FRAME_SIZE_IN_BYTES: usize = size_of::<FrameInfo>();
+        assert_eq!(stack.sp, FRAME_SIZE_IN_BYTES);
+        assert_eq!(stack.fp, 0);
+
         stack.ensure_stack_space();
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 2);
-
-        // clear
-        assert_eq!(stack.pop_i32_u(), 11);
-        assert_eq!(stack.sp, 0);
 
         // fill up one frame
         for i in 0..(STACK_FRAME_SIZE_IN_PAGES * MEMORY_PAGE_SIZE_IN_BYTES / OPERAND_SIZE_IN_BYTES)
@@ -872,11 +940,9 @@ mod tests {
 
         assert_eq!(
             stack.sp,
-            STACK_FRAME_SIZE_IN_PAGES * MEMORY_PAGE_SIZE_IN_BYTES
+            STACK_FRAME_SIZE_IN_PAGES * MEMORY_PAGE_SIZE_IN_BYTES + FRAME_SIZE_IN_BYTES
         );
 
-        // add one operand
-        stack.push_i32_u(11);
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 2);
         stack.ensure_stack_space();
         assert_eq!(stack.get_capacity_in_pages(), STACK_FRAME_SIZE_IN_PAGES * 3);
@@ -886,13 +952,20 @@ mod tests {
     fn test_push_pop_and_peek() {
         let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
 
+        // because there is bounds check in the 'pop..' operations, the 'pop..' functions
+        // will panic without a frame.
+        stack.create_empty_frame();
+
+        const FRAME_SIZE_IN_BYTES: usize = size_of::<FrameInfo>();
+        const INIT_SP: usize = FRAME_SIZE_IN_BYTES;
+
         // check push, peek and pop
         stack.push_i32_u(11);
         stack.push_i64_u(13);
         stack.push_f32(3.14);
         stack.push_f64(2.9979e8);
 
-        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4);
+        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4 + INIT_SP);
         assert_eq!(stack.peek_f64(), 2.9979e8);
         assert_eq!(stack.pop_f64(), 2.9979e8);
         assert_eq!(stack.pop_f32(), 3.14);
@@ -900,30 +973,52 @@ mod tests {
         assert_eq!(stack.peek_i64_u(), 13);
         assert_eq!(stack.pop_i64_u(), 13);
         assert_eq!(stack.pop_i32_u(), 11);
-        assert_eq!(stack.sp, 0);
+        assert_eq!(stack.sp, INIT_SP);
 
         // check duplicate
         stack.push_i32_u(17);
-        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES);
+        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES + INIT_SP);
 
         stack.duplicate();
         assert_eq!(stack.peek_i32_u(), 17);
-        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 2);
+        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 2 + INIT_SP);
 
         // check drop
         stack.push_i32_u(19);
         stack.push_i32_u(23);
-        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4);
+        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4 + INIT_SP);
 
         stack.drop_();
-        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3);
+        assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3 + INIT_SP);
 
         assert_eq!(stack.peek_i32_u(), 19);
     }
 
     #[test]
-    fn test_pop_operands() {
-        //pop_operands
+    // #[should_panic]
+    fn test_operand_stack_bounds() {
+
+        let mut stack = Stack::new(STACK_FRAME_SIZE_IN_PAGES);
+        stack.create_empty_frame();
+
+        stack.push_i32_u(11);
+        stack.push_i32_u(13);
+
+        assert_eq!(stack.pop_i32_u(), 13);
+        assert_eq!(stack.pop_i32_u(), 11);
+
+        // stack.pop_i32_u(); // will panic
+
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let result = std::panic::catch_unwind(move ||
+            stack.pop_i32_u()
+        );
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
     }
 
     #[test]

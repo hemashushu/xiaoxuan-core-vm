@@ -84,7 +84,18 @@ impl<'a> ExternalFuncIndexSection<'a> {
         external_function_index: usize,
     ) -> (usize, usize) {
         let range = &self.ranges[module_index];
-        // check bound?
+
+        // bounds check
+        #[cfg(debug_assertions)]
+        {
+            if external_function_index > range.count as usize {
+                panic!("Out of bounds of the external function index, module index:{}, total external functions: {}, external function index: {}",
+                    module_index,
+                    range.count,
+                    external_function_index);
+            }
+        }
+
         let item_index = range.offset as usize + external_function_index;
         let item = &self.items[item_index];
         (

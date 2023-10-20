@@ -7,7 +7,6 @@
 use std::sync::Mutex;
 
 use ancvm_binary::module_image::ModuleImage;
-use ancvm_types::{DataType, ForeignValue};
 
 use crate::{
     external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
@@ -188,49 +187,6 @@ impl<'a> ThreadContext<'a> {
         }
     }
 
-    /// push values onto the stack
-    ///
-    /// note that the first value will be inserted into the stack bottom:
-    ///
-    /// array [0, 1, 2] -> |  2  |
-    ///                    |  1  |
-    ///                    |  0  |
-    ///                    \-----/
-    pub fn push_values(&mut self, values: &[ForeignValue]) {
-        for value in values {
-            match value {
-                ForeignValue::UInt32(value) => self.stack.push_i32_u(*value),
-                ForeignValue::UInt64(value) => self.stack.push_i64_u(*value),
-                ForeignValue::Float32(value) => self.stack.push_f32(*value),
-                ForeignValue::Float64(value) => self.stack.push_f64(*value),
-            }
-        }
-    }
-
-    /// pop values off the stack
-    ///
-    /// note that the values on the stack top will be poped first and became
-    /// the LAST element of the array
-    ///
-    /// |  2  | -> array [0, 1, 2]
-    /// |  1  |
-    /// |  0  |
-    /// \-----/
-    pub fn pop_values(&mut self, data_types: &[DataType]) -> Vec<ForeignValue> {
-        let mut reversed_results = data_types
-            .iter()
-            .rev()
-            .map(|data_type| match data_type {
-                DataType::I32 => ForeignValue::UInt32(self.stack.pop_i32_u()),
-                DataType::I64 => ForeignValue::UInt64(self.stack.pop_i64_u()),
-                DataType::F32 => ForeignValue::Float32(self.stack.pop_f32()),
-                DataType::F64 => ForeignValue::Float64(self.stack.pop_f64()),
-            })
-            .collect::<Vec<ForeignValue>>();
-        reversed_results.reverse();
-        reversed_results
-    }
-
     pub fn find_function_target_module_index_and_public_index_by_name() -> (usize, usize) {
         // todo
         (0, 0)
@@ -246,6 +202,8 @@ impl<'a> ThreadContext<'a> {
     pub fn get_current_module_data_target_module_index_and_internal_index_and_data_object(
         &mut self,
         data_public_index: usize,
+        expect_offset_bytes: usize, // for checking the expect data length
+        expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> (usize, usize, &mut dyn IndexedMemory) {
         let module_index = self.pc.module_index;
 
@@ -259,6 +217,29 @@ impl<'a> ThreadContext<'a> {
 
         let target_module = &mut self.program_context.program_modules[target_module_index];
         let data_object = target_module.datas[target_data_section_type as usize].as_mut();
+
+        // bounds check
+        #[cfg(debug_assertions)]
+        {
+            let (_offset, data_actual_length) =
+                data_object.get_offset_and_length_by_index(data_internal_index);
+            if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
+                panic!(
+                    "Out of bounds of the data.
+module index: {}, function internal index: {}, instruction address: {},
+data section type: {}, data internal index: {},
+data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}.",
+                    module_index,
+                    self.pc.function_internal_index,
+                    self.pc.instruction_address,
+                    data_internal_index,
+                    target_data_section_type,
+                    data_actual_length,
+                    expect_offset_bytes,
+                    expect_data_length_in_bytes,
+                );
+            }
+        }
 
         (target_module_index, data_internal_index, data_object)
     }
@@ -313,11 +294,12 @@ impl<'a> ThreadContext<'a> {
         reversed_index: u16,
         local_variable_index: usize, // note that this is different from 'local_variable_list_index'
         offset_bytes: usize,
+        expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> usize {
         // get the local variable info
         let ProgramCounter {
-            instruction_address: _,
-            function_internal_index: _,
+            instruction_address,
+            function_internal_index,
             module_index,
         } = self.pc;
 
@@ -332,6 +314,28 @@ impl<'a> ThreadContext<'a> {
         let variable_item = &self.program_context.program_modules[module_index]
             .local_variable_section
             .get_variable_list(local_variable_list_index as usize)[local_variable_index];
+
+        // bounds check
+        #[cfg(debug_assertions)]
+        {
+            if expect_data_length_in_bytes + offset_bytes > variable_item.var_actual_length as usize
+            {
+                panic!(
+                    "Out of bounds of the local variable.
+module index: {}, function internal index: {}, instruction address: {},
+block reversed index: {}, local variable index: {}, variable actual length in bytes: {},
+offset in bytes: {}, expect length in bytes: {}.",
+                    module_index,
+                    function_internal_index,
+                    instruction_address,
+                    reversed_index,
+                    local_variable_index,
+                    variable_item.var_actual_length,
+                    offset_bytes,
+                    expect_data_length_in_bytes,
+                );
+            }
+        }
 
         let local_start_address = self.stack.get_frame_local_variables_start_address(fp);
         local_start_address + variable_item.var_offset as usize + offset_bytes

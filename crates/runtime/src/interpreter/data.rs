@@ -8,6 +8,11 @@ use ancvm_program::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
+const DATA_LENGTH_IN_BYTES_64_BIT: usize = 8;
+const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
+const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
+const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
+
 pub fn data_load(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
@@ -38,6 +43,8 @@ fn do_data_load(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
         );
     data_object.load_idx_64(data_internal_index, offset_bytes, dst_ptr);
 
@@ -74,6 +81,8 @@ fn do_data_load32(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
         );
     data_object.load_idx_32(data_internal_index, offset_bytes, dst_ptr);
 
@@ -110,6 +119,8 @@ fn do_data_load32_i16_s(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
         );
     data_object.load_idx_32_extend_from_i16_s(data_internal_index, offset_bytes, dst_ptr);
 
@@ -146,6 +157,8 @@ fn do_data_load32_i16_u(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
         );
     data_object.load_idx_32_extend_from_i16_u(data_internal_index, offset_bytes, dst_ptr);
 
@@ -182,6 +195,8 @@ fn do_data_load32_i8_s(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
         );
     data_object.load_idx_32_extend_from_i8_s(data_internal_index, offset_bytes, dst_ptr);
 
@@ -218,6 +233,8 @@ fn do_data_load32_i8_u(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
         );
     data_object.load_idx_32_extend_from_i8_u(data_internal_index, offset_bytes, dst_ptr);
 
@@ -254,6 +271,8 @@ fn do_data_load32_f32(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
         );
     data_object.load_idx_32_with_float_check(data_internal_index, offset_bytes, dst_ptr);
 
@@ -290,6 +309,8 @@ fn do_data_load_f64(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
         );
     data_object.load_idx_64_with_float_check(data_internal_index, offset_bytes, dst_ptr);
 
@@ -326,6 +347,8 @@ fn do_data_store(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
         );
     data_object.store_idx_64(src_ptr, data_internal_index, offset_bytes);
 
@@ -362,6 +385,8 @@ fn do_data_store32(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
         );
     data_object.store_idx_32(src_ptr, data_internal_index, offset_bytes);
 
@@ -398,6 +423,8 @@ fn do_data_store16(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
         );
     data_object.store_idx_16(src_ptr, data_internal_index, offset_bytes);
 
@@ -434,6 +461,8 @@ fn do_data_store8(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
         );
     data_object.store_idx_8(src_ptr, data_internal_index, offset_bytes);
 
@@ -543,8 +572,6 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            // the arguments f32 and f64 are at the top of stack, they can access directly
-            // here test loading the arguments as local variables.
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
             .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
@@ -678,40 +705,6 @@ mod tests {
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
-        // bytecodes
-        //
-        // 0x0000 data_load32_i8_u     3 1
-        // 0x0008 data_load32_i8_u     2 1
-        // 0x0010 data_load32_i16_u    0 1
-        // 0x0018 data_load32          0 0
-        //
-        // 0x0020 data_store32         0 2          ;; store 0x19171311
-        // 0x0028 data_store16         4 2          ;; store 0xd0c0
-        // 0x0030 data_store8          6 2          ;; store 0xe0
-        // 0x0038 data_store8          7 2          ;; store 0xf0
-        // 0x0040 data_store           0 4          ;; store f64
-        // 0x0048 data_store32         0 3          ;; store f32
-        //
-        // 0x0050 data_load            0 2
-        // 0x0058 data_store           0 5          ;; store 0xf0e0d0c0_19171311
-        // 0x0060 data_load            0 2
-        // 0x0068 data_store32         0 6          ;; store 0x19171311
-        //
-        // 0x0070 data_load            0 2          ;; load 0xf0e0d0c0_19171311
-        // 0x0078 data_load32          4 2          ;; load 0xf0e0d0c0
-        // 0x0080 data_load32_i16_u    6 2          ;; load 0xf0e0
-        // 0x0088 data_load32_i16_s    6 2          ;; load 0xf0e0
-        // 0x0090 data_load32_i8_u     7 2          ;; load 0xf0
-        // 0x0098 data_load32_i8_s     7 2          ;; load 0xf0
-        //
-        // 0x00a0 data_load32_f32      0 3          ;; load f32
-        // 0x00a8 data_load_f64        0 4          ;; load f64
-        // 0x00b0 data_load            0 5          ;; load 0xf0e0d0c0_19171311
-        // 0x00b8 data_load32          0 6          ;; load 0x19171311
-        // 0x00c0 end
-        //
-        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::data_load32_i8_u, 3, 1)
             .write_opcode_i16_i32(Opcode::data_load32_i8_u, 2, 1)
@@ -723,7 +716,9 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
             .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
@@ -977,5 +972,143 @@ mod tests {
                 ForeignValue::UInt32(0x00000011u32), // extend from i8 to i32
             ]
         );
+    }
+
+    #[test]
+    // #[should_panic]
+    fn test_process_data_bounds_check0() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::data_load32, 2, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+            vec![],
+            vec![DataEntry::from_i32(11)],
+            vec![],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    // #[should_panic]
+    fn test_process_data_bounds_check1() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+            vec![],
+            vec![DataEntry::from_i32(11)],
+            vec![],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    // #[should_panic]
+    fn test_process_data_bounds_check2() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i16_i32(Opcode::data_store32, 2, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+            vec![],
+            vec![DataEntry::from_i32(11)],
+            vec![],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    // #[should_panic]
+    fn test_process_data_bounds_check3() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 2) // offset
+            .write_opcode_i32(Opcode::data_long_load32, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function_and_data_sections(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+            vec![],
+            vec![DataEntry::from_i32(11)],
+            vec![],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
     }
 }

@@ -25,72 +25,98 @@ use crate::memory::Memory;
 ///         int j = a[4]; // b[0] will be accessed.
 /// }
 /// ```
-///
-/// IT IS WORTH NOTHING THAT, the local variable area of XiaoXuan VM is allocated
-/// on the stack frame for simplicity, however, the stack does not directly implement
-/// this trait due to the structure of the program, instead, it implements a similar
-/// set of functions.
 pub trait IndexedMemory: Memory {
     // it's recommended that add annotation "#[inline]" to the implementation
     /// get (offset, length)
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);
 
     #[inline]
-    fn get_idx_address(&self, idx: usize, offset: usize) -> usize {
+    fn get_data_address_by_index_and_offset(&self, idx: usize, offset: usize) -> usize {
         let (start, _length) = self.get_offset_and_length_by_index(idx);
-
-        // note
-        // the 'offset' value should be checked here to make sure it is
-        // not exceed the boundaries of the data, but for now it is not
-        // checked for simplicity.
         start + offset
     }
 
     fn load_idx_64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_64(self.get_idx_address(idx, offset), dst_ptr);
+        self.load_64(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        );
     }
 
     fn load_idx_32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32(self.get_idx_address(idx, offset), dst_ptr);
+        self.load_32(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        );
     }
 
     fn load_idx_64_with_float_check(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_64_with_float_check(self.get_idx_address(idx, offset), dst_ptr);
+        self.load_64_with_float_check(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        );
     }
 
     fn load_idx_32_with_float_check(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_with_float_check(self.get_idx_address(idx, offset), dst_ptr);
+        self.load_32_with_float_check(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        );
     }
 
     fn load_idx_32_extend_from_i8_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i8_s(self.get_idx_address(idx, offset), dst_ptr)
+        self.load_32_extend_from_i8_s(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        )
     }
 
     fn load_idx_32_extend_from_i8_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i8_u(self.get_idx_address(idx, offset), dst_ptr)
+        self.load_32_extend_from_i8_u(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        )
     }
 
     fn load_idx_32_extend_from_i16_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i16_s(self.get_idx_address(idx, offset), dst_ptr)
+        self.load_32_extend_from_i16_s(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        )
     }
 
     fn load_idx_32_extend_from_i16_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.load_32_extend_from_i16_u(self.get_idx_address(idx, offset), dst_ptr)
+        self.load_32_extend_from_i16_u(
+            self.get_data_address_by_index_and_offset(idx, offset),
+            dst_ptr,
+        )
     }
 
     fn store_idx_64(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.store_64(src_ptr, self.get_idx_address(idx, offset));
+        self.store_64(
+            src_ptr,
+            self.get_data_address_by_index_and_offset(idx, offset),
+        );
     }
 
     fn store_idx_32(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.store_32(src_ptr, self.get_idx_address(idx, offset));
+        self.store_32(
+            src_ptr,
+            self.get_data_address_by_index_and_offset(idx, offset),
+        );
     }
 
     fn store_idx_16(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.store_16(src_ptr, self.get_idx_address(idx, offset));
+        self.store_16(
+            src_ptr,
+            self.get_data_address_by_index_and_offset(idx, offset),
+        );
     }
 
     fn store_idx_8(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.store_8(src_ptr, self.get_idx_address(idx, offset));
+        self.store_8(
+            src_ptr,
+            self.get_data_address_by_index_and_offset(idx, offset),
+        );
     }
 }

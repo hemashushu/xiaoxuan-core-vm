@@ -198,60 +198,6 @@ mod tests {
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
-        // bytecodes
-        //
-        // 0x0000 i32_imm              0x1
-        // 0x0008 ecall                262
-        // 0x0010 drop
-        // 0x0012 nop
-        // 0x0014 i32_imm              0x19171311
-        // 0x001c i64_imm              0x100 0x0
-        // 0x0028 heap_store32         0
-        // 0x002c i32_imm              0xd0c0
-        // 0x0034 i64_imm              0x100 0x0
-        // 0x0040 heap_store16         4
-        // 0x0044 i32_imm              0xe0
-        // 0x004c i64_imm              0x100 0x0
-        // 0x0058 heap_store32         6
-        // 0x005c i32_imm              0xf0
-        // 0x0064 i64_imm              0x100 0x0
-        // 0x0070 heap_store32         7
-        // 0x0074 i64_imm              0x300 0x0
-        // 0x0080 heap_store           0
-        // 0x0084 i64_imm              0x200 0x0
-        // 0x0090 heap_store32         0
-        // 0x0094 i64_imm              0x100 0x0
-        // 0x00a0 heap_load            0
-        // 0x00a4 i64_imm              0x400 0x0
-        // 0x00b0 heap_store           0
-        // 0x00b4 i64_imm              0x100 0x0
-        // 0x00c0 heap_load            0
-        // 0x00c4 i64_imm              0x500 0x0
-        // 0x00d0 heap_store32         0
-        // 0x00d4 i64_imm              0x100 0x0
-        // 0x00e0 heap_load            0
-        // 0x00e4 i64_imm              0x100 0x0
-        // 0x00f0 heap_load32          4
-        // 0x00f4 i64_imm              0x100 0x0
-        // 0x0100 heap_load32_i16_u    6
-        // 0x0104 i64_imm              0x100 0x0
-        // 0x0110 heap_load32_i16_s    6
-        // 0x0114 i64_imm              0x100 0x0
-        // 0x0120 heap_load32_i8_u     7
-        // 0x0124 i64_imm              0x100 0x0
-        // 0x0130 heap_load32_i8_s     7
-        // 0x0134 i64_imm              0x200 0x0
-        // 0x0140 heap_load32_f32      0
-        // 0x0144 i64_imm              0x300 0x0
-        // 0x0150 heap_load_f64        0
-        // 0x0154 i64_imm              0x400 0x0
-        // 0x0160 heap_load            0
-        // 0x0164 i64_imm              0x500 0x0
-        // 0x0170 heap_load32          0
-        // 0x0174 end
-        //
-        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
         let code0 = BytecodeWriter::new()
             // note that the init size of heap is 0
             // change the capacity of heap before test
@@ -275,8 +221,10 @@ mod tests {
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .write_opcode_i16(Opcode::heap_store32, 7)
             //
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
             .write_opcode_i16(Opcode::heap_store, 0) // store f64
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
             .write_opcode_i16(Opcode::heap_store32, 0) // store f32
             //

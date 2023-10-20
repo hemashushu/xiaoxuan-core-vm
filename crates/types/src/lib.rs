@@ -9,6 +9,22 @@ use std::{
     fmt::{Debug, Display},
 };
 
+// Semantic Versioning
+// - https://semver.org/
+//
+// a module will only run if its required major and minor
+// versions match the current runtime version 100%.
+pub const RUNTIME_MAJOR_VERSION: u16 = 1;
+pub const RUNTIME_MINOR_VERSION: u16 = 0;
+pub const RUNTIME_PATCH_VERSION: u16 = 0;
+
+pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
+pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
+
+// the max version number the current runtime supported
+pub const IMAGE_MAJOR_VERSION: u16 = 1;
+pub const IMAGE_MINOR_VERSION: u16 = 0;
+
 pub mod ecallcode;
 pub mod opcode;
 pub mod utils;

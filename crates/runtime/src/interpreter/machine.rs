@@ -52,6 +52,7 @@ fn do_host_addr_local(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        0,
     );
     let ptr = thread_context.stack.get_ptr(final_offset);
     let address = ptr as u64;
@@ -90,8 +91,11 @@ fn do_host_addr_data(
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_current_module_data_target_module_index_and_internal_index_and_data_object(
             data_public_index,
+            0,
+            0,
         );
-    let total_offset = data_object.get_idx_address(data_internal_index, offset_bytes);
+    let total_offset =
+        data_object.get_data_address_by_index_and_offset(data_internal_index, offset_bytes);
     let ptr = data_object.get_ptr(total_offset);
     let address = ptr as u64;
 

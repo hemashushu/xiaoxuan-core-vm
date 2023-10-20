@@ -96,6 +96,11 @@ pub mod type_section;
 pub mod unified_external_func_section;
 pub mod unified_external_library_section;
 
+use ancvm_types::{
+    IMAGE_MAGIC_NUMBER, IMAGE_MAJOR_VERSION, IMAGE_MINOR_VERSION, RUNTIME_MAJOR_VERSION,
+    RUNTIME_MINOR_VERSION,
+};
+
 use crate::{
     module_image::data_index_section::DataIndexSection,
     module_image::func_index_section::FuncIndexSection,
@@ -118,11 +123,17 @@ use self::{
 // the "module image file" binary layout:
 //
 //                 header
-//              |--------------------------------------------------------------------------|
-//              | magic number (u64) | minor ver (u16) | major ver (u16) | padding 4 bytes | 16 bytes
-//              |--------------------------------------------------------------------------|
-//              | name length (u16) | module name (256 - 2) bytes (UTF-8)                  | 256 bytes
-//              |--------------------------------------------------------------------------|
+//              |---------------------------------------------------|
+//              | magic number (u64)                                | 8 bytes
+//              |---------------------------------------------------|
+//              | image minor ver (u16)   | image major ver (u16)   | 4 bytes
+//              | runtime minor ver (u16) | runtime major ver (u16) | 4 bytes
+//              | name length (u16)       | padding 2 bytes         | 4 bytes
+//              |---------------------------------------------------|
+//              | module name (UTF-8) 256 bytes                     | 256 bytes
+//              |---------------------------------------------------|
+//
+//                 header length = 276 bytes
 //
 //                 body
 //              |------------------------------------------------------|
@@ -136,10 +147,6 @@ use self::{
 // offset 1 --> | section data 1                                       |
 //              | ...                                                  |
 //              |------------------------------------------------------|
-
-const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
-const IMAGE_MAJOR_VERSION: u16 = 1;
-const IMAGE_MINOR_VERSION: u16 = 0;
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
@@ -246,7 +253,7 @@ impl<'a> ModuleImage<'a> {
         let magic_slice = &image_data[0..8];
         if magic_slice != IMAGE_MAGIC_NUMBER {
             return Err(BinaryError {
-                message: "Not a module image file.".to_owned(),
+                message: "Not a valid module image file.".to_owned(),
             });
         }
 
@@ -258,22 +265,38 @@ impl<'a> ModuleImage<'a> {
         // ```
 
         let ptr = image_data.as_ptr();
-        let ptr_version = unsafe { ptr.offset(8) };
-        let version = unsafe { std::ptr::read(ptr_version as *const u32) };
+        let ptr_require_module_image_version = unsafe { ptr.offset(8) };
+        let require_module_image_version = unsafe { std::ptr::read(ptr_require_module_image_version as *const u32) };
 
-        let runtime_version = ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32);
-        if version > runtime_version {
+        let supported_module_image_version =
+            ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32); // supported version 1.0
+        if require_module_image_version > supported_module_image_version {
             return Err(BinaryError {
-                message: "The module requires a newer version of the runtime.".to_owned(),
+                message: "The module image requires a newer version runtime.".to_owned(),
             });
         }
 
-        let name_area = &image_data[16..(16 + 256)];
-        let name_length = unsafe { std::ptr::read(name_area.as_ptr() as *const u16) };
-        let name_data = &image_data[(16 + 2)..(16 + 2 + (name_length as usize))];
+        let ptr_require_runtime_version = unsafe { ptr.offset(12) };
+        let require_runtime_version =
+            unsafe { std::ptr::read(ptr_require_runtime_version as *const u32) };
+
+        let supported_runtime_version =
+            ((RUNTIME_MAJOR_VERSION as u32) << 16) | (RUNTIME_MINOR_VERSION as u32);
+
+        // a module will only run if its required major and minor
+        // versions match the current runtime version 100%.
+        if require_runtime_version != supported_runtime_version {
+            return Err(BinaryError {
+                message: "The module requires a different version runtime to run.".to_owned(),
+            });
+        }
+
+        let ptr_name_length = unsafe { ptr.offset(16) };
+        let name_length = unsafe { std::ptr::read(ptr_name_length as *const u16) };
+        let name_data = &image_data[20..(20 + (name_length as usize))];
         let name = std::str::from_utf8(name_data).unwrap();
 
-        let image_body = &image_data[(16 + 256)..];
+        let image_body = &image_data[(20 + 256)..];
 
         // since the structure of module image and a section are the same,
         // that is, the module image itself can be thought of
@@ -295,18 +318,21 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(IMAGE_MAGIC_NUMBER)?;
         writer.write_all(&IMAGE_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
-        writer.write_all(&[0u8, 0, 0, 0])?; // padding, 4 bytes
+        writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
+        writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
+        writer.write_all(&(self.name.len() as u16).to_le_bytes())?;
+        writer.write_all(&[0u8, 0])?; // padding, 2 bytes
 
-        let mut name_area = [0u8; 256];
-        unsafe { std::ptr::write(name_area.as_mut_ptr() as *mut u16, self.name.len() as u16) };
+        let name_bytes = self.name.as_bytes();
+        let mut name_buffer = [0u8; 256];
         unsafe {
             std::ptr::copy(
-                self.name.as_ptr(),
-                name_area.as_mut_ptr().offset(2),
+                name_bytes.as_ptr(),
+                name_buffer.as_mut_ptr(),
                 self.name.len(),
             )
         };
-        writer.write_all(&name_area)?;
+        writer.write_all(&name_buffer)?;
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
     }
@@ -575,20 +601,23 @@ mod tests {
         module_image.save(&mut image_data).unwrap();
 
         assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
-        assert_eq!(&image_data[8..10], &vec![0, 0]); // minor version number, little endian
-        assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
-        assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
+        assert_eq!(&image_data[8..10], &vec![0, 0]); // image minor version number, little endian
+        assert_eq!(&image_data[10..12], &vec![1, 0]); // image major version number, little endian
+        assert_eq!(&image_data[12..14], &vec![0, 0]); // runtime minor version number, little endian
+        assert_eq!(&image_data[14..16], &vec![1, 0]); // runtime major version number, little endian
 
-        // name area
-        assert_eq!(&image_data[16..(16 + 2)], &vec![4, 0]);
-        assert_eq!(&image_data[(16 + 2)..(16 + 2 + 4)], &b"main".to_vec());
+        // name
+        assert_eq!(&image_data[16..18], &vec![4, 0]); // name length
+        assert_eq!(&image_data[18..20], &vec![0, 0]); // padding
+        assert_eq!(&image_data[20..24], &b"main".to_vec()); // name
+
+        // header length = 276 bytes
 
         // section count
-        assert_eq!(&image_data[272..276], &vec![3, 0, 0, 0]); // item count
-        assert_eq!(&image_data[276..280], &vec![0, 0, 0, 0]); // padding
+        assert_eq!(&image_data[276..280], &vec![3, 0, 0, 0]); // item count
+        assert_eq!(&image_data[280..284], &vec![0, 0, 0, 0]); // padding
 
-        // image header 16 + 256 + section count 8 bytes
-        let remains = &image_data[280..];
+        let remains = &image_data[284..];
 
         // section table length = 12 (the record length) * 3
         let (section_table_data, remains) = remains.split_at(36);
@@ -788,21 +817,18 @@ mod tests {
         let mut image_data: Vec<u8> = Vec::new();
         module_image.save(&mut image_data).unwrap();
 
-        assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
-        assert_eq!(&image_data[8..10], &vec![0, 0]); // minor version number, little endian
-        assert_eq!(&image_data[10..12], &vec![1, 0]); // major version number, little endian
-        assert_eq!(&image_data[12..16], &vec![0, 0, 0, 0]);
+        // name
+        assert_eq!(&image_data[16..18], &vec![3, 0]); // name length
+        assert_eq!(&image_data[18..20], &vec![0, 0]); // padding
+        assert_eq!(&image_data[20..23], &b"std".to_vec()); // name
 
-        // name area
-        assert_eq!(&image_data[16..(16 + 2)], &vec![3, 0]);
-        assert_eq!(&image_data[(16 + 2)..(16 + 2 + 3)], &b"std".to_vec());
+        // header length = 276 bytes
 
         // section count
-        assert_eq!(&image_data[272..276], &vec![2, 0, 0, 0]); // item count
-        assert_eq!(&image_data[276..280], &vec![0, 0, 0, 0]); // padding
+        assert_eq!(&image_data[276..280], &vec![2, 0, 0, 0]); // item count
+        assert_eq!(&image_data[280..284], &vec![0, 0, 0, 0]); // padding
 
-        // image header 16 + 256 + section count 8 bytes
-        let remains = &image_data[280..];
+        let remains = &image_data[284..];
 
         // section table length = 12 (record length) * 2
         let (section_table_data, remains) = remains.split_at(24);

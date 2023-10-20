@@ -8,6 +8,11 @@ use ancvm_program::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
 
+const DATA_LENGTH_IN_BYTES_64_BIT: usize = 8;
+const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
+const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
+const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
+
 pub fn local_load(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
@@ -56,6 +61,7 @@ fn do_local_load(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
     );
     thread_context.stack.load_64(data_address, dst_ptr);
 
@@ -97,6 +103,7 @@ fn do_local_load32(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
     );
     thread_context.stack.load_32(data_address, dst_ptr);
 
@@ -138,6 +145,7 @@ fn do_local_load32_i16_s(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
     );
     thread_context
         .stack
@@ -181,6 +189,7 @@ fn do_local_load32_i16_u(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
     );
     thread_context
         .stack
@@ -224,6 +233,7 @@ fn do_local_load32_i8_s(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
     );
     thread_context
         .stack
@@ -267,6 +277,7 @@ fn do_local_load32_i8_u(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
     );
     thread_context
         .stack
@@ -310,6 +321,7 @@ fn do_local_load32_f32(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
     );
     thread_context
         .stack
@@ -353,6 +365,7 @@ fn do_local_load_f64(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
     );
     thread_context
         .stack
@@ -396,6 +409,7 @@ fn do_local_store(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
     );
     thread_context.stack.store_64(src_ptr, data_address);
 
@@ -437,6 +451,7 @@ fn do_local_store32(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
     );
     thread_context.stack.store_32(src_ptr, data_address);
 
@@ -478,6 +493,7 @@ fn do_local_store16(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
     );
     thread_context.stack.store_16(src_ptr, data_address);
 
@@ -519,6 +535,7 @@ fn do_local_store8(
         reversed_index,
         local_variable_index,
         offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
     );
     thread_context.stack.store_8(src_ptr, data_address);
 
@@ -569,39 +586,6 @@ mod tests {
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
-        // bytecodes
-        //
-        // 0x0000 i32_imm              0x19171311
-        // 0x0008 local_store32        0 0 0        ;; store 0x19171311
-        // 0x0010 i32_imm              0xd0c0
-        // 0x0018 local_store16        0 4 0        ;; store 0xd0c0
-        // 0x0020 i32_imm              0xe0
-        // 0x0028 local_store8         0 6 0        ;; store 0xe0
-        // 0x0030 i32_imm              0xf0
-        // 0x0038 local_store8         0 7 0        ;; store 0xf0
-        //
-        // 0x0040 local_store          0 0 2        ;; store f64
-        // 0x0048 local_store32        0 0 1        ;; store f32
-        //
-        // 0x0050 local_load           0 0 0
-        // 0x0058 local_store          0 0 3        ;; store 0xf0e0d0c0_19171311
-        // 0x0060 local_load           0 0 0
-        // 0x0068 local_store32        0 0 4        ;; store 0x19171311
-        //
-        // 0x0070 local_load           0 0 0        ;; load 0xf0e0d0c0_19171311
-        // 0x0078 local_load32         0 4 0        ;; load 0xf0e0d0c0
-        // 0x0080 local_load32_i16_u   0 6 0        ;; load 0xf0e0
-        // 0x0088 local_load32_i16_s   0 6 0        ;; load 0xf0e0
-        // 0x0090 local_load32_i8_u    0 7 0        ;; load 0xf0
-        // 0x0098 local_load32_i8_s    0 7 0        ;; load 0xf0
-        //
-        // 0x00a0 local_load32_f32     0 0 1        ;; load f32
-        // 0x00a8 local_load_f64       0 0 2        ;; load f64
-        // 0x00b0 local_load           0 0 3        ;; load 0xf0e0d0c0_19171311
-        // 0x00b8 local_load32         0 0 4        ;; load 0x19171311
-        // 0x00c0 end
-        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 0x19171311)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
@@ -612,9 +596,9 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, 0xf0)
             .write_opcode_i16_i16_i16(Opcode::local_store8, 0, 7, 0)
             //
-            // here access arguments directly
-            // note that the general method is using 'local_load' instruction
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
             .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 2) // store f64
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1) // store f32
             //
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
@@ -857,5 +841,127 @@ mod tests {
                 ForeignValue::UInt32(0x00000011u32), // extend from i8 to i32
             ]
         );
+    }
+
+    #[test]
+    fn test_process_local_bounds_check0() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 2, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                               // params
+            vec![],                               // results
+            vec![LocalVariableEntry::from_i32()], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_process_local_bounds_check1() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                               // params
+            vec![],                               // results
+            vec![LocalVariableEntry::from_i32()], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_process_local_bounds_check2() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 11)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 2, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                               // params
+            vec![],                               // results
+            vec![LocalVariableEntry::from_i32()], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_process_local_bounds_check3() {
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 2) // offset
+            .write_opcode_i16_i32(Opcode::local_long_load32, 0, 0)
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = build_module_binary_with_single_function(
+            vec![],                               // params
+            vec![],                               // results
+            vec![LocalVariableEntry::from_i32()], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let result = std::panic::catch_unwind(move || {
+            let mut thread_context0 = program0.create_thread_context();
+            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+        });
+
+        std::panic::set_hook(prev_hook);
+
+        assert!(result.is_err());
     }
 }

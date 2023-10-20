@@ -2118,7 +2118,6 @@ mod tests {
     #[test]
     fn test_process_control_call() {
 
-
         // func $main (i32) -> (i32)
         //     (call $sum_square)
         // end
@@ -2132,7 +2131,7 @@ mod tests {
         //         i32_eqz
         //         (block_alt 4 4) () -> (i32)
         //             (local_load32 1 0)   ;; then sum
-        //         (break 0)                ;; else
+        //             (break 0)            ;; else
         //                                  ;; sum + n^2
         //             (local_load32 1 0)
         //             (local_load32 1 1)
@@ -2148,6 +2147,7 @@ mod tests {
         // end
         //
         // func $square (i32) -> (i32)
+        //     (local_load 32)
         //     (local_load 32)
         //     i32_mul
         // end
@@ -2215,13 +2215,9 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // bytecode
-        //
-        // 0x0000 local_load32         0 0 0
-        // 0x0008 i32_mul
-        // 0x000a end
 
         let code_square = BytecodeWriter::new()
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode(Opcode::i32_mul)
             .write_opcode(Opcode::end)

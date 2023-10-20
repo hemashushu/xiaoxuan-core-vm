@@ -86,7 +86,19 @@ impl<'a> FuncIndexSection<'a> {
         function_public_index: usize,
     ) -> (usize, usize) {
         let range = &self.ranges[module_index];
-        // check bound?
+
+        // bounds check
+        #[cfg(debug_assertions)]
+        {
+            if function_public_index > range.count as usize {
+                panic!("Out of bounds of the function index, module index: {}, total functions (includes imported): {}, request function public index: {}.",
+                    module_index,
+                    range.count,
+                    function_public_index
+                );
+            }
+        }
+
         let item_index = range.offset as usize + function_public_index;
         let item = &self.items[item_index];
         (

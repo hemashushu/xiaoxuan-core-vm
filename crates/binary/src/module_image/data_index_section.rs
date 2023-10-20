@@ -98,7 +98,18 @@ impl<'a> DataIndexSection<'a> {
         data_public_index: usize,
     ) -> (usize, usize, DataSectionType) {
         let range = &self.ranges[module_index];
-        // check bound?
+
+        // bounds check
+        #[cfg(debug_assertions)]
+        {
+            if data_public_index > range.count as usize {
+                panic!(
+                    "Out of bounds of the data index, module index: {}, data items: {} data index: {}.",
+                    module_index, range.count, data_public_index
+                );
+            }
+        }
+
         let item_index = range.offset as usize + data_public_index;
         let item = &self.items[item_index];
         (

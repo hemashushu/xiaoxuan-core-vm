@@ -5,8 +5,7 @@
 // more details in file LICENSE and CONTRIBUTING.
 
 use ancvm_program::thread_context::ThreadContext;
-
-use crate::{
+use ancvm_types::{
     RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
 };
 
@@ -62,12 +61,12 @@ mod tests {
         },
     };
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
-
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
-        RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+    use ancvm_types::{
+        ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue, RUNTIME_CODE_NAME,
+        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
+
+    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
     fn test_ecall_runtime_version() {

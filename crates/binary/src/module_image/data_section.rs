@@ -42,6 +42,8 @@
 // when storing "struct" data, the data type "byte" should be used, as well as
 // the alignment should be speicified.
 
+use std::fmt::Display;
+
 use ancvm_types::MemoryDataType;
 
 use crate::utils::{
@@ -93,6 +95,17 @@ pub enum DataSectionType {
     ReadOnly = 0x0,
     ReadWrite,
     Uninit,
+}
+
+impl Display for DataSectionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            DataSectionType::ReadOnly => "read-only",
+            DataSectionType::ReadWrite => "read-write",
+            DataSectionType::Uninit => "unitialized",
+        };
+        f.write_str(name)
+    }
 }
 
 #[derive(Debug)]

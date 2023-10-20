@@ -21,14 +21,6 @@ pub mod in_memory_program_source;
 pub mod interpreter;
 pub mod multithread_program;
 
-const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina";
-
-// Semantic Versioning
-// - https://semver.org/
-const RUNTIME_MAJOR_VERSION: u16 = 1;
-const RUNTIME_MINOR_VERSION: u16 = 0;
-const RUNTIME_PATCH_VERSION: u16 = 0;
-
 // about the Tx and Rx:
 //
 // threads communicate through message pipe, the raw type of message is u8 array, so it can be:
