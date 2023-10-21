@@ -6,17 +6,17 @@
 
 // "function section" binary layout
 //
-//              |----------------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                               |
-//              |----------------------------------------------------------------------------------------------------|
-//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | type index 0 (u32) | local variable list index 0 (u32) |  <-- table
-//   item 1 --> | code offset 1       | code length 1       | type index 1       | local variable list index 1       |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
-// offset 0 --> | code 0                                                                                             | <-- data area
-// offset 1 --> | code 1                                                                                             |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
+//              |-------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                      |
+//              |-------------------------------------------------------------------------------------------|
+//   item 0 --> | code offset 0 (u32) | code length 0 (u32) | type index 0 (u32) | local list index 0 (u32) |  <-- table
+//   item 1 --> | code offset 1       | code length 1       | type index 1       | local list index 1       |
+//              | ...                                                                                       |
+//              |-------------------------------------------------------------------------------------------|
+// offset 0 --> | code 0                                                                                    | <-- data area
+// offset 1 --> | code 1                                                                                    |
+//              | ...                                                                                       |
+//              |-------------------------------------------------------------------------------------------|
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -34,13 +34,13 @@ pub struct FuncItem {
     pub code_offset: u32,          // the offset of the code in data area
     pub code_length: u32,          // the length (in bytes) of the code in data area
     pub type_index: u32,           // the index of the type (of function)
-    pub local_variable_list_index: u32, // the index of the 'local variable list'
+    pub local_list_index: u32, // the index of the 'local variable list'
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FuncEntry {
     pub type_index: usize,
-    pub local_variable_list_index: usize,
+    pub local_list_index: usize,
     pub code: Vec<u8>,
 }
 
@@ -73,7 +73,7 @@ impl<'a> FuncSection<'a> {
 
         (
             item.type_index as usize,
-            item.local_variable_list_index as usize,
+            item.local_list_index as usize,
             code_data,
         )
     }
@@ -91,7 +91,7 @@ impl<'a> FuncSection<'a> {
                     code_offset,
                     code_length,
                     entry.type_index as u32,
-                    entry.local_variable_list_index as u32,
+                    entry.local_list_index as u32,
                 )
             })
             .collect::<Vec<FuncItem>>();
@@ -106,12 +106,12 @@ impl<'a> FuncSection<'a> {
 }
 
 impl FuncItem {
-    pub fn new(code_offset: u32, code_length: u32, type_index: u32, local_variable_list_index: u32) -> Self {
+    pub fn new(code_offset: u32, code_length: u32, type_index: u32, local_list_index: u32) -> Self {
         Self {
             code_offset,
             code_length,
             type_index,
-            local_variable_list_index,
+            local_list_index,
         }
     }
 }
@@ -194,13 +194,13 @@ mod tests {
 
         entries.push(FuncEntry {
             type_index: 7,
-            local_variable_list_index: 9,
+            local_list_index: 9,
             code: code0.clone(),
         });
 
         entries.push(FuncEntry {
             type_index: 11,
-            local_variable_list_index: 13,
+            local_list_index: 13,
             code: code1.clone(),
         });
 

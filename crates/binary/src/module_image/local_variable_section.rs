@@ -48,14 +48,14 @@ use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
 pub struct LocalVariableSection<'a> {
-    pub lists: &'a [LocalVariableList],
+    pub lists: &'a [LocalList],
     pub list_data: &'a [u8],
 }
 
-// one function one list
+// a list per function
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct LocalVariableList {
+pub struct LocalList {
     pub list_offset: u32,
     pub list_item_count: u32,
 
@@ -98,11 +98,11 @@ pub struct LocalVariableItem {
 
 // both function and block can contains a 'local variables list'
 #[derive(Debug, PartialEq, Clone)]
-pub struct LocalVariableListEntry {
+pub struct LocalListEntry {
     pub variables: Vec<LocalVariableEntry>,
 }
 
-impl LocalVariableListEntry {
+impl LocalListEntry {
     pub fn new(variables: Vec<LocalVariableEntry>) -> Self {
         Self { variables }
     }
@@ -196,7 +196,7 @@ impl<'a> SectionEntry<'a> for LocalVariableSection<'a> {
         Self: Sized,
     {
         let (items, datas) =
-            load_section_with_table_and_data_area::<LocalVariableList>(section_data);
+            load_section_with_table_and_data_area::<LocalList>(section_data);
         LocalVariableSection {
             lists: items,
             list_data: datas,
@@ -209,7 +209,7 @@ impl<'a> SectionEntry<'a> for LocalVariableSection<'a> {
 }
 
 impl<'a> LocalVariableSection<'a> {
-    pub fn get_variable_list(&'a self, idx: usize) -> &'a [LocalVariableItem] {
+    pub fn get_local_list(&'a self, idx: usize) -> &'a [LocalVariableItem] {
         let list = &self.lists[idx];
         let offset = list.list_offset as usize;
         let item_count = list.list_item_count as usize;
@@ -223,8 +223,8 @@ impl<'a> LocalVariableSection<'a> {
     }
 
     pub fn convert_from_entries(
-        entiress: &[LocalVariableListEntry],
-    ) -> (Vec<LocalVariableList>, Vec<u8>) {
+        entiress: &[LocalListEntry],
+    ) -> (Vec<LocalList>, Vec<u8>) {
         let var_item_length_in_bytes = size_of::<LocalVariableItem>();
 
         // generate a list of (list, list_allocate_bytes)
@@ -278,13 +278,13 @@ impl<'a> LocalVariableSection<'a> {
                 let list_item_count = list.len() as u32;
                 next_offset += list_item_count * var_item_length_in_bytes as u32;
 
-                LocalVariableList {
+                LocalList {
                     list_offset,
                     list_item_count,
                     list_allocate_bytes: *list_allocate_bytes,
                 }
             })
-            .collect::<Vec<LocalVariableList>>();
+            .collect::<Vec<LocalList>>();
 
         // make data
         let list_data = list_with_allocate_bytes
@@ -317,7 +317,7 @@ mod tests {
 
     use crate::module_image::{
         local_variable_section::{
-            LocalVariableEntry, LocalVariableItem, LocalVariableList, LocalVariableListEntry,
+            LocalVariableEntry, LocalVariableItem, LocalList, LocalListEntry,
             LocalVariableSection,
         },
         SectionEntry,
@@ -325,16 +325,16 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut entries: Vec<LocalVariableListEntry> = Vec::new();
+        let mut entries: Vec<LocalListEntry> = Vec::new();
 
-        entries.push(LocalVariableListEntry::new(vec![
+        entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_i64(),
             LocalVariableEntry::from_f32(),
             LocalVariableEntry::from_f64(),
         ]));
 
-        entries.push(LocalVariableListEntry::new(vec![
+        entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_bytes(1, 2),
             LocalVariableEntry::from_i32(),
@@ -343,13 +343,13 @@ mod tests {
             LocalVariableEntry::from_i32(),
         ]));
 
-        entries.push(LocalVariableListEntry::new(vec![]));
-        entries.push(LocalVariableListEntry::new(vec![
+        entries.push(LocalListEntry::new(vec![]));
+        entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_bytes(1, 4),
         ]));
-        entries.push(LocalVariableListEntry::new(vec![]));
-        entries.push(LocalVariableListEntry::new(vec![]));
-        entries.push(LocalVariableListEntry::new(vec![
+        entries.push(LocalListEntry::new(vec![]));
+        entries.push(LocalListEntry::new(vec![]));
+        entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_i32(),
         ]));
 
@@ -609,7 +609,7 @@ mod tests {
 
         assert_eq!(
             section.lists[0],
-            LocalVariableList {
+            LocalList {
                 list_offset: 0,
                 list_item_count: 4,
                 list_allocate_bytes: 32
@@ -618,7 +618,7 @@ mod tests {
 
         assert_eq!(
             section.lists[1],
-            LocalVariableList {
+            LocalList {
                 list_offset: 48,
                 list_item_count: 6,
                 list_allocate_bytes: 56
@@ -627,7 +627,7 @@ mod tests {
 
         assert_eq!(
             section.lists[2],
-            LocalVariableList {
+            LocalList {
                 list_offset: 120,
                 list_item_count: 0,
                 list_allocate_bytes: 0
@@ -636,7 +636,7 @@ mod tests {
 
         assert_eq!(
             section.lists[3],
-            LocalVariableList {
+            LocalList {
                 list_offset: 120,
                 list_item_count: 1,
                 list_allocate_bytes: 8
@@ -645,7 +645,7 @@ mod tests {
 
         assert_eq!(
             section.lists[4],
-            LocalVariableList {
+            LocalList {
                 list_offset: 132,
                 list_item_count: 0,
                 list_allocate_bytes: 0
@@ -654,7 +654,7 @@ mod tests {
 
         assert_eq!(
             section.lists[5],
-            LocalVariableList {
+            LocalList {
                 list_offset: 132,
                 list_item_count: 0,
                 list_allocate_bytes: 0
@@ -663,7 +663,7 @@ mod tests {
 
         assert_eq!(
             section.lists[6],
-            LocalVariableList {
+            LocalList {
                 list_offset: 132,
                 list_item_count: 1,
                 list_allocate_bytes: 8
@@ -672,7 +672,7 @@ mod tests {
 
         // check var items
 
-        let list0 = section.get_variable_list(0);
+        let list0 = section.get_local_list(0);
         assert_eq!(
             list0,
             &vec![
@@ -683,7 +683,7 @@ mod tests {
             ]
         );
 
-        let list1 = section.get_variable_list(1);
+        let list1 = section.get_local_list(1);
         assert_eq!(
             list1,
             &vec![
@@ -696,22 +696,22 @@ mod tests {
             ]
         );
 
-        let list2 = section.get_variable_list(2);
+        let list2 = section.get_local_list(2);
         assert_eq!(list2.len(), 0);
 
-        let list3 = section.get_variable_list(3);
+        let list3 = section.get_local_list(3);
         assert_eq!(
             list3,
             &vec![LocalVariableItem::new(0, 1, MemoryDataType::BYTES, 4),]
         );
 
-        let list4 = section.get_variable_list(4);
+        let list4 = section.get_local_list(4);
         assert_eq!(list4.len(), 0);
 
-        let list5 = section.get_variable_list(5);
+        let list5 = section.get_local_list(5);
         assert_eq!(list5.len(), 0);
 
-        let list6 = section.get_variable_list(6);
+        let list6 = section.get_local_list(6);
         assert_eq!(
             list6,
             &vec![LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),]

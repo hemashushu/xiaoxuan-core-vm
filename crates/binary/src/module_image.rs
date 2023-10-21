@@ -510,7 +510,7 @@ mod tests {
         func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
         local_variable_section::{
-            LocalVariableEntry, LocalVariableItem, LocalVariableListEntry, LocalVariableSection,
+            LocalVariableEntry, LocalVariableItem, LocalListEntry, LocalVariableSection,
         },
         type_section::{TypeEntry, TypeSection},
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
@@ -550,12 +550,12 @@ mod tests {
 
         func_entries.push(FuncEntry {
             type_index: 2,
-            local_variable_list_index: 3,
+            local_list_index: 3,
             code: code0.clone(),
         });
         func_entries.push(FuncEntry {
             type_index: 5,
-            local_variable_list_index: 7,
+            local_list_index: 7,
             code: code1.clone(),
         });
 
@@ -570,12 +570,12 @@ mod tests {
         // note:
         // the local variable list should include the function arguments, but
         // it's ok in this unit test scenario.
-        let mut local_var_list_entries: Vec<LocalVariableListEntry> = Vec::new();
-        local_var_list_entries.push(LocalVariableListEntry::new(vec![
+        let mut local_var_list_entries: Vec<LocalListEntry> = Vec::new();
+        local_var_list_entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_i32(),
             LocalVariableEntry::from_i64(),
         ]));
-        local_var_list_entries.push(LocalVariableListEntry::new(vec![
+        local_var_list_entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_bytes(12, 4),
         ]));
 
@@ -766,7 +766,7 @@ mod tests {
         assert_eq!(local_var_section_restore.lists.len(), 2);
 
         assert_eq!(
-            local_var_section_restore.get_variable_list(0),
+            local_var_section_restore.get_local_list(0),
             &vec![
                 LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
@@ -774,7 +774,7 @@ mod tests {
         );
 
         assert_eq!(
-            local_var_section_restore.get_variable_list(1),
+            local_var_section_restore.get_local_list(1),
             &vec![LocalVariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
         );
     }

@@ -41,7 +41,7 @@ fn do_data_load(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_64_BIT,
@@ -79,7 +79,7 @@ fn do_data_load32(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_32_BIT,
@@ -117,7 +117,7 @@ fn do_data_load32_i16_s(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_16_BIT,
@@ -155,7 +155,7 @@ fn do_data_load32_i16_u(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_16_BIT,
@@ -193,7 +193,7 @@ fn do_data_load32_i8_s(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_8_BIT,
@@ -231,7 +231,7 @@ fn do_data_load32_i8_u(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_8_BIT,
@@ -269,7 +269,7 @@ fn do_data_load32_f32(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_32_BIT,
@@ -307,7 +307,7 @@ fn do_data_load_f64(
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_64_BIT,
@@ -345,7 +345,7 @@ fn do_data_store(
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_64_BIT,
@@ -383,7 +383,7 @@ fn do_data_store32(
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_32_BIT,
@@ -421,7 +421,7 @@ fn do_data_store16(
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_16_BIT,
@@ -459,7 +459,7 @@ fn do_data_store8(
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             offset_bytes,
             DATA_LENGTH_IN_BYTES_8_BIT,

@@ -48,7 +48,7 @@ fn do_host_addr_local(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let final_offset = thread_context.get_local_variable_address_by_index_and_offset(
+    let final_offset = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
         reversed_index,
         local_variable_index,
         offset_bytes,
@@ -89,7 +89,7 @@ fn do_host_addr_data(
     offset_bytes: usize,
 ) -> InterpretResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_current_module_data_target_module_index_and_internal_index_and_data_object(
+        .get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             data_public_index,
             0,
             0,

@@ -15,7 +15,7 @@ use crate::module_image::external_func_index_section::{
 };
 use crate::module_image::external_func_section::{ExternalFuncEntry, ExternalFuncSection};
 use crate::module_image::external_library_section::{ExternalLibraryEntry, ExternalLibrarySection};
-use crate::module_image::local_variable_section::LocalVariableListEntry;
+use crate::module_image::local_variable_section::LocalListEntry;
 use crate::module_image::unified_external_func_section::{
     UnifiedExternalFuncEntry, UnifiedExternalFuncSection,
 };
@@ -841,8 +841,8 @@ impl<'a> BytecodeReader<'a> {
                 // control flow
                 Opcode::end => {}
                 Opcode::block => {
-                    let (type_idx, local_variable_list_index) = self.read_param_i32_i32();
-                    line.push_str(&format!("{} {}", type_idx, local_variable_list_index));
+                    let (type_idx, local_list_index) = self.read_param_i32_i32();
+                    line.push_str(&format!("{} {}", type_idx, local_list_index));
                 }
                 Opcode::block_alt | Opcode::block_nez => {
                     let (type_idx, local_idx, offset) = self.read_param_i32_i32_i32();
@@ -961,13 +961,13 @@ pub fn build_module_binary_with_single_function_and_data_sections(
     local_variables.extend_from_slice(&original_local_variables);
     local_variables.extend_from_slice(&params_as_local_variables);
 
-    let local_var_list_entry = LocalVariableListEntry {
+    let local_var_list_entry = LocalListEntry {
         variables: local_variables,
     };
 
     let func_entry = FuncEntry {
         type_index: 0,
-        local_variable_list_index: 0,
+        local_list_index: 0,
         code,
     };
 
@@ -1050,7 +1050,7 @@ pub fn build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
 
-            LocalVariableListEntry {
+            LocalListEntry {
                 variables: local_variables,
             }
         })
@@ -1070,7 +1070,7 @@ pub fn build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
 
-            LocalVariableListEntry {
+            LocalListEntry {
                 variables: local_variables,
             }
         })
@@ -1086,7 +1086,7 @@ pub fn build_module_binary_with_functions_and_blocks(
         .enumerate()
         .map(|(idx, entry)| FuncEntry {
             type_index: idx,
-            local_variable_list_index: idx,
+            local_list_index: idx,
             code: entry.code.clone(),
         })
         .collect::<Vec<_>>();
@@ -1131,13 +1131,13 @@ pub fn build_module_binary_with_functions_and_external_functions(
             local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
 
-            let local_var_list_entry = LocalVariableListEntry {
+            let local_var_list_entry = LocalListEntry {
                 variables: local_variables,
             };
 
             let func_entry = FuncEntry {
                 type_index: entry.type_index,
-                local_variable_list_index: idx,
+                local_list_index: idx,
                 code: entry.code.clone(),
             };
 
@@ -1166,7 +1166,7 @@ pub fn build_module_binary(
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
     func_entries: Vec<FuncEntry>,
-    local_var_list_entries: Vec<LocalVariableListEntry>,
+    local_var_list_entries: Vec<LocalListEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     // build read-only data section
@@ -1543,7 +1543,7 @@ mod tests {
         let local_variable_section = module_image.get_local_variable_section();
         assert_eq!(local_variable_section.lists.len(), 1);
         assert_eq!(
-            local_variable_section.get_variable_list(0),
+            local_variable_section.get_local_list(0),
             &vec![
                 LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),

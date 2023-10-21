@@ -199,7 +199,7 @@ impl<'a> ThreadContext<'a> {
 
     /// return:
     /// (target_module_index:usize, data_internal_index:usize, dyn IndexedMemory)
-    pub fn get_current_module_data_target_module_index_and_internal_index_and_data_object(
+    pub fn get_current_module_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
         &mut self,
         data_public_index: usize,
         expect_offset_bytes: usize, // for checking the expect data length
@@ -262,8 +262,8 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
     }
 
     /// return:
-    /// (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes)
-    pub fn get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+    /// (type_index, local_list_index, code_offset, local_variables_allocate_bytes)
+    pub fn get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
         &self,
         module_index: usize,
         function_internal_index: usize,
@@ -273,26 +273,26 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             .items[function_internal_index];
 
         let type_index = func_item.type_index as usize;
-        let local_variable_list_index = func_item.local_variable_list_index as usize;
+        let local_list_index = func_item.local_list_index as usize;
         let code_offset = func_item.code_offset as usize;
 
         let local_variables_allocate_bytes = self.program_context.program_modules[module_index]
             .local_variable_section
-            .lists[local_variable_list_index]
+            .lists[local_list_index]
             .list_allocate_bytes;
 
         (
             type_index,
-            local_variable_list_index,
+            local_list_index,
             code_offset,
             local_variables_allocate_bytes,
         )
     }
 
-    pub fn get_local_variable_address_by_index_and_offset(
+    pub fn get_local_variable_address_by_index_and_offset_with_bounds_check(
         &self,
         reversed_index: u16,
-        local_variable_index: usize, // note that this is different from 'local_variable_list_index'
+        local_variable_index: usize, // note that this is different from 'local_list_index'
         offset_bytes: usize,
         expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> usize {
@@ -303,17 +303,17 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             module_index,
         } = self.pc;
 
-        let (fp, local_variable_list_index) = {
+        let (fp, local_list_index) = {
             let frame_pack = self.stack.get_frame_pack(reversed_index);
             (
                 frame_pack.address,
-                frame_pack.frame_info.local_variable_list_index,
+                frame_pack.frame_info.local_list_index,
             )
         };
 
         let variable_item = &self.program_context.program_modules[module_index]
             .local_variable_section
-            .get_variable_list(local_variable_list_index as usize)[local_variable_index];
+            .get_local_list(local_list_index as usize)[local_variable_index];
 
         // bounds check
         #[cfg(debug_assertions)]
