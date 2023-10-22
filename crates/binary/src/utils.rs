@@ -951,15 +951,14 @@ pub fn build_module_binary_with_single_function_and_data_sections(
         results: result_datatypes.clone(),
     };
 
-    let original_local_variables = local_variable_item_entries_without_args.clone();
     let params_as_local_variables = param_datatypes
         .iter()
         .map(|data_type| LocalVariableEntry::from_datatype(*data_type))
         .collect::<Vec<_>>();
 
     let mut local_variables = Vec::new();
-    local_variables.extend_from_slice(&original_local_variables);
     local_variables.extend_from_slice(&params_as_local_variables);
+    local_variables.extend_from_slice(&local_variable_item_entries_without_args);
 
     let local_var_list_entry = LocalListEntry {
         variables: local_variables,
@@ -1039,7 +1038,6 @@ pub fn build_module_binary_with_functions_and_blocks(
     let func_local_var_list_entries = helper_function_entries
         .iter()
         .map(|entry| {
-            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
             let params_as_local_variables = entry
                 .params
                 .iter()
@@ -1047,8 +1045,8 @@ pub fn build_module_binary_with_functions_and_blocks(
                 .collect::<Vec<_>>();
 
             let mut local_variables = Vec::new();
-            local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
+            local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
                 variables: local_variables,
@@ -1059,7 +1057,6 @@ pub fn build_module_binary_with_functions_and_blocks(
     let block_local_var_list_entries = helper_block_entries
         .iter()
         .map(|entry| {
-            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
             let params_as_local_variables = entry
                 .params
                 .iter()
@@ -1067,8 +1064,8 @@ pub fn build_module_binary_with_functions_and_blocks(
                 .collect::<Vec<_>>();
 
             let mut local_variables = Vec::new();
-            local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
+            local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
                 variables: local_variables,
@@ -1120,7 +1117,6 @@ pub fn build_module_binary_with_functions_and_external_functions(
         .iter()
         .enumerate()
         .for_each(|(idx, entry)| {
-            let original_local_variables = entry.local_variable_item_entries_without_args.clone();
             let params_as_local_variables = type_entries[entry.type_index]
                 .params
                 .iter()
@@ -1128,8 +1124,8 @@ pub fn build_module_binary_with_functions_and_external_functions(
                 .collect::<Vec<_>>();
 
             let mut local_variables = Vec::new();
-            local_variables.extend_from_slice(&original_local_variables);
             local_variables.extend_from_slice(&params_as_local_variables);
+            local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             let local_var_list_entry = LocalListEntry {
                 variables: local_variables,
@@ -1166,7 +1162,7 @@ pub fn build_module_binary(
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
     func_entries: Vec<FuncEntry>,
-    local_var_list_entries: Vec<LocalListEntry>,
+    local_var_list_entries: Vec<LocalListEntry>, // this local list includes args
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     // build read-only data section
@@ -1545,9 +1541,9 @@ mod tests {
         assert_eq!(
             local_variable_section.get_local_list(0),
             &vec![
-                LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
+                LocalVariableItem::new(0, 8, MemoryDataType::I64, 8),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
-                LocalVariableItem::new(16, 8, MemoryDataType::I64, 8),
+                LocalVariableItem::new(16, 4, MemoryDataType::I32, 4),
             ]
         );
     }

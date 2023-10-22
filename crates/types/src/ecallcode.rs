@@ -12,7 +12,7 @@ pub enum ECallCode {
     // runtime functions
     //
 
-    // info
+    // runtime info
 
     runtime_name = 0x100,   // get the VM runtime code name
                             // `fn (buf_ptr: i64) -> name_len:i32`
@@ -25,12 +25,23 @@ pub enum ECallCode {
                             //        |    |    |patch version
                             //        |    |minor
                             //        |major
-                            //
-    features,               // get a list of feature names separated by commas, e.g.
+
+    runtime_features,       // get name list of the runtime features, separated by commas, e.g.
                             // "syscall,extcall"
                             //
                             // `fn (buf_ptr: i64) -> feature_list_len:i32`
-    check_feature,          // `fn (name_ptr:i64, name_len:i32) -> bool`
+    runtime_feature_check,  // `fn (name_ptr:i64, name_len:i32) -> bool`
+
+    // host info
+
+    host_arch,              // x86_64/aarch64/riscv64 ...
+    host_os,                // linux/macos/windows/freebsd/android/ios ...
+    host_family,            // unix/windows ...
+    host_endian,            // little/big
+    host_pointer_width,     // 32/64 ...
+                            //
+                            // ref:
+                            // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
 
     // heap memory
 
@@ -86,7 +97,9 @@ pub enum ECallCode {
     //
     // note that the heap, stack, data sections, backpack and messagebox are all thread-local,
     // by default the XiaoXuan has no 'global' data or variables.
-    // threads can comunicate through message box or shared-memory.
+    // threads can only comunicate through PIPE.
+    //
+    // in the XiaoXuan VM, all 'objects' are thread-safe.
 
     // about the message pipe:
     //
@@ -109,8 +122,8 @@ pub enum ECallCode {
                                 //
                                 // the value of 'thread_start_data_address' is the address of a data block in the heap
                                 //
-                                // the signature of the thread start function MUST be:
-                                // 'fn (thread_start_data_length:u32) -> result:u32'
+                                // the signature of the 'thread start function' MUST be:
+                                // 'fn (thread_start_data_length:u32) -> result_code:u32'
 
     thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function
                                 // 'fn (child_thread_id:u32) -> (wait_status:u32, thread_exit_code:u32)'
@@ -163,16 +176,6 @@ pub enum ECallCode {
     // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
     // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
-    // backpack
-    //
-    // 'backpack' is a thread-local data hash map
-    /*
-    backpack_add,           // add a data item to backpack
-                            // `fn (is_ref_type:i8, data:bytes)`
-    backpack_get,           // `fn (bag_item_id:i32)`
-    backpack_remove,        // `fn (bag_item_id:i32)`
-    */
-
     // regex
 
     regex_create,           // ref: https://github.com/rust-lang/regex
@@ -204,7 +207,7 @@ pub enum ECallCode {
     // there is no 'errno' if invoke syscall by assembly directly.
 
     extcall,                // external function call
-                            // `fn (external_func_index:i32)`
+                            // `fn (external_func_index:i32) -> void/i32/i64/f32/f64`
 
     // note that both 'scall' and 'extcall' are optional, they may be
     // unavailable in some environment.
@@ -213,7 +216,7 @@ pub enum ECallCode {
     host_addr_func,         // create a new host function and map it to a VM function.
                             // this host function named 'bridge funcion'
                             //
-                            // `fn (func_pub_index:i32)`
+                            // `fn (func_pub_index:i32) -> i64/i32`
 
     // return the existing bridge function if the bridge function corresponding
     // to the specified VM function has already been created.

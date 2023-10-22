@@ -76,7 +76,7 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     // the value of 'thread_start_data_address' is the address of a data block in the heap
     //
     // the signature of the thread start function MUST be:
-    // 'fn (thread_start_data_length:u32) -> result:u32'
+    // 'fn (thread_start_data_length:u32) -> result_code:u32'
 
     let mut mt_program_object_address: usize = 0;
     let mut mt_program_source_type: ProgramSourceType = ProgramSourceType::InMemory;

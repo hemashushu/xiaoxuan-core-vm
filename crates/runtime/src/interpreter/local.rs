@@ -57,12 +57,13 @@ fn do_local_load(
     // so the second method is adopted.
 
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_64_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
+        );
     thread_context.stack.load_64(data_address, dst_ptr);
 
     InterpretResult::Move(8)
@@ -99,12 +100,13 @@ fn do_local_load32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_32_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
+        );
     thread_context.stack.load_32(data_address, dst_ptr);
 
     InterpretResult::Move(8)
@@ -141,12 +143,13 @@ fn do_local_load32_i16_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_16_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
+        );
     thread_context
         .stack
         .load_32_extend_from_i16_s(data_address, dst_ptr);
@@ -185,12 +188,13 @@ fn do_local_load32_i16_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_16_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
+        );
     thread_context
         .stack
         .load_32_extend_from_i16_u(data_address, dst_ptr);
@@ -229,12 +233,13 @@ fn do_local_load32_i8_s(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_8_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
+        );
     thread_context
         .stack
         .load_32_extend_from_i8_s(data_address, dst_ptr);
@@ -273,12 +278,13 @@ fn do_local_load32_i8_u(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_8_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
+        );
     thread_context
         .stack
         .load_32_extend_from_i8_u(data_address, dst_ptr);
@@ -317,12 +323,13 @@ fn do_local_load32_f32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_32_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
+        );
     thread_context
         .stack
         .load_32_with_float_check(data_address, dst_ptr);
@@ -361,12 +368,13 @@ fn do_local_load_f64(
     offset_bytes: usize,
 ) -> InterpretResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_64_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
+        );
     thread_context
         .stack
         .load_64_with_float_check(data_address, dst_ptr);
@@ -405,12 +413,13 @@ fn do_local_store(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_64_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_64_BIT,
+        );
     thread_context.stack.store_64(src_ptr, data_address);
 
     InterpretResult::Move(8)
@@ -447,12 +456,13 @@ fn do_local_store32(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_32_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_32_BIT,
+        );
     thread_context.stack.store_32(src_ptr, data_address);
 
     InterpretResult::Move(8)
@@ -489,12 +499,13 @@ fn do_local_store16(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_16_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_16_BIT,
+        );
     thread_context.stack.store_16(src_ptr, data_address);
 
     InterpretResult::Move(8)
@@ -531,12 +542,13 @@ fn do_local_store8(
     offset_bytes: usize,
 ) -> InterpretResult {
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let data_address = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        DATA_LENGTH_IN_BYTES_8_BIT,
-    );
+    let data_address = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            DATA_LENGTH_IN_BYTES_8_BIT,
+        );
     thread_context.stack.store_8(src_ptr, data_address);
 
     InterpretResult::Move(8)
@@ -561,9 +573,13 @@ mod tests {
 
     #[test]
     fn test_process_local_load_store() {
+
+        // args index (also local var):     0       1
+        // data type:                       f32     f64
+        //
         //       |low address                                                              high address|
-        //       |                                                                                     |
-        // index |0                                  1      2      3                         4         |
+        // local |                                                                                     |
+        // index |2                                  3      4      5                         6         |
         //  type |bytes-------------------|         |f32|  |f64|  |i64------------------|   |i32-------|
         //
         //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
@@ -588,37 +604,37 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 0x19171311)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
-            .write_opcode_i16_i16_i16(Opcode::local_store16, 0, 4, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store16, 0, 4, 2)
             .write_opcode_i32(Opcode::i32_imm, 0xe0)
-            .write_opcode_i16_i16_i16(Opcode::local_store8, 0, 6, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store8, 0, 6, 2)
             .write_opcode_i32(Opcode::i32_imm, 0xf0)
-            .write_opcode_i16_i16_i16(Opcode::local_store8, 0, 7, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store8, 0, 7, 2)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
-            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 2) // store f64
-            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1) // store f32
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 4) // store f64
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3) // store f32
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 5)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 6)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 4, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32_i16_u, 0, 6, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32_i16_s, 0, 6, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32_i8_u, 0, 7, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32_i8_s, 0, 7, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 4, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_i16_u, 0, 6, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_i16_s, 0, 6, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_i8_u, 0, 7, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_i8_s, 0, 7, 2)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 3)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 4)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 6)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -683,6 +699,7 @@ mod tests {
 
     #[test]
     fn test_process_local_long_load_store() {
+
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |

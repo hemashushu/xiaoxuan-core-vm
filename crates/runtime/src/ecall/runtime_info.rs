@@ -41,16 +41,6 @@ pub fn runtime_version(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i64_u(version_number);
 }
 
-pub fn features(_thread: &mut ThreadContext) {
-    // `fn (buf_ptr: i64) -> feature_list_len:i32`
-    unimplemented!()
-}
-
-pub fn check_feature(_thread: &mut ThreadContext) {
-    // `fn (name_ptr:i64, name_len:i32) -> bool`
-    unimplemented!()
-}
-
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{

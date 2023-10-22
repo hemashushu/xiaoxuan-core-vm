@@ -49,9 +49,8 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
     } = thread_context.pc;
     let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
-    let local_variables_allocate_bytes = module.local_variable_section.lists
-        [local_list_index as usize]
-        .list_allocate_bytes;
+    let local_variables_allocate_bytes =
+        module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
@@ -66,8 +65,7 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
 pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_list_index, alt_inst_offset) =
-        thread_context.get_param_i32_i32_i32();
+    let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
@@ -76,9 +74,8 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
     } = thread_context.pc;
     let module = &thread_context.program_context.program_modules[module_index];
     let type_item = &module.type_section.items[type_index as usize];
-    let local_variables_allocate_bytes = module.local_variable_section.lists
-        [local_list_index as usize]
-        .list_allocate_bytes;
+    let local_variables_allocate_bytes =
+        module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
@@ -99,8 +96,7 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_list_index:i32, next_inst_offset:i32)
 
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_list_index, alt_inst_offset) =
-        thread_context.get_param_i32_i32_i32();
+    let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
 
     if condition == 0 {
         InterpretResult::Move(alt_inst_offset as isize)
@@ -112,9 +108,8 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
         } = thread_context.pc;
         let module = &thread_context.program_context.program_modules[module_index];
         let type_item = &module.type_section.items[type_index as usize];
-        let local_variables_allocate_bytes = module.local_variable_section.lists
-            [local_list_index as usize]
-            .list_allocate_bytes;
+        let local_variables_allocate_bytes =
+            module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
 
         thread_context.stack.create_frame(
             type_item.params_count,
@@ -356,12 +351,11 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_args_and_results() {
-
-
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) (i32) -> (i32, i32)
+        //         (local_load 0)
         //         (i32_imm 17)
         //     end
         //     (i32_imm 19)
@@ -372,7 +366,8 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 11)
             .write_opcode_i32(Opcode::i32_imm, 13)
-            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
+            .write_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local list index = 1
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i32(Opcode::i32_imm, 17)
             .write_opcode(Opcode::end)
             .write_opcode_i32(Opcode::i32_imm, 19)
@@ -409,10 +404,8 @@ mod tests {
 
     #[test]
     fn test_process_control_block_with_local_vars() {
-
-
-        // func (a/2:i32, b/3:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
-        //     (local c/0:i32, d/1:i32)
+        // func (a/0:i32, b/1:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
+        //     (local c/2:i32, d/3:i32)
         //     ;; c=a+1                     ;; 20
         //     ;; d=b+1                     ;; 12
         //     (block 1 1) () -> (i32, i32, i32,i32)
@@ -490,36 +483,36 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // c=a+1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16(Opcode::i32_inc, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             // d=b+1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode_i16(Opcode::i32_inc, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3)
             // block 1
             .write_opcode_i32_i32(Opcode::block, 1, 1)
             // a=a-1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
-            .write_opcode_i16(Opcode::i32_dec, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 2)
-            // b=b-1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
-            .write_opcode_i16(Opcode::i32_dec, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 3)
-            // p=c+d
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
+            // b=b-1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
+            // p=c+d
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
             .write_opcode(Opcode::i32_add)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // q=c-d
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
             .write_opcode(Opcode::i32_sub)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // load c, d
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
             // block 2
             .write_opcode_i32_i32(Opcode::block, 2, 2)
             // x+q
@@ -531,9 +524,9 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode(Opcode::i32_add)
             // d=d+1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 2, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 2, 0, 3)
             .write_opcode_i16(Opcode::i32_inc, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 2, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 2, 0, 3)
             // q=q-1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
             .write_opcode_i16(Opcode::i32_dec, 1)
@@ -546,10 +539,10 @@ mod tests {
             //
             .write_opcode(Opcode::end)
             // load a, b, c, d
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -617,8 +610,6 @@ mod tests {
 
     #[test]
     fn test_process_control_break() {
-
-
         // func () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -668,7 +659,6 @@ mod tests {
 
     #[test]
     fn test_process_control_break_block() {
-
         // func () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -746,7 +736,6 @@ mod tests {
 
     #[test]
     fn test_process_control_break_cross() {
-
         // cross jump
         //
         // func () -> (i32, i32)
@@ -821,8 +810,6 @@ mod tests {
 
     #[test]
     fn test_process_control_if() {
-
-
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
         //     (local_load32 0 0)
@@ -896,8 +883,6 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else() {
-
-
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
         //     (local_load32 0 1)
@@ -974,8 +959,6 @@ mod tests {
 
     #[test]
     fn test_process_control_if_else_nest() {
-
-
         // func $level (i32) -> (i32)
         //     (local_load32 0 0)
         //     (i32_imm 85)
@@ -1114,8 +1097,6 @@ mod tests {
 
     #[test]
     fn test_process_control_switch_case() {
-
-
         // func $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
@@ -1278,28 +1259,26 @@ mod tests {
 
     #[test]
     fn test_process_control_while() {
-
-
-        // func $accu (n/1:i32) -> (i32)
-        //     (local sum/0:i32)
+        // func $accu (n/0:i32) -> (i32)
+        //     (local sum/1:i32)
         //     (block 1 1) ()->()
         //                              ;; break if n==0
-        //         (local_load32 1 1)
+        //         (local_load32 1 0)
         //         i32_eqz
         //         (break_nez 0)
         //                              ;; sum = sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
         //         i32_add
-        //         (local_store32 1 0)
+        //         (local_store32 1 1)
         //                              ;; n = n - 1
-        //         (local_load32 1)
+        //         (local_load32 0)
         //         (i32_dec)
-        //         (local_store32 1)
+        //         (local_store32 0)
         //                              ;; recur
         //         (recur 0)
         //     end
-        //     (local_load32 0)
+        //     (local_load32 1)
         // end
         //
         // assert (10) -> (55)
@@ -1328,24 +1307,24 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32_i32(Opcode::block, 1, 1)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode(Opcode::i32_eqz)
             .write_opcode_i16_i32(Opcode::break_nez, 0, 0x42)
             // sum = sum + n
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
-            // n = n - 1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
             .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
+            // n = n - 1
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
             //
             .write_opcode_i16_i32(Opcode::recur, 0, 0x44)
             // block end
             .write_opcode(Opcode::end)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::end)
             .to_bytes();
 
@@ -1377,7 +1356,6 @@ mod tests {
 
     #[test]
     fn test_process_control_while_functional() {
-
         // func $accu (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1477,9 +1455,8 @@ mod tests {
 
     #[test]
     fn test_process_control_while_opti() {
-
         // func $accu_optimized (i32) -> (i32)
-        //     zero                   ;; sum
+        //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
         //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
         //         (local_load32 0 0)   ;; load sum
@@ -1488,15 +1465,13 @@ mod tests {
         //         i32_eqz
         //         (break_nez 0)
         //         drop                 ;; drop sum
-        //                              ;; sum = sum + n
+        //                              ;; sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
         //         i32_add
-        //         (local_store32 0 0)
-        //                              ;; n = n - 1
+        //                              ;; n - 1
         //         (local_load32 0 1)
         //         (i32_dec 1)
-        //         (local_store32 0 1)
         //                              ;; recur
         //         (recur 0)
         //     end
@@ -1515,18 +1490,16 @@ mod tests {
         // 0x0020 local_load32         0 0 1
         // 0x0028 i32_eqz
         // 0x002a nop
-        // 0x002c break_nez            0 0x42
+        // 0x002c break_nez            0 0x32
         // 0x0034 drop
         // 0x0036 local_load32         0 0 0
         // 0x003e local_load32         0 0 1
         // 0x0046 i32_add
-        // 0x0048 local_store32        0 0 0
-        // 0x0050 local_load32         0 0 1
-        // 0x0058 i32_dec              1
-        // 0x005c local_store32        0 0 1
-        // 0x0064 recur                0 0x4c
-        // 0x006c end
-        // 0x006e end
+        // 0x0048 local_load32         0 0 1
+        // 0x0050 i32_dec              1
+        // 0x0054 recur                0 0x3c
+        // 0x005c end
+        // 0x005e end
 
         let code0 = BytecodeWriter::new()
             .write_opcode(Opcode::zero)
@@ -1538,20 +1511,18 @@ mod tests {
             // break if n==0
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::i32_eqz)
-            .write_opcode_i16_i32(Opcode::break_nez, 0, 0x42)
+            .write_opcode_i16_i32(Opcode::break_nez, 0, 0x32)
             // drop sum
             .write_opcode(Opcode::drop)
-            // sum = sum + n
+            // sum + n
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::i32_add)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
-            // n = n - 1
+            // n - 1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode_i16(Opcode::i32_dec, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // recur
-            .write_opcode_i16_i32(Opcode::recur, 0, 0x4c)
+            .write_opcode_i16_i32(Opcode::recur, 0, 0x3c)
             // block end
             .write_opcode(Opcode::end)
             //
@@ -1586,8 +1557,6 @@ mod tests {
 
     #[test]
     fn test_process_control_do_while() {
-
-
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1699,8 +1668,6 @@ mod tests {
 
     #[test]
     fn test_process_control_do_while_with_block_local_vars() {
-
-
         // note:
         //
         // also test the block-level local variables
@@ -1708,23 +1675,22 @@ mod tests {
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
-        //     (block 1 1) (p_sum/2:i32, p_n/3:i32)->(i32)
-        //         (local new_sum/0:i32 new_n/1:i32)
+        //     (block 1 1) (p_sum/0:i32, p_n/1:i32)->(i32)
+        //         (local new_sum/2:i32 new_n/3:i32)
         //                              ;; new_sum = p_sum + p_n
-        //         (local_load32 0 2)
-        //         (local_load32 0 3)
-        //         i32_add
-        //         (local_store32 0 0)
-        //                              ;; new_n = p_n - 1
-        //         (local_load32 0 3)
-        //         (i32_dec 1)
-        //         (local_store32 0 1)
-        //                              ;; load new_sum, new_n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //                              ;; load new_n
+        //         i32_add
+        //         (local_store32 0 2)
+        //                              ;; new_n = p_n - 1
         //         (local_load32 0 1)
+        //         (i32_dec 1)
+        //         (local_store32 0 3)
+        //                              ;; load new_sum, new_n
+        //         (local_load32 0 2)
+        //         (local_load32 0 3)
         //                              ;; recur if new_n > 0
+        //         (local_load32 0 3)   ;; load new_n
         //         zero
         //         i32_gt
         //         (recur_nez 0)
@@ -1766,19 +1732,19 @@ mod tests {
             //
             .write_opcode_i32_i32(Opcode::block, 1, 1)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
-            .write_opcode(Opcode::i32_add)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
-            //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
-            .write_opcode_i16(Opcode::i32_dec, 1)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
-            //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .write_opcode(Opcode::i32_add)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .write_opcode_i16(Opcode::i32_dec, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
             .write_opcode(Opcode::zero)
             .write_opcode(Opcode::i32_gt_u)
             .write_opcode_i16_i32(Opcode::recur_nez, 0, 0x4c)
@@ -1821,8 +1787,6 @@ mod tests {
 
     #[test]
     fn test_process_control_tco() {
-
-
         // func $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
@@ -1930,8 +1894,6 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_opti() {
-
-
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
         //     (local_load32 0)
@@ -1967,10 +1929,11 @@ mod tests {
         // 0x002e end
 
         let code0 = BytecodeWriter::new()
+            // sum + n
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::i32_add)
-            //
+            // n - 1
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode_i16(Opcode::i32_dec, 1)
             //
@@ -2017,8 +1980,6 @@ mod tests {
 
     #[test]
     fn test_process_control_tco_branch() {
-
-
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
         //     i32_eqz
@@ -2117,7 +2078,6 @@ mod tests {
 
     #[test]
     fn test_process_control_call() {
-
         // func $main (i32) -> (i32)
         //     (call $sum_square)
         // end
@@ -2215,7 +2175,6 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-
         let code_square = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
@@ -2272,8 +2231,6 @@ mod tests {
 
     #[test]
     fn test_process_control_dcall() {
-
-
         // func $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
         //     (dcall)

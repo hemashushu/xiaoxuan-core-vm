@@ -1310,7 +1310,21 @@ pub enum Opcode {
 
     // get the host address of memory
     //
-    // it is currently assumed that the target architecture is 64-bit.
+    // it is not safe to access data using (host's) memory addresses,
+    // but this is necessary to talk to external libraries (e.g. C library)
+    //
+    // about memory access safe
+    //
+    // |                    |  by indice   | by mem allocator | by host address |
+    // |--------------------|--------------|------------------|-----------------|
+    // | local vars         | safe         | -                | unsafe          |
+    // |--------------------|--------------|------------------|-----------------|
+    // | read-only data     |              |                  |                 |
+    // | read-write data    | safe         | -                | unsafe          |
+    // | uninitilized data  |              |                  |                 |
+    // |--------------------|--------------|------------------|-----------------|
+    // | heap               | unsafe       | controllable     | unsafe          |
+    // |--------------------|--------------|------------------|-----------------|
 
     host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
                                 // note that the host address only valid in the current function and

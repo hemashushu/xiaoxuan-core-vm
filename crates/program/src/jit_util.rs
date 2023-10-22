@@ -156,8 +156,8 @@ pub fn build_host_to_vm_function(
 
     let mut func_delegate_sig = jit_helper.module.make_signature();
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // thread_context_ptr
-    func_delegate_sig.params.push(AbiParam::new(types::I64)); // target_module_index
-    func_delegate_sig.params.push(AbiParam::new(types::I64)); // function_internal_index
+    func_delegate_sig.params.push(AbiParam::new(types::I32)); // target_module_index
+    func_delegate_sig.params.push(AbiParam::new(types::I32)); // function_internal_index
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
 
@@ -230,13 +230,13 @@ pub fn build_host_to_vm_function(
         .iconst(pointer_type, delegate_function_addr as i64);
     let param_0 = function_builder
         .ins()
-        .iconst(types::I64, thread_context_addr as i64);
+        .iconst(pointer_type, thread_context_addr as i64);
     let param_1 = function_builder
         .ins()
-        .iconst(types::I64, target_module_index as i64);
+        .iconst(types::I32, target_module_index as i64);
     let param_2 = function_builder
         .ins()
-        .iconst(types::I64, function_internal_index as i64);
+        .iconst(types::I32, function_internal_index as i64);
     let param_3 = function_builder.ins().stack_addr(pointer_type, ss0, 0);
     let param_4 = function_builder.ins().stack_addr(pointer_type, ss1, 0);
 

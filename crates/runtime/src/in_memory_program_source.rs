@@ -73,7 +73,7 @@ mod tests {
     };
     use ancvm_program::{
         program_source::ProgramSource, resizeable_memory::ResizeableMemory,
-        thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
+        thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES,
     };
     use ancvm_types::DataType;
 
@@ -161,10 +161,6 @@ mod tests {
         // check stack
         assert_eq!(thread_context0.stack.fp, 0);
         assert_eq!(thread_context0.stack.sp, 0);
-        assert_eq!(
-            thread_context0.stack.get_capacity_in_pages(),
-            INIT_STACK_SIZE_IN_PAGES
-        );
 
         // check heap
         assert_eq!(

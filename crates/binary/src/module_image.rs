@@ -545,8 +545,8 @@ mod tests {
         // build FuncSection instance
 
         let mut func_entries: Vec<FuncEntry> = Vec::new();
-        let code0: Vec<u8> = vec![1u8, 2, 3, 5, 7]; // arbitrary code
-        let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29]; // arbitrary code
+        let code0: Vec<u8> = vec![1u8, 2, 3, 5, 7]; // arbitrary code, not actual byte codes
+        let code1: Vec<u8> = vec![11u8, 13, 17, 19, 23, 29]; // arbitrary code, not actual byte codes
 
         func_entries.push(FuncEntry {
             type_index: 2,
@@ -568,8 +568,8 @@ mod tests {
         // build LocalVariableSection instance
 
         // note:
-        // the local variable list should include the function arguments, but
-        // it's ok in this unit test scenario.
+        // the local variable list should include the function arguments, the
+        // data below does not follow this rule, but it's ok in the unit test scenario.
         let mut local_var_list_entries: Vec<LocalListEntry> = Vec::new();
         local_var_list_entries.push(LocalListEntry::new(vec![
             LocalVariableEntry::from_i32(),

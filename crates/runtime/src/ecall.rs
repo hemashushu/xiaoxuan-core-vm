@@ -62,8 +62,6 @@ pub fn init_ecall_handlers() {
     // runtime info
     handlers[ECallCode::runtime_name as usize] = runtime_info::runtime_name;
     handlers[ECallCode::runtime_version as usize] = runtime_info::runtime_version;
-    handlers[ECallCode::features as usize] = runtime_info::features;
-    handlers[ECallCode::check_feature as usize] = runtime_info::check_feature;
 
     // heap
     handlers[ECallCode::heap_fill as usize] = heap::heap_fill;

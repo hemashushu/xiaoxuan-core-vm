@@ -473,10 +473,7 @@ fn do_data_store8(
 mod tests {
 
     use ancvm_binary::{
-        module_image::{
-            data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::LocalVariableEntry,
-        },
+        module_image::data_section::{DataEntry, UninitDataEntry},
         utils::{build_module_binary_with_single_function_and_data_sections, BytecodeWriter},
     };
 
@@ -487,6 +484,8 @@ mod tests {
     #[test]
     fn test_process_data_load_store() {
         //        read-only data section
+        //        ======================
+        //
         //       |low address    high addr|
         //       |                        |
         // index |0           1           |
@@ -500,6 +499,8 @@ mod tests {
         //       |load32 (step 4)
         //
         //        read-write data section
+        //        =======================
+        //
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |2(0)                               3(1)   4(2)   5(3)                      6(4)      |
@@ -537,9 +538,9 @@ mod tests {
         // 0x0030 data_store8          6 2          ;; store 0xe0
         // 0x0038 data_store8          7 2          ;; store 0xf0
         //
-        // 0x0040 local_load_f64       0 3
+        // 0x0040 local_load_f64       0 1
         // 0x0048 data_store           0 4          ;; store f64
-        // 0x0050 local_load32_f32     0 2
+        // 0x0050 local_load32_f32     0 0
         // 0x0058 data_store32         0 3          ;; store f32
         //
         // 0x0060 data_load            0 2
@@ -572,9 +573,9 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
-            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
@@ -613,10 +614,7 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
-            vec![
-                LocalVariableEntry::from_i32(),
-                LocalVariableEntry::from_i64(),
-            ], // local vars
+            vec![],                             // local vars
             code0,
             vec![
                 DataEntry::from_i32(0x19171311),
@@ -667,6 +665,8 @@ mod tests {
     #[test]
     fn test_process_data_load_store_uninitialized() {
         //        read-only data section
+        //        ======================
+        //
         //       |low address    high addr|
         //       |                        |
         // index |0           1           |
@@ -680,6 +680,8 @@ mod tests {
         //       |load32 (step 4)
         //
         //        uninitialized data section
+        //        ==========================
+        //
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |2(0)                               3(1)   4(2)   5(3)                      6(4)      |
@@ -716,9 +718,9 @@ mod tests {
             .write_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .write_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
             .write_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
-            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
+            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .write_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .write_opcode_i16_i32(Opcode::data_load, 0, 2)
@@ -757,13 +759,7 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
-            vec![
-                LocalVariableEntry::from_bytes(8, 8),
-                LocalVariableEntry::from_f32(),
-                LocalVariableEntry::from_f64(),
-                LocalVariableEntry::from_i64(),
-                LocalVariableEntry::from_i32(),
-            ], // local vars
+            vec![],                             // local vars
             code0,
             vec![
                 DataEntry::from_i32(0x19171311),

@@ -10,7 +10,7 @@ use ancvm_program::thread_context::ThreadContext;
 use ancvm_types::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 
 pub fn extcall(thread_context: &mut ThreadContext) {
-    // `fn (external_func_index:i32)`
+    // `fn (external_func_index:i32) -> void/i32/i64/f32/f64`
     //
     // the 'external_func_index' is the index within a specific module, it is not
     // the 'unified_external_func_index'.
@@ -101,7 +101,7 @@ pub fn extcall(thread_context: &mut ThreadContext) {
     );
 
     // push the result on the stack
-
+    // only one or zero result is allowed for 'C' function.
     if !result_datatypes.is_empty() {
         let dst = thread_context.stack.push_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };

@@ -44,7 +44,7 @@ use ancvm_program::{jit_util::build_host_to_vm_function, thread_context::ThreadC
 use crate::interpreter::process_callback_function_call;
 
 pub fn host_addr_func(thread_context: &mut ThreadContext) {
-    // `fn (func_pub_index:i32)`
+    // `fn (func_pub_index:i32) -> i64/i32`
 
     let function_public_index = thread_context.stack.pop_i32_u() as usize;
     let module_index = thread_context.pc.module_index;
@@ -57,9 +57,21 @@ pub fn host_addr_func(thread_context: &mut ThreadContext) {
         get_callback_function_ptr(thread_context, target_module_index, function_internal_index)
             .unwrap();
 
-    let callback_function_addr = callback_function_ptr as u64;
+    store_pointer_to_operand_stack(thread_context, callback_function_ptr);
+}
 
-    thread_context.stack.push_i64_u(callback_function_addr);
+fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *const u8) {
+    #[cfg(target_pointer_width = "64")]
+    {
+        let address = ptr as u64;
+        thread_context.stack.push_i64_u(address);
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    {
+        let address = ptr as u32;
+        thread_context.stack.push_i32_u(address);
+    }
 }
 
 fn get_callback_function_ptr(
@@ -137,7 +149,7 @@ mod tests {
         //     do_something(func1, a, b)
         // }
         //
-        // func1 (a:i32) -> i32 {
+        // func1 (a:i32) -> i32 {   ;; this is the callback function for external function 'do_something'
         //     a*2
         // }
 

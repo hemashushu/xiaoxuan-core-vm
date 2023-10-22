@@ -35,7 +35,7 @@
 //   this is because the current VM implementation allocates 'local variables area' on the stack frame,
 //   and the stack address is 8-byte aligned.
 // - the local variable list also includes the functions arguments. the compiler will
-//   append arguments to the end of the list as local variables automatically.
+//   put arguments to the beginning of the list as local variables automatically.
 // - both function and block can contain a local variables list.
 
 use std::mem::size_of;
@@ -70,18 +70,19 @@ pub struct LocalList {
 pub struct LocalVariableItem {
     pub var_offset: u32, // the offset of a data item in the "local variables area"
 
-    // the actual length (in bytes) of a variable/data
+    // 'var_actual_length' is the actual length (in bytes) of a variable/data,
     // not the length of the item in the local variable area.
-    // e.g.
-    // - i32 is 4 bytes, but in the local variable area, i32 occurs 8 byets.
-    // - i64 is 8 bytes.
-    // - for the struct, is the size_of(struct), it means the size contains the padding.
-    //   e.g. the size of 'struct {u8, u16}' is 1 + 1 padding + 2 = 4 bytes,
-    //   this is the actual size, but in the local variable area this struct occurs 8 bytes.
+    // also note that all variable is allocated with the length (in bytes) of multiple of 8.
     //
-    // note that all variable is allocated with the length (in bytes) of multiple of 8,
-    // for example, an i32 will be padded to 8 bytes, and a struct with 12 bytes will
-    // be padded to 16 (= 8 * 2) bytes.
+    // e.g.
+    // - the actual length of 'i32' is 4 bytes, but in the local variable area, 'i32' occurs 8 byets.
+    // - the actual length of 'i64' is 8 bytes, and occurs 8 bytes in the local variable area.
+    // - the actual length of a struct is `size_of(struct)`, note that the size contains the padding
+    //   either between fields or after the last field.
+    //   e.g. the actual length of 'struct {u8, u16}' is '1 + 1 padding + 2' = 4 bytes,
+    //   which includes 1 byte between the two fields.
+    //   and in the local variable area, this struct occurs 8 bytes, that is, there are
+    //   extra 4 bytes added to the end.
     pub var_actual_length: u32,
 
     // the memory_data_type field is not necessary at runtime, though it is helpful for debugging.
@@ -90,9 +91,9 @@ pub struct LocalVariableItem {
     _padding0: u8,
 
     // the var_align field is not necessary for local variables loading and storing,
-    // because the local variable is always 8-byte aligned,
-    // it is only needed when copying data into other memory, such as
-    // copying a struct from local variables area into heap.
+    // because the local variable is always 8-byte aligned in the local variable area,
+    // it is helpful for debugging when copying data into other memory, such as
+    // copying a struct from local variables area to heap.
     pub var_align: u16,
 }
 

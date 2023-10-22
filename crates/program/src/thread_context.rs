@@ -10,8 +10,8 @@ use ancvm_binary::module_image::ModuleImage;
 
 use crate::{
     external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    program_context::ProgramContext, program_settings::ProgramSettings, stack::Stack,
-    INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_PAGES,
+    program_context::ProgramContext, program_settings::ProgramSettings, stack_unary::Stack,
+    INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
 };
 
 /// one ThreadContext per thread.
@@ -45,11 +45,11 @@ pub struct ThreadContext<'a> {
     // 2. called function 2.
     //
     // |         |
-    // |  arg 1  | <-- arguments will be moved to the top of stack, follows the frame info and local variables.
-    // |  arg 0  |
-    // |---------|
     // | local 1 |
     // | local 0 | <-- allocates the local variable area
+    // |---------|
+    // |  arg 1  | <-- arguments will be moved to the top side of stack, follows the frame info and local variables.
+    // |  arg 0  |
     // |---------|
     // |   $$$   | <-- the stack frame information, includes the previous FP, return address (instruction address and module index),
     // |   $$$   |     also includes the current function information, such as function type, funcion index, and so on.
@@ -68,11 +68,11 @@ pub struct ThreadContext<'a> {
     // |---------|
     // |   %%%   | <-- other operands of function 2
     // |---------|
-    // |  arg 1  |
-    // |  arg 0  |
-    // |---------|
     // | local 1 |
     // | local 0 |
+    // |---------|
+    // |  arg 1  |
+    // |  arg 0  |
     // |---------|
     // |   $$$   |
     // |   $$$   |
@@ -164,7 +164,7 @@ impl<'a> ThreadContext<'a> {
         program_settings: &'a ProgramSettings,
         module_images: &'a [ModuleImage<'a>],
     ) -> Self {
-        let stack = Stack::new(INIT_STACK_SIZE_IN_PAGES);
+        let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
 
         let pc = ProgramCounter {
@@ -219,7 +219,7 @@ impl<'a> ThreadContext<'a> {
         let data_object = target_module.datas[target_data_section_type as usize].as_mut();
 
         // bounds check
-        #[cfg(debug_assertions)]
+        #[cfg(feature="bounds_check")]
         {
             let (_offset, data_actual_length) =
                 data_object.get_offset_and_length_by_index(data_internal_index);
@@ -316,7 +316,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             .get_local_list(local_list_index as usize)[local_variable_index];
 
         // bounds check
-        #[cfg(debug_assertions)]
+        #[cfg(feature="bounds_check")]
         {
             if expect_data_length_in_bytes + offset_bytes > variable_item.var_actual_length as usize
             {

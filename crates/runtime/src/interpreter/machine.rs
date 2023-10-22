@@ -4,8 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-//! it is currently assumed that the target architecture is 64-bit.
-
 use ancvm_program::{memory::Memory, thread_context::ThreadContext};
 
 use super::InterpretResult;
@@ -48,17 +46,15 @@ fn do_host_addr_local(
     local_variable_index: usize,
     offset_bytes: usize,
 ) -> InterpretResult {
-    let final_offset = thread_context.get_local_variable_address_by_index_and_offset_with_bounds_check(
-        reversed_index,
-        local_variable_index,
-        offset_bytes,
-        0,
-    );
+    let final_offset = thread_context
+        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+            reversed_index,
+            local_variable_index,
+            offset_bytes,
+            0,
+        );
     let ptr = thread_context.stack.get_ptr(final_offset);
-    let address = ptr as u64;
-
-    thread_context.stack.push_i64_u(address);
-
+    store_pointer_to_operand_stack(thread_context, ptr);
     InterpretResult::Move(8)
 }
 
@@ -97,10 +93,7 @@ fn do_host_addr_data(
     let total_offset =
         data_object.get_data_address_by_index_and_offset(data_internal_index, offset_bytes);
     let ptr = data_object.get_ptr(total_offset);
-    let address = ptr as u64;
-
-    thread_context.stack.push_i64_u(address);
-
+    store_pointer_to_operand_stack(thread_context, ptr);
     InterpretResult::Move(8)
 }
 
@@ -111,10 +104,22 @@ pub fn host_addr_heap(thread_context: &mut ThreadContext) -> InterpretResult {
 
     let total_offset = heap_address as usize + offset_bytes as usize;
     let ptr = thread_context.heap.get_ptr(total_offset);
-    let address = ptr as u64;
-
-    thread_context.stack.push_i64_u(address);
+    store_pointer_to_operand_stack(thread_context, ptr);
     InterpretResult::Move(4)
+}
+
+fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *const u8) {
+    #[cfg(target_pointer_width = "64")]
+    {
+        let address = ptr as u64;
+        thread_context.stack.push_i64_u(address);
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    {
+        let address = ptr as u32;
+        thread_context.stack.push_i32_u(address);
+    }
 }
 
 #[cfg(test)]
@@ -176,6 +181,74 @@ mod tests {
             result0.unwrap(),
             vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
         );
+    }
+
+    fn read_memory_i64 (fv: ForeignValue) -> u64 {
+        #[cfg(target_pointer_width="64")]
+        if let ForeignValue::UInt64(addr) = fv {
+            let ptr = addr as *const u64;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+        #[cfg(target_pointer_width="32")]
+        if let ForeignValue::UInt32(addr) = fv {
+            let ptr = addr as *const u64;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+    }
+
+    fn read_memory_i32 (fv: ForeignValue) -> u32 {
+        #[cfg(target_pointer_width="64")]
+        if let ForeignValue::UInt64(addr) = fv {
+            let ptr = addr as *const u32;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+        #[cfg(target_pointer_width="32")]
+        if let ForeignValue::UInt32(addr) = fv {
+            let ptr = addr as *const u32;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+    }
+
+    fn read_memory_i16 (fv: ForeignValue) -> u16 {
+        #[cfg(target_pointer_width="64")]
+        if let ForeignValue::UInt64(addr) = fv {
+            let ptr = addr as *const u16;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+        #[cfg(target_pointer_width="32")]
+        if let ForeignValue::UInt32(addr) = fv {
+            let ptr = addr as *const u16;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+    }
+
+    fn read_memory_i8 (fv: ForeignValue) -> u8 {
+        #[cfg(target_pointer_width="64")]
+        if let ForeignValue::UInt64(addr) = fv {
+            let ptr = addr as *const u8;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
+        #[cfg(target_pointer_width="32")]
+        if let ForeignValue::UInt32(addr) = fv {
+            let ptr = addr as *const u8;
+            unsafe { std::ptr::read(ptr) }
+        } else {
+            0
+        }
     }
 
     #[test]
@@ -278,6 +351,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![], // params
+            #[cfg(target_pointer_width="64")]
             vec![
                 DataType::I64,
                 DataType::I64,
@@ -287,6 +361,17 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+            ], // results
+            #[cfg(target_pointer_width="32")]
+            vec![
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
             ], // results
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
@@ -309,32 +394,12 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
-        // it is currently assumed that the target architecture is 64-bit.
-
-        let read_i64 = |fv: ForeignValue| -> u64 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u64;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        let read_i32 = |fv: ForeignValue| -> u32 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u32;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        assert_eq!(read_i32(fvs[0]), 0x11);
-        assert_eq!(read_i32(fvs[1]), 0x13);
-        assert_eq!(read_i64(fvs[2]), 0x17);
-        assert_eq!(read_i32(fvs[3]), 0x19);
-        assert_eq!(read_i32(fvs[4]), 0x23);
-        assert_eq!(read_i64(fvs[5]), 0x29);
+        assert_eq!(read_memory_i32(fvs[0]), 0x11);
+        assert_eq!(read_memory_i32(fvs[1]), 0x13);
+        assert_eq!(read_memory_i64(fvs[2]), 0x17);
+        assert_eq!(read_memory_i32(fvs[3]), 0x19);
+        assert_eq!(read_memory_i32(fvs[4]), 0x23);
+        assert_eq!(read_memory_i64(fvs[5]), 0x29);
 
         // note:
         // depending on the implementation of the stack (the stack frame and local variables),
@@ -342,8 +407,8 @@ mod tests {
         // because the local variables (as well as their host addresses) will no longer valid
         // when a function exits.
 
-        assert_eq!(read_i32(fvs[6]), 0x31);
-        assert_eq!(read_i32(fvs[7]), 0x37);
+        assert_eq!(read_memory_i32(fvs[6]), 0x31);
+        assert_eq!(read_memory_i32(fvs[7]), 0x37);
     }
 
     #[test]
@@ -426,6 +491,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![], // params
+            #[cfg(target_pointer_width="64")]
             vec![
                 DataType::I64,
                 DataType::I64,
@@ -435,6 +501,17 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+            ], // results
+            #[cfg(target_pointer_width="32")]
+            vec![
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
             ], // results
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
@@ -456,21 +533,10 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
-        // it is currently assumed that the target architecture is 64-bit.
-
-        let read_i8 = |fv: ForeignValue| -> u8 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u8;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        assert_eq!(read_i8(fvs[0]), 0x02);
-        assert_eq!(read_i8(fvs[1]), 0x05);
-        assert_eq!(read_i8(fvs[2]), 0x17);
-        assert_eq!(read_i8(fvs[3]), 0x19);
+        assert_eq!(read_memory_i8(fvs[0]), 0x02);
+        assert_eq!(read_memory_i8(fvs[1]), 0x05);
+        assert_eq!(read_memory_i8(fvs[2]), 0x17);
+        assert_eq!(read_memory_i8(fvs[3]), 0x19);
 
         // note:
         // depending on the implementation of the stack (the stack frame and local variables),
@@ -478,10 +544,10 @@ mod tests {
         // because the local variables (as well as their host addresses) will no longer valid
         // when a function exits.
 
-        assert_eq!(read_i8(fvs[4]), 0x23);
-        assert_eq!(read_i8(fvs[5]), 0x37);
-        assert_eq!(read_i8(fvs[6]), 0x47);
-        assert_eq!(read_i8(fvs[7]), 0x53);
+        assert_eq!(read_memory_i8(fvs[4]), 0x23);
+        assert_eq!(read_memory_i8(fvs[5]), 0x37);
+        assert_eq!(read_memory_i8(fvs[6]), 0x47);
+        assert_eq!(read_memory_i8(fvs[7]), 0x53);
     }
 
     #[test]
@@ -556,12 +622,21 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function(
             vec![], // params
+            #[cfg(target_pointer_width="64")]
             vec![
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+            ], // results
+            #[cfg(target_pointer_width="32")]
+            vec![
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
             ], // results
             vec![], // local vars
             code0,
@@ -574,48 +649,10 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
         let fvs = result0.unwrap();
 
-        // it is currently assumed that the target architecture is 64-bit.
-
-        let read_i64 = |fv: ForeignValue| -> u64 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u64;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        let read_i32 = |fv: ForeignValue| -> u32 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u32;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        let read_i16 = |fv: ForeignValue| -> u16 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u16;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        let read_i8 = |fv: ForeignValue| -> u8 {
-            if let ForeignValue::UInt64(addr) = fv {
-                let ptr = addr as *const u8;
-                unsafe { std::ptr::read(ptr) }
-            } else {
-                0
-            }
-        };
-
-        assert_eq!(read_i32(fvs[0]), 0x07050302);
-        assert_eq!(read_i16(fvs[1]), 0x0705);
-        assert_eq!(read_i64(fvs[2]), 0x3731292319171311);
-        assert_eq!(read_i32(fvs[3]), 0x37312923);
-        assert_eq!(read_i8(fvs[4]), 0x37);
+        assert_eq!(read_memory_i32(fvs[0]), 0x07050302);
+        assert_eq!(read_memory_i16(fvs[1]), 0x0705);
+        assert_eq!(read_memory_i64(fvs[2]), 0x3731292319171311);
+        assert_eq!(read_memory_i32(fvs[3]), 0x37312923);
+        assert_eq!(read_memory_i8(fvs[4]), 0x37);
     }
 }
