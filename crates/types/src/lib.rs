@@ -17,13 +17,48 @@ use std::{
 pub const RUNTIME_MAJOR_VERSION: u16 = 1;
 pub const RUNTIME_MINOR_VERSION: u16 = 0;
 pub const RUNTIME_PATCH_VERSION: u16 = 0;
-
 pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
-pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
+
+// the relationship between the version of programs, shared modules and runtime
+// ----------------------------------------------------------------------------
+//
+// for programs:
+//
+// every program (source code) declares a desired runtime version, which can only be run
+// if the major and minor versions are identical. in short:
+//
+// - app major == runtime major
+// - app minor == runtime minor
+// - app patch == any
+//
+// for shared module:
+//
+// every shared module (source code) also declares a desired runtime version, since it is
+// not a standalone executable module, when it is referenced (as dependency) by other
+// programs, it will be compiled to the same runtime version as the main module requires.
+// however, if the major version required by the shared module does not match that of
+// the main module, compilation will be rejected. in short:
+//
+// - shared module major == runtime major
+// - shared module minor == any
+// - shared module patch == any
+//
+// for dependencies:
+//
+// a program may depend on one or more shared modules, when the program references a
+// shared module, it is also necessary to declare the major and minor version.
+// unlike many other language, 'XiaoXuan Core Script' requires the version of the dependencies
+// (shared modules) must be strictly consistent with the declaration, that is to say:
+//
+// - dependency declare major == shared module major
+// - dependency declare minor == shared module minor
+// - dependency declare patch, shared module patch == any
+
 
 // the max version number the current runtime supported
 pub const IMAGE_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_MINOR_VERSION: u16 = 0;
+pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
 
 pub mod ecallcode;
 pub mod opcode;

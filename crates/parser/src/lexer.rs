@@ -84,6 +84,8 @@ pub enum Token {
     LeftParen,
     RightParen,
     Identifier(String),
+
+    // "123", "3.14", "123_456", "0x123abc", "0xaa_bb.11_22", "0b1010.0101"
     Number(String),
     String_(String),
     Bytes(Vec<u8>),
@@ -599,6 +601,28 @@ fn lex_symbol(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, Comp
     Ok(Token::Symbol(s))
 }
 
+impl Token {
+    pub fn new_identifier(s: &str) -> Self {
+        Token::Identifier(s.to_owned())
+    }
+
+    pub fn new_number(s: &str) -> Self {
+        Token::Number(s.to_owned())
+    }
+
+    pub fn new_string(s: &str) -> Self {
+        Token::String_(s.to_owned())
+    }
+
+    pub fn new_bytes(slice: &[u8]) -> Self {
+        Token::Bytes(slice.to_vec())
+    }
+
+    pub fn new_symbol(s: &str) -> Self {
+        Token::Symbol(s.to_owned())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ancvm_types::CompileError;
@@ -637,14 +661,14 @@ mod tests {
     fn test_lex_identifier() {
         assert_eq!(
             lex_from_str("$name").unwrap(),
-            vec![Token::Identifier("name".to_owned())]
+            vec![Token::new_identifier("name")]
         );
 
         assert_eq!(
             lex_from_str("($name)").unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Identifier("name".to_owned()),
+                Token::new_identifier("name"),
                 Token::RightParen
             ]
         );
@@ -653,17 +677,14 @@ mod tests {
             lex_from_str("( $a )").unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Identifier("a".to_owned()),
+                Token::new_identifier("a"),
                 Token::RightParen
             ]
         );
 
         assert_eq!(
             lex_from_str("$foo $bar").unwrap(),
-            vec![
-                Token::Identifier("foo".to_owned()),
-                Token::Identifier("bar".to_owned()),
-            ]
+            vec![Token::new_identifier("foo"), Token::new_identifier("bar"),]
         );
 
         // incomplete identifier
@@ -687,56 +708,50 @@ mod tests {
 
     #[test]
     fn test_lex_number() {
-        assert_eq!(
-            lex_from_str("123").unwrap(),
-            vec![Token::Number("123".to_owned())]
-        );
+        assert_eq!(lex_from_str("123").unwrap(), vec![Token::new_number("123")]);
 
         assert_eq!(
             lex_from_str("(123)").unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Number("123".to_owned()),
+                Token::new_number("123"),
                 Token::RightParen
             ]
         );
 
         assert_eq!(
             lex_from_str("123.456").unwrap(),
-            vec![Token::Number("123.456".to_owned())]
+            vec![Token::new_number("123.456")]
         );
 
         assert_eq!(
             lex_from_str("12_34_56").unwrap(),
-            vec![Token::Number("12_34_56".to_owned())]
+            vec![Token::new_number("12_34_56")]
         );
 
         assert_eq!(
             lex_from_str("123 456").unwrap(),
-            vec![
-                Token::Number("123".to_owned()),
-                Token::Number("456".to_owned())
-            ]
+            vec![Token::new_number("123"), Token::new_number("456")]
         );
 
         assert_eq!(
             lex_from_str("0x1234abcd").unwrap(),
-            vec![Token::Number("0x1234abcd".to_owned())]
+            vec![Token::new_number("0x1234abcd")]
         );
 
         assert_eq!(
             lex_from_str("0xee_ff.1122").unwrap(),
-            vec![Token::Number("0xee_ff.1122".to_owned())]
+            vec![Token::new_number("0xee_ff.1122")]
         );
 
         assert_eq!(
             lex_from_str("0b00110101").unwrap(),
-            vec![Token::Number("0b00110101".to_owned())]
+            vec![Token::new_number("0b00110101")]
         );
 
         assert_eq!(
             lex_from_str("0b00_11.0101").unwrap(),
-            vec![Token::Number("0b00_11.0101".to_owned())]
+            vec![Token::new_number("0b00_11.0101")]
         );
 
         // invalid char for decimal number
@@ -778,39 +793,30 @@ mod tests {
 
     #[test]
     fn test_lex_string() {
-        assert_eq!(
-            lex_from_str("\"\"").unwrap(),
-            vec![Token::String_("".to_owned())]
-        );
+        assert_eq!(lex_from_str("\"\"").unwrap(), vec![Token::new_string("")]);
 
         assert_eq!(
             lex_from_str("\"abc\"").unwrap(),
-            vec![Token::String_("abc".to_owned())]
+            vec![Token::new_string("abc")]
         );
 
         assert_eq!(
             lex_from_str("(\"abc\")").unwrap(),
             vec![
                 Token::LeftParen,
-                Token::String_("abc".to_owned()),
+                Token::new_string("abc"),
                 Token::RightParen
             ]
         );
 
         assert_eq!(
             lex_from_str("\"abc\" \"xyz\"").unwrap(),
-            vec![
-                Token::String_("abc".to_owned()),
-                Token::String_("xyz".to_owned()),
-            ]
+            vec![Token::new_string("abc"), Token::new_string("xyz"),]
         );
 
         assert_eq!(
             lex_from_str("\"abc\"\n\n\"xyz\"").unwrap(),
-            vec![
-                Token::String_("abc".to_owned()),
-                Token::String_("xyz".to_owned()),
-            ]
+            vec![Token::new_string("abc"), Token::new_string("xyz"),]
         );
 
         assert_eq!(
@@ -820,7 +826,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![Token::String_("abc文字😊".to_owned())]
+            vec![Token::new_string("abc文字😊")]
         );
 
         assert_eq!(
@@ -830,7 +836,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![Token::String_("\r\n\t\\\"-文\0".to_owned())]
+            vec![Token::new_string("\r\n\t\\\"-文\0")]
         );
 
         // unsupported escape char \v
@@ -1002,10 +1008,10 @@ mod tests {
             )
             .unwrap(),
             vec![
-                Token::Number("7".to_owned()),
-                Token::Number("13".to_owned()),
-                Token::Number("17".to_owned()),
-                Token::Number("31".to_owned()),
+                Token::new_number("7"),
+                Token::new_number("13"),
+                Token::new_number("17"),
+                Token::new_number("31"),
             ]
         );
     }
@@ -1019,10 +1025,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("17".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("17"),]
         );
 
         assert_eq!(
@@ -1032,10 +1035,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("19".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("19"),]
         );
 
         assert_eq!(
@@ -1045,10 +1045,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("19".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("19"),]
         );
 
         assert_eq!(
@@ -1058,10 +1055,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("19".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("19"),]
         );
 
         // missing end pair
@@ -1094,10 +1088,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("29".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("29"),]
         );
 
         assert_eq!(
@@ -1107,10 +1098,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("29".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("29"),]
         );
 
         assert_eq!(
@@ -1120,10 +1108,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("29".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("29"),]
         );
 
         assert_eq!(
@@ -1134,10 +1119,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("29".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("29"),]
         );
 
         assert_eq!(
@@ -1147,10 +1129,7 @@ mod tests {
             "#
             )
             .unwrap(),
-            vec![
-                Token::Number("7".to_owned()),
-                Token::Number("29".to_owned()),
-            ]
+            vec![Token::new_number("7"), Token::new_number("29"),]
         );
 
         // missing end pair
@@ -1188,43 +1167,36 @@ mod tests {
     fn test_lex_symbol() {
         assert_eq!(
             lex_from_str("name").unwrap(),
-            vec![Token::Symbol("name".to_owned())]
+            vec![Token::new_symbol("name")]
         );
 
         assert_eq!(
             lex_from_str("i32.imm").unwrap(),
-            vec![Token::Symbol("i32.imm".to_owned())]
+            vec![Token::new_symbol("i32.imm")]
         );
 
         assert_eq!(
             lex_from_str("i32.div_s").unwrap(),
-            vec![Token::Symbol("i32.div_s".to_owned())]
+            vec![Token::new_symbol("i32.div_s")]
         );
 
         assert_eq!(
             lex_from_str("(name)").unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("name".to_owned()),
+                Token::new_symbol("name"),
                 Token::RightParen
             ]
         );
 
         assert_eq!(
             lex_from_str("( a )").unwrap(),
-            vec![
-                Token::LeftParen,
-                Token::Symbol("a".to_owned()),
-                Token::RightParen
-            ]
+            vec![Token::LeftParen, Token::new_symbol("a"), Token::RightParen]
         );
 
         assert_eq!(
             lex_from_str("foo bar").unwrap(),
-            vec![
-                Token::Symbol("foo".to_owned()),
-                Token::Symbol("bar".to_owned()),
-            ]
+            vec![Token::new_symbol("foo"), Token::new_symbol("bar"),]
         );
 
         // invalid symbol
@@ -1251,9 +1223,9 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("local".to_owned()),
-                Token::Identifier("a".to_owned()),
-                Token::Symbol("i32".to_owned()),
+                Token::new_symbol("local"),
+                Token::new_identifier("a"),
+                Token::new_symbol("i32"),
                 Token::RightParen,
             ]
         );
@@ -1267,8 +1239,8 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("211".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("211"),
                 Token::RightParen,
             ]
         );
@@ -1282,8 +1254,8 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("0x223".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("0x223"),
                 Token::RightParen,
             ]
         );
@@ -1297,8 +1269,8 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("0x11".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("0x11"),
                 Token::RightParen,
             ]
         );
@@ -1312,8 +1284,8 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("0x11_22".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("0x11_22"),
                 Token::RightParen,
             ]
         );
@@ -1331,14 +1303,14 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("i32.div_s".to_owned()),
+                Token::new_symbol("i32.div_s"),
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("11".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("11"),
                 Token::RightParen,
                 Token::LeftParen,
-                Token::Symbol("i32.imm".to_owned()),
-                Token::Number("17".to_owned()),
+                Token::new_symbol("i32.imm"),
+                Token::new_number("17"),
                 Token::RightParen,
                 Token::RightParen,
             ]
@@ -1353,13 +1325,13 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("import".to_owned()),
-                Token::Identifier("math".to_owned()),
+                Token::new_symbol("import"),
+                Token::new_identifier("math"),
                 Token::LeftParen,
-                Token::Symbol("module".to_owned()),
+                Token::new_symbol("module"),
                 Token::LeftParen,
-                Token::Symbol("user".to_owned()),
-                Token::String_("math".to_owned()),
+                Token::new_symbol("user"),
+                Token::new_string("math"),
                 Token::RightParen,
                 Token::RightParen,
                 Token::RightParen,
@@ -1375,18 +1347,18 @@ mod tests {
             .unwrap(),
             vec![
                 Token::LeftParen,
-                Token::Symbol("import".to_owned()),
-                Token::Identifier("add".to_owned()),
+                Token::new_symbol("import"),
+                Token::new_identifier("add"),
                 Token::LeftParen,
-                Token::Symbol("module".to_owned()),
-                Token::Identifier("math".to_owned()),
+                Token::new_symbol("module"),
+                Token::new_identifier("math"),
                 Token::RightParen,
                 Token::LeftParen,
-                Token::Symbol("func".to_owned()),
-                Token::String_("add".to_owned()),
+                Token::new_symbol("func"),
+                Token::new_string("add"),
                 Token::LeftParen,
-                Token::Symbol("type".to_owned()),
-                Token::Number("0".to_owned()),
+                Token::new_symbol("type"),
+                Token::new_number("0"),
                 Token::RightParen,
                 Token::RightParen,
                 Token::RightParen,
