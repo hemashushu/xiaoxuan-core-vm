@@ -4,7 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE and CONTRIBUTING.
 
-#[derive(Debug, PartialEq, Clone, Default)]
+use ancvm_types::{DataType, MemoryDataType};
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct ModuleNode {
     pub name: String,
 
@@ -12,4 +14,31 @@ pub struct ModuleNode {
     pub runtime_version_minor: u16,
 
     pub shared_packages: Vec<String>,
+    pub element_nodes: Vec<ModuleElementNode>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ModuleElementNode {
+    FuncNode(FuncNode),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct FuncNode {
+    pub name: Option<String>,
+    pub params: Vec<ParamNode>,
+    pub results: Vec<DataType>,
+    pub locals: Vec<LocalNode>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ParamNode {
+    pub name: Option<String>,
+    pub data_type: DataType,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct LocalNode {
+    pub name: Option<String>,
+    pub data_type: MemoryDataType,
+    pub data_length: u32,
 }

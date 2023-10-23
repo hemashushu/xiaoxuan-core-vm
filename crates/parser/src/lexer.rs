@@ -150,7 +150,7 @@ pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError
 
 fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // $name  //
-    //  ^____ UNverified/current char
+    //  ^_____// UNverified/current char, i.e. the value of 'iter.peek(0)'
 
     if matches!(iter.peek(0), Some(nc) if *nc >= '0' && *nc <= '9') {
         // identifier should starts with /a-zA-Z_/
@@ -189,7 +189,7 @@ fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
 
 fn lex_number(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 1234  //
-    // ^____ verified/current char
+    // ^_____// verified/current char
 
     if ch == '0' {
         if iter.look_ahead(0, &'b') {
@@ -208,7 +208,7 @@ fn lex_number(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, Comp
 
 fn lex_number_decimal(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 1234  //
-    // ^____ verified/current char
+    // ^_____// verified/current char
 
     let mut s = String::new();
     s.push(ch);
@@ -237,7 +237,7 @@ fn lex_number_decimal(ch: char, iter: &mut PeekableIterator<char>) -> Result<Tok
 
 fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 0b0101  //
-    //   ^____ UNverified/current char
+    //   ^_____// UNverified/current char
 
     let mut s = String::new();
     s.push_str("0b");
@@ -270,7 +270,7 @@ fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, Compile
 
 fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 0xabcd  //
-    //   ^____ UNverified/current char
+    //   ^_____// UNverified/current char
 
     let mut s = String::new();
     s.push_str("0x");
@@ -303,7 +303,7 @@ fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
 
 fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // "abc"  //
-    //  ^____ UNverified/current char
+    //  ^_____// UNverified/current char
 
     let mut s = String::new();
 
@@ -379,7 +379,7 @@ fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
 
 fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char, CompileError> {
     // \u{6587}  //
-    //   ^______ UNverified/current char
+    //   ^_______// UNverified/current char
 
     if !matches!(iter.next(), Some(c) if c == '{') {
         return Err(CompileError::new(
@@ -388,7 +388,7 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
     }
 
     // \u{6587}  //
-    //    ^_____ UNverified/current char
+    //    ^______// UNverified/current char
 
     let mut s = String::new();
 
@@ -429,7 +429,7 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
 
 fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // b"0011aabb"  //
-    //  ^__________ verified/current char
+    //  ^___________// verified/current char
 
     let mut bytes: Vec<u8> = Vec::new();
     let mut buf = String::new();
@@ -476,8 +476,8 @@ fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
 
 fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // ;;...  //
-    // ^^____ verified
-    // |_____ current char
+    // ^^_____// verified
+    // |______// current char
 
     iter.next(); // consume the char ';'
 
@@ -492,8 +492,8 @@ fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
 
 fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // (;...;)  //
-    // ^^______ verified
-    // |_______ current char
+    // ^^_______// verified
+    // |________// current char
 
     iter.next(); // consume the char ';'
 
@@ -528,8 +528,8 @@ fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compil
 
 fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // #(comment ...)  //
-    // ^^_____________ verified
-    // |______________ current char
+    // ^^______________// verified
+    // |_______________// current char
 
     iter.next(); // consume the char '('
 
@@ -574,7 +574,7 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
 
 fn lex_symbol(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // i32.imm  //
-    // ^_______ verified/current char
+    // ^________// verified/current char
 
     let mut s = String::new();
     s.push(ch);

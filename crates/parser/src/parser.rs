@@ -42,21 +42,53 @@
 //   ;; the above is the another form of node '(local.load32 ...)', the child node
 //   ;; '(offset ...)' must still be the last parameter.
 
-use ancvm_types::CompileError;
+use ancvm_types::{CompileError, DataType};
 
-use crate::{ast::ModuleNode, lexer::Token, peekable_iterator::PeekableIterator};
+use crate::{
+    ast::{FuncNode, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+    lexer::Token,
+    peekable_iterator::PeekableIterator,
+};
 
 pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileError> {
-    // the 'module' node syntax:
+    // the node 'module' syntax:
     //
     // ```clojure
-    // (module "name" (runtime_version "1.0") ...)
+    //
+    // (module "name" (runtime_version "1.0") ...)  ;; base
+    //
+    // (module "name" (runtime_version "1.0")
+    //                                          ;; optional parameters
+    //      (constructor $func_name)            ;; similar to GCC '__attribute__((constructor))', run before main()
+    //      (entry $func_name)                  ;; similar to 'function main()'
+    //      (destructor $func_name)             ;; similar to GCC '__attribute__((destructor))', run after main()
+    //      ...
+    // )
     // ````
 
     consume_left_paren(iter, "module")?;
     consume_token(iter, Token::new_symbol("module"))?;
+
     let name = expect_string(iter, "module name")?;
     let (runtime_version_major, runtime_version_minor) = parse_module_runtime_version(iter)?;
+    let mut element_nodes: Vec<ModuleElementNode> = vec![];
+
+    // parse module elements
+    while iter.look_ahead(0, &Token::LeftParen) {
+        consume_left_paren(iter, "module element")?;
+        let element_node_name = expect_symbol(iter, "module element")?;
+        let element_node = match element_node_name.as_str() {
+            "func" => parse_func(iter)?,
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Unknown module element: {}",
+                    element_node_name
+                )))
+            }
+        };
+        element_nodes.push(element_node);
+    }
+
     consume_right_paren(iter)?;
 
     let module_node = ModuleNode {
@@ -64,6 +96,7 @@ pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileEr
         runtime_version_major,
         runtime_version_minor,
         shared_packages: vec![],
+        element_nodes,
     };
 
     Ok(module_node)
@@ -72,6 +105,9 @@ pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileEr
 fn parse_module_runtime_version(
     iter: &mut PeekableIterator<Token>,
 ) -> Result<(u16, u16), CompileError> {
+    // (runtime_version "1.0")  //
+    // ^________________________// current token, i.e. the value of 'iter.peek(0)'
+
     consume_left_paren(iter, "module runtime version")?;
     consume_token(iter, Token::new_symbol("runtime_version"))?;
     let ver_string = expect_string(iter, "module runtime version")?;
@@ -101,6 +137,152 @@ fn parse_module_runtime_version(
 
     Ok((major, minor))
 }
+
+fn parse_func(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, CompileError> {
+    // (func ...)  //
+    //       ^_____// current token
+
+    // the node 'func' syntax:
+    //
+    // (func $add (param $lhs i32) (param $rhs i32) (result i32) ...)   ;; signature form1
+    // (func $add (params i32 i32 i32) (results i32 i32) ...)           ;; signature form2
+    // (func $one
+    //     (local $sum i32)             ;; local variable with identifier and data type
+    //     (local i32)                  ;; local variable with data type only
+    //     (local $db (bytes 12 4))     ;; bytes-type local variable
+    //                                  ;; the node 'bytes' syntax: '(bytes length align)'
+    //     (locals i32 i32)             ;; multiple local variables
+    // )
+    //
+    // (func $two (code ...))           ;; the function body -- the instructions sequence
+
+    let name = maybe_identifier(iter);
+    let mut params: Vec<ParamNode> = vec![];
+    let mut results: Vec<DataType> = vec![];
+    let mut locals: Vec<LocalNode> = vec![];
+
+    // parse params, results and local variables
+    while iter.look_ahead(0, &Token::LeftParen) {
+        consume_left_paren(iter, "function element")?;
+        let element_node_name = expect_symbol(iter, "function element")?;
+        match element_node_name.as_str() {
+            "param" => {
+                let param_node = parse_param_node(iter)?;
+                params.push(param_node);
+            }
+            "params" => {
+                let data_types = parse_params_node(iter)?;
+                let mut param_nodes = data_types
+                    .iter()
+                    .map(|dt| ParamNode {
+                        name: None,
+                        data_type: *dt,
+                    })
+                    .collect::<Vec<_>>();
+                params.append(&mut param_nodes);
+            }
+            "result" => {
+                let data_type = parse_result_node(iter)?;
+                results.push(data_type);
+            }
+            "results" => {
+                let mut data_types = parse_params_node(iter)?;
+                results.append(&mut data_types);
+            }
+            "local" => {
+                todo!()
+            }
+            "locals" => {
+                todo!()
+            }
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Unknown function element: {}",
+                    element_node_name
+                )))
+            }
+        };
+    }
+
+    consume_right_paren(iter)?;
+
+    let func_node = FuncNode {
+        name,
+        params,
+        results,
+        locals,
+    };
+
+    Ok(ModuleElementNode::FuncNode(func_node))
+}
+
+fn parse_param_node(iter: &mut PeekableIterator<Token>) -> Result<ParamNode, CompileError> {
+    // (param $name i32)  //
+    //        ^___________// current token
+    let name = maybe_identifier(iter);
+    let data_type = parse_data_type(iter)?;
+    consume_right_paren(iter)?;
+
+    Ok(ParamNode { name, data_type })
+}
+
+fn parse_params_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
+    // (params i32 i32 i64)  //
+    //         ^_____________// current token
+
+    let mut data_types: Vec<DataType> = vec![];
+    while matches!(iter.peek(0), &Some(Token::Symbol(_))) {
+        let data_type = parse_data_type(iter)?;
+        data_types.push(data_type);
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok(data_types)
+}
+
+fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
+    // (results i32 i32 i64)  //
+    //          ^_____________// current token
+
+    let mut data_types: Vec<DataType> = vec![];
+    while matches!(iter.peek(0), &Some(Token::Symbol(_))) {
+        let data_type = parse_data_type(iter)?;
+        data_types.push(data_type);
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok(data_types)
+}
+
+fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+    // (result i32)  //
+    //         ^_____// current token
+    let data_type = parse_data_type(iter)?;
+    consume_right_paren(iter)?;
+
+    Ok(data_type)
+}
+
+fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+    let data_type_name = expect_symbol(iter, "data type")?;
+    let data_type = match data_type_name.as_str() {
+        "i32" => DataType::I32,
+        "i64" => DataType::I64,
+        "f32" => DataType::F32,
+        "f64" => DataType::F64,
+        _ => {
+            return Err(CompileError::new(&format!(
+                "Unknown data type: {}",
+                data_type_name
+            )))
+        }
+    };
+    Ok(data_type)
+}
+
+// helper functions
 
 fn consume_token(
     iter: &mut PeekableIterator<Token>,
@@ -226,11 +408,32 @@ fn expect_symbol(
     }
 }
 
+fn maybe_identifier(iter: &mut PeekableIterator<Token>) -> Option<String> {
+    match iter.peek(0) {
+        Some(token) => {
+            if let Token::Identifier(s) = token {
+                let cs = s.clone();
+                iter.next().unwrap();
+                Some(cs)
+            } else {
+                None
+            }
+        }
+        None => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use ancvm_types::CompileError;
+    use pretty_assertions::assert_eq;
 
-    use crate::{ast::ModuleNode, lexer::lex, peekable_iterator::PeekableIterator};
+    use ancvm_types::{CompileError, DataType};
+
+    use crate::{
+        ast::{FuncNode, ModuleElementNode, ModuleNode, ParamNode},
+        lexer::lex,
+        peekable_iterator::PeekableIterator,
+    };
 
     use super::parse;
 
@@ -250,7 +453,8 @@ mod tests {
                 name: "main".to_owned(),
                 runtime_version_major: 1,
                 runtime_version_minor: 2,
-                shared_packages: vec![]
+                shared_packages: vec![],
+                element_nodes: vec![]
             }
         );
 
@@ -270,5 +474,41 @@ mod tests {
             parse_from_str(r#"(module "main" (runtime_version "1a.2b"))"#),
             Err(_)
         ));
+    }
+
+    #[test]
+    fn test_parse_function_node() {
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "main" (runtime_version "1.0")
+                (func $add (param $lhs i32) (param $rhs i64) (result i32) (result i64)
+                )
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("add".to_owned()),
+                    params: vec![
+                        ParamNode {
+                            name: Some("lhs".to_owned()),
+                            data_type: DataType::I32
+                        },
+                        ParamNode {
+                            name: Some("rhs".to_owned()),
+                            data_type: DataType::I64
+                        }
+                    ],
+                    results: vec![DataType::I32, DataType::I64,],
+                    locals: vec![]
+                })]
+            }
+        );
     }
 }
