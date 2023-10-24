@@ -42,7 +42,7 @@
 //   ;; the above is the another form of node '(local.load32 ...)', the child node
 //   ;; '(offset ...)' must still be the last parameter.
 
-use ancvm_types::{CompileError, DataType};
+use ancvm_types::{CompileError, DataType, MemoryDataType};
 
 use crate::{
     ast::{FuncNode, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
@@ -67,7 +67,7 @@ pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileEr
     // ````
 
     consume_left_paren(iter, "module")?;
-    consume_token(iter, Token::new_symbol("module"))?;
+    consume_symbol(iter, "module")?;
 
     let name = expect_string(iter, "module name")?;
     let (runtime_version_major, runtime_version_minor) = parse_module_runtime_version(iter)?;
@@ -109,7 +109,7 @@ fn parse_module_runtime_version(
     // ^________________________// current token, i.e. the value of 'iter.peek(0)'
 
     consume_left_paren(iter, "module runtime version")?;
-    consume_token(iter, Token::new_symbol("runtime_version"))?;
+    consume_symbol(iter, "runtime_version")?;
     let ver_string = expect_string(iter, "module runtime version")?;
     consume_right_paren(iter)?;
 
@@ -186,14 +186,16 @@ fn parse_func(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, C
                 results.push(data_type);
             }
             "results" => {
-                let mut data_types = parse_params_node(iter)?;
+                let mut data_types = parse_results_node(iter)?;
                 results.append(&mut data_types);
             }
             "local" => {
-                todo!()
+                let local_node = parse_local_node(iter)?;
+                locals.push(local_node);
             }
             "locals" => {
-                todo!()
+                let mut local_nodes = parse_locals_node(iter)?;
+                locals.append(&mut local_nodes);
             }
             _ => {
                 return Err(CompileError::new(&format!(
@@ -241,6 +243,15 @@ fn parse_params_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>
     Ok(data_types)
 }
 
+fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+    // (result i32)  //
+    //         ^_____// current token
+    let data_type = parse_data_type(iter)?;
+    consume_right_paren(iter)?;
+
+    Ok(data_type)
+}
+
 fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
     // (results i32 i32 i64)  //
     //          ^_____________// current token
@@ -254,15 +265,6 @@ fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType
     consume_right_paren(iter)?;
 
     Ok(data_types)
-}
-
-fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
-    // (result i32)  //
-    //         ^_____// current token
-    let data_type = parse_data_type(iter)?;
-    consume_right_paren(iter)?;
-
-    Ok(data_type)
 }
 
 fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
@@ -280,6 +282,125 @@ fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, Compi
         }
     };
     Ok(data_type)
+}
+
+fn parse_local_node(iter: &mut PeekableIterator<Token>) -> Result<LocalNode, CompileError> {
+    // (local $name i32)  //
+    //        ^___________// current token
+    let name = maybe_identifier(iter);
+    let (memory_data_type, data_length, align) = parse_memory_data_type(iter)?;
+    consume_right_paren(iter)?;
+
+    Ok(LocalNode {
+        name,
+        memory_data_type,
+        data_length,
+        align,
+    })
+}
+
+fn parse_locals_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<LocalNode>, CompileError> {
+    // (locals i32 i64 f32 f64)  //
+    //         ^_________________// current token
+
+    let mut local_nodes: Vec<LocalNode> = vec![];
+
+    while matches!(iter.peek(0), &Some(Token::Symbol(_)))
+        || matches!(iter.peek(0), &Some(Token::LeftParen))
+    {
+        let (memory_data_type, data_length, align) = parse_memory_data_type(iter)?;
+        local_nodes.push(LocalNode {
+            name: None,
+            memory_data_type,
+            data_length,
+            align,
+        });
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok(local_nodes)
+}
+
+// return '(memory data type, data length, align)'
+fn parse_memory_data_type(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<(MemoryDataType, u32, u16), CompileError> {
+    // (local i32)  //
+    //        ^_____// current token
+    //
+    // (local (bytes 12 8))  //
+    //        ^______________// current token
+
+    let dt = match iter.next() {
+        Some(token) => match token {
+            Token::LeftParen => {
+                let (data_length, align) = parse_memory_data_type_bytes(iter)?;
+                (MemoryDataType::BYTES, data_length, align)
+            }
+            Token::Symbol(data_type_name) => match data_type_name.as_str() {
+                "i32" => (MemoryDataType::I32, 4, 4),
+                "i64" => (MemoryDataType::I64, 8, 8),
+                "f32" => (MemoryDataType::F32, 4, 4),
+                "f64" => (MemoryDataType::F64, 8, 8),
+                _ => {
+                    return Err(CompileError::new(&format!(
+                        "Unknown memory data type: {}",
+                        data_type_name
+                    )))
+                }
+            },
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Expect memory data type, actual: {:?}",
+                    token
+                )))
+            }
+        },
+        None => return Err(CompileError::new("Missing memory data type")),
+    };
+
+    Ok(dt)
+}
+
+// return '(data length, align)'
+fn parse_memory_data_type_bytes(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<(u32, u16), CompileError> {
+    // (local (bytes 12 8))  //
+    //         ^_____________// current token
+    //
+    // node 'bytes' syntax:
+    // '(bytes length align)'
+
+    consume_symbol(iter, "bytes")?;
+    let length_string = expect_number(iter, "the length of memory data type bytes")?;
+    let align_string = expect_number(iter, "the align of memory data type bytes")?;
+
+    let length = u32::from_str_radix(&length_string, 10).map_err(|_| {
+        CompileError::new(&format!(
+            "The length of memory data type bytes '{}' is not a valid number.",
+            length_string
+        ))
+    })?;
+
+    let align = u16::from_str_radix(&align_string, 10).map_err(|_| {
+        CompileError::new(&format!(
+            "The align of memory data type bytes '{}' is not a valid number.",
+            align_string
+        ))
+    })?;
+
+    if align <= 0 || align > 8 {
+        return Err(CompileError::new(&format!(
+            "The range of align of memory data type bytes should be 1 to 8, actual: '{}'.",
+            align
+        )));
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok((length, align))
 }
 
 // helper functions
@@ -330,6 +451,10 @@ fn consume_left_paren(
 
 fn consume_right_paren(iter: &mut PeekableIterator<Token>) -> Result<(), CompileError> {
     consume_token(iter, Token::RightParen)
+}
+
+fn consume_symbol(iter: &mut PeekableIterator<Token>, name: &str) -> Result<(), CompileError> {
+    consume_token(iter, Token::new_symbol(name))
 }
 
 fn expect_identifier(
@@ -427,10 +552,10 @@ fn maybe_identifier(iter: &mut PeekableIterator<Token>) -> Option<String> {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use ancvm_types::{CompileError, DataType};
+    use ancvm_types::{CompileError, DataType, MemoryDataType};
 
     use crate::{
-        ast::{FuncNode, ModuleElementNode, ModuleNode, ParamNode},
+        ast::{FuncNode, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
         lexer::lex,
         peekable_iterator::PeekableIterator,
     };
@@ -477,7 +602,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_function_node() {
+    fn test_parse_function_node_signature() {
         assert_eq!(
             parse_from_str(
                 r#"
@@ -507,6 +632,150 @@ mod tests {
                     ],
                     results: vec![DataType::I32, DataType::I64,],
                     locals: vec![]
+                })]
+            }
+        );
+
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "main" (runtime_version "1.0")
+                (func $add (params i32 i64 f32 f64) (results i32 f32)
+                )
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("add".to_owned()),
+                    params: vec![
+                        ParamNode {
+                            name: None,
+                            data_type: DataType::I32
+                        },
+                        ParamNode {
+                            name: None,
+                            data_type: DataType::I64
+                        },
+                        ParamNode {
+                            name: None,
+                            data_type: DataType::F32
+                        },
+                        ParamNode {
+                            name: None,
+                            data_type: DataType::F64
+                        }
+                    ],
+                    results: vec![DataType::I32, DataType::F32,],
+                    locals: vec![]
+                })]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_function_node_local_variables() {
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "main" (runtime_version "1.0")
+                (func $add
+                    (local $sum i32) (local $count i64) (local $db (bytes 12 8)) (local $average f32)
+                )
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("add".to_owned()),
+                    params: vec![],
+                    results: vec![],
+                    locals: vec![
+                        LocalNode {
+                            name: Some("sum".to_owned()),
+                            memory_data_type: MemoryDataType::I32,
+                            data_length: 4,
+                            align: 4
+                        },
+                        LocalNode {
+                            name: Some("count".to_owned()),
+                            memory_data_type: MemoryDataType::I64,
+                            data_length: 8,
+                            align: 8
+                        },
+                        LocalNode {
+                            name: Some("db".to_owned()),
+                            memory_data_type: MemoryDataType::BYTES,
+                            data_length: 12,
+                            align: 8
+                        },
+                        LocalNode {
+                            name: Some("average".to_owned()),
+                            memory_data_type: MemoryDataType::F32,
+                            data_length: 4,
+                            align: 4
+                        },
+                    ]
+                })]
+            }
+        );
+
+        assert_eq!(
+            parse_from_str(
+                r#"
+                (module "main" (runtime_version "1.0")
+                (func $add
+                    (locals i32 i64 (bytes 12 8) f32)
+                )
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("add".to_owned()),
+                    params: vec![],
+                    results: vec![],
+                    locals: vec![
+                        LocalNode {
+                            name: None,
+                            memory_data_type: MemoryDataType::I32,
+                            data_length: 4,
+                            align: 4
+                        },
+                        LocalNode {
+                            name: None,
+                            memory_data_type: MemoryDataType::I64,
+                            data_length: 8,
+                            align: 8
+                        },
+                        LocalNode {
+                            name: None,
+                            memory_data_type: MemoryDataType::BYTES,
+                            data_length: 12,
+                            align: 8
+                        },
+                        LocalNode {
+                            name: None,
+                            memory_data_type: MemoryDataType::F32,
+                            data_length: 4,
+                            align: 4
+                        },
+                    ]
                 })]
             }
         );

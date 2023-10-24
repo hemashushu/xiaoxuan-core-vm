@@ -39,6 +39,11 @@ pub struct ParamNode {
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalNode {
     pub name: Option<String>,
-    pub data_type: MemoryDataType,
+    pub memory_data_type: MemoryDataType,
     pub data_length: u32,
+
+    // if the data is a byte array (includes string), the value should be 1,
+    // if the data is a struct, the value should be the max one of the length of its fields.
+    // currently the MAX value of align is 8, MIN value is 1.
+    pub align: u16,
 }
