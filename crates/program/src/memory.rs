@@ -2,7 +2,7 @@
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE and CONTRIBUTING.
+// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 /// in XiaoXuan VM, there are several objects belong to the memory class,
 /// includes the local variable area, (thread-local) data sections, stack, (thread_context-local) heap.

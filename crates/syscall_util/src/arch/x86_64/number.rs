@@ -2,7 +2,7 @@
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE and CONTRIBUTING.
+// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 // the following definition come from Linux (kernel 6.3.3) source file:
 // 'arch/x86/entry/syscalls/syscall_64.tbl'

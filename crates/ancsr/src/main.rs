@@ -2,7 +2,7 @@
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE and CONTRIBUTING.
+// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 // a script application may consist of a single script file, or several script files.
 // in either case, these script files will be compiled into a single module image file
