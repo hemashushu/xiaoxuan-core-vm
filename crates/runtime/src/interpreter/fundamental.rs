@@ -118,10 +118,7 @@ mod tests {
         let mut thread_context0 = program0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::UInt32(0)]
-        );
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(0)]);
     }
 
     #[test]

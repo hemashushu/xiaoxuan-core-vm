@@ -32,7 +32,7 @@
 
 ```clojure
 (module
-    (func $add (param $lhs i32) (param $rhs i32) (result i32)
+    (function $add (param $lhs i32) (param $rhs i32) (result i32)
         (local $sum i32)            ;; local variables
         (code                       ;; code node, there will be a series of instructions in this node.
             (local.load_index $lhs)        ;; one instruction per line
@@ -42,10 +42,10 @@
             (local.store_index $sum)
         )
     )
-    (func $sub (type $binary_op)    ;; the type of a function can be a lable of a defined type
+    (function $sub (type $binary_op)    ;; the type of a function can be a lable of a defined type
         ...
     )
-    (func $mul (type 1)             ;; the type of a function can also be an index of a defined type
+    (function $mul (type 1)             ;; the type of a function can also be an index of a defined type
         ...
     )
 )
@@ -55,7 +55,7 @@
 
 ```clojure
 (module
-    (func
+    (function
         (local.load 0)
         (local.load 1)
         (i32.lt)
@@ -82,7 +82,7 @@
 
 ```clojure
 (module
-    (func
+    (function
         (code
             (block $blk0
                 ...
@@ -180,10 +180,10 @@ import data, variables and functions from external modules.
 ```clojure
 (module
     (import $m0 "add"                                       ;; target module index and the symbol name
-        (func $add (param i32) (param i32) (result i32))    ;; import function
+        (function $add (param i32) (param i32) (result i32))    ;; import function
     )
     (import $m0 "add"
-        (func $add (type $binary_op))                       ;; import function with speicified type
+        (function $add (type $binary_op))                       ;; import function with speicified type
     )
     (import $m0 "message"                                   ;; target module index and the symbol name
         (data $message i32)                                 ;; import variable
@@ -195,7 +195,7 @@ import data, variables and functions from external modules.
 
 ```clojure
 (module
-    (func
+    (function
         (local i32)         ;;
         (local i64)         ;; two local variables
 
@@ -253,7 +253,7 @@ import data, variables and functions from external modules.
     ;; line comment
     ;; another line comment
     (name "math")   ;; comment at the ending of line
-    (func
+    (function
         (; inline comment ;)
         (;
             block comment
@@ -270,7 +270,7 @@ import data, variables and functions from external modules.
 ```clojure
 (module
     (data $num (datatype i64) (value 100))      ;; define a data
-    (func $sub                                  ;; define a function
+    (function $sub                                  ;; define a function
         (param i32 i32)
         (result i32)
         (code
@@ -282,7 +282,7 @@ import data, variables and functions from external modules.
 
     ;; export data and functions
     (export "num" (data $num))
-    (export "sub" (func $sub))
+    (export "sub" (function $sub))
 )
 ```
 

@@ -172,17 +172,18 @@ pub enum Opcode {
     //
     // fundamental
     //
-    zero = 0x100,               // push 0 (i64) onto stack
-    drop,                       // drop one operand (the top most operand)
-    duplicate,                  // duplicate one operand (the top most operand)
-    swap,                       // swap the top two operands
-    select_nez,                 // pop operands a,b and c, push c if a!=0, otherwise push b.
+    zero = 0x100,               // push 0 (i64) onto stack                          () -> i64
+    drop,                       // drop one operand (the top most operand)          (operand op:any) -> ()
+    duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
+    swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
+    select_nez,                 // pop operands a,b and c, push c if a!=0,          (operand test:i32 when_false:any when_true:any) -> any
+                                // otherwise push b.
                                 // b and c should be the same data type.
 
-    i32_imm = 0x180,            // (param immediate_number:i32)
-    i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
-    f32_imm,                    // (param immediate_number:i32)
-    f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32)
+    i32_imm = 0x180,            // (param immediate_number:i32) -> i32
+    i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> i64
+    f32_imm,                    // (param immediate_number:i32) -> f32
+    f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> f64
 
     // some ISA (VM or real machine) place the immediate numbers in a list of constants
     // in the program image, and then load the constants by address to archieve the
@@ -237,31 +238,31 @@ pub enum Opcode {
     // this feature can be used as a trick to improve performance, but the XiaoXuan ISA doesn't
     // provide this feature. please note that to access arguments you should always using the index.
 
-    local_load = 0x200,         // load local variable              (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32,               //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32_i16_s,         //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32_i16_u,         //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32_i8_s,          //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32_i8_u,          //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load_f64,             // Load f64 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_load32_f32,           // Load f32 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_store,                // store local variable             (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_store32,              //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_store16,              //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
-    local_store8,               //                                  (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    local_load = 0x200,         // load local variable      (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load32,               //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
+    local_load32_i16_s,         //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
+    local_load32_i16_u,         //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
+    local_load32_i8_s,          //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
+    local_load32_i8_u,          //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
+    local_load_f64,             // Load f64 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f64
+    local_load32_f32,           // Load f32 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f32
+    local_store,                // store local variable     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i64) -> ()
+    local_store32,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_store16,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_store8,               //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
 
-    local_long_load = 0x280,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32,          //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i16_s,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i16_u,    //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i8_s,     //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_i8_u,     //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load_f64,        //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_load32_f32,      //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store,           //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store32,         //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store16,         //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    local_long_store8,          //                                  (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+    local_long_load = 0x280,    //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_long_load32,          //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
+    local_long_load32_i16_s,    //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
+    local_long_load32_i16_u,    //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
+    local_long_load32_i8_s,     //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
+    local_long_load32_i8_u,     //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
+    local_long_load_f64,        //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f64
+    local_long_load32_f32,      //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f32
+    local_long_store,           //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i64 offset_bytes:i32) -> ()
+    local_long_store32,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
+    local_long_store16,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
+    local_long_store8,          //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
 
     // note:
     // - there are 2 sets of local load/store instructions, one set is the
@@ -278,36 +279,36 @@ pub enum Opcode {
     // pop one operand off the stack and set the specified data
     //
 
-    data_load = 0x300,          // load data                        (param offset_bytes:i16 data_public_index:i32)
-    data_load32,                //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_load32_i16_s,          //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_load32_i16_u,          //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_load32_i8_s,           //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_load32_i8_u,           //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32)
-    data_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32)
-    data_store,                 // store data                       (param offset_bytes:i16 data_public_index:i32)
-    data_store32,               //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_store16,               //                                  (param offset_bytes:i16 data_public_index:i32)
-    data_store8,                //                                  (param offset_bytes:i16 data_public_index:i32)
+    data_load = 0x300,          // load data                (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load32,                //                          (param offset_bytes:i16 data_public_index:i32) -> i32
+    data_load32_i16_s,          //                          (param offset_bytes:i16 data_public_index:i32) -> i32
+    data_load32_i16_u,          //                          (param offset_bytes:i16 data_public_index:i32) -> i32
+    data_load32_i8_s,           //                          (param offset_bytes:i16 data_public_index:i32) -> i32
+    data_load32_i8_u,           //                          (param offset_bytes:i16 data_public_index:i32) -> i32
+    data_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f64
+    data_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f32
+    data_store,                 // store data               (param offset_bytes:i16 data_public_index:i32)      (operand number:i64) -> ()
+    data_store32,               //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
+    data_store16,               //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
+    data_store8,                //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
 
     // there are also 2 sets of data load/store instructions, one set is the
     // data_load.../data_store.., they are designed to access primitive type data
     // and struct data, the other set is the data_long_load.../data_long_store..., they
     // are designed to access long byte-type data.
 
-    data_long_load = 0x380,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32,           //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i16_s,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i16_u,     //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i8_s,      //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32_i8_u,      //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load_f64,         //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_load32_f32,       //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_store,            //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_store32,          //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_store16,          //                                  (param data_public_index:i32) (operand offset_bytes:i32)
-    data_long_store8,           //                                  (param data_public_index:i32) (operand offset_bytes:i32)
+    data_long_load = 0x380,     //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_long_load32,           //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
+    data_long_load32_i16_s,     //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
+    data_long_load32_i16_u,     //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
+    data_long_load32_i8_s,      //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
+    data_long_load32_i8_u,      //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
+    data_long_load_f64,         //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> f64
+    data_long_load32_f32,       //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> f32
+    data_long_store,            //                                  (param data_public_index:i32)   (operand number:i64 offset_bytes:i32) -> ()
+    data_long_store32,          //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
+    data_long_store16,          //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
+    data_long_store8,           //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
 
     //
     // heap (thread-local memory) loading and storing
@@ -320,18 +321,18 @@ pub enum Opcode {
     // the latter instructions leave the value of the high part of
     // operand (on the stack) undefined/unpredictable.
 
-    heap_load = 0x400,          // load heap                        (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32,                //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i16_s,          //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i16_u,          //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i8_s,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_i8_u,           //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store,                 // store heap                       (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store32,               //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store16,               //                                  (param offset_bytes:i16) (operand heap_addr:i64)
-    heap_store8,                //                                  (param offset_bytes:i16) (operand heap_addr:i64)
+    heap_load = 0x400,          // load heap                        (param offset_bytes:i16)    (operand heap_addr:i64) -> i64
+    heap_load32,                //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
+    heap_load32_i16_s,          //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
+    heap_load32_i16_u,          //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
+    heap_load32_i8_s,           //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
+    heap_load32_i8_u,           //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
+    heap_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f64
+    heap_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f32
+    heap_store,                 // store heap                       (param offset_bytes:i16)    (operand number:i64 heap_addr:i64) -> ()
+    heap_store32,               //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
+    heap_store16,               //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
+    heap_store8,                //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
 
     //
     // conversion
@@ -339,38 +340,38 @@ pub enum Opcode {
 
     // truncate i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_trunc_i64 = 0x500,
+    i32_trunc_i64 = 0x500,      // (operand number:i64) -> i32
 
     // extend i32 to i64
-    i64_extend_i32_s,
-    i64_extend_i32_u,
+    i64_extend_i32_s,           // (operand number:i32) -> i64
+    i64_extend_i32_u,           // (operand number:i32) -> i64
 
     // demote f64 to f32
-    f32_demote_f64,
+    f32_demote_f64,             // (operand number:f64) -> f32
 
     // promote f32 to f64
-    f64_promote_f32,
+    f64_promote_f32,            // (operand number:i32) -> f64
 
     // convert float to int
     // truncate fractional part
-    i32_convert_f32_s,
-    i32_convert_f32_u,            // note -x.xx(float) -> 0(int)
-    i32_convert_f64_s,
-    i32_convert_f64_u,            // note -x.xx(float) -> 0(int)
-    i64_convert_f32_s,
-    i64_convert_f32_u,            // note -x.xx(float) -> 0(int)
-    i64_convert_f64_s,
-    i64_convert_f64_u,            // note -x.xx(float) -> 0(int)
+    i32_convert_f32_s,          //                                  (operand number:f32) -> i32
+    i32_convert_f32_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i32
+    i32_convert_f64_s,          //                                  (operand number:f64) -> i32
+    i32_convert_f64_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i32
+    i64_convert_f32_s,          //                                  (operand number:f32) -> i64
+    i64_convert_f32_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i64
+    i64_convert_f64_s,          //                                  (operand number:f64) -> i64
+    i64_convert_f64_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i64
 
     // convert int to float
-    f32_convert_i32_s,
-    f32_convert_i32_u,
-    f32_convert_i64_s,
-    f32_convert_i64_u,
-    f64_convert_i32_s,
-    f64_convert_i32_u,
-    f64_convert_i64_s,
-    f64_convert_i64_u,
+    f32_convert_i32_s,          // (operand number:i32) -> f32
+    f32_convert_i32_u,          // (operand number:i32) -> f32
+    f32_convert_i64_s,          // (operand number:i64) -> f32
+    f32_convert_i64_u,          // (operand number:i64) -> f32
+    f64_convert_i32_s,          // (operand number:i32) -> f64
+    f64_convert_i32_u,          // (operand number:i32) -> f64
+    f64_convert_i64_s,          // (operand number:i64) -> f64
+    f64_convert_i64_u,          // (operand number:i64) -> f64
 
     //
     // comparsion
@@ -424,59 +425,59 @@ pub enum Opcode {
     // ;; \----/
     // ```
 
-    i32_eqz = 0x600,
-    i32_nez,
-    i32_eq,
-    i32_ne,
-    i32_lt_s,
-    i32_lt_u,
-    i32_gt_s,
-    i32_gt_u,
-    i32_le_s,                   // redundant
-    i32_le_u,                   // redundant
-    i32_ge_s,                   // redundant
-    i32_ge_u,                   // redundant
+    i32_eqz = 0x600,            // (operand number:i32) -> i32
+    i32_nez,                    // (operand number:i32) -> i32
+    i32_eq,                     // (operand left:i32 right:i32) -> i32
+    i32_ne,                     // (operand left:i32 right:i32) -> i32
+    i32_lt_s,                   // (operand left:i32 right:i32) -> i32
+    i32_lt_u,                   // (operand left:i32 right:i32) -> i32
+    i32_gt_s,                   // (operand left:i32 right:i32) -> i32
+    i32_gt_u,                   // (operand left:i32 right:i32) -> i32
+    i32_le_s,                   // redundant    (operand left:i32 right:i32) -> i32
+    i32_le_u,                   // redundant    (operand left:i32 right:i32) -> i32
+    i32_ge_s,                   // redundant    (operand left:i32 right:i32) -> i32
+    i32_ge_u,                   // redundant    (operand left:i32 right:i32) -> i32
 
-    i64_eqz,
-    i64_nez,
-    i64_eq,
-    i64_ne,
-    i64_lt_s,
-    i64_lt_u,
-    i64_gt_s,
-    i64_gt_u,
-    i64_le_s,                   // redundant
-    i64_le_u,                   // redundant
-    i64_ge_s,                   // redundant
-    i64_ge_u,                   // redundant
+    i64_eqz,                    // (operand number:i64) -> i32
+    i64_nez,                    // (operand number:i64) -> i32
+    i64_eq,                     // (operand left:i64 right:i64) -> i32
+    i64_ne,                     // (operand left:i64 right:i64) -> i32
+    i64_lt_s,                   // (operand left:i64 right:i64) -> i32
+    i64_lt_u,                   // (operand left:i64 right:i64) -> i32
+    i64_gt_s,                   // (operand left:i64 right:i64) -> i32
+    i64_gt_u,                   // (operand left:i64 right:i64) -> i32
+    i64_le_s,                   // redundant    (operand left:i64 right:i64) -> i32
+    i64_le_u,                   // redundant    (operand left:i64 right:i64) -> i32
+    i64_ge_s,                   // redundant    (operand left:i64 right:i64) -> i32
+    i64_ge_u,                   // redundant    (operand left:i64 right:i64) -> i32
 
-    f32_eq,
-    f32_ne,
-    f32_lt,
-    f32_gt,
-    f32_le,
-    f32_ge,
+    f32_eq,                     // (operand left:f32 right:f32) -> i32
+    f32_ne,                     // (operand left:f32 right:f32) -> i32
+    f32_lt,                     // (operand left:f32 right:f32) -> i32
+    f32_gt,                     // (operand left:f32 right:f32) -> i32
+    f32_le,                     // (operand left:f32 right:f32) -> i32
+    f32_ge,                     // (operand left:f32 right:f32) -> i32
 
-    f64_eq,
-    f64_ne,
-    f64_lt,
-    f64_gt,
-    f64_le,
-    f64_ge,
+    f64_eq,                     // (operand left:f64 right:f64) -> i32
+    f64_ne,                     // (operand left:f64 right:f64) -> i32
+    f64_lt,                     // (operand left:f64 right:f64) -> i32
+    f64_gt,                     // (operand left:f64 right:f64) -> i32
+    f64_le,                     // (operand left:f64 right:f64) -> i32
+    f64_ge,                     // (operand left:f64 right:f64) -> i32
 
     //
     // arithmetic
     //
 
-    i32_add = 0x700,
-    i32_sub,
-    i32_mul,
-    i32_div_s,
-    i32_div_u,
-    i32_rem_s,                  // calculate the remainder
-    i32_rem_u,
-    i32_inc,                    // (param amount:i16)
-    i32_dec,                    // (param amount:i16)
+    i32_add = 0x700,            // (operand left:i32 right:i32) -> i32
+    i32_sub,                    // (operand left:i32 right:i32) -> i32
+    i32_mul,                    // (operand left:i32 right:i32) -> i32
+    i32_div_s,                  // (operand left:i32 right:i32) -> i32
+    i32_div_u,                  // (operand left:i32 right:i32) -> i32
+    i32_rem_s,                  // calculate the remainder      (operand left:i32 right:i32) -> i32
+    i32_rem_u,                  // (operand left:i32 right:i32) -> i32
+    i32_inc,                    // (param amount:i16) (operand number:i32) -> i32
+    i32_dec,                    // (param amount:i16) (operand number:i32) -> i32
 
     // remainder vs modulus
     // --------------------
@@ -539,25 +540,25 @@ pub enum Opcode {
     // i32.rem_u
     // ```
 
-    i64_add,
-    i64_sub,
-    i64_mul,
-    i64_div_s,
-    i64_div_u,
-    i64_rem_s,
-    i64_rem_u,
-    i64_inc,                    // (param amount:i16)
-    i64_dec,                    // (param amount:i16)
+    i64_add,                    // (operand left:i64 right:i64) -> i64
+    i64_sub,                    // (operand left:i64 right:i64) -> i64
+    i64_mul,                    // (operand left:i64 right:i64) -> i64
+    i64_div_s,                  // (operand left:i64 right:i64) -> i64
+    i64_div_u,                  // (operand left:i64 right:i64) -> i64
+    i64_rem_s,                  // (operand left:i64 right:i64) -> i64
+    i64_rem_u,                  // (operand left:i64 right:i64) -> i64
+    i64_inc,                    // (param amount:i16) (operand number:i64) -> i64
+    i64_dec,                    // (param amount:i16) (operand number:i64) -> i64
 
-    f32_add,
-    f32_sub,
-    f32_mul,
-    f32_div,
+    f32_add,                    // (operand left:f32 right:f32) -> f32
+    f32_sub,                    // (operand left:f32 right:f32) -> f32
+    f32_mul,                    // (operand left:f32 right:f32) -> f32
+    f32_div,                    // (operand left:f32 right:f32) -> f32
 
-    f64_add,
-    f64_sub,
-    f64_mul,
-    f64_div,
+    f64_add,                    // (operand left:f64 right:f64) -> f64
+    f64_sub,                    // (operand left:f64 right:f64) -> f64
+    f64_mul,                    // (operand left:f64 right:f64) -> f64
+    f64_div,                    // (operand left:f64 right:f64) -> f64
 
     //
     // bitwise
@@ -566,18 +567,18 @@ pub enum Opcode {
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
 
-    i32_and = 0x800,            // bitwise AND
-    i32_or,                     // bitwise OR
-    i32_xor,                    // bitwise XOR
-    i32_not,                    // bitwise NOT
+    i32_and = 0x800,            // bitwise AND                  (operand left:i32 right:i32) -> i32
+    i32_or,                     // bitwise OR                   (operand left:i32 right:i32) -> i32
+    i32_xor,                    // bitwise XOR                  (operand left:i32 right:i32) -> i32
+    i32_not,                    // bitwise NOT                  (operand number:i32) -> i32
     i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
     i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
     i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
-    i32_shift_left,             // left shift                   (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_shift_right_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
-    i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32,  move_bits = [0,32)
+    i32_shift_left,             // left shift                   (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    i32_shift_right_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
 
 
     // instruction `i32.shl` example:
@@ -613,46 +614,46 @@ pub enum Opcode {
     // i32.popcnt
     // ```
 
-    i64_and,
-    i64_or,
-    i64_xor,
-    i64_not,
+    i64_and,                    // (operand left:i64 right:i64) -> i64
+    i64_or,                     // (operand left:i64 right:i64) -> i64
+    i64_xor,                    // (operand left:i64 right:i64) -> i64
+    i64_not,                    // (operand number:i64) -> i64
     i64_leading_zeros,          // (operand number:i64) -> i32
     i64_trailing_zeros,         // (operand number:i64) -> i32
     i64_count_ones,             // (operand number:i64) -> i32
-    i64_shift_left,             // left shift                   (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_shift_right_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
-    i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64,  move_bits = [0,64)
+    i64_shift_left,             // left shift                   (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    i64_shift_right_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
 
     //
     // math
     //
 
-    f32_abs = 0x900,
-    f32_neg,
-    f32_ceil,
-    f32_floor,
-    f32_round_half_away_from_zero,
-    // f32_round_half_to_even,
-    f32_trunc,                  // the integer part of x
-    f32_fract,                  // the fractional part of  x
-    f32_sqrt,                   // sqrt(x)
-    f32_cbrt,                   // cbrt(x), the cube root of x
-    f32_pow,                    // left^right
-    f32_exp,                    // e^x
-    f32_exp2,                   // 2^x
-    f32_ln,                     // log_e(x)
-    f32_log,                    // log_right(left)
-    f32_log2,                   // log_2(x)
-    f32_log10,                  // log_10(x)
-    f32_sin,
-    f32_cos,
-    f32_tan,
-    f32_asin,
-    f32_acos,
-    f32_atan,
+    f32_abs = 0x900,                // (operand number:f32) -> f32
+    f32_neg,                        // (operand number:f32) -> f32
+    f32_ceil,                       // (operand number:f32) -> f32
+    f32_floor,                      // (operand number:f32) -> f32
+    f32_round_half_away_from_zero,  // (operand number:f32) -> f32
+    // f32_round_half_to_even,      // (operand number:f32) -> f32
+    f32_trunc,                  // the integer part of x            (operand number:f32) -> f32
+    f32_fract,                  // the fractional part of  x        (operand number:f32) -> f32
+    f32_sqrt,                   // sqrt(x)                          (operand number:f32) -> f32
+    f32_cbrt,                   // cbrt(x), the cube root of x      (operand number:f32) -> f32
+    f32_pow,                    // left^right                       (operand left:f32 right:f32) -> f32
+    f32_exp,                    // e^x                              (operand number:f32) -> f32
+    f32_exp2,                   // 2^x                              (operand number:f32) -> f32
+    f32_ln,                     // log_e(x)                         (operand number:f32) -> f32
+    f32_log,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
+    f32_log2,                   // log_2(x)                         (operand number:f32) -> f32
+    f32_log10,                  // log_10(x)                        (operand number:f32) -> f32
+    f32_sin,                    // (operand number:f32) -> f32
+    f32_cos,                    // (operand number:f32) -> f32
+    f32_tan,                    // (operand number:f32) -> f32
+    f32_asin,                   // (operand number:f32) -> f32
+    f32_acos,                   // (operand number:f32) -> f32
+    f32_atan,                   // (operand number:f32) -> f32
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -663,29 +664,29 @@ pub enum Opcode {
     // ref:
     // https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero
 
-    f64_abs,
-    f64_neg,
-    f64_ceil,
-    f64_floor,
-    f64_round_half_away_from_zero,
-    // f64_round_half_to_even,
-    f64_trunc,
-    f64_fract,
-    f64_sqrt,
-    f64_cbrt,
-    f64_pow,
-    f64_exp,
-    f64_exp2,
-    f64_ln,
-    f64_log,
-    f64_log2,
-    f64_log10,
-    f64_sin,
-    f64_cos,
-    f64_tan,
-    f64_asin,
-    f64_acos,
-    f64_atan,
+    f64_abs,                        // (operand number:f64) -> f64
+    f64_neg,                        // (operand number:f64) -> f64
+    f64_ceil,                       // (operand number:f64) -> f64
+    f64_floor,                      // (operand number:f64) -> f64
+    f64_round_half_away_from_zero,  // (operand number:f64) -> f64
+    // f64_round_half_to_even,      // (operand number:f64) -> f64
+    f64_trunc,                  // (operand number:f64) -> f64
+    f64_fract,                  // (operand number:f64) -> f64
+    f64_sqrt,                   // (operand number:f64) -> f64
+    f64_cbrt,                   // (operand number:f64) -> f64
+    f64_pow,                    // (operand left:f32 right:f32) -> f64
+    f64_exp,                    // (operand number:f64) -> f64
+    f64_exp2,                   // (operand number:f64) -> f64
+    f64_ln,                     // (operand number:f64) -> f64
+    f64_log,                    // (operand left:f32 right:f32) -> f64
+    f64_log2,                   // (operand number:f64) -> f64
+    f64_log10,                  // (operand number:f64) -> f64
+    f64_sin,                    // (operand number:f64) -> f64
+    f64_cos,                    // (operand number:f64) -> f64
+    f64_tan,                    // (operand number:f64) -> f64
+    f64_asin,                   // (operand number:f64) -> f64
+    f64_acos,                   // (operand number:f64) -> f64
+    f64_atan,                   // (operand number:f64) -> f64
 
     //
     // control flow
@@ -1061,27 +1062,27 @@ pub enum Opcode {
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
     // | if ..a.. {        | (if (a)           | block_nez -\       |
-    // |    ..b..          |   (then ..b..)    |   ..b..    |       |
+    // |    ..b..          |     (b)           |   ..b..    |       |
     // | }                 | )                 | end        |       |
     // |                   |                   | ...    <---/       |
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
-    // | if ..a.. {        | (if (a)           | block_alt ---\     |
-    // |    ..b..          |   (then ..b..)    |   ..b..      |     |
-    // | } else {          |   (else ..c..)    |   break 0  --|-\   |
+    // | if ..a.. {        | (cond (a)         | block_alt ---\     |
+    // |    ..b..          |       (b)         |   ..b..      |     |
+    // | } else {          |       (c)         |   break 0  --|-\   |
     // |    ..c..          | )                 |   ..c..  <---/ |   |
     // | }                 |                   | end            |   |
     // |                   |                   | ...      <-----/   |
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
-    // | if ..a.. {        | (if (a)           | block_alt ---\     |
-    // |    ..b..          |   (then ..b..)    |   ..b..      |     |
-    // | } else if ..c.. { |   (else (if (c)   |   break 0 ---|--\  |
-    // |    ..d..          |      (then ..d..) |   ..c..  <---/  |  |
-    // | } else {          |      (else ..e..) |   block_alt --\ |  |
-    // |    ..e..          |     )             |     ..d..     | |  |
-    // | }                 |   )               |     break 1 --|-|  |
-    // |                   | )                 |     ..e..  <--/ |  |
+    // | if ..a.. {        | (cond (a)         | block_alt ---\     |
+    // |    ..b..          |       (b)         |   ..b..      |     |
+    // | } else if ..c.. { |       (cond (c)   |   break 0 ---|--\  |
+    // |    ..d..          |             (d)   |   ..c..  <---/  |  |
+    // | } else {          |             (e)   |   block_alt --\ |  |
+    // |    ..e..          |       )           |     ..d..     | |  |
+    // | }                 | )                 |     break 1 --|-|  |
+    // |                   |                   |     ..e..  <--/ |  |
     // |                   |                   |   end           |  |
     // |                   |                   | end             |  |
     // |                   |                   | ...        <----/  |
@@ -1089,9 +1090,9 @@ pub enum Opcode {
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    |
     // |                   | (branch           | block              | // note:
-    // |                   |   (case (a) ..b.) |   ..a..            | //
-    // |                   |   (case (c) ..d.) |   block_nez -\     | // 'block_nez + x_imm/x_loadx + break N + end'
-    // |                   |   (default ..e..) |     ..b..    |     | // can be optimized as:
+    // |                   |   (case (a) (b))  |   ..a..            | //
+    // |                   |   (case (c) (d))  |   block_nez -\     | // 'block_nez + x_imm/x_loadx + break N + end'
+    // |                   |   (default (e))   |     ..b..    |     | // can be optimized as:
     // |                   | )                 |     break 1 -|--\  | // 'x_imm/x_loadx + swap + break_nez N-1 + drop'
     // |                   |                   |   end        |  |  |
     // |                   |                   |   ..c..  <---/  |  |
@@ -1108,10 +1109,10 @@ pub enum Opcode {
     //
     // | structure         | assembly          | instructions(s)    |
     // |-------------------|-------------------|--------------------|
-    // | loop {            | (for              | block              |
+    // | loop {            | (for (code        | block              |
     // |    ...            |   ...             |   ...   <--\       |
     // | }                 |   (recur ...)     |   recur 0 -/       |
-    // |                   | )                 | end                |
+    // |                   | ))                | end                |
     // |-------------------|-------------------|--------------------|
     // | while ..a.. {     |                   | block              |
     // |    ...            |                   |   ..a..   <----\   |
@@ -1123,13 +1124,13 @@ pub enum Opcode {
     // |                   |                   |                    |
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    |
-    // |                   | (for              | block              |
-    // |                   |    (if (a)        |   ..a..    <---\   |
-    // |                   |      (then ...    |   block_nez    |   |
+    // |                   | (for (code        | block              |
+    // |                   |   (if (a)         |   ..a..    <---\   |
+    // |                   |     (code ...     |   block_nez    |   |
     // |                   |       (recur ...) |     ...        |   |
-    // |                   |      )            |     recur 1 ---/   |
-    // |                   |    )              |   end              |
-    // |                   | )                 | end                |
+    // |                   |     )             |     recur 1 ---/   |
+    // |                   |   )               |   end              |
+    // |                   | ))                | end                |
     // |                   |                   |                    |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
@@ -1141,14 +1142,14 @@ pub enum Opcode {
     // |                   |                   |                    |
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    |
-    // |                   | (for              | block              |
+    // |                   | (for (code        | block              |
     // |                   |   ...             |   ...      <---\   |
     // |                   |   (if (a)         |   ..a..        |   |
-    // |                   |     (then         |   block_nez    |   |
-    // |                   |       (recur ...) |     recur 1 ---/   |
-    // |                   |     )             |   end              |
-    // |                   |   )               | end                |
-    // |                   | )                 |                    |
+    // |                   |     (recur ...)   |   block_nez    |   |
+    // |                   |   )               |     recur 1 ---/   |
+    // |                   | ))                |   end              |
+    // |                   |                   | end                |
+    // |                   |                   |                    |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
     //
@@ -1158,13 +1159,13 @@ pub enum Opcode {
     // | structure         | assembly          | instructions(s)    |
     // |-------------------|-------------------|--------------------|
     // | func foo {        | (func             | -- func begin --   |
-    // |    ...            |   ...             |   ...   <-------\  |
-    // |    if ..a.. {     |   (if (a)         |   ..a..         |  |
-    // |      foo()        |     (then         |   block_nez --\ |  |
-    // |    }              |       (tcall ...) |     recur 1 --|-/  |
-    // | }                 |     )             |   end         |    |
-    // |                   |   )               | end      <----/    |
-    // |                   | )                 |                    |
+    // |    ...            |   (code ...       |   ...   <-------\  |
+    // |    if ..a.. {     |     (if (a)       |   ..a..         |  |
+    // |      foo()        |       (tcall ...) |   block_nez --\ |  |
+    // |    }              |     )             |     recur 1 --|-/  |
+    // | }                 |   )               |   end         |    |
+    // |                   | )                 | end      <----/    |
+    // |                   |                   |                    |
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    | // note:
     // |                   |                   | -- func begin --   | //
@@ -1174,15 +1175,15 @@ pub enum Opcode {
     // |                   |                   | end                |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
-    // | func foo {        | (func             | -- func begin --   |
-    // |    if ..a.. {     |   (if (a)         |   ..a.. <------\   |
-    // |       ..b..       |     (then ..b..)  |   block_alt -\ |   |
-    // |    } else {       |     (else         |     ..b..    | |   |
+    // | func foo {        | (func (code       | -- func begin --   |
+    // |    if ..a.. {     |   (cond (a)       |   ..a.. <------\   |
+    // |       ..b..       |     (b)           |   block_alt -\ |   |
+    // |    } else {       |     (code         |     ..b..    | |   |
     // |       ..c..       |       ..c..       |     break 0 -|-|-\ |
     // |       foo()       |       (tcall ...) |     ..c.. <--/ | | |
     // |    }              |     )             |     recur 1 ---/ | |
     // | }                 |   )               |   end            | |
-    // |                   | )                 | end         <----/ |
+    // |                   | ))                | end         <----/ |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
     //
@@ -1192,36 +1193,36 @@ pub enum Opcode {
     // | structure         | assembly          | instructions(s)    |
     // |-------------------|-------------------|--------------------|
     // |                   |                   |                    |
-    // | loop {            | (for              | block              |
+    // | loop {            | (for (code        | block              |
     // |    ...            |    ...            |   ...        <---\ |
     // |    if ..a.. {     |    (if (a)        |   ..a..          | |
-    // |      break;       |      (then        |   block_nez      | |
+    // |      break;       |                   |   block_nez      | |
     // |    }              |       (break ...) |     break 1 ---\ | |
-    // |    ...            |      )            |   end          | | |
-    // | }                 |    )              |   ...          | | |
-    // |                   |    ...            |   recur 0  ----|-/ |
-    // |                   |    (recur ...)    | end            |   |
-    // |                   | )                 | ...      <-----/   |
+    // |    ...            |    )              |   end          | | |
+    // | }                 |    ...            |   ...          | | |
+    // |                   |    (recur ...)    |   recur 0  ----|-/ |
+    // |                   | ))                | end            |   |
+    // |                   |                   | ...      <-----/   |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
-    // | func foo {        | (func             | -- func begin --   |
+    // | func foo {        | (func (code       | -- func begin --   |
     // |    ...            |   ...             |   ...              |
     // |    if ..a.. {     |   (if (a)         |   ..a..            |
-    // |      return ...;  |     (then         |   block_nez        |
+    // |      return ...;  |                   |   block_nez        |
     // |    }              |       (return ..) |     break 1  ---\  |
-    // |    ...            |     )             |   end           |  |
-    // | }                 |   )               |   ...           |  |
-    // |                   |   ...             | end         <---/  |
-    // |                   | )                 |                    |
+    // |    ...            |   )               |   end           |  |
+    // | }                 |   ...             |   ...           |  |
+    // |                   | ))                | end         <---/  |
+    // |                   |                   |                    |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
 
     //
-    // function
+    // function call
     //
 
-    call,                       // general function call            (param func_pub_index:i32)
-    dcall,                      // dynamic function call            (operand func_pub_index:i32)
+    call = 0xb00,               // general function call            (param func_pub_index:i32) -> (...)
+    dcall,                      // dynamic function call            (operand func_pub_index:i32) -> (...)
 
     // note:
     // 'function public index' includes the imported functions, it equals to
@@ -1298,15 +1299,16 @@ pub enum Opcode {
     // )
     // ```
 
-    ecall,                      // environment call                 (param env_func_num:i32)
+    ecall,                      // environment call                 (param env_func_num:i32) -> (...)
 
     //
-    // machine
+    // host
     //
 
-    nop = 0xb00,                // instruction to do nothing,
+    nop = 0xc00,                // instruction to do nothing,
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    debug,                      // for VM debug
+    panic,                      // terminate VM
+    debug,                      // for VM debug     (operand code:u32) -> ()
 
     // get the host address of memory
     //
@@ -1326,14 +1328,16 @@ pub enum Opcode {
     // | heap               | unsafe       | controllable     | unsafe          |
     // |--------------------|--------------|------------------|-----------------|
 
-    host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64/i32
+                                //
                                 // note that the host address only valid in the current function and
                                 // in its sub-functions. when a function exited, the function stack frame
                                 // will be destroied (or modified), as well as the local variables.
-    host_addr_local_long,       // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
-    host_addr_data,             // (param offset_bytes:i16 data_public_index:i32)
-    host_addr_data_long,        // (param data_public_index:i32) (operand offset_bytes:i32)
-    host_addr_heap,             // (param offset_bytes:i16) (operand heap_addr:i64)
+                                //
+    host_addr_local_long,       // (param reversed_index:i16 local_variable_index:i32)      (operand offset_bytes:i32) -> i64/i32
+    host_addr_data,             // (param offset_bytes:i16 data_public_index:i32) -> i64/i32
+    host_addr_data_long,        // (param data_public_index:i32)                            (operand offset_bytes:i32) -> i64/i32
+    host_addr_heap,             // (param offset_bytes:i16)                                 (operand heap_addr:i64) -> i64/i32
 
 
     //
@@ -1346,4 +1350,4 @@ pub enum Opcode {
     // - https://github.com/rust-lang/rfcs/blob/master/text/2325-stable-simd.md
 }
 
-pub const MAX_OPCODE_NUMBER:usize = 0xe00;
+pub const MAX_OPCODE_NUMBER:usize = 0xd00;

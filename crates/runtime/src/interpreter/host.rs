@@ -12,8 +12,13 @@ pub fn nop(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn debug(_thread: &mut ThreadContext) -> InterpretResult {
-    InterpretResult::Debug
+pub fn panic(_thread: &mut ThreadContext) -> InterpretResult {
+    InterpretResult::Panic
+}
+
+pub fn debug(thread: &mut ThreadContext) -> InterpretResult {
+    let code = thread.stack.pop_i32_u();
+    InterpretResult::Debug(code)
 }
 
 pub fn host_addr_local(thread_context: &mut ThreadContext) -> InterpretResult {
@@ -142,7 +147,7 @@ mod tests {
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_machine() {
+    fn test_process_host_nop() {
         // bytecodes
         //
         // 0x0000 nop
@@ -183,15 +188,15 @@ mod tests {
         );
     }
 
-    fn read_memory_i64 (fv: ForeignValue) -> u64 {
-        #[cfg(target_pointer_width="64")]
+    fn read_memory_i64(fv: ForeignValue) -> u64 {
+        #[cfg(target_pointer_width = "64")]
         if let ForeignValue::UInt64(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
             0
         }
-        #[cfg(target_pointer_width="32")]
+        #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
@@ -200,15 +205,15 @@ mod tests {
         }
     }
 
-    fn read_memory_i32 (fv: ForeignValue) -> u32 {
-        #[cfg(target_pointer_width="64")]
+    fn read_memory_i32(fv: ForeignValue) -> u32 {
+        #[cfg(target_pointer_width = "64")]
         if let ForeignValue::UInt64(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
             0
         }
-        #[cfg(target_pointer_width="32")]
+        #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
@@ -217,15 +222,15 @@ mod tests {
         }
     }
 
-    fn read_memory_i16 (fv: ForeignValue) -> u16 {
-        #[cfg(target_pointer_width="64")]
+    fn read_memory_i16(fv: ForeignValue) -> u16 {
+        #[cfg(target_pointer_width = "64")]
         if let ForeignValue::UInt64(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
             0
         }
-        #[cfg(target_pointer_width="32")]
+        #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
@@ -234,15 +239,15 @@ mod tests {
         }
     }
 
-    fn read_memory_i8 (fv: ForeignValue) -> u8 {
-        #[cfg(target_pointer_width="64")]
+    fn read_memory_i8(fv: ForeignValue) -> u8 {
+        #[cfg(target_pointer_width = "64")]
         if let ForeignValue::UInt64(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
             0
         }
-        #[cfg(target_pointer_width="32")]
+        #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
@@ -290,32 +295,6 @@ mod tests {
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
-        // bytecodes
-        //
-        // 0x0000 i64_imm              0x17 0x0
-        // 0x000c data_store           0 2
-        // 0x0014 i32_imm              0x19
-        // 0x001c data_store32         0 3
-        // 0x0024 i32_imm              0x23
-        // 0x002c data_store32         0 4
-        // 0x0034 i64_imm              0x29 0x0
-        // 0x0040 data_store           0 5
-        // 0x0048 i32_imm              0x31
-        // 0x0050 local_store32        0 0 1
-        // 0x0058 i32_imm              0x37
-        // 0x0060 local_store32        0 0 2
-        // 0x0068 host_addr_data       0 0
-        // 0x0070 host_addr_data       0 1
-        // 0x0078 host_addr_data       0 2
-        // 0x0080 host_addr_data       0 3
-        // 0x0088 host_addr_data       0 4
-        // 0x0090 host_addr_data       0 5
-        // 0x0098 host_addr_local      0 0 1
-        // 0x00a0 host_addr_local      0 0 2
-        // 0x00a8 end
-        //
-        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
             .write_opcode_i16_i32(Opcode::data_store, 0, 2)
@@ -351,7 +330,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![], // params
-            #[cfg(target_pointer_width="64")]
+            #[cfg(target_pointer_width = "64")]
             vec![
                 DataType::I64,
                 DataType::I64,
@@ -362,7 +341,7 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            #[cfg(target_pointer_width="32")]
+            #[cfg(target_pointer_width = "32")]
             vec![
                 DataType::I32,
                 DataType::I32,
@@ -438,30 +417,6 @@ mod tests {
         //
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
-        // bytecodes
-        //
-        // 0x0000 i64_imm              0x37312923 0x53474341
-        // 0x000c local_store          0 0 1
-        // 0x0014 i32_imm              0x0
-        // 0x001c host_addr_data_long  0
-        // 0x0024 i32_imm              0x2
-        // 0x002c host_addr_data_long  0
-        // 0x0034 i32_imm              0x2
-        // 0x003c host_addr_data_long  1
-        // 0x0044 i32_imm              0x3
-        // 0x004c host_addr_data_long  1
-        // 0x0054 i32_imm              0x0
-        // 0x005c host_addr_local_long 0 1
-        // 0x0064 i32_imm              0x3
-        // 0x006c host_addr_local_long 0 1
-        // 0x0074 i32_imm              0x6
-        // 0x007c host_addr_local_long 0 1
-        // 0x0084 i32_imm              0x7
-        // 0x008c host_addr_local_long 0 1
-        // 0x0094 end
-        //
-        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
             .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 1)
@@ -491,7 +446,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![], // params
-            #[cfg(target_pointer_width="64")]
+            #[cfg(target_pointer_width = "64")]
             vec![
                 DataType::I64,
                 DataType::I64,
@@ -502,7 +457,7 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            #[cfg(target_pointer_width="32")]
+            #[cfg(target_pointer_width = "32")]
             vec![
                 DataType::I32,
                 DataType::I32,
@@ -564,32 +519,6 @@ mod tests {
         //        |0    |1      |2          |3       |4
         // () -> (i64,i64,i64,i64,i64)
 
-        // bytecodes
-        //
-        // 0x0000 i32_imm              0x1
-        // 0x0008 ecall                262
-        // 0x0010 drop
-        // 0x0012 nop
-        // 0x0014 i32_imm              0x7050302
-        // 0x001c i64_imm              0x100 0x0
-        // 0x0028 heap_store32         0
-        // 0x002c i64_imm              0x19171311 0x37312923
-        // 0x0038 i64_imm              0x200 0x0
-        // 0x0044 heap_store           0
-        // 0x0048 i64_imm              0x100 0x0
-        // 0x0054 host_addr_heap       0
-        // 0x0058 i64_imm              0x100 0x0
-        // 0x0064 host_addr_heap       2
-        // 0x0068 i64_imm              0x200 0x0
-        // 0x0074 host_addr_heap       0
-        // 0x0078 i64_imm              0x200 0x0
-        // 0x0084 host_addr_heap       4
-        // 0x0088 i64_imm              0x200 0x0
-        // 0x0094 host_addr_heap       7
-        // 0x0098 end
-        //
-        // () -> (i64,i64,i64,i64,i64)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 1)
             .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
@@ -622,7 +551,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_single_function(
             vec![], // params
-            #[cfg(target_pointer_width="64")]
+            #[cfg(target_pointer_width = "64")]
             vec![
                 DataType::I64,
                 DataType::I64,
@@ -630,7 +559,7 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            #[cfg(target_pointer_width="32")]
+            #[cfg(target_pointer_width = "32")]
             vec![
                 DataType::I32,
                 DataType::I32,

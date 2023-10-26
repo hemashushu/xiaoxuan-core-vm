@@ -151,18 +151,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_extend_and_trunc() {
-        // bytecodes
-        //
-        // 0x0000 local_load32         0 1
-        // 0x0008 i64_extend_i32_s
-        // 0x000a nop
-        // 0x000c local_load32         0 1
-        // 0x0014 i64_extend_i32_u
-        // 0x0016 nop
-        // 0x0018 local_load           0 0
-        // 0x0020 i32_trunc_i64
-        // 0x0022 end
-        //
         // (i64, i32)  ->  (i64, i64, i32)
         //  |    |          ^    ^    ^
         //  |    | promote  |0   |1   |2
@@ -211,15 +199,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_demote_and_promote() {
-        // bytecodes
-        //
-        // 0x0000 local_load32_f32     0 1
-        // 0x0008 f64_promote_f32
-        // 0x000a nop
-        // 0x000c local_load_f64       0 0
-        // 0x0014 f32_demote_f64
-        // 0x0016 end
-        //
         // (f64, f32)  ->  (f64, f32)
         //  |    |          ^    ^
         //  |    | promote  |0   |2
@@ -270,57 +249,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_float_to_int() {
-        // bytecodes
-        //
-        // 0x0000 local_load32_f32     0 0
-        // 0x0008 i32_convert_f32_s
-        // 0x000a nop
-        // 0x000c local_load32_f32     0 0
-        // 0x0014 i32_convert_f32_u
-        // 0x0016 nop
-        // 0x0018 local_load32_f32     0 0
-        // 0x0020 i64_convert_f32_s
-        // 0x0022 nop
-        // 0x0024 local_load32_f32     0 0
-        // 0x002c i64_convert_f32_u
-        // 0x002e nop
-        // 0x0030 local_load_f64       0 1
-        // 0x0038 i32_convert_f64_s
-        // 0x003a nop
-        // 0x003c local_load_f64       0 1
-        // 0x0044 i32_convert_f64_u
-        // 0x0046 nop
-        // 0x0048 local_load_f64       0 1
-        // 0x0050 i64_convert_f64_s
-        // 0x0052 nop
-        // 0x0054 local_load_f64       0 1
-        // 0x005c i64_convert_f64_u
-        // 0x005e nop
-        // 0x0060 local_load32_f32     0 2
-        // 0x0068 i32_convert_f32_s
-        // 0x006a nop
-        // 0x006c local_load32_f32     0 2
-        // 0x0074 i32_convert_f32_u
-        // 0x0076 nop
-        // 0x0078 local_load32_f32     0 2
-        // 0x0080 i64_convert_f32_s
-        // 0x0082 nop
-        // 0x0084 local_load32_f32     0 2
-        // 0x008c i64_convert_f32_u
-        // 0x008e nop
-        // 0x0090 local_load_f64       0 3
-        // 0x0098 i32_convert_f64_s
-        // 0x009a nop
-        // 0x009c local_load_f64       0 3
-        // 0x00a4 i32_convert_f64_u
-        // 0x00a6 nop
-        // 0x00a8 local_load_f64       0 3
-        // 0x00b0 i64_convert_f64_s
-        // 0x00b2 nop
-        // 0x00b4 local_load_f64       0 3
-        // 0x00bc i64_convert_f64_u
-        // 0x00be end
-        //
         // (f32,              f64,            -f32,             -f64)
         //  |                 |                |                 |
         //  |                 |                |                 |
@@ -443,57 +371,6 @@ mod tests {
 
     #[test]
     fn test_process_conversion_int_to_float() {
-        // bytecodes
-        //
-        // 0x0000 local_load32         0 0
-        // 0x0008 f32_convert_i32_s
-        // 0x000a nop
-        // 0x000c local_load32         0 0
-        // 0x0014 f32_convert_i32_u
-        // 0x0016 nop
-        // 0x0018 local_load32         0 0
-        // 0x0020 f64_convert_i32_s
-        // 0x0022 nop
-        // 0x0024 local_load32         0 0
-        // 0x002c f64_convert_i32_u
-        // 0x002e nop
-        // 0x0030 local_load           0 1
-        // 0x0038 f32_convert_i64_s
-        // 0x003a nop
-        // 0x003c local_load           0 1
-        // 0x0044 f32_convert_i64_u
-        // 0x0046 nop
-        // 0x0048 local_load           0 1
-        // 0x0050 f64_convert_i64_s
-        // 0x0052 nop
-        // 0x0054 local_load           0 1
-        // 0x005c f64_convert_i64_u
-        // 0x005e nop
-        // 0x0060 local_load32         0 2
-        // 0x0068 f32_convert_i32_s
-        // 0x006a nop
-        // 0x006c local_load32         0 2
-        // 0x0074 f32_convert_i32_u
-        // 0x0076 nop
-        // 0x0078 local_load32         0 2
-        // 0x0080 f64_convert_i32_s
-        // 0x0082 nop
-        // 0x0084 local_load32         0 2
-        // 0x008c f64_convert_i32_u
-        // 0x008e nop
-        // 0x0090 local_load           0 3
-        // 0x0098 f32_convert_i64_s
-        // 0x009a nop
-        // 0x009c local_load           0 3
-        // 0x00a4 f32_convert_i64_u
-        // 0x00a6 nop
-        // 0x00a8 local_load           0 3
-        // 0x00b0 f64_convert_i64_s
-        // 0x00b2 nop
-        // 0x00b4 local_load           0 3
-        // 0x00bc f64_convert_i64_u
-        // 0x00be end
-        //
         // (i32,              i64,            -i32,             -i64)
         //  |                 |                |                 |
         //  |                 |                |                 |

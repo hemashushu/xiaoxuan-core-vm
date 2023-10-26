@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_types::{DataType, MemoryDataType};
+use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ModuleNode {
@@ -20,6 +20,7 @@ pub struct ModuleNode {
 #[derive(Debug, PartialEq, Clone)]
 pub enum ModuleElementNode {
     FuncNode(FuncNode),
+    TODONode
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -28,17 +29,18 @@ pub struct FuncNode {
     pub params: Vec<ParamNode>,
     pub results: Vec<DataType>,
     pub locals: Vec<LocalNode>,
+    pub instructions: Vec<Instruction>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ParamNode {
-    pub name: Option<String>,
+    pub tag: String,
     pub data_type: DataType,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalNode {
-    pub name: Option<String>,
+    pub tag: String,
     pub memory_data_type: MemoryDataType,
     pub data_length: u32,
 
@@ -46,4 +48,90 @@ pub struct LocalNode {
     // if the data is a struct, the value should be the max one of the length of its fields.
     // currently the MAX value of align is 8, MIN value is 1.
     pub align: u16,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Instruction {
+    NoParams(Opcode),
+    ParamI32(Opcode, u32),
+    ParamI16(Opcode, u16),
+
+    ImmI64(u64),
+    ImmF32(ImmF32),
+    ImmF64(ImmF64),
+
+    LocalAccess(Opcode, /* tag */ String, /* offset */ u16),
+    LocalAccessLong(Opcode, /* tag */ String),
+
+    DataAccess(Opcode, /* tag */ String, /* offset */ u16),
+    DataAccessLong(Opcode, /* tag */ String),
+
+    HeapAccess(Opcode, u16 /* offset */),
+
+    UnaryOp(Opcode),
+    BinaryOp(Opcode),
+
+    If(If),
+    Cond(Cond),
+    Branch(Branch),
+    For(For),
+
+    Break,
+    Recur,
+    Return,
+    TailCall,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ImmF32 {
+    Float(f32),
+    Hex(u32),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ImmF64 {
+    Float(f64),
+    Hex(u64),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct If {
+    test: Vec<Instruction>,
+    consequent: Vec<Instruction>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Cond {
+    // name: Option<String>,
+    params: Vec<ParamNode>,
+    results: Vec<DataType>,
+    locals: Vec<LocalNode>,
+    test: Vec<Instruction>,
+    consequent: Vec<Instruction>,
+    alternate: Vec<Instruction>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Branch {
+    // name: Option<String>,
+    params: Vec<ParamNode>,
+    results: Vec<DataType>,
+    locals: Vec<LocalNode>,
+    cases: Vec<BranchCase>,
+    default: Vec<Instruction>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct BranchCase {
+    test: Vec<Instruction>,
+    consequent: Vec<Instruction>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct For {
+    // name: Option<String>,
+    params: Vec<ParamNode>,
+    results: Vec<DataType>,
+    locals: Vec<LocalNode>,
+    instructions: Vec<Instruction>,
 }

@@ -257,6 +257,7 @@ impl Opcode {
             Opcode::ecall => "ecall",
             //
             Opcode::nop => "nop",
+            Opcode::panic => "panic",
             Opcode::debug => "debug",
             Opcode::host_addr_local => "host_addr_local",
             Opcode::host_addr_local_long => "host_addr_local_long",

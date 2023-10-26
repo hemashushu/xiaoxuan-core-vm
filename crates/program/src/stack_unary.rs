@@ -201,6 +201,7 @@ impl<'a> FramePack<'a> {
     }
 }
 
+// for local variables load/store
 impl Memory for Stack {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {

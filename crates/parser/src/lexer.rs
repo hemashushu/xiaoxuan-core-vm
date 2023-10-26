@@ -72,8 +72,8 @@
 //      (i32.imm (;right hand side;) 17)
 //  )'
 // '(import $math (module (user "math")))'
-// '(import $add (module 0) (func "add" (param $left i32) (param $right i32) (result i32)))'
-// '(import $add (module $math) (func "add" (type 0)))'
+// '(import $add (module 0) (function "add" (param $left i32) (param $right i32) (result i32)))'
+// '(import $add (module $math) (function "add" (type 0)))'
 
 use ancvm_types::CompileError;
 
@@ -106,14 +106,14 @@ pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError
             '0'..='9' => {
                 tokens.push(lex_number(ch, iter)?);
             }
-            'b' if iter.look_ahead(0, &'"') => {
+            'b' if iter.look_ahead_equals(0, &'"') => {
                 tokens.push(lex_bytes(iter)?);
             }
             '"' => {
                 tokens.push(lex_string(iter)?);
             }
             '(' => {
-                if iter.look_ahead(0, &';') {
+                if iter.look_ahead_equals(0, &';') {
                     comsume_block_comment(iter)?;
                 } else {
                     tokens.push(Token::LeftParen);
@@ -123,16 +123,16 @@ pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError
                 tokens.push(Token::RightParen);
             }
             ';' => {
-                if iter.look_ahead(0, &';') {
+                if iter.look_ahead_equals(0, &';') {
                     comsume_line_comment(iter)?;
-                } else if iter.look_ahead(0, &')') {
+                } else if iter.look_ahead_equals(0, &')') {
                     return Err(CompileError::new("Unpaired block comment."));
                 } else {
                     return Err(CompileError::new("Unexpected char: ;"));
                 }
             }
             '#' => {
-                if iter.look_ahead(0, &'(') {
+                if iter.look_ahead_equals(0, &'(') {
                     comsume_node_comment(iter)?;
                 } else {
                     return Err(CompileError::new("Unexpected char: #"));
@@ -192,11 +192,11 @@ fn lex_number(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, Comp
     // ^_____// verified/current char
 
     if ch == '0' {
-        if iter.look_ahead(0, &'b') {
+        if iter.look_ahead_equals(0, &'b') {
             // '0b...'
             iter.next();
             return lex_number_binary(iter);
-        } else if iter.look_ahead(0, &'x') {
+        } else if iter.look_ahead_equals(0, &'x') {
             // '0x...'
             iter.next();
             return lex_number_hex(iter);
@@ -502,11 +502,11 @@ fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compil
     loop {
         match iter.next() {
             Some(ch) => match ch {
-                '(' if iter.look_ahead(0, &';') => {
+                '(' if iter.look_ahead_equals(0, &';') => {
                     iter.next();
                     pairs += 1;
                 }
-                ';' if iter.look_ahead(0, &')') => {
+                ';' if iter.look_ahead_equals(0, &')') => {
                     iter.next();
                     pairs -= 1;
 
@@ -539,7 +539,7 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
         match iter.next() {
             Some(ch) => match ch {
                 '(' => {
-                    if iter.look_ahead(0, &';') {
+                    if iter.look_ahead_equals(0, &';') {
                         comsume_block_comment(iter)?;
                     } else {
                         pairs += 1;
@@ -553,9 +553,9 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
                     }
                 }
                 ';' => {
-                    if iter.look_ahead(0, &';') {
+                    if iter.look_ahead_equals(0, &';') {
                         comsume_line_comment(iter)?;
-                    } else if iter.look_ahead(0, &')') {
+                    } else if iter.look_ahead_equals(0, &')') {
                         return Err(CompileError::new("Unpaired block comment."));
                     } else {
                         return Err(CompileError::new("Unexpected char: ;"));
@@ -1341,7 +1341,7 @@ mod tests {
         assert_eq!(
             lex_from_str(
                 r#"
-            (import $add (module $math) (func "add" (type 0)))
+            (import $add (module $math) (function "add" (type 0)))
             "#
             )
             .unwrap(),
@@ -1354,7 +1354,7 @@ mod tests {
                 Token::new_identifier("math"),
                 Token::RightParen,
                 Token::LeftParen,
-                Token::new_symbol("func"),
+                Token::new_symbol("function"),
                 Token::new_string("add"),
                 Token::LeftParen,
                 Token::new_symbol("type"),

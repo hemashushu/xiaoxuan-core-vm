@@ -315,8 +315,6 @@ mod tests {
 
     #[test]
     fn test_process_math_f32_a() {
-
-
         // numbers:
         //   - 0: 1.414
         //   - 1: -1.732
@@ -349,63 +347,6 @@ mod tests {
         //   - round_half_away_from_zero    5   -> -2.0
         //   - round_half_away_from_zero    6   -> -3.0
         //   - round_half_away_from_zero    7   -> -3.0
-
-        // bytecode
-        //
-        // 0x0000 local_load32_f32     0 0
-        // 0x0008 f32_abs
-        // 0x000a nop
-        // 0x000c local_load32_f32     0 1
-        // 0x0014 f32_abs
-        // 0x0016 nop
-        // 0x0018 local_load32_f32     0 0
-        // 0x0020 f32_neg
-        // 0x0022 nop
-        // 0x0024 local_load32_f32     0 1
-        // 0x002c f32_neg
-        // 0x002e nop
-        // 0x0030 local_load32_f32     0 2
-        // 0x0038 f32_ceil
-        // 0x003a nop
-        // 0x003c local_load32_f32     0 4
-        // 0x0044 f32_ceil
-        // 0x0046 nop
-        // 0x0048 local_load32_f32     0 5
-        // 0x0050 f32_ceil
-        // 0x0052 nop
-        // 0x0054 local_load32_f32     0 7
-        // 0x005c f32_ceil
-        // 0x005e nop
-        // 0x0060 local_load32_f32     0 2
-        // 0x0068 f32_floor
-        // 0x006a nop
-        // 0x006c local_load32_f32     0 4
-        // 0x0074 f32_floor
-        // 0x0076 nop
-        // 0x0078 local_load32_f32     0 5
-        // 0x0080 f32_floor
-        // 0x0082 nop
-        // 0x0084 local_load32_f32     0 7
-        // 0x008c f32_floor
-        // 0x008e nop
-        // 0x0090 local_load32_f32     0 2
-        // 0x0098 f32_round_half_away_from_zero
-        // 0x009a nop
-        // 0x009c local_load32_f32     0 3
-        // 0x00a4 f32_round_half_away_from_zero
-        // 0x00a6 nop
-        // 0x00a8 local_load32_f32     0 4
-        // 0x00b0 f32_round_half_away_from_zero
-        // 0x00b2 nop
-        // 0x00b4 local_load32_f32     0 5
-        // 0x00bc f32_round_half_away_from_zero
-        // 0x00be nop
-        // 0x00c0 local_load32_f32     0 6
-        // 0x00c8 f32_round_half_away_from_zero
-        // 0x00ca nop
-        // 0x00cc local_load32_f32     0 7
-        // 0x00d4 f32_round_half_away_from_zero
-        // 0x00d6 end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
@@ -537,8 +478,6 @@ mod tests {
 
     #[test]
     fn test_process_math_f32_b() {
-
-
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.0
@@ -570,62 +509,6 @@ mod tests {
         //   - asin    (0.5)    -> deg 30
         //   - acos    (0.86..) -> deg 30
         //   - atab    (0.57..) -> deg 30
-
-        // bytecode
-        //
-        // 0x0000 local_load32_f32     0 0
-        // 0x0008 f32_trunc
-        // 0x000a nop
-        // 0x000c local_load32_f32     0 0
-        // 0x0014 f32_fract
-        // 0x0016 nop
-        // 0x0018 local_load32_f32     0 1
-        // 0x0020 f32_sqrt
-        // 0x0022 nop
-        // 0x0024 local_load32_f32     0 2
-        // 0x002c f32_cbrt
-        // 0x002e nop
-        // 0x0030 local_load32_f32     0 1
-        // 0x0038 local_load32_f32     0 3
-        // 0x0040 f32_pow
-        // 0x0042 nop
-        // 0x0044 local_load32_f32     0 3
-        // 0x004c f32_exp
-        // 0x004e nop
-        // 0x0050 local_load32_f32     0 4
-        // 0x0058 f32_exp2
-        // 0x005a nop
-        // 0x005c local_load32_f32     0 6
-        // 0x0064 f32_ln
-        // 0x0066 nop
-        // 0x0068 local_load32_f32     0 4
-        // 0x0070 local_load32_f32     0 3
-        // 0x0078 f32_log
-        // 0x007a nop
-        // 0x007c local_load32_f32     0 1
-        // 0x0084 f32_log2
-        // 0x0086 nop
-        // 0x0088 local_load32_f32     0 5
-        // 0x0090 f32_log10
-        // 0x0092 nop
-        // 0x0094 local_load32_f32     0 7
-        // 0x009c f32_sin
-        // 0x009e nop
-        // 0x00a0 local_load32_f32     0 7
-        // 0x00a8 f32_cos
-        // 0x00aa nop
-        // 0x00ac local_load32_f32     0 7
-        // 0x00b4 f32_tan
-        // 0x00b6 nop
-        // 0x00b8 f32_imm              0x3f000000
-        // 0x00c0 f32_asin
-        // 0x00c2 nop
-        // 0x00c4 f32_imm              0x3f5db3d7
-        // 0x00cc f32_acos
-        // 0x00ce nop
-        // 0x00d0 f32_imm              0x3f13cd3a
-        // 0x00d8 f32_atan
-        // 0x00da end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
@@ -755,8 +638,6 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_a() {
-
-
         // numbers:
         //   - 0: 1.414
         //   - 1: -1.732
@@ -920,8 +801,6 @@ mod tests {
 
     #[test]
     fn test_process_math_f64_b() {
-
-
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.0

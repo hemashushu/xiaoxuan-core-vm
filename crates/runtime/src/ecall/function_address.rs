@@ -140,7 +140,7 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_ecall_host_addr_func_ie_callback_function() {
+    fn test_ecall_host_addr_func_and_callback_function() {
         // extern "C" do_something(callback_func, a:i32, b:i32) -> i32 {
         //     callback_func(a) + b
         // }

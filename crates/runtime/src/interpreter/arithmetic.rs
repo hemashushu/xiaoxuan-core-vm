@@ -284,39 +284,6 @@ mod tests {
         //  |      |divisor
         //  |dividend <--------- the result always takes the sign of the dividend.
 
-        // bytecode
-        //
-        // 0x0000 local_load32         0 0 0
-        // 0x0008 local_load32         0 0 1
-        // 0x0010 i32_add
-        // 0x0012 local_load32         0 0 1
-        // 0x001a local_load32         0 0 0
-        // 0x0022 i32_sub
-        // 0x0024 local_load32         0 0 0
-        // 0x002c local_load32         0 0 1
-        // 0x0034 i32_mul
-        // 0x0036 local_load32         0 0 1
-        // 0x003e local_load32         0 0 2
-        // 0x0046 i32_div_s
-        // 0x0048 local_load32         0 0 2
-        // 0x0050 local_load32         0 0 1
-        // 0x0058 i32_div_u
-        // 0x005a local_load32         0 0 1
-        // 0x0062 local_load32         0 0 2
-        // 0x006a i32_rem_s
-        // 0x006c local_load32         0 0 2
-        // 0x0074 local_load32         0 0 1
-        // 0x007c i32_rem_u
-        // 0x007e local_load32         0 0 0
-        // 0x0086 i32_inc              3
-        // 0x008a local_load32         0 0 0
-        // 0x0092 i32_dec              3
-        // 0x0096 local_load32         0 0 2
-        // 0x009e i32_inc              3
-        // 0x00a2 local_load32         0 0 2
-        // 0x00aa i32_dec              3
-        // 0x00ae end
-
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
@@ -409,8 +376,6 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_i64() {
-        //
-
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -435,39 +400,6 @@ mod tests {
         //  ^      ^
         //  |      |divisor
         //  |dividend <--------- the result always takes the sign of the dividend.
-
-        // bytecode
-        //
-        // 0x0000 local_load           0 0 0
-        // 0x0008 local_load           0 0 1
-        // 0x0010 i64_add
-        // 0x0012 local_load           0 0 1
-        // 0x001a local_load           0 0 0
-        // 0x0022 i64_sub
-        // 0x0024 local_load           0 0 0
-        // 0x002c local_load           0 0 1
-        // 0x0034 i64_mul
-        // 0x0036 local_load           0 0 1
-        // 0x003e local_load           0 0 2
-        // 0x0046 i64_div_s
-        // 0x0048 local_load           0 0 2
-        // 0x0050 local_load           0 0 1
-        // 0x0058 i64_div_u
-        // 0x005a local_load           0 0 1
-        // 0x0062 local_load           0 0 2
-        // 0x006a i64_rem_s
-        // 0x006c local_load           0 0 2
-        // 0x0074 local_load           0 0 1
-        // 0x007c i64_rem_u
-        // 0x007e local_load           0 0 0
-        // 0x0086 i64_inc              3
-        // 0x008a local_load           0 0 0
-        // 0x0092 i64_dec              3
-        // 0x0096 local_load           0 0 2
-        // 0x009e i64_inc              3
-        // 0x00a2 local_load           0 0 2
-        // 0x00aa i64_dec              3
-        // 0x00ae end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
@@ -562,8 +494,6 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f32() {
-        //
-
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -573,22 +503,6 @@ mod tests {
         //   - sub 1 0      -> 2.709
         //   - mul 0 1      -> 5.829922
         //   - div 1 0      -> 2.91584158416
-
-        // bytecode
-        //
-        // 0x0000 local_load32_f32     0 0 0
-        // 0x0008 local_load32_f32     0 0 1
-        // 0x0010 f32_add
-        // 0x0012 local_load32_f32     0 0 1
-        // 0x001a local_load32_f32     0 0 0
-        // 0x0022 f32_sub
-        // 0x0024 local_load32_f32     0 0 0
-        // 0x002c local_load32_f32     0 0 1
-        // 0x0034 f32_mul
-        // 0x0036 local_load32_f32     0 0 1
-        // 0x003e local_load32_f32     0 0 0
-        // 0x0046 f32_div
-        // 0x0048 end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
@@ -639,8 +553,6 @@ mod tests {
 
     #[test]
     fn test_process_arithmetic_f64() {
-        //
-
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -650,22 +562,6 @@ mod tests {
         //   - sub 1 0      -> 2.709
         //   - mul 0 1      -> 5.829922
         //   - div 1 0      -> 2.91584158416
-
-        // bytecode
-        //
-        // 0x0000 local_load_f64       0 0 0
-        // 0x0008 local_load_f64       0 0 1
-        // 0x0010 f64_add
-        // 0x0012 local_load_f64       0 0 1
-        // 0x001a local_load_f64       0 0 0
-        // 0x0022 f64_sub
-        // 0x0024 local_load_f64       0 0 0
-        // 0x002c local_load_f64       0 0 1
-        // 0x0034 f64_mul
-        // 0x0036 local_load_f64       0 0 1
-        // 0x003e local_load_f64       0 0 0
-        // 0x0046 f64_div
-        // 0x0048 end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)

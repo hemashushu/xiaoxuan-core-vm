@@ -573,7 +573,6 @@ mod tests {
 
     #[test]
     fn test_process_local_load_store() {
-
         // args index (also local var):     0       1
         // data type:                       f32     f64
         //
@@ -699,7 +698,6 @@ mod tests {
 
     #[test]
     fn test_process_local_long_load_store() {
-
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |
@@ -722,48 +720,6 @@ mod tests {
         //       |           |        |load16s      |load8u
         //       |           |
         //       |load64     |load32
-        //
-        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
-
-        // bytecodes
-        //
-        // 0x0000 i32_imm              0x19171311
-        // 0x0008 i32_imm              0x0
-        // 0x0010 local_long_store32   0 0
-        // 0x0018 i32_imm              0xd0c0
-        // 0x0020 i32_imm              0x4
-        // 0x0028 local_long_store16   0 0
-        // 0x0030 i32_imm              0xe0
-        // 0x0038 i32_imm              0x6
-        // 0x0040 local_long_store8    0 0
-        // 0x0048 i32_imm              0xf0
-        // 0x0050 i32_imm              0x7
-        // 0x0058 local_long_store8    0 0
-        // 0x0060 i32_imm              0x0
-        // 0x0068 local_long_load      0 0
-        // 0x0070 i32_imm              0x0
-        // 0x0078 local_long_store     0 1
-        // 0x0080 i32_imm              0x0
-        // 0x0088 local_long_load      0 0
-        // 0x0090 i32_imm              0x4
-        // 0x0098 local_long_load32    0 0
-        // 0x00a0 i32_imm              0x6
-        // 0x00a8 local_long_load32_i16_u 0 0
-        // 0x00b0 i32_imm              0x6
-        // 0x00b8 local_long_load32_i16_s 0 0
-        // 0x00c0 i32_imm              0x7
-        // 0x00c8 local_long_load32_i8_u 0 0
-        // 0x00d0 i32_imm              0x7
-        // 0x00d8 local_long_load32_i8_s 0 0
-        // 0x00e0 i32_imm              0x0
-        // 0x00e8 local_long_load      0 1
-        // 0x00f0 i32_imm              0x0
-        // 0x00f8 local_long_load32    0 1
-        // 0x0100 i32_imm              0x0
-        // 0x0108 local_long_load32_i16_u 0 1
-        // 0x0110 i32_imm              0x0
-        // 0x0118 local_long_load32_i8_u 0 1
-        // 0x0120 end
         //
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
 

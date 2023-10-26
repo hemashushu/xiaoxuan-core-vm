@@ -4,7 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-// the fundanmental of XiaoXuan Core VM Assembly s-expression:
+// the fundanmental of XiaoXuan Core VM Assembly s-expression
+// ----------------------------------------------------------
 //
 // 1. the assembly text is in s-expression format, and the text consists of
 //    one or more nodes.
@@ -18,8 +19,8 @@
 //    tree structure. e.g.
 //
 //    ```clojure
-//    (func $id (param $lhs i32) (param $rhs i32) (result i32)
-//        (body
+//    (fn $id (param $lhs i32) (param $rhs i32) (result i32)
+//        (code
 //            (i32.add
 //                (local.load32 $lhs) (local.load32 $rhs)
 //            )
@@ -35,58 +36,108 @@
 // 5. some of the parameters can be omitted, in this case, the parameters must
 //    still be in their original order. e.g.
 //
-//   `(local.load32 (index 0 0) (offset 0)` == `(local.load32 (index 0 0)`
+//   `(local.load32 $db (offset 0))` == `(local.load32 $db)`
 //   ;; the child node '(offset ...)' above can be omitted.
-//
-//   `(local.load32 $db (offset 4)`
-//   ;; the above is the another form of node '(local.load32 ...)', the child node
-//   ;; '(offset ...)' must still be the last parameter.
 
-use ancvm_types::{CompileError, DataType, MemoryDataType};
+// the instruction syntax
+// ----------------------
+//
+// 1. instructions with no parameters and no operands, can be written
+//    with or without parentheses, e.g.
+//    '(nop)'
+//    'nop'
+//
+// 2. instructions that have no parameters but have operands, should be
+//    written with parentheses and the operands (instructions) should be
+//    written inside the parentheses, e.g.
+//    '(i32.add zero zero)'
+//
+//    however, it also can be written without parentheses, but all operands
+//    (instructions) must be expanded first, e.g.
+//    'zero zero i32.add'
+//
+// 3. instructions with parameters must be written with parentheses, e.g.
+//    '(i32.imm 0x1133)'
+//    '(local.load $abc)'
+//    '(local.load $abc 8)  ;; 8 is an optional parameter'
+//
+// 4. instructions that have both parameters and operands must be written
+//    inside the parentheses and must be written after the parameters, e.g.
+//    '(local.store $xyz (i32.imm 11))'
+//
+//    ```
+//    (local.store $xyz
+//        (i32.add
+//            (i32.imm 11) (i32.imm 13)
+//        )
+//    )
+//    ```
+
+use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
 use crate::{
-    ast::{FuncNode, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+    ast::{FuncNode, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+    instruction_property::{InstructionKind, InstructionProperty, INSTRUCTION_PROPERTY_TABLE},
     lexer::Token,
     peekable_iterator::PeekableIterator,
 };
 
 pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileError> {
+    // there is only one node 'module' in a assembly text
+    parse_module_node(iter)
+}
+
+pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileError> {
+    // (module ...) ...  //
+    // ^            ^____// to here
+    // |_________________// current token, i.e. the value of 'iter.peek(0)'
+
     // the node 'module' syntax:
     //
-    // ```clojure
-    //
     // (module "name" (runtime_version "1.0") ...)  ;; base
-    //
     // (module "name" (runtime_version "1.0")
     //                                          ;; optional parameters
     //      (constructor $func_name)            ;; similar to GCC '__attribute__((constructor))', run before main()
-    //      (entry $func_name)                  ;; similar to 'function main()'
+    //      (entry $func_name)                  ;; similar to 'fn main()'
     //      (destructor $func_name)             ;; similar to GCC '__attribute__((destructor))', run after main()
     //      ...
     // )
-    // ````
 
     consume_left_paren(iter, "module")?;
     consume_symbol(iter, "module")?;
 
     let name = expect_string(iter, "module name")?;
-    let (runtime_version_major, runtime_version_minor) = parse_module_runtime_version(iter)?;
+    let (runtime_version_major, runtime_version_minor) = parse_module_runtime_version_node(iter)?;
+
+    // optional parameters
+    if exist_child_node(iter, "constructor") {
+        todo!()
+    }
+    if exist_child_node(iter, "entry") {
+        todo!()
+    }
+    if exist_child_node(iter, "destructor") {
+        todo!()
+    }
+
     let mut element_nodes: Vec<ModuleElementNode> = vec![];
 
     // parse module elements
-    while iter.look_ahead(0, &Token::LeftParen) {
-        consume_left_paren(iter, "module element")?;
-        let element_node_name = expect_symbol(iter, "module element")?;
-        let element_node = match element_node_name.as_str() {
-            "func" => parse_func(iter)?,
-            _ => {
-                return Err(CompileError::new(&format!(
-                    "Unknown module element: {}",
-                    element_node_name
-                )))
-            }
-        };
-        element_nodes.push(element_node);
+    while iter.look_ahead_equals(0, &Token::LeftParen) {
+        if let Some(Token::Symbol(child_node_name)) = iter.peek(1) {
+            let element_node = match child_node_name.as_str() {
+                "fn" => parse_func_node(iter)?,
+                _ => {
+                    return Err(CompileError::new(&format!(
+                        "Unknown module element: {}",
+                        child_node_name
+                    )))
+                }
+            };
+            element_nodes.push(element_node);
+        } else {
+            break;
+        }
     }
 
     consume_right_paren(iter)?;
@@ -102,11 +153,12 @@ pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileEr
     Ok(module_node)
 }
 
-fn parse_module_runtime_version(
+fn parse_module_runtime_version_node(
     iter: &mut PeekableIterator<Token>,
 ) -> Result<(u16, u16), CompileError> {
-    // (runtime_version "1.0")  //
-    // ^________________________// current token, i.e. the value of 'iter.peek(0)'
+    // (runtime_version "1.0") ...  //
+    // ^                       ^____// to here
+    // |____________________________// current token
 
     consume_left_paren(iter, "module runtime version")?;
     consume_symbol(iter, "runtime_version")?;
@@ -138,114 +190,132 @@ fn parse_module_runtime_version(
     Ok((major, minor))
 }
 
-fn parse_func(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, CompileError> {
-    // (func ...)  //
-    //       ^_____// current token
+fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, CompileError> {
+    // (fn ...) ...  //
+    // ^              ^____// to here
+    // |___________________// current token
 
-    // the node 'func' syntax:
+    // the node 'fn' syntax:
     //
-    // (func $add (param $lhs i32) (param $rhs i32) (result i32) ...)   ;; signature form1
-    // (func $add (params i32 i32 i32) (results i32 i32) ...)           ;; signature form2
-    // (func $one
+    // (fn $add (param $lhs i32) (param $rhs i32) (result i32) ...)   ;; signature form 1
+    // (fn $one
     //     (local $sum i32)             ;; local variable with identifier and data type
-    //     (local i32)                  ;; local variable with data type only
     //     (local $db (bytes 12 4))     ;; bytes-type local variable
-    //                                  ;; the node 'bytes' syntax: '(bytes length align)'
-    //     (locals i32 i32)             ;; multiple local variables
+    //     ...
     // )
     //
-    // (func $two (code ...))           ;; the function body -- the instructions sequence
+    // (fn $two
+    //     (code ...)                   ;; the function body -- the instructions sequence
+    // )
 
+    consume_left_paren(iter, "fn")?;
+    consume_symbol(iter, "fn")?;
     let name = maybe_identifier(iter);
-    let mut params: Vec<ParamNode> = vec![];
-    let mut results: Vec<DataType> = vec![];
-    let mut locals: Vec<LocalNode> = vec![];
-
-    // parse params, results and local variables
-    while iter.look_ahead(0, &Token::LeftParen) {
-        consume_left_paren(iter, "function element")?;
-        let element_node_name = expect_symbol(iter, "function element")?;
-        match element_node_name.as_str() {
-            "param" => {
-                let param_node = parse_param_node(iter)?;
-                params.push(param_node);
-            }
-            "params" => {
-                let data_types = parse_params_node(iter)?;
-                let mut param_nodes = data_types
-                    .iter()
-                    .map(|dt| ParamNode {
-                        name: None,
-                        data_type: *dt,
-                    })
-                    .collect::<Vec<_>>();
-                params.append(&mut param_nodes);
-            }
-            "result" => {
-                let data_type = parse_result_node(iter)?;
-                results.push(data_type);
-            }
-            "results" => {
-                let mut data_types = parse_results_node(iter)?;
-                results.append(&mut data_types);
-            }
-            "local" => {
-                let local_node = parse_local_node(iter)?;
-                locals.push(local_node);
-            }
-            "locals" => {
-                let mut local_nodes = parse_locals_node(iter)?;
-                locals.append(&mut local_nodes);
-            }
-            _ => {
-                return Err(CompileError::new(&format!(
-                    "Unknown function element: {}",
-                    element_node_name
-                )))
-            }
-        };
-    }
-
+    let (params, results) = parse_optional_signature(iter)?;
+    let locals: Vec<LocalNode> = parse_optional_local_variables(iter)?;
+    let mut instructions: Vec<Instruction> = parse_instructions_node(iter, "code")?;
     consume_right_paren(iter)?;
+
+    // function's code implies an instruction 'end' at the end.
+    instructions.push(Instruction::NoParams(Opcode::end));
 
     let func_node = FuncNode {
         name,
         params,
         results,
         locals,
+        instructions,
     };
 
     Ok(ModuleElementNode::FuncNode(func_node))
 }
 
+fn parse_optional_signature(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<(Vec<ParamNode>, Vec<DataType>), CompileError> {
+    // (param|result|results ...){0,} ...  //
+    // ^                                     ^____// to here
+    // |__________________________________________// current token
+
+    let mut params: Vec<ParamNode> = vec![];
+    let mut results: Vec<DataType> = vec![];
+
+    while iter.look_ahead_equals(0, &Token::LeftParen) {
+        if let Some(Token::Symbol(child_node_name)) = iter.peek(1) {
+            match child_node_name.as_str() {
+                "param" => {
+                    let param_node = parse_param_node(iter)?;
+                    params.push(param_node);
+                }
+                // "params" => {
+                //     let data_types = parse_params_node(iter)?;
+                //     let mut param_nodes = data_types
+                //         .iter()
+                //         .map(|dt| ParamNode {
+                //             name: None,
+                //             data_type: *dt,
+                //         })
+                //         .collect::<Vec<_>>();
+                //     params.append(&mut param_nodes);
+                // }
+                "result" => {
+                    let data_type = parse_result_node(iter)?;
+                    results.push(data_type);
+                }
+                "results" => {
+                    let mut data_types = parse_results_node(iter)?;
+                    results.append(&mut data_types);
+                }
+                _ => break,
+            }
+        } else {
+            break;
+        }
+    }
+
+    Ok((params, results))
+}
+
 fn parse_param_node(iter: &mut PeekableIterator<Token>) -> Result<ParamNode, CompileError> {
-    // (param $name i32)  //
-    //        ^___________// current token
-    let name = maybe_identifier(iter);
+    // (param $name i32) ...  //
+    // ^                 ^____// to here
+    // |______________________// current token
+
+    consume_left_paren(iter, "param")?;
+    consume_symbol(iter, "param")?;
+    let tag = expect_identifier(iter, "param")?;
     let data_type = parse_data_type(iter)?;
     consume_right_paren(iter)?;
 
-    Ok(ParamNode { name, data_type })
+    Ok(ParamNode { tag, data_type })
 }
 
-fn parse_params_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
-    // (params i32 i32 i64)  //
-    //         ^_____________// current token
-
-    let mut data_types: Vec<DataType> = vec![];
-    while matches!(iter.peek(0), &Some(Token::Symbol(_))) {
-        let data_type = parse_data_type(iter)?;
-        data_types.push(data_type);
-    }
-
-    consume_right_paren(iter)?;
-
-    Ok(data_types)
-}
+// fn parse_params_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
+//     // (params i32 i32 i64)  //
+//     // ^           ^_________// to here
+//     // |_____________________// current token
+//
+//     let mut data_types: Vec<DataType> = vec![];
+//
+//     consume_left_paren(iter, "params")?;
+//     consume_symbol(iter, "params")?;
+//     while matches!(iter.peek(0), &Some(Token::Symbol(_))) {
+//         let data_type = parse_data_type(iter)?;
+//         data_types.push(data_type);
+//     }
+//
+//     consume_right_paren(iter)?;
+//
+//     Ok(data_types)
+// }
 
 fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
-    // (result i32)  //
-    //         ^_____// current token
+    // (result i32) ...  //
+    // ^            ^____// to here
+    // |_________________// current token
+
+    consume_left_paren(iter, "result")?;
+    consume_symbol(iter, "result")?;
     let data_type = parse_data_type(iter)?;
     consume_right_paren(iter)?;
 
@@ -254,9 +324,13 @@ fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, Com
 
 fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
     // (results i32 i32 i64)  //
-    //          ^_____________// current token
+    // ^            ^_________// to here
+    // |______________________// current token
 
     let mut data_types: Vec<DataType> = vec![];
+
+    consume_left_paren(iter, "results")?;
+    consume_symbol(iter, "results")?;
     while matches!(iter.peek(0), &Some(Token::Symbol(_))) {
         let data_type = parse_data_type(iter)?;
         data_types.push(data_type);
@@ -268,6 +342,13 @@ fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType
 }
 
 fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+    // i32 ...  //
+    // i64 ...  //
+    // f32 ...  //
+    // f64 ...  //
+    // ^   ^____// to here
+    // |________// current token
+
     let data_type_name = expect_symbol(iter, "data type")?;
     let data_type = match data_type_name.as_str() {
         "i32" => DataType::I32,
@@ -284,96 +365,138 @@ fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, Compi
     Ok(data_type)
 }
 
+fn parse_optional_local_variables(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Vec<LocalNode>, CompileError> {
+    // (local|locals ...){0,} ...  //
+    // ^                      ^____// to here
+    // |___________________________// current token
+
+    let mut local_nodes: Vec<LocalNode> = vec![];
+
+    while iter.look_ahead_equals(0, &Token::LeftParen) {
+        if let Some(Token::Symbol(child_node_name)) = iter.peek(1) {
+            match child_node_name.as_str() {
+                "local" => {
+                    let local_node = parse_local_node(iter)?;
+                    local_nodes.push(local_node);
+                }
+                // "locals" => {
+                //     let mut partial_local_nodes = parse_locals_node(iter)?;
+                //     local_nodes.append(&mut partial_local_nodes);
+                // }
+                _ => break,
+            }
+        } else {
+            break;
+        }
+    }
+
+    Ok(local_nodes)
+}
+
 fn parse_local_node(iter: &mut PeekableIterator<Token>) -> Result<LocalNode, CompileError> {
-    // (local $name i32)  //
-    //        ^___________// current token
-    let name = maybe_identifier(iter);
-    let (memory_data_type, data_length, align) = parse_memory_data_type(iter)?;
+    // (local $name i32) ...  //
+    // ^                 ^____// to here
+    // |______________________// current token
+
+    consume_left_paren(iter, "local")?;
+    consume_symbol(iter, "local")?;
+    let tag = expect_identifier(iter, "local")?;
+
+    let (memory_data_type, data_length, align) = if iter.look_ahead_equals(0, &Token::LeftParen) {
+        parse_memory_data_type_bytes(iter)?
+    } else {
+        parse_memory_data_type_primitive(iter)?
+    };
+
     consume_right_paren(iter)?;
 
     Ok(LocalNode {
-        name,
+        tag,
         memory_data_type,
         data_length,
         align,
     })
 }
 
-fn parse_locals_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<LocalNode>, CompileError> {
-    // (locals i32 i64 f32 f64)  //
-    //         ^_________________// current token
+// fn parse_locals_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<LocalNode>, CompileError> {
+//     // (locals i32 i64 f32 f64) ...  //
+//     // ^                        ^____// to here
+//     // |_____________________________// current token
+//
+//     let mut local_nodes: Vec<LocalNode> = vec![];
+//
+//     consume_left_paren(iter, "locals")?;
+//     consume_symbol(iter, "locals")?;
+//
+//     loop {
+//         if let Some(token) = iter.peek(0) {
+//             let (memory_data_type, data_length, align) = match token {
+//                 Token::LeftParen => parse_memory_data_type_bytes(iter)?,
+//                 Token::Symbol(_) => parse_memory_data_type_primitive(iter)?,
+//                 _ => break,
+//             };
+//
+//             local_nodes.push(LocalNode {
+//                 name: None,
+//                 memory_data_type,
+//                 data_length,
+//                 align,
+//             });
+//         } else {
+//             break;
+//         }
+//     }
+//
+//     consume_right_paren(iter)?;
+//
+//     Ok(local_nodes)
+// }
 
-    let mut local_nodes: Vec<LocalNode> = vec![];
-
-    while matches!(iter.peek(0), &Some(Token::Symbol(_)))
-        || matches!(iter.peek(0), &Some(Token::LeftParen))
-    {
-        let (memory_data_type, data_length, align) = parse_memory_data_type(iter)?;
-        local_nodes.push(LocalNode {
-            name: None,
-            memory_data_type,
-            data_length,
-            align,
-        });
-    }
-
-    consume_right_paren(iter)?;
-
-    Ok(local_nodes)
-}
-
-// return '(memory data type, data length, align)'
-fn parse_memory_data_type(
+// return '(MemoryDataType, data length, align)'
+fn parse_memory_data_type_primitive(
     iter: &mut PeekableIterator<Token>,
 ) -> Result<(MemoryDataType, u32, u16), CompileError> {
-    // (local i32)  //
-    //        ^_____// current token
-    //
-    // (local (bytes 12 8))  //
-    //        ^______________// current token
+    // i32 ...  //
+    // i64 ...  //
+    // f32 ...  //
+    // f64 ...  //
+    // ^   ^____// to here
+    // |________// current token
 
-    let dt = match iter.next() {
-        Some(token) => match token {
-            Token::LeftParen => {
-                let (data_length, align) = parse_memory_data_type_bytes(iter)?;
-                (MemoryDataType::BYTES, data_length, align)
-            }
-            Token::Symbol(data_type_name) => match data_type_name.as_str() {
-                "i32" => (MemoryDataType::I32, 4, 4),
-                "i64" => (MemoryDataType::I64, 8, 8),
-                "f32" => (MemoryDataType::F32, 4, 4),
-                "f64" => (MemoryDataType::F64, 8, 8),
-                _ => {
-                    return Err(CompileError::new(&format!(
-                        "Unknown memory data type: {}",
-                        data_type_name
-                    )))
-                }
-            },
-            _ => {
-                return Err(CompileError::new(&format!(
-                    "Expect memory data type, actual: {:?}",
-                    token
-                )))
-            }
-        },
-        None => return Err(CompileError::new("Missing memory data type")),
+    let memory_data_type_name = expect_symbol(iter, "memory data type")?;
+    let memory_data_type_detail = match memory_data_type_name.as_str() {
+        "i32" => (MemoryDataType::I32, 4, 4),
+        "i64" => (MemoryDataType::I64, 8, 8),
+        "f32" => (MemoryDataType::F32, 4, 4),
+        "f64" => (MemoryDataType::F64, 8, 8),
+        _ => {
+            return Err(CompileError::new(&format!(
+                "Unknown memory data type: {}",
+                memory_data_type_name
+            )))
+        }
     };
 
-    Ok(dt)
+    Ok(memory_data_type_detail)
 }
 
-// return '(data length, align)'
+// return '(MemoryDataType, data length, align)'
 fn parse_memory_data_type_bytes(
     iter: &mut PeekableIterator<Token>,
-) -> Result<(u32, u16), CompileError> {
-    // (local (bytes 12 8))  //
-    //         ^_____________// current token
-    //
-    // node 'bytes' syntax:
-    // '(bytes length align)'
+) -> Result<(MemoryDataType, u32, u16), CompileError> {
+    // (bytes 12 8)) ...  //
+    // ^             ^____// to here
+    // |__________________// current token
 
+    // the node 'bytes' syntax:
+    //
+    // (bytes length align)
+
+    consume_left_paren(iter, "bytes")?;
     consume_symbol(iter, "bytes")?;
+
     let length_string = expect_number(iter, "the length of memory data type bytes")?;
     let align_string = expect_number(iter, "the align of memory data type bytes")?;
 
@@ -400,7 +523,234 @@ fn parse_memory_data_type_bytes(
 
     consume_right_paren(iter)?;
 
-    Ok((length, align))
+    Ok((MemoryDataType::BYTES, length, align))
+}
+
+fn parse_instructions_node(
+    iter: &mut PeekableIterator<Token>,
+    node_name: &str,
+) -> Result<Vec<Instruction>, CompileError> {
+    // (code ...) ...  //
+    // ^          ^____// to here
+    // ________________// current token
+    //
+    // similar instruction sequence nodes:
+    //
+    // - (recur ...)
+    // - (tailcall ...)
+    // - (break ...)
+    // - (return ...)
+
+    consume_left_paren(iter, node_name)?;
+    consume_symbol(iter, node_name)?;
+    let mut instructions = vec![];
+
+    loop {
+        if let Some(mut sub_instructions) = parse_instruction_optional(iter)? {
+            instructions.append(&mut sub_instructions);
+        } else {
+            break;
+        }
+    }
+    consume_right_paren(iter)?;
+
+    Ok(instructions)
+}
+
+/// parse the instruction which have parentheses,
+///
+/// ✖️: i32.add
+/// ✅: (i32.add)
+/// ✅: (i32.add (i32.imm 11) (i32.imm 13))
+///
+fn parse_instruction_node(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Vec<Instruction>, CompileError> {
+    // (inst_name) ...  //
+    // ^           ^____// to here
+    // |________________// current token
+    //
+    // also maybe:
+    //
+    // (inst_name param0 param1 ...)
+    // (inst_name (param_node ...) ...)
+    // (inst_name (sub_inst_name ...) ...)
+    // (pesudo_inst ...)
+
+    if let Some(Token::Symbol(child_node_name)) = iter.peek(1) {
+        let instructions = if let Some(prop) = get_instruction_property(&child_node_name) {
+            match prop.kind {
+                InstructionKind::NoParams => parse_instruction_node_that_no_params(iter)?,
+                InstructionKind::ParamI32 => todo!(),
+                InstructionKind::ParamI16 => todo!(),
+                InstructionKind::ImmI64 => todo!(),
+                InstructionKind::ImmF32 => todo!(),
+                InstructionKind::ImmF64 => todo!(),
+                InstructionKind::LocalAccess => todo!(),
+                InstructionKind::LocalAccessLong => todo!(),
+                InstructionKind::DataAccess => todo!(),
+                InstructionKind::DataAccessLong => todo!(),
+                InstructionKind::HeapAccess => todo!(),
+                InstructionKind::UnaryOp => todo!(),
+                InstructionKind::BinaryOp => todo!(),
+                InstructionKind::If => todo!(),
+                InstructionKind::Cond => todo!(),
+                InstructionKind::Branch => todo!(),
+                InstructionKind::Case => todo!(),
+                InstructionKind::Default => todo!(),
+                InstructionKind::For => todo!(),
+                InstructionKind::Sequence => todo!(),
+            }
+        } else {
+            return Err(CompileError::new(&format!(
+                "Unknown instruction: {}",
+                child_node_name
+            )));
+        };
+
+        Ok(instructions)
+    } else {
+        Err(CompileError::new("Missing symbol for instruction node."))
+    }
+}
+
+/// parse the instruction which has no parentheses,
+/// that is, the instruction has no parameters, and it may
+/// have operands but it is not written in the folded form.
+///
+/// ✅: i32.add
+/// ✖️: (i32.add)
+/// ✖️: (i32.add (i32.imm 11) (i32.imm 13))
+///
+fn parse_instruction_without_parentheses(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // i32.add ... //
+    // ^       ^___// to here
+    // |___________// current token
+
+    let inst_name = expect_symbol(iter, "instruction")?;
+
+    let instruction = if let Some(prop) = get_instruction_property(&inst_name) {
+        match prop.kind {
+            InstructionKind::NoParams => Instruction::NoParams(prop.opcode),
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Instruction \"{}\" should have parameters.",
+                    inst_name
+                )))
+            }
+        }
+    } else {
+        return Err(CompileError::new(&format!(
+            "Unknown instruction: {}",
+            inst_name
+        )));
+    };
+
+    Ok(instruction)
+}
+
+fn parse_instruction_node_that_no_params(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Vec<Instruction>, CompileError> {
+    // (name) ...  //
+    // ^      ^____// to here
+    // |___________// current token
+    //
+    // (name (sub_inst ...) (...)) ...  //
+    // ^                           ^____// to here
+    // |________________________________// current token
+
+    let mut instructions = vec![];
+
+    consume_left_paren(iter, "instruction")?;
+
+    let inst_name = expect_symbol(iter, "instruction")?;
+
+    let (main_instruction, operand_count) = if let Some(prop) = get_instruction_property(&inst_name)
+    {
+        match prop.kind {
+            InstructionKind::NoParams => (Instruction::NoParams(prop.opcode), prop.operand_count),
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Instruction \"{}\" should have parameters.",
+                    inst_name
+                )))
+            }
+        }
+    } else {
+        return Err(CompileError::new(&format!(
+            "Unknown instruction: {}",
+            inst_name
+        )));
+    };
+
+    // operands
+    for _ in 0..operand_count {
+        let mut sub_instructions = parse_instruction_operand(iter, &inst_name)?;
+        instructions.append(&mut sub_instructions);
+    }
+
+    consume_right_paren(iter)?;
+
+    // add main instruction at last
+    instructions.push(main_instruction);
+
+    Ok(instructions)
+}
+
+fn parse_instruction_optional(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Option<Vec<Instruction>>, CompileError> {
+    let instructions = if let Some(token) = iter.peek(0) {
+        match token {
+            Token::LeftParen => {
+                // parse instruction WITH parentheses
+                parse_instruction_node(iter)?
+            }
+            Token::Symbol(_) => {
+                // parse instruction WITHOUT parentheses
+                vec![parse_instruction_without_parentheses(iter)?]
+            }
+            _ => return Ok(None),
+        }
+    } else {
+        return Ok(None);
+    };
+
+    Ok(Some(instructions))
+}
+
+fn parse_instruction_operand(
+    iter: &mut PeekableIterator<Token>,
+    for_which_inst: &str,
+) -> Result<Vec<Instruction>, CompileError> {
+    let instructions = if let Some(token) = iter.peek(0) {
+        match token {
+            Token::LeftParen => {
+                // parse instruction WITH parentheses
+                parse_instruction_node(iter)?
+            }
+            Token::Symbol(_) => {
+                // parse instruction WITHOUT parentheses
+                vec![parse_instruction_without_parentheses(iter)?]
+            }
+            _ => {
+                return Err(CompileError::new(&format!(
+                    "Expect operand for instruction \"{}\", actual {:?}",
+                    for_which_inst, token
+                )))
+            }
+        }
+    } else {
+        return Err(CompileError::new(&format!(
+            "Missing operand for instruction \"{}\"",
+            for_which_inst
+        )));
+    };
+
+    Ok(instructions)
 }
 
 // helper functions
@@ -455,25 +805,6 @@ fn consume_right_paren(iter: &mut PeekableIterator<Token>) -> Result<(), Compile
 
 fn consume_symbol(iter: &mut PeekableIterator<Token>, name: &str) -> Result<(), CompileError> {
     consume_token(iter, Token::new_symbol(name))
-}
-
-fn expect_identifier(
-    iter: &mut PeekableIterator<Token>,
-    for_what: &str,
-) -> Result<String, CompileError> {
-    match iter.next() {
-        Some(token) => match token {
-            Token::Identifier(s) => Ok(s),
-            _ => Err(CompileError::new(&format!(
-                "Expect an identifier for {}",
-                for_what
-            ))),
-        },
-        None => Err(CompileError::new(&format!(
-            "Missing an identifier for {}",
-            for_what
-        ))),
-    }
 }
 
 fn expect_number(
@@ -533,6 +864,25 @@ fn expect_symbol(
     }
 }
 
+fn expect_identifier(
+    iter: &mut PeekableIterator<Token>,
+    for_what: &str,
+) -> Result<String, CompileError> {
+    match iter.next() {
+        Some(token) => match token {
+            Token::Identifier(s) => Ok(s),
+            _ => Err(CompileError::new(&format!(
+                "Expect a identifier for {}",
+                for_what
+            ))),
+        },
+        None => Err(CompileError::new(&format!(
+            "Missing a identifier for {}",
+            for_what
+        ))),
+    }
+}
+
 fn maybe_identifier(iter: &mut PeekableIterator<Token>) -> Option<String> {
     match iter.peek(0) {
         Some(token) => {
@@ -548,14 +898,33 @@ fn maybe_identifier(iter: &mut PeekableIterator<Token>) -> Option<String> {
     }
 }
 
+fn exist_child_node(iter: &mut PeekableIterator<Token>, name: &str) -> bool {
+    if let Some(Token::LeftParen) = iter.peek(0) {
+        matches!(iter.peek(1), Some(Token::Symbol(n)) if n == name)
+    } else {
+        false
+    }
+}
+
+fn get_instruction_property(inst_name: &str) -> Option<&InstructionProperty> {
+    unsafe {
+        if let Some(table_ref) = &INSTRUCTION_PROPERTY_TABLE {
+            table_ref.get(inst_name)
+        } else {
+            panic!("The instruction table is not initialized yet.")
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use ancvm_types::{CompileError, DataType, MemoryDataType};
+    use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
     use crate::{
-        ast::{FuncNode, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+        ast::{FuncNode, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+        instruction_property::init_instruction_table,
         lexer::lex,
         peekable_iterator::PeekableIterator,
     };
@@ -563,6 +932,8 @@ mod tests {
     use super::parse;
 
     fn parse_from_str(s: &str) -> Result<ModuleNode, CompileError> {
+        init_instruction_table();
+
         let mut chars = s.chars();
         let mut char_iter = PeekableIterator::new(&mut chars, 1);
         let mut tokens = lex(&mut char_iter)?.into_iter();
@@ -606,8 +977,11 @@ mod tests {
         assert_eq!(
             parse_from_str(
                 r#"
-            (module "main" (runtime_version "1.0")
-                (func $add (param $lhs i32) (param $rhs i64) (result i32) (result i64)
+            (module "main"
+                (runtime_version "1.0")
+                (fn $add (param $lhs i32) (param $rhs i64) (result i32) (result i64)
+                    ;; no local variables
+                    (code)
                 )
             )
             "#
@@ -622,16 +996,17 @@ mod tests {
                     name: Some("add".to_owned()),
                     params: vec![
                         ParamNode {
-                            name: Some("lhs".to_owned()),
+                            tag: "lhs".to_owned(),
                             data_type: DataType::I32
                         },
                         ParamNode {
-                            name: Some("rhs".to_owned()),
+                            tag: "rhs".to_owned(),
                             data_type: DataType::I64
                         }
                     ],
                     results: vec![DataType::I32, DataType::I64,],
-                    locals: vec![]
+                    locals: vec![],
+                    instructions: vec![Instruction::NoParams(Opcode::end)]
                 })]
             }
         );
@@ -639,8 +1014,11 @@ mod tests {
         assert_eq!(
             parse_from_str(
                 r#"
-            (module "main" (runtime_version "1.0")
-                (func $add (params i32 i64 f32 f64) (results i32 f32)
+            (module "main"
+                (runtime_version "1.0")
+                (fn $add (param $lhs i32) (param $rhs i64) (results i32 i64)
+                    ;; no local variables
+                    (code)
                 )
             )
             "#
@@ -655,24 +1033,17 @@ mod tests {
                     name: Some("add".to_owned()),
                     params: vec![
                         ParamNode {
-                            name: None,
+                            tag: "lhs".to_owned(),
                             data_type: DataType::I32
                         },
                         ParamNode {
-                            name: None,
+                            tag: "rhs".to_owned(),
                             data_type: DataType::I64
-                        },
-                        ParamNode {
-                            name: None,
-                            data_type: DataType::F32
-                        },
-                        ParamNode {
-                            name: None,
-                            data_type: DataType::F64
                         }
                     ],
-                    results: vec![DataType::I32, DataType::F32,],
-                    locals: vec![]
+                    results: vec![DataType::I32, DataType::I64,],
+                    locals: vec![],
+                    instructions: vec![Instruction::NoParams(Opcode::end)]
                 })]
             }
         );
@@ -683,9 +1054,12 @@ mod tests {
         assert_eq!(
             parse_from_str(
                 r#"
-            (module "main" (runtime_version "1.0")
-                (func $add
+            (module "main"
+                (runtime_version "1.0")
+                (fn $add
+                    ;; no params and results
                     (local $sum i32) (local $count i64) (local $db (bytes 12 8)) (local $average f32)
+                    (code)
                 )
             )
             "#
@@ -702,82 +1076,148 @@ mod tests {
                     results: vec![],
                     locals: vec![
                         LocalNode {
-                            name: Some("sum".to_owned()),
+                            tag: "sum".to_owned(),
                             memory_data_type: MemoryDataType::I32,
                             data_length: 4,
                             align: 4
                         },
                         LocalNode {
-                            name: Some("count".to_owned()),
+                            tag: "count".to_owned(),
                             memory_data_type: MemoryDataType::I64,
                             data_length: 8,
                             align: 8
                         },
                         LocalNode {
-                            name: Some("db".to_owned()),
+                            tag: "db".to_owned(),
                             memory_data_type: MemoryDataType::BYTES,
                             data_length: 12,
                             align: 8
                         },
                         LocalNode {
-                            name: Some("average".to_owned()),
+                            tag: "average".to_owned(),
                             memory_data_type: MemoryDataType::F32,
                             data_length: 4,
                             align: 4
                         },
-                    ]
+                    ],
+                    instructions: vec![Instruction::NoParams(Opcode::end)]
                 })]
             }
         );
 
+        // assert_eq!(
+        //     parse_from_str(
+        //         r#"
+        //     (module "main"
+        //         (runtime_version "1.0")
+        //         (fn $add
+        //             ;; no params and results
+        //             (locals i32 i64 (bytes 12 8) f32)
+        //             (code)
+        //         )
+        //     )
+        //     "#
+        //     )
+        //     .unwrap(),
+        //     ModuleNode {
+        //         name: "main".to_owned(),
+        //         runtime_version_major: 1,
+        //         runtime_version_minor: 0,
+        //         shared_packages: vec![],
+        //         element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+        //             name: Some("add".to_owned()),
+        //             params: vec![],
+        //             results: vec![],
+        //             locals: vec![
+        //                 LocalNode {
+        //                     name: None,
+        //                     memory_data_type: MemoryDataType::I32,
+        //                     data_length: 4,
+        //                     align: 4
+        //                 },
+        //                 LocalNode {
+        //                     name: None,
+        //                     memory_data_type: MemoryDataType::I64,
+        //                     data_length: 8,
+        //                     align: 8
+        //                 },
+        //                 LocalNode {
+        //                     name: None,
+        //                     memory_data_type: MemoryDataType::BYTES,
+        //                     data_length: 12,
+        //                     align: 8
+        //                 },
+        //                 LocalNode {
+        //                     name: None,
+        //                     memory_data_type: MemoryDataType::F32,
+        //                     data_length: 4,
+        //                     align: 4
+        //                 },
+        //             ],
+        //             instructions: vec![Instruction::NoParams(Opcode::end)]
+        //         })]
+        //     }
+        // );
+    }
+
+    fn parse_instructions_from_str(text: &str) -> Vec<Instruction> {
+        let module_node = parse_from_str(text).unwrap();
+        if let ModuleElementNode::FuncNode(func_node) = &module_node.element_nodes[0] {
+            func_node.instructions.clone()
+        } else {
+            panic!("Expect function node")
+        }
+    }
+
+    #[test]
+    fn test_parse_function_with_base_instructions() {
         assert_eq!(
-            parse_from_str(
+            parse_instructions_from_str(
                 r#"
-                (module "main" (runtime_version "1.0")
-                (func $add
-                    (locals i32 i64 (bytes 12 8) f32)
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        nop
+                        zero
+                    )
                 )
             )
             "#
+            ),
+            vec![
+                Instruction::NoParams(Opcode::nop),
+                Instruction::NoParams(Opcode::zero),
+                Instruction::NoParams(Opcode::end)
+            ]
+        );
+
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        nop
+                        (i32.add (i32.mul zero zero) zero)
+                    )
+                )
             )
-            .unwrap(),
-            ModuleNode {
-                name: "main".to_owned(),
-                runtime_version_major: 1,
-                runtime_version_minor: 0,
-                shared_packages: vec![],
-                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
-                    name: Some("add".to_owned()),
-                    params: vec![],
-                    results: vec![],
-                    locals: vec![
-                        LocalNode {
-                            name: None,
-                            memory_data_type: MemoryDataType::I32,
-                            data_length: 4,
-                            align: 4
-                        },
-                        LocalNode {
-                            name: None,
-                            memory_data_type: MemoryDataType::I64,
-                            data_length: 8,
-                            align: 8
-                        },
-                        LocalNode {
-                            name: None,
-                            memory_data_type: MemoryDataType::BYTES,
-                            data_length: 12,
-                            align: 8
-                        },
-                        LocalNode {
-                            name: None,
-                            memory_data_type: MemoryDataType::F32,
-                            data_length: 4,
-                            align: 4
-                        },
-                    ]
-                })]
-            }
+            "#
+            ),
+            vec![
+                Instruction::NoParams(Opcode::nop),
+                // zero * zero
+                Instruction::NoParams(Opcode::zero),
+                Instruction::NoParams(Opcode::zero),
+                Instruction::NoParams(Opcode::i32_mul),
+                // zero + ?
+                Instruction::NoParams(Opcode::zero),
+                Instruction::NoParams(Opcode::i32_add),
+                // end
+                Instruction::NoParams(Opcode::end)
+            ]
         );
     }
 }

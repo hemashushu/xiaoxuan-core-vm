@@ -526,42 +526,6 @@ mod tests {
         //
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
-        // bytecodes
-        //
-        // 0x0000 data_load32_i8_u     3 1
-        // 0x0008 data_load32_i8_u     2 1
-        // 0x0010 data_load32_i16_u    0 1
-        // 0x0018 data_load32          0 0
-        //
-        // 0x0020 data_store32         0 2          ;; store 0x19171311
-        // 0x0028 data_store16         4 2          ;; store 0xd0c0
-        // 0x0030 data_store8          6 2          ;; store 0xe0
-        // 0x0038 data_store8          7 2          ;; store 0xf0
-        //
-        // 0x0040 local_load_f64       0 1
-        // 0x0048 data_store           0 4          ;; store f64
-        // 0x0050 local_load32_f32     0 0
-        // 0x0058 data_store32         0 3          ;; store f32
-        //
-        // 0x0060 data_load            0 2
-        // 0x0068 data_store           0 5          ;; store 0xf0e0d0c0_19171311
-        // 0x0070 data_load            0 2
-        // 0x0078 data_store32         0 6          ;; store 0x19171311
-        //
-        // 0x0080 data_load            0 2          ;; load 0xf0e0d0c0_19171311
-        // 0x0088 data_load32          4 2          ;; load 0xf0e0d0c0
-        // 0x0090 data_load32_i16_u    6 2          ;; load 0xf0e0
-        // 0x0098 data_load32_i16_s    6 2          ;; load 0xf0e0
-        // 0x00a0 data_load32_i8_u     7 2          ;; load 0xf0
-        // 0x00a8 data_load32_i8_s     7 2          ;; load 0xf0
-        // 0x00b0 data_load32_f32      0 3          ;; load f32
-        // 0x00b8 data_load_f64        0 4          ;; load f64
-        // 0x00c0 data_load            0 5          ;; load 0xf0e0d0c0_19171311
-        // 0x00c8 data_load32          0 6          ;; load 0x19171311
-        // 0x00d0 end
-        //
-        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
-
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::data_load32_i8_u, 3, 1)
             .write_opcode_i16_i32(Opcode::data_load32_i8_u, 2, 1)
@@ -831,48 +795,6 @@ mod tests {
         //       |           |        |load16s      |load8u
         //       |           |
         //       |load64     |load32
-        //
-        // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
-
-        // bytecodes
-        //
-        // 0x0000 i32_imm              0x19171311
-        // 0x0008 i32_imm              0x0
-        // 0x0010 data_long_store32    0
-        // 0x0018 i32_imm              0xd0c0
-        // 0x0020 i32_imm              0x4
-        // 0x0028 data_long_store16    0
-        // 0x0030 i32_imm              0xe0
-        // 0x0038 i32_imm              0x6
-        // 0x0040 data_long_store8     0
-        // 0x0048 i32_imm              0xf0
-        // 0x0050 i32_imm              0x7
-        // 0x0058 data_long_store8     0
-        // 0x0060 i32_imm              0x0
-        // 0x0068 data_long_load       0
-        // 0x0070 i32_imm              0x0
-        // 0x0078 data_long_store      1
-        // 0x0080 i32_imm              0x0
-        // 0x0088 data_long_load       0
-        // 0x0090 i32_imm              0x4
-        // 0x0098 data_long_load32     0
-        // 0x00a0 i32_imm              0x6
-        // 0x00a8 data_long_load32_i16_u 0
-        // 0x00b0 i32_imm              0x6
-        // 0x00b8 data_long_load32_i16_s 0
-        // 0x00c0 i32_imm              0x7
-        // 0x00c8 data_long_load32_i8_u 0
-        // 0x00d0 i32_imm              0x7
-        // 0x00d8 data_long_load32_i8_s 0
-        // 0x00e0 i32_imm              0x0
-        // 0x00e8 data_long_load       1
-        // 0x00f0 i32_imm              0x0
-        // 0x00f8 data_long_load32     1
-        // 0x0100 i32_imm              0x0
-        // 0x0108 data_long_load32_i16_u 1
-        // 0x0110 i32_imm              0x0
-        // 0x0118 data_long_load32_i8_u 1
-        // 0x0120 end
         //
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
 

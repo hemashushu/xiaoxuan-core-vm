@@ -26,10 +26,11 @@ mod comparison;
 mod control_flow;
 mod conversion;
 mod data;
+mod function_call;
 mod fundamental;
 mod heap;
+mod host;
 mod local;
-mod machine;
 mod math;
 
 pub enum InterpretResult {
@@ -49,9 +50,12 @@ pub enum InterpretResult {
     // param (original_pc: ProgramCounter)
     End(ProgramCounter),
 
+    Panic,
+
     // pause the interpreter
     // for debug the program or the VM itself
-    Debug,
+    // param (code: u32)
+    Debug(u32),
 }
 
 fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
@@ -352,19 +356,19 @@ fn init_interpreters_internal() {
     interpreters[Opcode::block_nez as usize] = control_flow::block_nez;
     interpreters[Opcode::break_nez as usize] = control_flow::break_nez;
     interpreters[Opcode::recur_nez as usize] = control_flow::recur_nez;
-    interpreters[Opcode::call as usize] = control_flow::call;
-    interpreters[Opcode::dcall as usize] = control_flow::dcall;
+    interpreters[Opcode::call as usize] = function_call::call;
+    interpreters[Opcode::dcall as usize] = function_call::dcall;
 
     interpreters[Opcode::ecall as usize] = ecall::ecall;
 
     // machine
-    interpreters[Opcode::nop as usize] = machine::nop;
-    interpreters[Opcode::debug as usize] = machine::debug;
-    interpreters[Opcode::host_addr_local as usize] = machine::host_addr_local;
-    interpreters[Opcode::host_addr_local_long as usize] = machine::host_addr_local_long;
-    interpreters[Opcode::host_addr_data as usize] = machine::host_addr_data;
-    interpreters[Opcode::host_addr_data_long as usize] = machine::host_addr_data_long;
-    interpreters[Opcode::host_addr_heap as usize] = machine::host_addr_heap;
+    interpreters[Opcode::nop as usize] = host::nop;
+    interpreters[Opcode::debug as usize] = host::debug;
+    interpreters[Opcode::host_addr_local as usize] = host::host_addr_local;
+    interpreters[Opcode::host_addr_local_long as usize] = host::host_addr_local_long;
+    interpreters[Opcode::host_addr_data as usize] = host::host_addr_data;
+    interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
+    interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
 }
 
 pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {
@@ -395,8 +399,11 @@ pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
                 // break the instruction processing loop
                 break;
             }
-            InterpretResult::Debug => {
-                thread_context.pc.instruction_address += 2;
+            InterpretResult::Panic => {
+                panic!("VM was terminated by instruction panic.");
+            }
+            InterpretResult::Debug(code) => {
+                panic!("VM was terminated by with code: {}", code);
             }
         }
     }

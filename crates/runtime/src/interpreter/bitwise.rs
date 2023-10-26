@@ -225,8 +225,6 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i32() {
-        //
-
         // numbers:
         //   - 0: 0xff0000ff
         //   - 1: 0xf0f000ff
@@ -367,8 +365,6 @@ mod tests {
 
     #[test]
     fn test_process_bitwise_i64() {
-        //
-
         // numbers:
         //   - 0: 0xff00ff00_00ff00ff
         //   - 1: 0xf0f00f0f_00ff00ff
@@ -393,61 +389,6 @@ mod tests {
         //   - rotate_l  2 32     -> 0x00000000_0000ff00
         //   - shift_r_u 2 56     -> 0x00000000_00000000
         //   - rotate_r  2 56     -> 0x00ff0000_00000000
-
-        // bytecode:
-        //
-        // 0x0000 local_load           0 0
-        // 0x0008 local_load           0 1
-        // 0x0010 i64_and
-        // 0x0012 nop
-        // 0x0014 local_load           0 1
-        // 0x001c local_load           0 0
-        // 0x0024 i64_or
-        // 0x0026 nop
-        // 0x0028 local_load           0 0
-        // 0x0030 local_load           0 1
-        // 0x0038 i64_xor
-        // 0x003a nop
-        // 0x003c local_load           0 0
-        // 0x0044 i64_not
-        // 0x0046 nop
-        // 0x0048 local_load           0 2
-        // 0x0050 i64_leading_zeros
-        // 0x0052 nop
-        // 0x0054 local_load           0 2
-        // 0x005c i64_trailing_zeros
-        // 0x005e nop
-        // 0x0060 local_load           0 2
-        // 0x0068 i64_count_ones
-        // 0x006a nop
-        // 0x006c local_load           0 2
-        // 0x0074 i32_imm              0x8
-        // 0x007c i64_shift_left
-        // 0x007e nop
-        // 0x0080 local_load           0 3
-        // 0x0088 i32_imm              0x10
-        // 0x0090 i64_shift_right_s
-        // 0x0092 nop
-        // 0x0094 local_load           0 3
-        // 0x009c i32_imm              0x10
-        // 0x00a4 i64_shift_right_u
-        // 0x00a6 nop
-        // 0x00a8 local_load           0 2
-        // 0x00b0 i32_imm              0x20
-        // 0x00b8 i64_shift_left
-        // 0x00ba nop
-        // 0x00bc local_load           0 2
-        // 0x00c4 i32_imm              0x20
-        // 0x00cc i64_rotate_left
-        // 0x00ce nop
-        // 0x00d0 local_load           0 2
-        // 0x00d8 i32_imm              0x38
-        // 0x00e0 i64_shift_right_u
-        // 0x00e2 nop
-        // 0x00e4 local_load           0 2
-        // 0x00ec i32_imm              0x38
-        // 0x00f4 i64_rotate_right
-        // 0x00f6 end
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)

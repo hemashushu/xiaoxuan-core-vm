@@ -8,3 +8,4 @@ pub mod ast;
 pub mod lexer;
 pub mod parser;
 pub mod peekable_iterator;
+pub mod instruction_property;

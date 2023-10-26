@@ -267,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multithread_thread_start() {
+    fn test_multithread_thread_create() {
         let code0 = BytecodeWriter::new()
             // ecall/thread_create params
             .write_opcode_i32(Opcode::i32_imm, 0) // module_index
