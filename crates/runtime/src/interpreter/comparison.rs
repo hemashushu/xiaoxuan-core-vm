@@ -409,7 +409,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(11),
                 ForeignValue::UInt32(13),
@@ -573,7 +573,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt64(0),
                 ForeignValue::UInt64(11),
                 ForeignValue::UInt64(13),
@@ -707,7 +707,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float32(1.414f32),
                 ForeignValue::Float32(1.732f32),
             ],
@@ -835,7 +835,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float32(1.414f32),
                 ForeignValue::Float32(1.732f32),
             ],

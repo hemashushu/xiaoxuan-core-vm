@@ -437,7 +437,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float32(1.414),
                 ForeignValue::Float32(-1.732),
                 ForeignValue::Float32(2.4),
@@ -546,9 +546,9 @@ mod tests {
             .write_opcode(Opcode::f32_tan)
             .write_opcode_pesudo_f32(Opcode::f32_imm, 0.5)
             .write_opcode(Opcode::f32_asin)
-            .write_opcode_pesudo_f32(Opcode::f32_imm, 0.866025403)
+            .write_opcode_pesudo_f32(Opcode::f32_imm, 0.866_025_4)
             .write_opcode(Opcode::f32_acos)
-            .write_opcode_pesudo_f32(Opcode::f32_imm, 0.577350269)
+            .write_opcode_pesudo_f32(Opcode::f32_imm, 0.577_350_26)
             .write_opcode(Opcode::f32_atan)
             //
             .write_opcode(Opcode::end)
@@ -598,15 +598,15 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float32(1.414),
                 ForeignValue::Float32(4.0),
                 ForeignValue::Float32(27.0),
                 ForeignValue::Float32(3.0),
                 ForeignValue::Float32(9.0),
                 ForeignValue::Float32(100.0),
-                ForeignValue::Float32(2.718281828),
-                ForeignValue::Float32(0.523598776),
+                ForeignValue::Float32(std::f32::consts::E), // 2.718281828
+                ForeignValue::Float32(std::f32::consts::FRAC_PI_6), // 0.523598776
             ],
         );
         assert_eq!(
@@ -618,7 +618,7 @@ mod tests {
                 ForeignValue::Float32(3.0),
                 //
                 ForeignValue::Float32(64.0),
-                ForeignValue::Float32(20.0855369232),
+                ForeignValue::Float32(20.085_537),
                 ForeignValue::Float32(512.0),
                 //
                 ForeignValue::Float32(0.99999994), // 1.0
@@ -629,9 +629,9 @@ mod tests {
                 ForeignValue::Float32(0.5),
                 ForeignValue::Float32(0.8660254),
                 ForeignValue::Float32(0.5773503),
-                ForeignValue::Float32(0.5235988),
-                ForeignValue::Float32(0.5235988),
-                ForeignValue::Float32(0.5235988),
+                ForeignValue::Float32(std::f32::consts::FRAC_PI_6),
+                ForeignValue::Float32(std::f32::consts::FRAC_PI_6),
+                ForeignValue::Float32(std::f32::consts::FRAC_PI_6), // 0.5235988
             ]
         );
     }
@@ -760,7 +760,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float64(1.414),
                 ForeignValue::Float64(-1.732),
                 ForeignValue::Float64(2.4),
@@ -808,8 +808,8 @@ mod tests {
         //   - 3: 3.0
         //   - 4: 9.0
         //   - 5: 100.0
-        //   - 6: 2.718281828
-        //   - 7: 0.523598776   (deg 30)
+        //   - 6: 2.718281828               // std::f64::consts::E
+        //   - 7: 0.523598776   (deg 30)    // std::f64::consts::FRAC_PI_6
         //
         // functions:
         //   - trunc   0        -> 1.0
@@ -921,15 +921,15 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float64(1.414),
                 ForeignValue::Float64(4.0),
                 ForeignValue::Float64(27.0),
                 ForeignValue::Float64(3.0),
                 ForeignValue::Float64(9.0),
                 ForeignValue::Float64(100.0),
-                ForeignValue::Float64(2.718281828),
-                ForeignValue::Float64(0.523598776),
+                ForeignValue::Float64(std::f64::consts::E),
+                ForeignValue::Float64(std::f64::consts::FRAC_PI_6),
             ],
         );
         assert_eq!(
@@ -944,15 +944,15 @@ mod tests {
                 ForeignValue::Float64(20.085536923187668),
                 ForeignValue::Float64(512.0),
                 //
-                ForeignValue::Float64(0.9999999998311266), // 1.0
+                ForeignValue::Float64(1.0),
                 ForeignValue::Float64(2.0),
                 ForeignValue::Float64(2.0),
                 ForeignValue::Float64(2.0),
                 //
-                ForeignValue::Float64(0.5000000003478834),
-                ForeignValue::Float64(0.866025403583588),
-                ForeignValue::Float64(0.5773502697252273),
-                ForeignValue::Float64(0.5235987755982989),
+                ForeignValue::Float64(0.5),
+                ForeignValue::Float64(0.8660254037844386),
+                ForeignValue::Float64(0.5773502691896258),
+                ForeignValue::Float64(std::f64::consts::FRAC_PI_6),
                 ForeignValue::Float64(0.5235987771671762),
                 ForeignValue::Float64(0.5235987754560796),
             ]

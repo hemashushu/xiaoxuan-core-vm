@@ -176,10 +176,10 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut items: Vec<ExternalFuncItem> = Vec::new();
-
-        items.push(ExternalFuncItem::new(0, 3, 11, 13));
-        items.push(ExternalFuncItem::new(3, 5, 15, 17));
+        let items = vec![
+            ExternalFuncItem::new(0, 3, 11, 13),
+            ExternalFuncItem::new(3, 5, 15, 17),
+        ];
 
         let section = ExternalFuncSection {
             items: &items,
@@ -212,11 +212,10 @@ mod tests {
 
     #[test]
     fn test_convert() {
-        let mut entries: Vec<ExternalFuncEntry> = Vec::new();
-
-        entries.push(ExternalFuncEntry::new("foobar".to_string(), 17, 19));
-
-        entries.push(ExternalFuncEntry::new("helloworld".to_string(), 23, 29));
+        let entries = vec![
+            ExternalFuncEntry::new("foobar".to_string(), 17, 19),
+            ExternalFuncEntry::new("helloworld".to_string(), 23, 29),
+        ];
 
         let (items, names_data) = ExternalFuncSection::convert_from_entries(&entries);
         let section = ExternalFuncSection {

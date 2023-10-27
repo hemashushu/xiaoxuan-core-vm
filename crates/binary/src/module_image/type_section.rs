@@ -73,10 +73,7 @@ impl<'a> SectionEntry<'a> for TypeSection<'a> {
 }
 
 impl<'a> TypeSection<'a> {
-    pub fn get_item_params_and_results(
-        &'a self,
-        idx: usize,
-    ) -> (&'a [DataType], &'a [DataType]) {
+    pub fn get_item_params_and_results(&'a self, idx: usize) -> (&'a [DataType], &'a [DataType]) {
         let items = self.items;
         let types_data = self.types_data;
 
@@ -216,32 +213,30 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut items: Vec<TypeItem> = Vec::new();
-
-        items.push(TypeItem {
-            params_count: 2,
-            results_count: 3,
-            params_offset: 0,
-            results_offset: 2,
-        });
-
-        items.push(TypeItem {
-            params_count: 1,
-            results_count: 0,
-            params_offset: 5,
-            results_offset: 6,
-        });
-
-        items.push(TypeItem {
-            params_count: 4,
-            results_count: 1,
-            params_offset: 6,
-            results_offset: 10,
-        });
+        let items = vec![
+            TypeItem {
+                params_count: 2,
+                results_count: 3,
+                params_offset: 0,
+                results_offset: 2,
+            },
+            TypeItem {
+                params_count: 1,
+                results_count: 0,
+                params_offset: 5,
+                results_offset: 6,
+            },
+            TypeItem {
+                params_count: 4,
+                results_count: 1,
+                params_offset: 6,
+                results_offset: 10,
+            },
+        ];
 
         let section = TypeSection {
             items: &items,
-            types_data: &vec![
+            types_data: &[
                 1u8, 2, // param types 0
                 3, 2, 1, // result types 0
                 4, // param types 1

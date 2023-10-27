@@ -438,13 +438,13 @@ mod tests {
         let data_entry0 = DataEntry::from_i32(11);
         let data_entry1 = DataEntry::from_i64(13);
         let data_entry2 = DataEntry::from_bytes(b"hello".to_vec(), 1);
-        let data_entry3 = DataEntry::from_f32(3.14);
-        let data_entry4 = DataEntry::from_f64(3e8); // 2.9979e8
+        let data_entry3 = DataEntry::from_f32(std::f32::consts::PI);
+        let data_entry4 = DataEntry::from_f64(std::f64::consts::E); // deprecated 2.9979e8
         let data_entry5 = DataEntry::from_bytes(b"foo".to_vec(), 8);
         let data_entry6 = DataEntry::from_i64(17);
         let data_entry7 = DataEntry::from_i32(19);
 
-        let (items, datas) = ReadWriteDataSection::convert_from_entries(&vec![
+        let (items, datas) = ReadWriteDataSection::convert_from_entries(&[
             data_entry0,
             data_entry1,
             data_entry2,
@@ -529,7 +529,7 @@ mod tests {
             //
             // https://www.binaryconvert.com/result_float.html?decimal=051046049052
             //
-            195, 245, 72, 64, // data 3
+            219, 15, 73, 64, // data 3
             0, 0, 0, 0, // padding
             // Double (IEEE754 Double precision 64-bit)
             // 0x41B1E1A300000000 =
@@ -540,7 +540,7 @@ mod tests {
             // | sign
             //
             // https://www.binaryconvert.com/result_double.html?decimal=051048048048048048048048048
-            0, 0, 0, 0, 163, 225, 177, 65, // data 4
+            105, 87, 20, 139, 10, 191, 5, 64, // data 4
             102, 111, 111, // data 5, "bar"
             0, 0, 0, 0, 0, // padding
             17, 0, 0, 0, 0, 0, 0, 0, // data 6
@@ -640,7 +640,7 @@ mod tests {
 
         assert_eq!(
             section.items,
-            &vec![
+            &[
                 DataItem::new(0, 4, MemoryDataType::I32, 4),
                 DataItem::new(8, 8, MemoryDataType::I64, 8),
                 DataItem::new(16, 5, MemoryDataType::BYTES, 1),
@@ -655,7 +655,7 @@ mod tests {
         // the data area is too long, only check partly here.
         assert_eq!(
             &section.datas_data[0..16],
-            &vec![
+            &[
                 11u8, 0, 0, 0, // data 0
                 0, 0, 0, 0, // padding
                 13, 0, 0, 0, 0, 0, 0, 0, // data 1
@@ -674,7 +674,7 @@ mod tests {
         let data_entry6 = UninitDataEntry::from_i64();
         let data_entry7 = UninitDataEntry::from_i32();
 
-        let items = UninitDataSection::convert_from_entries(&vec![
+        let items = UninitDataSection::convert_from_entries(&[
             data_entry0,
             data_entry1,
             data_entry2,
@@ -804,7 +804,7 @@ mod tests {
         let section = UninitDataSection::load(&section_data);
         assert_eq!(
             section.items,
-            &vec![
+            &[
                 DataItem::new(0, 4, MemoryDataType::I32, 4),
                 DataItem::new(8, 8, MemoryDataType::I64, 8),
                 DataItem::new(16, 5, MemoryDataType::BYTES, 1),

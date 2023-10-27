@@ -144,7 +144,7 @@ mod tests {
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
     fn test_process_host_nop() {
@@ -180,7 +180,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
+            &[ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
         );
         assert_eq!(
             result0.unwrap(),
@@ -370,7 +370,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -485,7 +485,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i8(fvs[0]), 0x02);
@@ -521,15 +521,15 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            .write_opcode(Opcode::heap_resize)
             .write_opcode(Opcode::drop)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0x07050302)
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i32(Opcode::i32_imm, 0x07050302)
             .write_opcode_i16(Opcode::heap_store32, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
             .write_opcode_i16(Opcode::heap_store, 0)
             //
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
@@ -575,7 +575,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x07050302);

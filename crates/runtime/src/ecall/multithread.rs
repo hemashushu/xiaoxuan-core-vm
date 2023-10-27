@@ -229,7 +229,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             // resize heap to 1 page
             .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode_i32(Opcode::ecall, ECallCode::heap_resize as u32)
+            .write_opcode(Opcode::heap_resize)
             // read the thread start data to heap
             .write_opcode_i32(Opcode::i32_imm, 0) // offset
             .write_opcode_i32(Opcode::i32_imm, 4) // length

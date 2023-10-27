@@ -184,6 +184,12 @@ fn init_interpreters_internal() {
     interpreters[Opcode::heap_store16 as usize] = heap::heap_store16;
     interpreters[Opcode::heap_store8 as usize] = heap::heap_store8;
 
+    // heap memory
+    interpreters[Opcode::heap_fill as usize] = heap::heap_fill;
+    interpreters[Opcode::heap_copy as usize] = heap::heap_copy;
+    interpreters[Opcode::heap_capacity as usize] = heap::heap_capacity;
+    interpreters[Opcode::heap_resize as usize] = heap::heap_resize;
+
     // conversion
     interpreters[Opcode::i32_trunc_i64 as usize] = conversion::i32_trunc_i64;
     interpreters[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;
@@ -363,6 +369,7 @@ fn init_interpreters_internal() {
 
     // machine
     interpreters[Opcode::nop as usize] = host::nop;
+    interpreters[Opcode::panic as usize] = host::panic;
     interpreters[Opcode::debug as usize] = host::debug;
     interpreters[Opcode::host_addr_local as usize] = host::host_addr_local;
     interpreters[Opcode::host_addr_local_long as usize] = host::host_addr_local_long;

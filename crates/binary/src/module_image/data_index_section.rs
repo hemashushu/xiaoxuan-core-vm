@@ -207,16 +207,13 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut ranges: Vec<RangeItem> = Vec::new();
+        let ranges = vec![RangeItem::new(0, 2), RangeItem::new(2, 1)];
 
-        ranges.push(RangeItem::new(0, 2));
-        ranges.push(RangeItem::new(2, 1));
-
-        let mut items: Vec<DataIndexItem> = Vec::new();
-
-        items.push(DataIndexItem::new(2, 3, 5, DataSectionType::ReadOnly));
-        items.push(DataIndexItem::new(7, 11, 13, DataSectionType::ReadWrite));
-        items.push(DataIndexItem::new(17, 19, 23, DataSectionType::ReadWrite));
+        let items = vec![
+            DataIndexItem::new(2, 3, 5, DataSectionType::ReadOnly),
+            DataIndexItem::new(7, 11, 13, DataSectionType::ReadWrite),
+            DataIndexItem::new(17, 19, 23, DataSectionType::ReadWrite),
+        ];
 
         let section = DataIndexSection {
             ranges: &ranges,

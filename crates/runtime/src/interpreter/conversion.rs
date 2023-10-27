@@ -182,7 +182,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt64(0x19171311_07050302u64),
                 ForeignValue::UInt32(0x80706050u32),
             ],
@@ -230,16 +230,16 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
-                ForeignValue::Float64(3.1415926535897931159979634685f64),
+            &[
+                ForeignValue::Float64(std::f64::consts::PI), // 3.1415926535897931159979634685f64
                 // 0x400921FB54442D18 -> 0x40490FDB (3.1415927410125732421875)
-                ForeignValue::Float32(2.71828f32),
-                // 0x402DF84D -> 0x4005BF0995AAF790 (2.71828000000000002955857780762016773223876953125)
+                ForeignValue::Float32(std::f32::consts::E), // 2.71828f32
+                                                            // 0x402DF84D -> 0x4005BF0995AAF790 (2.71828000000000002955857780762016773223876953125)
             ],
         );
 
-        let exp0 = 2.71828f32 as f64;
-        let exp1 = 3.1415926535897931159979634685f64 as f32;
+        let exp0 = std::f32::consts::E as f64; // 2.71828f32 as f64;
+        let exp1 = std::f64::consts::PI as f32; // 3.141_592_653_589_793_64 as f32;
 
         assert_eq!(
             result0.unwrap(),
@@ -335,7 +335,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::Float32(2.236),
                 ForeignValue::Float64(3.162),
                 ForeignValue::Float32(-5.099),
@@ -455,7 +455,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt32(11),
                 ForeignValue::UInt64(13),
                 ForeignValue::UInt32(-17i32 as u32),

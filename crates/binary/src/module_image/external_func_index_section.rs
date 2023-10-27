@@ -170,16 +170,13 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut ranges: Vec<RangeItem> = Vec::new();
+        let ranges = vec![RangeItem::new(0, 2), RangeItem::new(2, 1)];
 
-        ranges.push(RangeItem::new(0, 2));
-        ranges.push(RangeItem::new(2, 1));
-
-        let mut items: Vec<ExternalFuncIndexItem> = Vec::new();
-
-        items.push(ExternalFuncIndexItem::new(2, 3, 5));
-        items.push(ExternalFuncIndexItem::new(7, 11, 13));
-        items.push(ExternalFuncIndexItem::new(17, 19, 23));
+        let items = vec![
+            ExternalFuncIndexItem::new(2, 3, 5),
+            ExternalFuncIndexItem::new(7, 11, 13),
+            ExternalFuncIndexItem::new(17, 19, 23),
+        ];
 
         let section = ExternalFuncIndexSection {
             ranges: &ranges,

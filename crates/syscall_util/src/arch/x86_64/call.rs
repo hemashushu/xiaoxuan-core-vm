@@ -16,7 +16,8 @@
 // | r8       | 5th      |
 // | r9       | 6th      |
 //
-// arguments over 6 are passed through the stack, as well as the variable arguments.
+// arguments over 6 are passed through the stack, as well as the
+// variable arguments (the amount of arguments are variable).
 //
 // /------------\ <-- stack start
 // |   ...      |
@@ -39,7 +40,7 @@
 //           ret  a1   a2   a3   a4(std) a5  a6  a4(syscall)
 //
 // any of these registers may be used in a function without have to save the original value.
-// this also means that you need to save them BEFORE executing a function call
+// this also means that you need to save them BEFORE invoking a function call
 // if you need the value of one of these registers.
 // to keep things simple, just do not use scratch registers to hold the 'long live' values.
 //

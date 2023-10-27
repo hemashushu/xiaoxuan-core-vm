@@ -13,7 +13,8 @@
 //   /a-zA-Z0-9_./+, should not starts with number, e.g.
 //   local, i32, i32.imm, i32.div_s, user
 // - number: supportes decimal, binary, hexadecimal and float point numbers e.g.
-//   211, 0x11, 0x11_22, 0b1100, 3.14
+//   211, 0x11, 0x11_22, 0b1100, 3.14, 2.99e8, +12, -3.14
+//   invalid number: -0xaabb, -0b1100
 // - string: a char sequence surround by double quotes, multiline is supported. e.g.
 //   "abc文字😊", "\t\r\n\\\""\u{2d}\u{6587}\0"
 //   "line 0
@@ -95,51 +96,54 @@ pub enum Token {
 pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError> {
     let mut tokens: Vec<Token> = vec![];
 
-    while let Some(ch) = iter.next() {
+    while let Some(ch) = iter.peek(0) {
         match ch {
             ' ' | '\t' | '\r' | '\n' => {
                 // skip whitespace
+                iter.next();
             }
             '$' => {
                 tokens.push(lex_identifier(iter)?);
             }
-            '0'..='9' => {
-                tokens.push(lex_number(ch, iter)?);
+            '0'..='9' | '+' | '-' => {
+                tokens.push(lex_number(iter)?);
             }
-            'b' if iter.look_ahead_equals(0, &'"') => {
+            'b' if iter.look_ahead_equals(1, &'"') => {
                 tokens.push(lex_bytes(iter)?);
             }
             '"' => {
                 tokens.push(lex_string(iter)?);
             }
             '(' => {
-                if iter.look_ahead_equals(0, &';') {
+                if iter.look_ahead_equals(1, &';') {
                     comsume_block_comment(iter)?;
                 } else {
                     tokens.push(Token::LeftParen);
+                    iter.next();
                 }
             }
             ')' => {
                 tokens.push(Token::RightParen);
+                iter.next();
             }
             ';' => {
-                if iter.look_ahead_equals(0, &';') {
+                if iter.look_ahead_equals(1, &';') {
                     comsume_line_comment(iter)?;
-                } else if iter.look_ahead_equals(0, &')') {
+                } else if iter.look_ahead_equals(1, &')') {
                     return Err(CompileError::new("Unpaired block comment."));
                 } else {
-                    return Err(CompileError::new("Unexpected char: ;"));
+                    return Err(CompileError::new("Unexpected char \";\""));
                 }
             }
             '#' => {
-                if iter.look_ahead_equals(0, &'(') {
+                if iter.look_ahead_equals(1, &'(') {
                     comsume_node_comment(iter)?;
                 } else {
                     return Err(CompileError::new("Unexpected char: #"));
                 }
             }
             'a'..='z' | 'A'..='Z' | '_' => {
-                tokens.push(lex_symbol(ch, iter)?);
+                tokens.push(lex_symbol(iter)?);
             }
             _ => return Err(CompileError::new(&format!("Unexpected char: {}", ch))),
         }
@@ -150,7 +154,9 @@ pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError
 
 fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // $name  //
-    //  ^_____// UNverified/current char, i.e. the value of 'iter.peek(0)'
+    // ^______// current char, i.e. the value of 'iter.peek(0)'
+
+    iter.next(); // consume '$'
 
     if matches!(iter.peek(0), Some(nc) if *nc >= '0' && *nc <= '9') {
         // identifier should starts with /a-zA-Z_/
@@ -187,35 +193,39 @@ fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
     }
 }
 
-fn lex_number(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 1234  //
-    // ^_____// verified/current char
+    // ^_____// current char
 
-    if ch == '0' {
-        if iter.look_ahead_equals(0, &'b') {
+    if let Some('0') = iter.peek(0) {
+        if iter.look_ahead_equals(1, &'b') {
             // '0b...'
-            iter.next();
             return lex_number_binary(iter);
-        } else if iter.look_ahead_equals(0, &'x') {
+        } else if iter.look_ahead_equals(1, &'x') {
             // '0x...'
-            iter.next();
             return lex_number_hex(iter);
         }
     }
 
-    lex_number_decimal(ch, iter)
+    lex_number_decimal(iter)
 }
 
-fn lex_number_decimal(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number_decimal(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 1234  //
-    // ^_____// verified/current char
+    // ^_____// current char
 
     let mut s = String::new();
-    s.push(ch);
+
+    if let Some('+') = iter.peek(0) {
+        iter.next();
+    } else if let Some('-') = iter.peek(0) {
+        s.push('-');
+        iter.next();
+    }
 
     while let Some(nc) = iter.peek(0) {
         match *nc {
-            '0'..='9' | '_' | '.' => {
+            '0'..='9' | '_' | '.' | 'e' => {
                 s.push(*nc);
                 iter.next();
             }
@@ -237,7 +247,11 @@ fn lex_number_decimal(ch: char, iter: &mut PeekableIterator<char>) -> Result<Tok
 
 fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 0b0101  //
-    //   ^_____// UNverified/current char
+    // ^_______// current char
+
+    // consume '0b'
+    iter.next();
+    iter.next();
 
     let mut s = String::new();
     s.push_str("0b");
@@ -270,7 +284,11 @@ fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, Compile
 
 fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // 0xabcd  //
-    //   ^_____// UNverified/current char
+    // ^_______// current char
+
+    // consume '0x'
+    iter.next();
+    iter.next();
 
     let mut s = String::new();
     s.push_str("0x");
@@ -303,7 +321,9 @@ fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
 
 fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // "abc"  //
-    //  ^_____// UNverified/current char
+    // ^______// UNverified/current char
+
+    iter.next(); // consume the quote mark
 
     let mut s = String::new();
 
@@ -313,44 +333,39 @@ fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
                 '\\' => {
                     // escape char
                     match iter.peek(0) {
-                        Some(nc) => {
-                            match *nc {
+                        Some(ref_nc) => {
+                            let nc = *ref_nc;
+                            iter.next();
+                            match nc {
                                 '\\' => {
                                     s.push('\\');
-                                    iter.next();
                                 }
                                 '"' => {
                                     s.push('"');
-                                    iter.next();
                                 }
                                 't' => {
                                     // horizontal tabulation
                                     s.push('\t');
-                                    iter.next();
                                 }
                                 'r' => {
                                     // carriage return (CR)
                                     s.push('\r');
-                                    iter.next();
                                 }
                                 'n' => {
                                     // new line character (line feed, LF)
                                     s.push('\n');
-                                    iter.next();
                                 }
                                 '0' => {
                                     // null char
                                     s.push('\0');
-                                    iter.next();
                                 }
                                 'u' => {
                                     // unicode code point, e.g. '\u{2d}', '\u{6587}'
-                                    iter.next();
                                     s.push(lex_string_unescape_unicode(iter)?);
                                 }
                                 _ => {
                                     return Err(CompileError::new(&format!(
-                                        "Unsupported escape char for string: {}",
+                                        "Unsupported escape char for string: \"{}\"",
                                         nc
                                     )))
                                 }
@@ -379,7 +394,7 @@ fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
 
 fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char, CompileError> {
     // \u{6587}  //
-    //   ^_______// UNverified/current char
+    //   ^_______// current char
 
     if !matches!(iter.next(), Some(c) if c == '{') {
         return Err(CompileError::new(
@@ -388,7 +403,7 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
     }
 
     // \u{6587}  //
-    //    ^______// UNverified/current char
+    //    ^______// current char
 
     let mut s = String::new();
 
@@ -429,11 +444,12 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
 
 fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // b"0011aabb"  //
-    //  ^___________// verified/current char
+    // ^____________// verified/current char
 
     let mut bytes: Vec<u8> = Vec::new();
     let mut buf = String::new();
 
+    iter.next(); // consume the char 'b'
     iter.next(); // consume the quote '"'
 
     loop {
@@ -476,9 +492,9 @@ fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
 
 fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // ;;...  //
-    // ^^_____// verified
-    // |______// current char
+    // ^______// current char
 
+    iter.next(); // consume the char ';'
     iter.next(); // consume the char ';'
 
     while let Some(c) = iter.next() {
@@ -492,9 +508,9 @@ fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
 
 fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // (;...;)  //
-    // ^^_______// verified
-    // |________// current char
+    // ^________// current char
 
+    iter.next(); // consume the char '('
     iter.next(); // consume the char ';'
 
     let mut pairs = 1;
@@ -528,9 +544,9 @@ fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compil
 
 fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
     // #(comment ...)  //
-    // ^^______________// verified
-    // |_______________// current char
+    // ^_______________// current char
 
+    iter.next(); // consume the char '#'
     iter.next(); // consume the char '('
 
     let mut pairs = 1;
@@ -572,12 +588,11 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
     Ok(())
 }
 
-fn lex_symbol(ch: char, iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_symbol(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
     // i32.imm  //
-    // ^________// verified/current char
+    // ^________// current char
 
     let mut s = String::new();
-    s.push(ch);
 
     while let Some(nc) = iter.peek(0) {
         match *nc {
@@ -633,7 +648,7 @@ mod tests {
 
     fn lex_from_str(s: &str) -> Result<Vec<Token>, CompileError> {
         let mut chars = s.chars();
-        let mut iter = PeekableIterator::new(&mut chars, 1);
+        let mut iter = PeekableIterator::new(&mut chars, 2);
         lex(&mut iter)
     }
 
@@ -708,8 +723,6 @@ mod tests {
 
     #[test]
     fn test_lex_number() {
-        assert_eq!(lex_from_str("123").unwrap(), vec![Token::new_number("123")]);
-
         assert_eq!(
             lex_from_str("(123)").unwrap(),
             vec![
@@ -719,9 +732,21 @@ mod tests {
             ]
         );
 
+        assert_eq!(lex_from_str("123").unwrap(), vec![Token::new_number("123")]);
+
         assert_eq!(
             lex_from_str("123.456").unwrap(),
             vec![Token::new_number("123.456")]
+        );
+
+        assert_eq!(
+            lex_from_str("3.0e8").unwrap(),
+            vec![Token::new_number("3.0e8")]
+        );
+
+        assert_eq!(
+            lex_from_str("-1234").unwrap(),
+            vec![Token::new_number("-1234")]
         );
 
         assert_eq!(
@@ -787,6 +812,18 @@ mod tests {
         // invalid char for binary number
         assert!(matches!(
             lex_from_str("0b1234"),
+            Err(CompileError { message: _ })
+        ));
+
+        // neg hex number
+        assert!(matches!(
+            lex_from_str("-0xaabb"),
+            Err(CompileError { message: _ })
+        ));
+
+        // neg binary number
+        assert!(matches!(
+            lex_from_str("-0b1010"),
             Err(CompileError { message: _ })
         ));
     }

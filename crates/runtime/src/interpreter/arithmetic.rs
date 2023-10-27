@@ -349,7 +349,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt32(11),
                 ForeignValue::UInt32(211),
                 ForeignValue::UInt32(-13i32 as u32),
@@ -467,7 +467,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt64(11),
                 ForeignValue::UInt64(211),
                 ForeignValue::UInt64(-13i64 as u64),
@@ -538,7 +538,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::Float32(1.414), ForeignValue::Float32(4.123)],
+            &[ForeignValue::Float32(1.414), ForeignValue::Float32(4.123)],
         );
         assert_eq!(
             result0.unwrap(),
@@ -546,7 +546,7 @@ mod tests {
                 ForeignValue::Float32(5.537),
                 ForeignValue::Float32(2.709),
                 ForeignValue::Float32(5.829922),
-                ForeignValue::Float32(2.91584158416),
+                ForeignValue::Float32(2.915_841_6),
             ]
         );
     }
@@ -597,7 +597,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::Float64(1.414), ForeignValue::Float64(4.123)],
+            &[ForeignValue::Float64(1.414), ForeignValue::Float64(4.123)],
         );
         assert_eq!(
             result0.unwrap(),

@@ -563,7 +563,7 @@ mod tests {
 
             let func_ref0 = jit_helper
                 .module
-                .declare_func_in_func(func_a_id, &mut function_builder.func);
+                .declare_func_in_func(func_a_id, function_builder.func);
             let value0 = function_builder.ins().iconst(types::I32, 13);
             let call0 = function_builder.ins().call(func_ref0, &[value0]);
             let value1 = {
@@ -645,7 +645,7 @@ mod tests {
 
         let func_ref0 = jit_helper
             .module
-            .declare_func_in_func(fn_add_id, &mut function_builder.func);
+            .declare_func_in_func(fn_add_id, function_builder.func);
 
         let block_0 = function_builder.create_block();
         function_builder.switch_to_block(block_0);

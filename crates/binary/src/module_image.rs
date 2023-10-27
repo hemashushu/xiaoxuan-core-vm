@@ -266,7 +266,8 @@ impl<'a> ModuleImage<'a> {
 
         let ptr = image_data.as_ptr();
         let ptr_require_module_image_version = unsafe { ptr.offset(8) };
-        let require_module_image_version = unsafe { std::ptr::read(ptr_require_module_image_version as *const u32) };
+        let require_module_image_version =
+            unsafe { std::ptr::read(ptr_require_module_image_version as *const u32) };
 
         let supported_module_image_version =
             ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32); // supported version 1.0
@@ -510,7 +511,7 @@ mod tests {
         func_index_section::{FuncIndexItem, FuncIndexSection},
         func_section::{FuncEntry, FuncSection},
         local_variable_section::{
-            LocalVariableEntry, LocalVariableItem, LocalListEntry, LocalVariableSection,
+            LocalListEntry, LocalVariableEntry, LocalVariableItem, LocalVariableSection,
         },
         type_section::{TypeEntry, TypeSection},
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
@@ -570,14 +571,13 @@ mod tests {
         // note:
         // the local variable list should include the function arguments, the
         // data below does not follow this rule, but it's ok in the unit test scenario.
-        let mut local_var_list_entries: Vec<LocalListEntry> = Vec::new();
-        local_var_list_entries.push(LocalListEntry::new(vec![
-            LocalVariableEntry::from_i32(),
-            LocalVariableEntry::from_i64(),
-        ]));
-        local_var_list_entries.push(LocalListEntry::new(vec![
-            LocalVariableEntry::from_bytes(12, 4),
-        ]));
+        let local_var_list_entries = vec![
+            LocalListEntry::new(vec![
+                LocalVariableEntry::from_i32(),
+                LocalVariableEntry::from_i64(),
+            ]),
+            LocalListEntry::new(vec![LocalVariableEntry::from_bytes(12, 4)]),
+        ];
 
         let (local_var_lists, local_var_list_data) =
             LocalVariableSection::convert_from_entries(&local_var_list_entries);
@@ -601,21 +601,21 @@ mod tests {
         module_image.save(&mut image_data).unwrap();
 
         assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
-        assert_eq!(&image_data[8..10], &vec![0, 0]); // image minor version number, little endian
-        assert_eq!(&image_data[10..12], &vec![1, 0]); // image major version number, little endian
-        assert_eq!(&image_data[12..14], &vec![0, 0]); // runtime minor version number, little endian
-        assert_eq!(&image_data[14..16], &vec![1, 0]); // runtime major version number, little endian
+        assert_eq!(&image_data[8..10], &[0, 0]); // image minor version number, little endian
+        assert_eq!(&image_data[10..12], &[1, 0]); // image major version number, little endian
+        assert_eq!(&image_data[12..14], &[0, 0]); // runtime minor version number, little endian
+        assert_eq!(&image_data[14..16], &[1, 0]); // runtime major version number, little endian
 
         // name
-        assert_eq!(&image_data[16..18], &vec![4, 0]); // name length
-        assert_eq!(&image_data[18..20], &vec![0, 0]); // padding
+        assert_eq!(&image_data[16..18], &[4, 0]); // name length
+        assert_eq!(&image_data[18..20], &[0, 0]); // padding
         assert_eq!(&image_data[20..24], &b"main".to_vec()); // name
 
         // header length = 276 bytes
 
         // section count
-        assert_eq!(&image_data[276..280], &vec![3, 0, 0, 0]); // item count
-        assert_eq!(&image_data[280..284], &vec![0, 0, 0, 0]); // padding
+        assert_eq!(&image_data[276..280], &[3, 0, 0, 0]); // item count
+        assert_eq!(&image_data[280..284], &[0, 0, 0, 0]); // padding
 
         let remains = &image_data[284..];
 
@@ -624,7 +624,7 @@ mod tests {
 
         assert_eq!(
             section_table_data,
-            &vec![
+            &[
                 0x10u8, 0, 0, 0, // section id, type section
                 0, 0, 0, 0, // offset 0
                 36, 0, 0, 0, // length 0
@@ -642,7 +642,7 @@ mod tests {
         let (type_section_data, remains) = remains.split_at(36);
         assert_eq!(
             type_section_data,
-            &vec![
+            &[
                 2u8, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
                 //
@@ -666,7 +666,7 @@ mod tests {
         let (func_section_data, remains) = remains.split_at(52);
         assert_eq!(
             func_section_data,
-            &vec![
+            &[
                 2, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
                 //
@@ -689,7 +689,7 @@ mod tests {
 
         assert_eq!(
             remains,
-            &vec![
+            &[
                 // header
                 2, 0, 0, 0, // item count
                 0, 0, 0, 0, // 4 bytes padding
@@ -767,7 +767,7 @@ mod tests {
 
         assert_eq!(
             local_var_section_restore.get_local_list(0),
-            &vec![
+            &[
                 LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
             ]
@@ -775,7 +775,7 @@ mod tests {
 
         assert_eq!(
             local_var_section_restore.get_local_list(1),
-            &vec![LocalVariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
+            &[LocalVariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
         );
     }
 
@@ -789,8 +789,8 @@ mod tests {
         let data_index_item2 = DataIndexItem::new(11, 13, 17, DataSectionType::Uninit);
 
         let data_index_section = DataIndexSection {
-            ranges: &vec![data_range0],
-            items: &vec![data_index_item0, data_index_item1, data_index_item2],
+            ranges: &[data_range0],
+            items: &[data_index_item0, data_index_item1, data_index_item2],
         };
 
         // build FuncIndexSection instance
@@ -799,8 +799,8 @@ mod tests {
         let func_index_item0 = FuncIndexItem::new(0, 1, 2);
 
         let func_index_section = FuncIndexSection {
-            ranges: &vec![func_range0],
-            items: &vec![func_index_item0],
+            ranges: &[func_range0],
+            items: &[func_index_item0],
         };
 
         // build module image
@@ -818,15 +818,15 @@ mod tests {
         module_image.save(&mut image_data).unwrap();
 
         // name
-        assert_eq!(&image_data[16..18], &vec![3, 0]); // name length
-        assert_eq!(&image_data[18..20], &vec![0, 0]); // padding
+        assert_eq!(&image_data[16..18], &[3, 0]); // name length
+        assert_eq!(&image_data[18..20], &[0, 0]); // padding
         assert_eq!(&image_data[20..23], &b"std".to_vec()); // name
 
         // header length = 276 bytes
 
         // section count
-        assert_eq!(&image_data[276..280], &vec![2, 0, 0, 0]); // item count
-        assert_eq!(&image_data[280..284], &vec![0, 0, 0, 0]); // padding
+        assert_eq!(&image_data[276..280], &[2, 0, 0, 0]); // item count
+        assert_eq!(&image_data[280..284], &[0, 0, 0, 0]); // padding
 
         let remains = &image_data[284..];
 
@@ -835,7 +835,7 @@ mod tests {
 
         assert_eq!(
             section_table_data,
-            &vec![
+            &[
                 0x41u8, 0, 0, 0, // section id 0, data index
                 0, 0, 0, 0, // offset 0
                 64, 0, 0, 0, // length 0
@@ -850,7 +850,7 @@ mod tests {
 
         assert_eq!(
             data_index_section_data,
-            &vec![
+            &[
                 /* table 0 */
                 1, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
@@ -881,7 +881,7 @@ mod tests {
 
         assert_eq!(
             func_index_section_data,
-            &vec![
+            &[
                 /* table 0 */
                 1, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding

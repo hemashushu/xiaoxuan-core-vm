@@ -85,7 +85,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
 
         let expect_version_number = RUNTIME_PATCH_VERSION as u64
             | (RUNTIME_MINOR_VERSION as u64) << 16
@@ -132,7 +132,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs1 = result0.unwrap();
         let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
             i

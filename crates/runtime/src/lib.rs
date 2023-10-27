@@ -56,9 +56,7 @@ pub enum InterpreterErrorType {
 
 impl InterpreterError {
     pub fn new(error_type: InterpreterErrorType) -> Self {
-        Self {
-            error_type
-        }
+        Self { error_type }
     }
 }
 

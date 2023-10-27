@@ -20,7 +20,7 @@ pub struct ModuleNode {
 #[derive(Debug, PartialEq, Clone)]
 pub enum ModuleElementNode {
     FuncNode(FuncNode),
-    TODONode
+    TODONode,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -53,26 +53,26 @@ pub struct LocalNode {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Instruction {
     NoParams(Opcode),
-    ParamI32(Opcode, u32),
-    ParamI16(Opcode, u16),
 
+    ImmI32(u32),
     ImmI64(u64),
     ImmF32(ImmF32),
     ImmF64(ImmF64),
 
     LocalAccess(Opcode, /* tag */ String, /* offset */ u16),
-    LocalAccessLong(Opcode, /* tag */ String),
+    LocalLongAccess(Opcode, /* tag */ String),
 
     DataAccess(Opcode, /* tag */ String, /* offset */ u16),
-    DataAccessLong(Opcode, /* tag */ String),
+    DataLongAccess(Opcode, /* tag */ String),
 
     HeapAccess(Opcode, u16 /* offset */),
 
     UnaryOp(Opcode),
+    UnaryOpParamI16(Opcode, u16),
     BinaryOp(Opcode),
 
+    When(When),
     If(If),
-    Cond(Cond),
     Branch(Branch),
     For(For),
 
@@ -95,14 +95,16 @@ pub enum ImmF64 {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct If {
+pub struct When {
+    // structure 'when' has NO params and NO results, however,
+    // can contains local variables.
+    locals: Vec<LocalNode>,
     test: Vec<Instruction>,
     consequent: Vec<Instruction>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Cond {
-    // name: Option<String>,
+pub struct If {
     params: Vec<ParamNode>,
     results: Vec<DataType>,
     locals: Vec<LocalNode>,
@@ -113,7 +115,6 @@ pub struct Cond {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Branch {
-    // name: Option<String>,
     params: Vec<ParamNode>,
     results: Vec<DataType>,
     locals: Vec<LocalNode>,
@@ -129,7 +130,6 @@ pub struct BranchCase {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct For {
-    // name: Option<String>,
     params: Vec<ParamNode>,
     results: Vec<DataType>,
     locals: Vec<LocalNode>,

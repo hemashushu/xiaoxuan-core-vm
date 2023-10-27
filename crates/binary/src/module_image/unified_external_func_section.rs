@@ -167,10 +167,10 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut items: Vec<UnifiedExternalFuncItem> = Vec::new();
-
-        items.push(UnifiedExternalFuncItem::new(0, 3, 11));
-        items.push(UnifiedExternalFuncItem::new(3, 5, 13));
+        let items = vec![
+            UnifiedExternalFuncItem::new(0, 3, 11),
+            UnifiedExternalFuncItem::new(3, 5, 13),
+        ];
 
         let section = UnifiedExternalFuncSection {
             items: &items,
@@ -201,11 +201,10 @@ mod tests {
 
     #[test]
     fn test_convert() {
-        let mut entries: Vec<UnifiedExternalFuncEntry> = Vec::new();
-
-        entries.push(UnifiedExternalFuncEntry::new("foobar".to_string(), 17));
-
-        entries.push(UnifiedExternalFuncEntry::new("helloworld".to_string(), 19));
+        let entries = vec![
+            UnifiedExternalFuncEntry::new("foobar".to_string(), 17),
+            UnifiedExternalFuncEntry::new("helloworld".to_string(), 19),
+        ];
 
         let (items, names_data) = UnifiedExternalFuncSection::convert_from_entries(&entries);
         let section = UnifiedExternalFuncSection {

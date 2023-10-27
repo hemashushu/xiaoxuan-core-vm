@@ -332,7 +332,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt32(0xff0000ff),
                 ForeignValue::UInt32(0xf0f000ff),
                 ForeignValue::UInt32(0x00f00000),
@@ -472,7 +472,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
+            &[
                 ForeignValue::UInt64(0xff00ff00_00ff00ff),
                 ForeignValue::UInt64(0xf0f00f0f_00ff00ff),
                 ForeignValue::UInt64(0x0000ff00_00000000),

@@ -31,9 +31,9 @@ pub struct FuncSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FuncItem {
-    pub code_offset: u32,          // the offset of the code in data area
-    pub code_length: u32,          // the length (in bytes) of the code in data area
-    pub type_index: u32,           // the index of the type (of function)
+    pub code_offset: u32,      // the offset of the code in data area
+    pub code_length: u32,      // the length (in bytes) of the code in data area
+    pub type_index: u32,       // the index of the type (of function)
     pub local_list_index: u32, // the index of the 'local variable list'
 }
 
@@ -152,10 +152,7 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut items: Vec<FuncItem> = Vec::new();
-
-        items.push(FuncItem::new(3, 5, 7, 11));
-        items.push(FuncItem::new(13, 17, 19, 23));
+        let items = vec![FuncItem::new(3, 5, 7, 11), FuncItem::new(13, 17, 19, 23)];
 
         let section = FuncSection {
             items: &items,

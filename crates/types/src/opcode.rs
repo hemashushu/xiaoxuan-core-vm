@@ -133,17 +133,16 @@
 //   instructions with 2 parameters, such as `data_load`, `break`, `recur`.
 //   16 bits opcode + 16 bits parameter 0 + 32 bits parameter 1 (ALIGN 4-byte alignment require)
 // - 64 bits:
-//   instructions with 3 parameter, such as `local_load`, `local_store`
+//   instructions with 3 parameter, such as `local_load`, `local_store`,
 //   16 bits opcode + 16 bits parameter 1 + 16 bits parameter 2 + 16 bits parameter 3
 // - 96 bits
-//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`. `block`
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`. `block`, 'block_nez'
 //   (only these instructions currently are 96 bits)
 //   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (ALIGN 4-byte alignment require)
 // - 128 bits
-//   instructions with 3 parameters, such as `block_alt`, 'block_nez'.
-//   (only these instructions currently are 96 bits)
+//   instructions with 3 parameters, such as `block_alt`
+//   (only these instructions currently are 128 bits)
 //   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 + 32 bits parameter 2 (ALIGN 4-byte alignment require)
-
 
 // the simplified schemes:
 //
@@ -179,7 +178,6 @@ pub enum Opcode {
     select_nez,                 // pop operands a,b and c, push c if a!=0,          (operand test:i32 when_false:any when_true:any) -> any
                                 // otherwise push b.
                                 // b and c should be the same data type.
-
     i32_imm = 0x180,            // (param immediate_number:i32) -> i32
     i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> i64
     f32_imm,                    // (param immediate_number:i32) -> f32
@@ -237,7 +235,6 @@ pub enum Opcode {
     // instructions).
     // this feature can be used as a trick to improve performance, but the XiaoXuan ISA doesn't
     // provide this feature. please note that to access arguments you should always using the index.
-
     local_load = 0x200,         // load local variable      (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
     local_load32,               //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
     local_load32_i16_s,         //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
@@ -259,10 +256,10 @@ pub enum Opcode {
     local_long_load32_i8_u,     //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
     local_long_load_f64,        //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f64
     local_long_load32_f32,      //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f32
-    local_long_store,           //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i64 offset_bytes:i32) -> ()
-    local_long_store32,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
-    local_long_store16,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
-    local_long_store8,          //                          (param reversed_index:i16 local_variable_index:i32)     (operand number:i32 offset_bytes:i32) -> ()
+    local_long_store,           //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i64) -> ()
+    local_long_store32,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
+    local_long_store16,         //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
+    local_long_store8,          //                          (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
 
     // note:
     // - there are 2 sets of local load/store instructions, one set is the
@@ -278,7 +275,6 @@ pub enum Opcode {
     // load the specified data and push onto to the stack, or
     // pop one operand off the stack and set the specified data
     //
-
     data_load = 0x300,          // load data                (param offset_bytes:i16 data_public_index:i32) -> i64
     data_load32,                //                          (param offset_bytes:i16 data_public_index:i32) -> i32
     data_load32_i16_s,          //                          (param offset_bytes:i16 data_public_index:i32) -> i32
@@ -296,7 +292,6 @@ pub enum Opcode {
     // data_load.../data_store.., they are designed to access primitive type data
     // and struct data, the other set is the data_long_load.../data_long_store..., they
     // are designed to access long byte-type data.
-
     data_long_load = 0x380,     //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
     data_long_load32,           //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
     data_long_load32_i16_s,     //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
@@ -305,10 +300,10 @@ pub enum Opcode {
     data_long_load32_i8_u,      //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
     data_long_load_f64,         //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> f64
     data_long_load32_f32,       //                                  (param data_public_index:i32)   (operand offset_bytes:i32) -> f32
-    data_long_store,            //                                  (param data_public_index:i32)   (operand number:i64 offset_bytes:i32) -> ()
-    data_long_store32,          //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
-    data_long_store16,          //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
-    data_long_store8,           //                                  (param data_public_index:i32)   (operand number:i32 offset_bytes:i32) -> ()
+    data_long_store,            //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i64) -> ()
+    data_long_store32,          //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
+    data_long_store16,          //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
+    data_long_store8,           //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
 
     //
     // heap (thread-local memory) loading and storing
@@ -320,7 +315,6 @@ pub enum Opcode {
     // do NOT use the 'i32_imm', 'local_(long_)load32' or 'data_(long_)load32', because
     // the latter instructions leave the value of the high part of
     // operand (on the stack) undefined/unpredictable.
-
     heap_load = 0x400,          // load heap                        (param offset_bytes:i16)    (operand heap_addr:i64) -> i64
     heap_load32,                //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
     heap_load32_i16_s,          //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
@@ -329,10 +323,21 @@ pub enum Opcode {
     heap_load32_i8_u,           //                                  (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
     heap_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f64
     heap_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f32
-    heap_store,                 // store heap                       (param offset_bytes:i16)    (operand number:i64 heap_addr:i64) -> ()
-    heap_store32,               //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
-    heap_store16,               //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
-    heap_store8,                //                                  (param offset_bytes:i16)    (operand number:i32 heap_addr:i64) -> ()
+    heap_store,                 // store heap                       (param offset_bytes:i16)    (operand heap_addr:i64 number:i64) -> ()
+    heap_store32,               //                                  (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
+    heap_store16,               //                                  (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
+    heap_store8,                //                                  (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
+
+    // heap memory
+    heap_fill = 0x480,          // fill the specified memory region with the specified (i8) value
+                                // (operand offset:i64 value:i8 count:i64)
+    heap_copy,                  // copy the specified memory region to the specified location
+                                // (operand dst_offset:i64 src_offset:i64 length_in_bytes:i64)
+    heap_capacity,              // return the amount of pages of the thread-local
+                                // memory (i.e. heap), each page is MEMORY_PAGE_SIZE_IN_BYTES (64 KiB) by default
+                                // () -> pages:i64
+    heap_resize,                // increase or decrease the heap size return the new capacity (in pages)
+                                // (operand pages:i64) -> new_pages:i64
 
     //
     // conversion
@@ -424,7 +429,6 @@ pub enum Opcode {
     // ;; | 1  |
     // ;; \----/
     // ```
-
     i32_eqz = 0x600,            // (operand number:i32) -> i32
     i32_nez,                    // (operand number:i32) -> i32
     i32_eq,                     // (operand left:i32 right:i32) -> i32
@@ -468,7 +472,6 @@ pub enum Opcode {
     //
     // arithmetic
     //
-
     i32_add = 0x700,            // (operand left:i32 right:i32) -> i32
     i32_sub,                    // (operand left:i32 right:i32) -> i32
     i32_mul,                    // (operand left:i32 right:i32) -> i32
@@ -539,7 +542,6 @@ pub enum Opcode {
     // ;; the top item on the stack will be 1 (10 % 3 = 1)
     // i32.rem_u
     // ```
-
     i64_add,                    // (operand left:i64 right:i64) -> i64
     i64_sub,                    // (operand left:i64 right:i64) -> i64
     i64_mul,                    // (operand left:i64 right:i64) -> i64
@@ -566,7 +568,6 @@ pub enum Opcode {
 
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
-
     i32_and = 0x800,            // bitwise AND                  (operand left:i32 right:i32) -> i32
     i32_or,                     // bitwise OR                   (operand left:i32 right:i32) -> i32
     i32_xor,                    // bitwise XOR                  (operand left:i32 right:i32) -> i32
@@ -579,7 +580,6 @@ pub enum Opcode {
     i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-
 
     // instruction `i32.shl` example:
     //
@@ -613,7 +613,6 @@ pub enum Opcode {
     // ;; the top item on the stack will be 2
     // i32.popcnt
     // ```
-
     i64_and,                    // (operand left:i64 right:i64) -> i64
     i64_or,                     // (operand left:i64 right:i64) -> i64
     i64_xor,                    // (operand left:i64 right:i64) -> i64
@@ -630,7 +629,6 @@ pub enum Opcode {
     //
     // math
     //
-
     f32_abs = 0x900,                // (operand number:f32) -> f32
     f32_neg,                        // (operand number:f32) -> f32
     f32_ceil,                       // (operand number:f32) -> f32
@@ -663,7 +661,6 @@ pub enum Opcode {
     //
     // ref:
     // https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero
-
     f64_abs,                        // (operand number:f64) -> f64
     f64_neg,                        // (operand number:f64) -> f64
     f64_ceil,                       // (operand number:f64) -> f64
@@ -691,20 +688,17 @@ pub enum Opcode {
     //
     // control flow
     //
-
-    end = 0xa00,                // finish a block or a function.
+    end = 0xa00, // finish a block or a function.
     // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
-
-    block,                      // (param type_index:i32, local_list_index:i32)
-                                //
-                                // create a block scope. a block is similar to a function, it also has
-                                // parameters and results, it shares the type with function, so the 'block'
-                                // instruction has a parameter called 'type_index'.
-                                // this instruction leads VM to create a stack frame which is called 'block frame',
-                                // block frame is similar to 'function frame' except it has no local variables.
-
-    break_,                     // (param reversed_index:i16, next_inst_offset:i32)
+    block, // (param type_index:i32, local_list_index:i32)
+    //
+    // create a block scope. a block is similar to a function, it also has
+    // parameters and results, it shares the type with function, so the 'block'
+    // instruction has a parameter called 'type_index'.
+    // this instruction leads VM to create a stack frame which is called 'block frame',
+    // block frame is similar to 'function frame' except it has no local variables.
+    break_, // (param reversed_index:i16, next_inst_offset:i32)
 
     // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
@@ -781,9 +775,7 @@ pub enum Opcode {
     // after balancing between performance and elegance, XiaoXuan instruction
     // 'break' implies 'end' as well as jumps directly to the next instruction
     // after the instruction 'end'.
-
-
-    recur,                      // (param reversed_index:i16, start_inst_offset:i32)
+    recur, // (param reversed_index:i16, start_inst_offset:i32)
 
     // the instruction 'recur' lets VM to jump to the instruction next to the instruction 'block', 'block_alt'
     // or the first instruction of the current function,
@@ -823,8 +815,7 @@ pub enum Opcode {
     // 0d0030   end
     // 0d0032 end
     // ```
-
-    block_alt,          // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
+    block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
 
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
@@ -863,14 +854,15 @@ pub enum Opcode {
     // ```
     //
     // (+ => execute, - => pass)
-
-    block_nez,          // (param type_index:i32, local_list_index:i32, next_inst_offset:i32)
+    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is
     // NOT equals to ZERO (logic TRUE).
     //
     // the value of 'next_inst_offset' should be the address of the next instructions
     // AFTER the instruction 'end'.
+    //
+    // 'block_nez' has NO PARAMS and NO RESULTS, but it can owns local variables.
     //
     // instruction 'block_nez' is commonly used to construct the 'if' structures
     // in general programming languages.
@@ -890,8 +882,7 @@ pub enum Opcode {
     // 0d0102 nop               ;; <----/ jump to here when FALSE
     // ```
     //
-
-    break_nez,          // (param reversed_index:i16, next_inst_offset:i32)
+    break_nez, // (param reversed_index:i16, next_inst_offset:i32)
 
     // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
     // and 'break_nez', e.g.
@@ -935,8 +926,7 @@ pub enum Opcode {
     // 0d0208 end               ;;          |
     // 0d0210 ...               ;; <--------/
     // ```
-
-    recur_nez,          // (param reversed_index:i16, start_inst_offset:i32)
+    recur_nez, // (param reversed_index:i16, start_inst_offset:i32)
 
     // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
     // all local variables will be reset to 0.
@@ -1061,26 +1051,26 @@ pub enum Opcode {
     // | structure         | assembly          | instruction(s)     |
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
-    // | if ..a.. {        | (if (a)           | block_nez -\       |
-    // |    ..b..          |     (b)           |   ..b..    |       |
+    // | if ..a.. {        | (when (a)         | block_nez -\       |
+    // |    ..b..          |       (b)         |   ..b..    |       |
     // | }                 | )                 | end        |       |
     // |                   |                   | ...    <---/       |
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
-    // | if ..a.. {        | (cond (a)         | block_alt ---\     |
-    // |    ..b..          |       (b)         |   ..b..      |     |
-    // | } else {          |       (c)         |   break 0  --|-\   |
+    // | if ..a.. {        | (if (a)           | block_alt ---\     |
+    // |    ..b..          |     (b)           |   ..b..      |     |
+    // | } else {          |     (c)           |   break 0  --|-\   |
     // |    ..c..          | )                 |   ..c..  <---/ |   |
     // | }                 |                   | end            |   |
     // |                   |                   | ...      <-----/   |
     // |-------------------|-------------------|--------------------|
     // |                   |                   | ..a..              |
-    // | if ..a.. {        | (cond (a)         | block_alt ---\     |
-    // |    ..b..          |       (b)         |   ..b..      |     |
-    // | } else if ..c.. { |       (cond (c)   |   break 0 ---|--\  |
-    // |    ..d..          |             (d)   |   ..c..  <---/  |  |
-    // | } else {          |             (e)   |   block_alt --\ |  |
-    // |    ..e..          |       )           |     ..d..     | |  |
+    // | if ..a.. {        | (if (a)           | block_alt ---\     |
+    // |    ..b..          |     (b)           |   ..b..      |     |
+    // | } else if ..c.. { |     (if (c)       |   break 0 ---|--\  |
+    // |    ..d..          |         (d)       |   ..c..  <---/  |  |
+    // | } else {          |         (e)       |   block_alt --\ |  |
+    // |    ..e..          |     )             |     ..d..     | |  |
     // | }                 | )                 |     break 1 --|-|  |
     // |                   |                   |     ..e..  <--/ |  |
     // |                   |                   |   end           |  |
@@ -1125,7 +1115,7 @@ pub enum Opcode {
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    |
     // |                   | (for (code        | block              |
-    // |                   |   (if (a)         |   ..a..    <---\   |
+    // |                   |   (when (a)       |   ..a..    <---\   |
     // |                   |     (code ...     |   block_nez    |   |
     // |                   |       (recur ...) |     ...        |   |
     // |                   |     )             |     recur 1 ---/   |
@@ -1144,7 +1134,7 @@ pub enum Opcode {
     // |                   |                   |                    |
     // |                   | (for (code        | block              |
     // |                   |   ...             |   ...      <---\   |
-    // |                   |   (if (a)         |   ..a..        |   |
+    // |                   |   (when (a)       |   ..a..        |   |
     // |                   |     (recur ...)   |   block_nez    |   |
     // |                   |   )               |     recur 1 ---/   |
     // |                   | ))                |   end              |
@@ -1160,7 +1150,7 @@ pub enum Opcode {
     // |-------------------|-------------------|--------------------|
     // | func foo {        | (func             | -- func begin --   |
     // |    ...            |   (code ...       |   ...   <-------\  |
-    // |    if ..a.. {     |     (if (a)       |   ..a..         |  |
+    // |    if ..a.. {     |     (when (a)     |   ..a..         |  |
     // |      foo()        |       (tcall ...) |   block_nez --\ |  |
     // |    }              |     )             |     recur 1 --|-/  |
     // | }                 |   )               |   end         |    |
@@ -1176,7 +1166,7 @@ pub enum Opcode {
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
     // | func foo {        | (func (code       | -- func begin --   |
-    // |    if ..a.. {     |   (cond (a)       |   ..a.. <------\   |
+    // |    if ..a.. {     |   (if (a)         |   ..a.. <------\   |
     // |       ..b..       |     (b)           |   block_alt -\ |   |
     // |    } else {       |     (code         |     ..b..    | |   |
     // |       ..c..       |       ..c..       |     break 0 -|-|-\ |
@@ -1195,7 +1185,7 @@ pub enum Opcode {
     // |                   |                   |                    |
     // | loop {            | (for (code        | block              |
     // |    ...            |    ...            |   ...        <---\ |
-    // |    if ..a.. {     |    (if (a)        |   ..a..          | |
+    // |    if ..a.. {     |    (when (a)      |   ..a..          | |
     // |      break;       |                   |   block_nez      | |
     // |    }              |       (break ...) |     break 1 ---\ | |
     // |    ...            |    )              |   end          | | |
@@ -1207,7 +1197,7 @@ pub enum Opcode {
     // |-------------------|-------------------|--------------------|
     // | func foo {        | (func (code       | -- func begin --   |
     // |    ...            |   ...             |   ...              |
-    // |    if ..a.. {     |   (if (a)         |   ..a..            |
+    // |    if ..a.. {     |   (when (a)       |   ..a..            |
     // |      return ...;  |                   |   block_nez        |
     // |    }              |       (return ..) |     break 1  ---\  |
     // |    ...            |   )               |   end           |  |
@@ -1220,7 +1210,6 @@ pub enum Opcode {
     //
     // function call
     //
-
     call = 0xb00,               // general function call            (param func_pub_index:i32) -> (...)
     dcall,                      // dynamic function call            (operand func_pub_index:i32) -> (...)
 
@@ -1298,13 +1287,11 @@ pub enum Opcode {
     //    ...
     // )
     // ```
-
     ecall,                      // environment call                 (param env_func_num:i32) -> (...)
 
     //
     // host
     //
-
     nop = 0xc00,                // instruction to do nothing,
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     panic,                      // terminate VM
@@ -1327,22 +1314,21 @@ pub enum Opcode {
     // |--------------------|--------------|------------------|-----------------|
     // | heap               | unsafe       | controllable     | unsafe          |
     // |--------------------|--------------|------------------|-----------------|
-
-    host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64/i32
-                                //
-                                // note that the host address only valid in the current function and
-                                // in its sub-functions. when a function exited, the function stack frame
-                                // will be destroied (or modified), as well as the local variables.
-                                //
+    host_addr_local, // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64/i32
+    //
+    // note that the host address only valid in the current function and
+    // in its sub-functions. when a function exited, the function stack frame
+    // will be destroied (or modified), as well as the local variables.
+    //
     host_addr_local_long,       // (param reversed_index:i16 local_variable_index:i32)      (operand offset_bytes:i32) -> i64/i32
     host_addr_data,             // (param offset_bytes:i16 data_public_index:i32) -> i64/i32
     host_addr_data_long,        // (param data_public_index:i32)                            (operand offset_bytes:i32) -> i64/i32
     host_addr_heap,             // (param offset_bytes:i16)                                 (operand heap_addr:i64) -> i64/i32
 
-
     //
     // SIMD
     //
+
     // ref:
     // - https://github.com/rust-lang/portable-simd
     // - https://doc.rust-lang.org/std/simd/index.html
@@ -1350,4 +1336,4 @@ pub enum Opcode {
     // - https://github.com/rust-lang/rfcs/blob/master/text/2325-stable-simd.md
 }
 
-pub const MAX_OPCODE_NUMBER:usize = 0xd00;
+pub const MAX_OPCODE_NUMBER: usize = 0xd00;

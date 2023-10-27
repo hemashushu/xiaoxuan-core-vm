@@ -54,7 +54,6 @@ pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter
 // - dependency declare minor == shared module minor
 // - dependency declare patch, shared module patch == any
 
-
 // the max version number the current runtime supported
 pub const IMAGE_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_MINOR_VERSION: u16 = 0;

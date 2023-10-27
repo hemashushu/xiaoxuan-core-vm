@@ -14,7 +14,6 @@ use self::syscall::init_syscall_handlers;
 
 pub mod extcall;
 pub mod function_address;
-pub mod heap;
 pub mod multithread;
 pub mod runtime_info;
 pub mod syscall;
@@ -62,12 +61,6 @@ pub fn init_ecall_handlers() {
     // runtime info
     handlers[ECallCode::runtime_name as usize] = runtime_info::runtime_name;
     handlers[ECallCode::runtime_version as usize] = runtime_info::runtime_version;
-
-    // heap
-    handlers[ECallCode::heap_fill as usize] = heap::heap_fill;
-    handlers[ECallCode::heap_copy as usize] = heap::heap_copy;
-    handlers[ECallCode::heap_capacity as usize] = heap::heap_capacity;
-    handlers[ECallCode::heap_resize as usize] = heap::heap_resize;
 
     // function
     handlers[ECallCode::syscall as usize] = syscall::syscall;

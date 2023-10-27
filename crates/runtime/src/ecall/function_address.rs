@@ -233,7 +233,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+            &[ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(11 * 2 + 13)]);
 
@@ -241,7 +241,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
+            &[ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(211 * 2 + 223)]);
     }

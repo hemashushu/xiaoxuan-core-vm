@@ -60,7 +60,7 @@ mod tests {
         assert!(matches!(result0, Ok(ptr) if !ptr.is_null()));
 
         let result1 = load_library("lib_not_exist.so");
-        assert!(matches!(result1, Err(_)));
+        assert!(result1.is_err());
     }
 
     #[test]
@@ -71,7 +71,7 @@ mod tests {
         assert!(matches!(result0, Ok(ptr) if !ptr.is_null()));
 
         let result1 = load_symbol(library_ptr, "fn_not_exist");
-        assert!(matches!(result1, Err(_)));
+        assert!(result1.is_err());
     }
 
     #[test]

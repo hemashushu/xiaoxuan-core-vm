@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 pub mod ast;
+pub mod instruction_kind;
 pub mod lexer;
 pub mod parser;
 pub mod peekable_iterator;
-pub mod instruction_property;

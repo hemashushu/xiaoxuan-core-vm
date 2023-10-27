@@ -219,7 +219,7 @@ impl<'a> ThreadContext<'a> {
         let data_object = target_module.datas[target_data_section_type as usize].as_mut();
 
         // bounds check
-        #[cfg(feature="bounds_check")]
+        #[cfg(feature = "bounds_check")]
         {
             let (_offset, data_actual_length) =
                 data_object.get_offset_and_length_by_index(data_internal_index);
@@ -305,10 +305,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
 
         let (fp, local_list_index) = {
             let frame_pack = self.stack.get_frame_pack(reversed_index);
-            (
-                frame_pack.address,
-                frame_pack.frame_info.local_list_index,
-            )
+            (frame_pack.address, frame_pack.frame_info.local_list_index)
         };
 
         let variable_item = &self.program_context.program_modules[module_index]
@@ -316,7 +313,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             .get_local_list(local_list_index as usize)[local_variable_index];
 
         // bounds check
-        #[cfg(feature="bounds_check")]
+        #[cfg(feature = "bounds_check")]
         {
             if expect_data_length_in_bytes + offset_bytes > variable_item.var_actual_length as usize
             {

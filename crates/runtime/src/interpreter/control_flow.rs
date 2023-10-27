@@ -96,7 +96,8 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param type_index:i32, local_list_index:i32, next_inst_offset:i32)
 
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
+    // let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
+    let (local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32();
 
     if condition == 0 {
         InterpretResult::Move(alt_inst_offset as isize)
@@ -107,19 +108,19 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
             module_index,
         } = thread_context.pc;
         let module = &thread_context.program_context.program_modules[module_index];
-        let type_item = &module.type_section.items[type_index as usize];
+        // let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes =
             module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
 
         thread_context.stack.create_frame(
-            type_item.params_count,
-            type_item.results_count,
+            0, // type_item.params_count,
+            0, // type_item.results_count,
             local_list_index,
             local_variables_allocate_bytes,
             None,
         );
 
-        InterpretResult::Move(16)
+        InterpretResult::Move(12) // 96 bits instruction
     }
 }
 
@@ -270,7 +271,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -323,7 +324,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -476,7 +477,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(11)],
+            &[ForeignValue::UInt32(19), ForeignValue::UInt32(11)],
         );
         assert_eq!(
             result0.unwrap(),
@@ -526,7 +527,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13),]
@@ -582,7 +583,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -645,7 +646,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
@@ -655,13 +656,19 @@ mod tests {
     #[test]
     fn test_process_control_flow_structure_if() {
         // func $max (i32, i32) -> (i32)
+        //     (local $res/2 i32)
+        //
         //     (local_load32 0 0)
+        //     (local_store32 0 2)
+        //
         //     (local_load32 0 0)
         //     (local_load32 0 1)
         //     i32_lt
-        //     (block_nez 1 1) ()->(i32)
-        //         (local_load32 1 1)
+        //     (block_nez 1) ()->()
+        //          (local_load32 1 1)
+        //          (local_store32 1 2)
         //     end
+        //     (local_load32 0 2)
         // end
         //
         // assert (11, 13) -> (13)
@@ -669,25 +676,30 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
+            //
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::i32_lt_u)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 1, 1, 0x1a)
+            .write_opcode_i32_i32(Opcode::block_nez, 1, 0x1e)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .write_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 2)
             .write_opcode(Opcode::end)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
             .write_opcode(Opcode::end)
             .to_bytes();
 
         // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
-            vec![],                             // local vars
+            vec![DataType::I32, DataType::I32],   // params
+            vec![DataType::I32],                  // results
+            vec![LocalVariableEntry::from_i32()], // local vars
             code0,
             vec![HelperBlockEntry {
                 params: vec![],
-                results: vec![DataType::I32],
+                results: vec![],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -700,7 +712,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+            &[ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
 
@@ -708,7 +720,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
+            &[ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(19)]);
     }
@@ -763,7 +775,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+            &[ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(13)]);
 
@@ -771,7 +783,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
+            &[ForeignValue::UInt32(19), ForeignValue::UInt32(17)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(19)]);
     }
@@ -866,22 +878,22 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(65)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(80)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(80)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(66)]);
 
-        let result2 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(70)]);
+        let result2 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(70)]);
         assert_eq!(result2.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result3 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(60)]);
+        let result3 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(60)]);
         assert_eq!(result3.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result4 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(50)]);
+        let result4 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(50)]);
         assert_eq!(result4.unwrap(), vec![ForeignValue::UInt32(68)]);
 
-        let result5 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(40)]);
+        let result5 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(40)]);
         assert_eq!(result5.unwrap(), vec![ForeignValue::UInt32(68)]);
     }
 
@@ -893,7 +905,7 @@ mod tests {
         //         (local_load32 0 0)
         //         (i32_imm 85)
         //         i32_gt
-        //         (block_nez 2 2) ()->()   ;; block 2 2
+        //         (block_nez 2) ()->()   ;; block 2 2
         //             (i32_imm 65)         ;; 'A' (85, 100]
         //             (break 1)
         //         end
@@ -901,7 +913,7 @@ mod tests {
         //         (local_load32 0 0)
         //         (i32_imm 70)
         //         i32_gt
-        //         (block_nez 3 3) ()->()   ;; block 3 3
+        //         (block_nez 3) ()->()   ;; block 3 3
         //             (i32_imm 66)         ;; 'B' (70,85]
         //             (break 1)
         //         end
@@ -909,7 +921,7 @@ mod tests {
         //         (local_load32 0 0)
         //         (i32_imm 55)
         //         i32_gt
-        //         (block_nez 4 4) ()->()   ;; block 4 4
+        //         (block_nez 4) ()->()   ;; block 4 4
         //             (i32_imm 67)         ;; 'C' (55, 70]
         //             (break 1)
         //         end
@@ -931,25 +943,25 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode_i32(Opcode::i32_imm, 85)
             .write_opcode(Opcode::i32_gt_u)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 2, 2, 0x22)
+            .write_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
             .write_opcode_i32(Opcode::i32_imm, 65)
-            .write_opcode_i16_i32(Opcode::break_, 1, 0x86)
+            .write_opcode_i16_i32(Opcode::break_, 1, 0x7c)
             .write_opcode(Opcode::end)
             // case 2
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode_i32(Opcode::i32_imm, 70)
             .write_opcode(Opcode::i32_gt_u)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 3, 3, 0x22)
+            .write_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
             .write_opcode_i32(Opcode::i32_imm, 66)
-            .write_opcode_i16_i32(Opcode::break_, 1, 0x4e)
+            .write_opcode_i16_i32(Opcode::break_, 1, 0x48)
             .write_opcode(Opcode::end)
             // case 3
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode_i32(Opcode::i32_imm, 55)
             .write_opcode(Opcode::i32_gt_u)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 4, 4, 0x22)
+            .write_opcode_i32_i32(Opcode::block_nez, 4, 0x1e)
             .write_opcode_i32(Opcode::i32_imm, 67)
-            .write_opcode_i16_i32(Opcode::break_, 1, 0x16)
+            .write_opcode_i16_i32(Opcode::break_, 1, 0x14)
             .write_opcode(Opcode::end)
             // default
             .write_opcode_i32(Opcode::i32_imm, 68)
@@ -994,22 +1006,22 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(90)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(65)]);
 
-        let result1 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(80)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(80)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(66)]);
 
-        let result2 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(70)]);
+        let result2 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(70)]);
         assert_eq!(result2.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result3 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(60)]);
+        let result3 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(60)]);
         assert_eq!(result3.unwrap(), vec![ForeignValue::UInt32(67)]);
 
-        let result4 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(50)]);
+        let result4 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(50)]);
         assert_eq!(result4.unwrap(), vec![ForeignValue::UInt32(68)]);
 
-        let result5 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(40)]);
+        let result5 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(40)]);
         assert_eq!(result5.unwrap(), vec![ForeignValue::UInt32(68)]);
     }
 
@@ -1082,11 +1094,10 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1160,11 +1171,10 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1241,11 +1251,10 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1328,11 +1337,10 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1423,11 +1431,10 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(10)]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
-        let result1 =
-            process_function(&mut thread_context0, 0, 0, &vec![ForeignValue::UInt32(100)]);
+        let result1 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(100)]);
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
 
@@ -1447,7 +1454,7 @@ mod tests {
         //     (local_load32 0 1)
         //     zero
         //     i32_gt
-        //     (block_nez 1 1) () -> ()
+        //     (block_nez 1) () -> ()
         //         (local_load32 0 0)
         //         (local_load32 0 1)
         //         (recur 1)
@@ -1471,7 +1478,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
             .write_opcode(Opcode::zero)
             .write_opcode(Opcode::i32_gt_u)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 1, 1, 0x2a)
+            .write_opcode_i32_i32(Opcode::block_nez, 1, 0x26)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
             .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
             .write_opcode_i16_i32(Opcode::recur, 1, 0)
@@ -1504,7 +1511,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
@@ -1512,7 +1519,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
@@ -1576,7 +1583,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
@@ -1584,7 +1591,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }
@@ -1656,7 +1663,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(10)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(55)]);
 
@@ -1664,7 +1671,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
+            &[ForeignValue::UInt32(0), ForeignValue::UInt32(100)],
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(5050)]);
     }

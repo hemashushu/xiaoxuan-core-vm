@@ -1001,13 +1001,13 @@ mod tests {
         // check push, peek and pop
         stack.push_i32_u(11);
         stack.push_i64_u(13);
-        stack.push_f32(3.14);
-        stack.push_f64(2.9979e8);
+        stack.push_f32(std::f32::consts::PI); // 3.14
+        stack.push_f64(std::f64::consts::E); // deprecated 2.9979e8
 
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4 + INIT_SP);
-        assert_eq!(stack.peek_f64(), 2.9979e8);
-        assert_eq!(stack.pop_f64(), 2.9979e8);
-        assert_eq!(stack.pop_f32(), 3.14);
+        assert_eq!(stack.peek_f64(), std::f64::consts::E);
+        assert_eq!(stack.pop_f64(), std::f64::consts::E);
+        assert_eq!(stack.pop_f32(), std::f32::consts::PI);
 
         assert_eq!(stack.peek_i64_u(), 13);
         assert_eq!(stack.pop_i64_u(), 13);
@@ -1161,7 +1161,7 @@ mod tests {
         // frame infos
         assert_eq!(stack.read_i32_u(16), 0);
         assert_eq!(stack.read_i32_u(20), 16);
-        assert_eq!(stack.read_i32_u(24), 0 << 16 | 2); // results count << 16 | params count
+        assert_eq!(stack.read_i32_u(24), 2); // = (results count << 16) | (params count)
         assert_eq!(stack.read_i32_u(28), 73);
         assert_eq!(stack.read_i32_u(32), 32);
         assert_eq!(stack.read_i32_u(36), 83);
@@ -1261,7 +1261,7 @@ mod tests {
         // create block frame (frame 1)
         //
 
-        stack.create_frame(1, 2, 97, 0 + 8, None);
+        stack.create_frame(1, 2, 97, 8, None);
 
         // the current layout
         //
@@ -1490,7 +1490,7 @@ mod tests {
             1, // params count
             3, // results count
             709,
-            0 + 8, // local vars len
+            8, // local vars len
             Some(ProgramCounter {
                 module_index: 113,            // ret mod idx
                 function_internal_index: 109, // func idx

@@ -4,11 +4,11 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use ancvm_program::thread_context::ThreadContext;
 use ancvm_syscall_util::call::{
     syscall_with_1_arg, syscall_with_2_args, syscall_with_3_args, syscall_with_4_args,
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
-use ancvm_program::thread_context::ThreadContext;
 
 type SysCallHandlerFunc = fn(&mut ThreadContext, usize) -> Result<usize, usize>;
 
@@ -145,8 +145,8 @@ fn handle_syscall_with_6_args(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
-    use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_program::program_source::ProgramSource;
+    use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
@@ -174,7 +174,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
 
         let pid = std::process::id();
@@ -215,7 +215,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
 
         // note
@@ -275,7 +275,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt64(file_path_addr0 as u64)],
+            &[ForeignValue::UInt64(file_path_addr0 as u64)],
         );
         let results0 = result0.unwrap();
 
@@ -291,7 +291,7 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![ForeignValue::UInt64(file_path_addr1 as u64)],
+            &[ForeignValue::UInt64(file_path_addr1 as u64)],
         );
         let results1 = result1.unwrap();
 

@@ -678,6 +678,11 @@ impl<'a> BytecodeReader<'a> {
                     let offset = self.read_param_i16();
                     line.push_str(&format!("{}", offset));
                 }
+                // heap memory
+                Opcode::heap_fill
+                | Opcode::heap_copy
+                | Opcode::heap_capacity
+                | Opcode::heap_resize => {}
                 // conversion
                 Opcode::i32_trunc_i64
                 | Opcode::i64_extend_i32_s
@@ -844,7 +849,11 @@ impl<'a> BytecodeReader<'a> {
                     let (type_idx, local_list_index) = self.read_param_i32_i32();
                     line.push_str(&format!("{} {}", type_idx, local_list_index));
                 }
-                Opcode::block_alt | Opcode::block_nez => {
+                Opcode::block_nez => {
+                    let (local_idx, offset) = self.read_param_i32_i32();
+                    line.push_str(&format!("{} 0x{:x}", local_idx, offset));
+                }
+                Opcode::block_alt => {
                     let (type_idx, local_idx, offset) = self.read_param_i32_i32_i32();
                     line.push_str(&format!("{} {} 0x{:x}", type_idx, local_idx, offset));
                 }
@@ -988,6 +997,9 @@ pub fn build_module_binary_with_single_function_and_blocks(
     result_datatypes: Vec<DataType>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
+
+    // although there is no params and no results for the block_nez, but
+    // it still is necessary create a 'HelperBlockEntry'.
     helper_block_entries: Vec<HelperBlockEntry>,
 ) -> Vec<u8> {
     let help_func_entry = HelperFunctionEntry {
@@ -1450,7 +1462,7 @@ mod tests {
         assert_eq!(
             data_index_section.items,
             // 2,1,3
-            &vec![
+            &[
                 //
                 DataIndexItem::new(0, 0, 0, DataSectionType::ReadOnly,),
                 DataIndexItem::new(1, 0, 1, DataSectionType::ReadOnly,),
@@ -1470,7 +1482,7 @@ mod tests {
 
         assert_eq!(&func_index_section.ranges[0], &RangeItem::new(0, 1));
 
-        assert_eq!(func_index_section.items, &vec![FuncIndexItem::new(0, 0, 0)]);
+        assert_eq!(func_index_section.items, &[FuncIndexItem::new(0, 0, 0)]);
 
         // check data sections
         let ro_section = module_image.get_optional_read_only_data_section().unwrap();
@@ -1540,7 +1552,7 @@ mod tests {
         assert_eq!(local_variable_section.lists.len(), 1);
         assert_eq!(
             local_variable_section.get_local_list(0),
-            &vec![
+            &[
                 LocalVariableItem::new(0, 8, MemoryDataType::I64, 8),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
                 LocalVariableItem::new(16, 4, MemoryDataType::I32, 4),
@@ -1684,7 +1696,7 @@ mod tests {
 
         assert_eq!(
             external_func_index_section.items,
-            &vec![
+            &[
                 ExternalFuncIndexItem::new(0, 0, 1),
                 ExternalFuncIndexItem::new(1, 1, 2),
                 ExternalFuncIndexItem::new(2, 2, 2),
@@ -1757,7 +1769,7 @@ mod tests {
             code1,
             vec![
                 0x00, 0x04, // opcode
-                07, 0, // param
+                7, 0, // param
             ]
         );
 
@@ -1840,7 +1852,7 @@ mod tests {
     fn test_bytecode_writer_with_pesudo_instructions() {
         // pesudo f32
         let code0 = BytecodeWriter::new()
-            .write_opcode_pesudo_f32(Opcode::f32_imm, 3.1415927)
+            .write_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI) // 3.1415927
             .to_bytes();
 
         // 3.1415927 -> 0x40490FDB
@@ -1910,7 +1922,7 @@ mod tests {
             .write_opcode(Opcode::zero)
             // padding
             .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
+            .write_opcode_i32_i32(Opcode::block_nez, 0x19, 0x23)
             .to_bytes();
 
         assert_eq!(
@@ -1942,8 +1954,8 @@ mod tests {
                 0x00, 0x0c, // padding nop
                 0x04, 0x0a, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x17, 0x00,
                 0x00, 0x00, // block_alt
-                0x05, 0x0a, 0x00, 0x00, 0x19, 0x00, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x29, 0x00,
-                0x00, 0x00 // block_nez
+                0x05, 0x0a, 0x00, 0x00, 0x19, 0x00, 0x00, 0x00, 0x23, 0x00, 0x00,
+                0x00 // block_nez
             ]
         );
     }
@@ -1974,7 +1986,7 @@ mod tests {
             .write_opcode(Opcode::zero)
             // padding
             .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
+            .write_opcode_i32_i32(Opcode::block_nez, 0x19, 0x23)
             .to_bytes();
 
         let text = format_bytecodes(&code0);
@@ -1999,8 +2011,7 @@ mod tests {
             0x0070  00 01 00 0c  04 0a 00 00
             0x0078  11 00 00 00  13 00 00 00
             0x0080  17 00 00 00  05 0a 00 00
-            0x0088  19 00 00 00  23 00 00 00
-            0x0090  29 00 00 00"
+            0x0088  19 00 00 00  23 00 00 00"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]
@@ -2034,7 +2045,7 @@ mod tests {
             .write_opcode(Opcode::zero)
             // padding
             .write_opcode_i32_i32_i32(Opcode::block_alt, 0x11, 0x13, 0x17)
-            .write_opcode_i32_i32_i32(Opcode::block_nez, 0x19, 0x23, 0x29)
+            .write_opcode_i32_i32(Opcode::block_nez, 0x19, 0x23)
             .to_bytes();
 
         let text = BytecodeReader::new(&code0).to_text();
@@ -2042,30 +2053,30 @@ mod tests {
         assert_eq!(
             text,
             "
-            0x0000 i32_add
-            0x0002 heap_load            2
-            0x0006 heap_store           3
-            0x000a local_load           5 7 17
-            0x0012 local_store          19 23 25
+            0x0000 i32.add
+            0x0002 heap.load            2
+            0x0006 heap.store           3
+            0x000a local.load           5 7 17
+            0x0012 local.store          19 23 25
             0x001a nop
-            0x001c data_load            35 41
-            0x0024 data_store           49 55
-            0x002c i32_sub
-            0x002e i32_eqz
-            0x0030 data_load            65 67
-            0x0038 data_store           71 83
-            0x0040 i32_nez
+            0x001c data.load            35 41
+            0x0024 data.store           49 55
+            0x002c i32.sub
+            0x002e i32.eqz
+            0x0030 data.load            65 67
+            0x0038 data.store           71 83
+            0x0040 i32.nez
             0x0042 nop
-            0x0044 i32_imm              0x59
+            0x0044 i32.imm              0x59
             0x004c call                 97
-            0x0054 i32_eq
+            0x0054 i32.eq
             0x0056 nop
-            0x0058 i64_imm              0x67 0x71
+            0x0058 i64.imm              0x67 0x71
             0x0064 block                115 121
             0x0070 zero
             0x0072 nop
             0x0074 block_alt            17 19 0x17
-            0x0084 block_nez            25 35 0x29"
+            0x0084 block_nez            25 0x23"
                 .split('\n')
                 .map(|line| line.trim_start().to_string())
                 .collect::<Vec<String>>()[1..]

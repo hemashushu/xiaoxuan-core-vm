@@ -181,10 +181,10 @@ mod tests {
 
     #[test]
     fn test_save_section() {
-        let mut items: Vec<ExternalLibraryItem> = Vec::new();
-
-        items.push(ExternalLibraryItem::new(0, 3, ExternalLibraryType::User));
-        items.push(ExternalLibraryItem::new(3, 5, ExternalLibraryType::Shared));
+        let items = vec![
+            ExternalLibraryItem::new(0, 3, ExternalLibraryType::User),
+            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Shared),
+        ];
 
         let section = ExternalLibrarySection {
             items: &items,
@@ -217,17 +217,10 @@ mod tests {
 
     #[test]
     fn test_convert() {
-        let mut entries: Vec<ExternalLibraryEntry> = Vec::new();
-
-        entries.push(ExternalLibraryEntry::new(
-            "foobar".to_string(),
-            ExternalLibraryType::User,
-        ));
-
-        entries.push(ExternalLibraryEntry::new(
-            "helloworld".to_string(),
-            ExternalLibraryType::Shared,
-        ));
+        let entries = vec![
+            ExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryType::User),
+            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Shared),
+        ];
 
         let (items, names_data) = ExternalLibrarySection::convert_from_entries(&entries);
         let section = ExternalLibrarySection {

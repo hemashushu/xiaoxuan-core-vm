@@ -386,23 +386,27 @@ pub fn local_store(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_local_store(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
 pub fn local_long_store(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
@@ -411,8 +415,8 @@ fn do_local_store(
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
+    src_ptr: *const u8,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context
         .get_local_variable_address_by_index_and_offset_with_bounds_check(
             reversed_index,
@@ -429,23 +433,27 @@ pub fn local_store32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_local_store32(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
 pub fn local_long_store32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store32(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
@@ -454,8 +462,8 @@ fn do_local_store32(
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
+    src_ptr: *const u8,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context
         .get_local_variable_address_by_index_and_offset_with_bounds_check(
             reversed_index,
@@ -472,23 +480,27 @@ pub fn local_store16(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_local_store16(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
 pub fn local_long_store16(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store16(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
@@ -497,8 +509,8 @@ fn do_local_store16(
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
+    src_ptr: *const u8,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context
         .get_local_variable_address_by_index_and_offset_with_bounds_check(
             reversed_index,
@@ -515,23 +527,27 @@ pub fn local_store8(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_local_store8(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
 pub fn local_long_store8(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_local_store8(
         thread_context,
         reversed_index,
         local_variable_index as usize,
         offset_bytes as usize,
+        src_ptr,
     )
 }
 
@@ -540,8 +556,8 @@ fn do_local_store8(
     reversed_index: u16,
     local_variable_index: usize,
     offset_bytes: usize,
+    src_ptr: *const u8,
 ) -> InterpretResult {
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context
         .get_local_variable_address_by_index_and_offset_with_bounds_check(
             reversed_index,
@@ -672,9 +688,9 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &vec![
-                ForeignValue::Float32(3.1415926f32),
-                ForeignValue::Float64(2.9979e8f64),
+            &[
+                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
+                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
             ],
         );
         assert_eq!(
@@ -687,8 +703,8 @@ mod tests {
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
                 //
-                ForeignValue::Float32(3.1415926f32),
-                ForeignValue::Float64(2.9979e8f64),
+                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
+                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
                 //
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
@@ -724,25 +740,25 @@ mod tests {
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
             .write_opcode_i32(Opcode::i32_imm, 0)
+            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
             .write_opcode_i16_i32(Opcode::local_long_store32, 0, 0) // store 32
             //
-            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
             .write_opcode_i32(Opcode::i32_imm, 4)
+            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
             .write_opcode_i16_i32(Opcode::local_long_store16, 0, 0) // store 16
             //
-            .write_opcode_i32(Opcode::i32_imm, 0xe0)
             .write_opcode_i32(Opcode::i32_imm, 6)
+            .write_opcode_i32(Opcode::i32_imm, 0xe0)
             .write_opcode_i16_i32(Opcode::local_long_store8, 0, 0) // store 8
             //
-            .write_opcode_i32(Opcode::i32_imm, 0xf0)
             .write_opcode_i32(Opcode::i32_imm, 7)
+            .write_opcode_i32(Opcode::i32_imm, 0xf0)
             .write_opcode_i16_i32(Opcode::local_long_store8, 0, 0) // store 8
             //
+            .write_opcode_i32(Opcode::i32_imm, 0)
             .write_opcode_i32(Opcode::i32_imm, 0)
             .write_opcode_i16_i32(Opcode::local_long_load, 0, 0) // load 64
-            .write_opcode_i32(Opcode::i32_imm, 0)
             .write_opcode_i16_i32(Opcode::local_long_store, 0, 1) // store 64
             //
             .write_opcode_i32(Opcode::i32_imm, 0)
@@ -797,7 +813,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -838,7 +854,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
-            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+            let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -868,7 +884,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
-            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+            let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -899,7 +915,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
-            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+            let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -930,7 +946,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
-            let _ = process_function(&mut thread_context0, 0, 0, &vec![]);
+            let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);

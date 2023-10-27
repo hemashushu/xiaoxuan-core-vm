@@ -281,7 +281,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -305,10 +305,10 @@ mod tests {
         //
         // () -> (f32, f64, f32, f64)
         let code0 = BytecodeWriter::new()
-            .write_opcode_pesudo_f32(Opcode::f32_imm, 3.1415926f32)
-            .write_opcode_pesudo_f64(Opcode::f64_imm, 6.626e-34f64)
-            .write_opcode_pesudo_f32(Opcode::f32_imm, -2.71828f32)
-            .write_opcode_pesudo_f64(Opcode::f64_imm, -2.9979e8f64)
+            .write_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI) // 3.1415926f32
+            .write_opcode_pesudo_f64(Opcode::f64_imm, std::f64::consts::SQRT_2) // deprecated 6.626e-34f64
+            .write_opcode_pesudo_f32(Opcode::f32_imm, -std::f32::consts::E) // -2.71828f32
+            .write_opcode_pesudo_f64(Opcode::f64_imm, -std::f64::consts::FRAC_PI_6) // deprecated -2.9979e8f64
             .write_opcode(Opcode::end)
             .to_bytes();
 
@@ -323,14 +323,14 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &vec![]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::Float32(3.1415926f32),
-                ForeignValue::Float64(6.626e-34f64),
-                ForeignValue::Float32(-2.71828f32),
-                ForeignValue::Float64(-2.9979e8f64)
+                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
+                ForeignValue::Float64(std::f64::consts::SQRT_2), // deprecated 6.626e-34f64
+                ForeignValue::Float32(-std::f32::consts::E), // -2.71828f32
+                ForeignValue::Float64(-std::f64::consts::FRAC_PI_6), // deprecated -2.9979e8f64
             ]
         );
     }
