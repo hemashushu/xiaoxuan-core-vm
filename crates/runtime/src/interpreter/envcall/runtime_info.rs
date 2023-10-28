@@ -52,27 +52,25 @@ mod tests {
     };
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{
-        ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue, RUNTIME_CODE_NAME,
+        envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue, RUNTIME_CODE_NAME,
         RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_ecall_runtime_version() {
+    fn test_envcall_runtime_version() {
         // bytecodes
         //
-        // 0x0000 ecall                257
+        // 0x0000 envcall                257
         // 0x0008 end
         //
         // () -> (i64)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::ecall, ECallCode::runtime_version as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::runtime_version as u32)
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![],              // params
@@ -98,11 +96,11 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_runtime_name() {
+    fn test_envcall_runtime_name() {
         // bytecodes
         //
         // 0x0000 host_addr_data       0 0
-        // 0x0008 ecall                256
+        // 0x0008 envcall              256
         // 0x0010 data_load            0 0
         // 0x0018 end
         //
@@ -113,7 +111,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
-            .write_opcode_i32(Opcode::ecall, ECallCode::runtime_name as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
             .write_opcode_i16_i32(Opcode::data_load, 0, 0)
             .write_opcode(Opcode::end)
             .to_bytes();

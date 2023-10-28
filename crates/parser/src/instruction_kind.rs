@@ -116,8 +116,8 @@ pub enum InstructionKind {
 
     Sequence(&'static str), // for node 'code', 'break', 'recur', 'return', 'tailcall'
     Call,
-    DCall,
-    ECall,
+    DynCall,
+    EnvCall,
     SysCall,
     ExtCall,
 }
@@ -379,6 +379,17 @@ fn init_instruction_table_internal() {
     add(
         "heap.store8",
         InstructionKind::HeapStore(Opcode::heap_store8),
+    );
+
+    add("heap.fill", InstructionKind::NoParams(Opcode::heap_fill, 3));
+    add("heap.copy", InstructionKind::NoParams(Opcode::heap_copy, 3));
+    add(
+        "heap.capacity",
+        InstructionKind::NoParams(Opcode::heap_capacity, 0),
+    );
+    add(
+        "heap.resize",
+        InstructionKind::NoParams(Opcode::heap_resize, 1),
     );
 
     // conversion
@@ -701,6 +712,21 @@ fn init_instruction_table_internal() {
         InstructionKind::HeapLoad(Opcode::host_addr_heap),
     );
 
+    add(
+        "host.copy_from_heap",
+        InstructionKind::NoParams(Opcode::host_copy_from_heap, 3),
+    );
+
+    add(
+        "host.copy_to_heap",
+        InstructionKind::NoParams(Opcode::host_copy_to_heap, 3),
+    );
+
+    add(
+        "host.addr_func",
+        InstructionKind::NoParams(Opcode::host_addr_func, 1),
+    );
+
     // pesudo instructions
     add("i32.imm", InstructionKind::ImmI32);
     add("i64.imm", InstructionKind::ImmI64);
@@ -721,8 +747,8 @@ fn init_instruction_table_internal() {
     add("tailcall", InstructionKind::Sequence("tailcall"));
 
     add("call", InstructionKind::Call);
-    add("dcall", InstructionKind::DCall);
-    add("ecall", InstructionKind::ECall);
+    add("dyncall", InstructionKind::DynCall);
+    add("envcall", InstructionKind::EnvCall);
     add("syscall", InstructionKind::SysCall);
     add("extcall", InstructionKind::ExtCall);
 

@@ -76,9 +76,7 @@ use ancvm_program::program_source::ProgramSource;
 use ancvm_runtime::{
     in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
 };
-use ancvm_types::{
-    ecallcode::ECallCode, opcode::Opcode, DataType, ExternalLibraryType, ForeignValue,
-};
+use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
 fn main() {
     print_uid()
@@ -87,7 +85,7 @@ fn main() {
 fn print_uid() {
     let code0 = BytecodeWriter::new()
         .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-        .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+        .write_opcode(Opcode::extcall)
         //
         .write_opcode(Opcode::end)
         .to_bytes();

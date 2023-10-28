@@ -10,13 +10,15 @@ use ancvm_syscall_util::call::{
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
 
+use super::InterpretResult;
+
 type SysCallHandlerFunc = fn(&mut ThreadContext, usize) -> Result<usize, usize>;
 
 const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6; // 1 no args + 6 types with args
 static mut HANDLERS: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
     [unreachable; MAX_SYSCALL_TYPE_NUMBER];
 
-pub fn syscall(thread_context: &mut ThreadContext) {
+pub fn syscall(thread_context: &mut ThreadContext) -> InterpretResult {
     // `fn (syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
     //
     // the syscall arguments should be pushed on the stack first, e.g.
@@ -54,6 +56,8 @@ pub fn syscall(thread_context: &mut ThreadContext) {
             thread_context.stack.push_i32_u(error_no as u32);
         }
     }
+
+    InterpretResult::Move(2)
 }
 
 // note:
@@ -147,7 +151,7 @@ mod tests {
     use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_program::program_source::ProgramSource;
     use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
-    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
@@ -158,7 +162,7 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
             .write_opcode_i32(Opcode::i32_imm, 0) // the amount of syscall args
             //
-            .write_opcode_i32(Opcode::ecall, ECallCode::syscall as u32) // the ecall
+            .write_opcode(Opcode::syscall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -199,7 +203,7 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, SysCallNum::getcwd as u32) // syscall num
             .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
             //
-            .write_opcode_i32(Opcode::ecall, ECallCode::syscall as u32) // the ecall
+            .write_opcode(Opcode::syscall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -255,7 +259,7 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num
             .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
             //
-            .write_opcode_i32(Opcode::ecall, ECallCode::syscall as u32) // the ecall
+            .write_opcode(Opcode::syscall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();

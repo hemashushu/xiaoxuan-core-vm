@@ -258,8 +258,10 @@ impl Opcode {
             Opcode::recur_nez => "recur_nez",
             //
             Opcode::call => "call",
-            Opcode::dcall => "dcall",
-            Opcode::ecall => "ecall",
+            Opcode::dyncall => "dyncall",
+            Opcode::envcall => "envcall",
+            Opcode::syscall => "syscall",
+            Opcode::extcall => "extcall",
             //
             Opcode::nop => "nop",
             Opcode::panic => "panic",
@@ -269,6 +271,9 @@ impl Opcode {
             Opcode::host_addr_data => "host.addr_data",
             Opcode::host_addr_data_long => "host.addr_data_long",
             Opcode::host_addr_heap => "host.addr_heap",
+            Opcode::host_copy_from_heap => "host.copy_from_heap",
+            Opcode::host_copy_to_heap => "host.copy_to_heap",
+            Opcode::host_addr_func => "host.addr_func",
         }
     }
 }

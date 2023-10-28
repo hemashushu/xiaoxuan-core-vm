@@ -1211,11 +1211,7 @@ pub enum Opcode {
     // function call
     //
     call = 0xb00,               // general function call            (param func_pub_index:i32) -> (...)
-    dcall,                      // dynamic function call            (operand func_pub_index:i32) -> (...)
-
-    // note:
-    // 'function public index' includes the imported functions, it equals to
-    // 'amount of imported functions' + 'function internal index'
+    dyncall,                    // dynamic function call            (operand func_pub_index:i32) -> (...)
 
     // call a function which is specified at runtime.
     //
@@ -1224,70 +1220,81 @@ pub enum Opcode {
     //
     // closure_function_item {
     //     [ref_count],
-    //     target_mopdule_index:i32,
-    //     func_internal_index:i32,
-    //     captured_items:i64_ref
+    //     func_pub_index:i32,
+    //     captured_data:i64_ref
     // }
     //
-    // "captured_items" is a singly linked list:
+    // "captured_data" is a structure that contains the data that function captured,
+    // for example, an anonymous function captured an i32 number and a string, then
+    // the 'captured data struct' is:
     //
-    // closure_item_node: {
-    //     [ref_count],
-    //     previous_node_addr:i64_ref,
-    //     data_type:i32,
-    //     data_value:i32/i64/f32/f64,  // for primitive data
-    //     data_value_ref:i64_ref       // for struct data
+    // captured_data_001: {
+    //     f0:i32,
+    //     f1:i64_ref
     // }
-    //
-    // an additional parameter is appended to the ananymous function automatically when it is compiled to assembly, e.g.
+
+    // the target of dynamic function includes 'anonymous function' and 'regular function',
+    // when the target is anonymous function, an additional parameter is appended to
+    // the anonymous function automatically when it is compiled to assembly, e.g.
     //
     // `let a = fn (i32 a, i32 b) {...}`
     //
-    // will be transformed into:
+    // will be compiled to:
     //
-    // `let a = fn (i32 a, i32 b, pointer captured_items) {...}`
+    // `let a = fn (i32 a, i32 b, addr captured_data) {...}`
     //
     // ```text
-    //                              |--> func_internal_index --> fn (a, b, captured_items) {...}
-    //                         /----|--> module_index
-    //                         |    |--> captured_items
+    //                              /--> func_pub_index --> fn (a, b, captured_data) {...}
+    //                         /--->|
+    //                         |    \--> captured_data
     //                         |
     // let a = filter(list, predicate)
     // ```
     //
-    // for a general function, the compiler generates an anonymous function for wrapping the
-    // general function, e.g.
+    // when the target is a regular function, the compiler generates an anonymous function
+    // for wrapping the general function, e.g.
     //
     // ```text
-    //                              |--> func_internal_index --> | fn (a, b, captured_items)
-    //                         /----|--> module_index            | {
-    //                         |    |--> 0                       |     the_general_function(a, b)
-    //                         |                                 | }
+    //                              /--> func_pub_index --> fn wrapper (a, b, captured_data) --> fn regular (a, b)
+    //                         /--->|
+    //                         |    \--> captured_data = 0
+    //                         |
     // let a = filter(list, predicate)
     // ```
+
+    // note:
+    // 'function public index' includes the imported functions, it equals to
+    // 'amount of imported functions' + 'function internal index'
+
+    envcall,                    // environment call                 (param env_func_num:i32) -> (...)
+
+    // `(operand syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
     //
-    // an example of "dcall" instruction:
+    // the syscall arguments should be pushed on the stack first, e.g.
     //
-    // ```xiaoxuan
-    // type F = signature (i32, i32) result boolean
-    // function filter(List data, F predicate) {
-    //    ...
-    //    let a = predicate(...)
-    //    ...
-    // }
-    // ```
+    // | params_count   |
+    // | syscall_num    |
+    // | arg6           |
+    // | arg5           |
+    // | arg4           |
+    // | arg3           |
+    // | arg2           |                  | error no       |
+    // | arg1           |     return -->   | return value   |
+    // | ...            |                  | ...            |
+    // \----------------/ <-- stack start  \----------------/
     //
-    // the equivalent assembly:
+    // when a syscall complete, the return value is store into the 'rax' register,
+    // if the operation fails, the value is a negative value (rax < 0).
+    // there is no 'errno' if invoke syscall by assembly directly.
+    syscall,
+
+    // external function call
+    // `(operand external_func_index:i32) -> void/i32/i64/f32/f64`
     //
-    // ```clojure
-    // (func (param $data i64) (param $predicate i64)
-    //    ...
-    //    (local.get $predicate 0)  ;; get the target function index
-    //    dcall
-    //    ...
-    // )
-    // ```
-    ecall,                      // environment call                 (param env_func_num:i32) -> (...)
+    // note that both 'syscall' and 'extcall' are optional, they may be
+    // unavailable in some environment.
+    // the supported feature list can be obtained through the instruction 'envcall' with code 'features'.
+    extcall,
 
     //
     // host
@@ -1314,16 +1321,90 @@ pub enum Opcode {
     // |--------------------|--------------|------------------|-----------------|
     // | heap               | unsafe       | controllable     | unsafe          |
     // |--------------------|--------------|------------------|-----------------|
-    host_addr_local, // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64/i32
-    //
-    // note that the host address only valid in the current function and
-    // in its sub-functions. when a function exited, the function stack frame
-    // will be destroied (or modified), as well as the local variables.
-    //
+    host_addr_local,            // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64/i32
+                                //
+                                // note that the host address only valid in the current function and
+                                // in its sub-functions. when a function exited, the function stack frame
+                                // will be destroied (or modified), as well as the local variables.
+                                //
     host_addr_local_long,       // (param reversed_index:i16 local_variable_index:i32)      (operand offset_bytes:i32) -> i64/i32
     host_addr_data,             // (param offset_bytes:i16 data_public_index:i32) -> i64/i32
     host_addr_data_long,        // (param data_public_index:i32)                            (operand offset_bytes:i32) -> i64/i32
     host_addr_heap,             // (param offset_bytes:i16)                                 (operand heap_addr:i64) -> i64/i32
+
+    host_copy_from_heap,        // copy data from VM heap to host memory
+                                // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64)
+                                //
+    host_copy_to_heap,          // copy data from host memory to VM heap
+                                // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
+
+    host_addr_func,             // create a new host function and map it to a VM function.
+                                // this host function named 'bridge funcion'
+                                //
+                                // `(operand func_pub_index:i32) -> i64/i32`
+                                //
+                                // return the existing bridge function if the bridge function corresponding
+                                // to the specified VM function has already been created.
+
+    // it's commonly used for creating a callback function pointer for external C function.
+    //
+    // note:
+    // - a bridge function (host function) will be created when `create_host_function` is executed,
+    //   as well as the specified VM function will be appended to the "host function bridge table" to
+    //   prevent duplicate creation.
+    // - a bridge function is refered to a (module idx, function idx) tuple.
+    // - the bridge function is created via JIT codegen.
+    // - when the external C function calls the bridge function, a new thread is created.
+    //
+    // when the XiaoXUan VM is embed into a C or Rust application as a library, the C or Rust application
+    // can call the VM function through the bridge function as if it calls a native function.
+    //
+    // call bridge functon from Rust application example:
+    //
+    // ref:
+    // https://doc.rust-lang.org/nomicon/ffi.html
+    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
+    // https://doc.rust-lang.org/stable/reference/items/functions.html
+    //
+    // ```rust
+    // fn main() {
+    //     let func_ptr = ... (pointer of the bridge function)
+    //     let func_addr = ... (virtual memory address of the bridge function)
+    //
+    //     /** mock pointer and address
+    //     let func_ptr = cb_func as *const extern "C" fn(usize, usize);
+    //     let func_ptr = cb_func as *const u8;
+    //     let func_addr = func_ptr as usize;
+    //     */
+    //
+    //     println!("{:p}", func_ptr);
+    //     println!("0x{:x}", func_addr);
+    //
+    //     let func_from_ptr: fn(usize, usize) = unsafe { std::mem::transmute(func_ptr) };
+    //     (func_from_ptr)(11, 13);
+    //
+    //     let ptr_from_addr = func_addr as *const ();
+    //     let func_from_addr: fn(usize, usize) = unsafe { std::mem::transmute(ptr_from_addr) };
+    //     (func_from_addr)(17, 19);
+    // }
+    //
+    // #[no_mangle]
+    // pub extern "C" fn cb_func(a1: usize, a2: usize) {
+    //     println!("numbers: {},{}", a1, a2);
+    // }
+    // ```
+    //
+    // call bridge functon from C application example:
+    //
+    // ```c
+    // int main(void)
+    // {
+    //     void *func_ptr = ...
+    //     int (*func_from_ptr)(int, int) = (int (*)(int, int))func_ptr;
+    //     printf("1+2=%d\n", (*func_from_ptr)(1, 2));
+    //     exit(EXIT_SUCCESS);
+    // }
+    // ```
 
     //
     // SIMD

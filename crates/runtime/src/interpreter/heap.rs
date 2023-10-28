@@ -365,17 +365,17 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_heap_capacity() {
+    fn test_envcall_heap_capacity() {
         // bytecodes
         //
-        // 0x0000 ecall                261
+        // 0x0000 envcall                261
         // 0x0008 i32_imm              0x2
-        // 0x0010 ecall                262
+        // 0x0010 envcall                262
         // 0x0018 i32_imm              0x4
-        // 0x0020 ecall                262
+        // 0x0020 envcall                262
         // 0x0028 i32_imm              0x1
-        // 0x0030 ecall                262
-        // 0x0038 ecall                261
+        // 0x0030 envcall                262
+        // 0x0038 envcall                261
         // 0x0040 end
         //
         // () -> (i64, i64, i64, i64, i64)

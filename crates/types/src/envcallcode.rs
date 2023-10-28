@@ -7,7 +7,7 @@
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
-pub enum ECallCode {
+pub enum EnvCallCode {
     //
     // runtime functions
     //
@@ -109,15 +109,15 @@ pub enum ECallCode {
 
     thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function
                                 // 'fn (child_thread_id:u32) -> (wait_status:u32, thread_exit_code:u32)'
-                                // wait_status: 0=success, 1=not_found
-                                // thread_exit_code: 0=thread exit with success, 1=thread exit with failure
+                                // - wait_status: 0=success, 1=not_found
+                                // - thread_exit_code: 0=thread exit with success, 1=thread exit with failure
                                 //
                                 // when the child thread finish, it will be removed from
                                 // the 'child thread collection' automatically.
 
     thread_running_status,      // check whether the specified (child) thread is finish
                                 // 'fn (child_thread_id:u32) -> running_status:u32'
-                                // running_status:  0=running, 1=finish, 2=not_found
+                                // - running_status:  0=running, 1=finish, 2=not_found
 
     thread_exit,                // drop the specified (child) thread
                                 // 'fn (child_thread_id:u32)'
@@ -162,101 +162,6 @@ pub enum ECallCode {
     regex_match,
     regex_test,
     regex_remove,
-
-    // system
-    syscall,                    // syscall
-
-    // `fn (syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
-    //
-    // the syscall arguments should be pushed on the stack first, e.g.
-    //
-    // | params_count   |
-    // | syscall_num    |
-    // | arg6           |
-    // | arg5           |
-    // | arg4           |
-    // | arg3           |
-    // | arg2           |                  | error no       |
-    // | arg1           |     return -->   | return value   |
-    // | ...            |                  | ...            |
-    // \----------------/ <-- stack start  \----------------/
-    //
-    // when a syscall complete, the return value is store into the 'rax' register,
-    // if the operation fails, the value is a negative value (rax < 0).
-    // there is no 'errno' if invoke syscall by assembly directly.
-    extcall, // external function call
-    // `fn (external_func_index:i32) -> void/i32/i64/f32/f64`
-
-    // note that both 'scall' and 'extcall' are optional, they may be
-    // unavailable in some environment.
-    // the supported feature list can be obtained through the instruction 'ecall' with code 'features'.
-    host_addr_func, // create a new host function and map it to a VM function.
-                    // this host function named 'bridge funcion'
-                    //
-                    // `fn (func_pub_index:i32) -> i64/i32`
-
-                    // return the existing bridge function if the bridge function corresponding
-                    // to the specified VM function has already been created.
-
-                    // it's commonly used for creating a callback function pointer for external C function.
-                    //
-                    // note:
-                    // - a bridge function (host function) will be created when `create_host_function` is executed,
-                    //   as well as the specified VM function will be appended to the "host function bridge table" to
-                    //   prevent duplicate creation.
-                    // - a bridge function is refered to a (module idx, function idx) tuple.
-                    // - the bridge function is created via JIT codegen.
-                    // - when the external C function calls the bridge function, a new thread is created.
-                    //
-                    // when the XiaoXUan VM is embed into a C or Rust application as a library, the C or Rust application
-                    // can call the VM function through the bridge function as if it calls a native function.
-                    //
-                    // call bridge functon from Rust application example:
-                    //
-                    // ref:
-                    // https://doc.rust-lang.org/nomicon/ffi.html
-                    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
-                    // https://doc.rust-lang.org/stable/reference/items/functions.html
-                    //
-                    // ```rust
-                    // fn main() {
-                    //     let func_ptr = ... (pointer of the bridge function)
-                    //     let func_addr = ... (virtual memory address of the bridge function)
-                    //
-                    //     /** mock pointer and address
-                    //     let func_ptr = cb_func as *const extern "C" fn(usize, usize);
-                    //     let func_ptr = cb_func as *const u8;
-                    //     let func_addr = func_ptr as usize;
-                    //     */
-                    //
-                    //     println!("{:p}", func_ptr);
-                    //     println!("0x{:x}", func_addr);
-                    //
-                    //     let func_from_ptr: fn(usize, usize) = unsafe { std::mem::transmute(func_ptr) };
-                    //     (func_from_ptr)(11, 13);
-                    //
-                    //     let ptr_from_addr = func_addr as *const ();
-                    //     let func_from_addr: fn(usize, usize) = unsafe { std::mem::transmute(ptr_from_addr) };
-                    //     (func_from_addr)(17, 19);
-                    // }
-                    //
-                    // #[no_mangle]
-                    // pub extern "C" fn cb_func(a1: usize, a2: usize) {
-                    //     println!("numbers: {},{}", a1, a2);
-                    // }
-                    // ```
-                    //
-                    // call bridge functon from C application example:
-                    //
-                    // ```c
-                    // int main(void)
-                    // {
-                    //     void *func_ptr = ...
-                    //     int (*func_from_ptr)(int, int) = (int (*)(int, int))func_ptr;
-                    //     printf("1+2=%d\n", (*func_from_ptr)(1, 2));
-                    //     exit(EXIT_SUCCESS);
-                    // }
-                    // ```
 
     //
     // I/O functions

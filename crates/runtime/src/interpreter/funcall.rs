@@ -13,7 +13,7 @@ pub fn call(thread_context: &mut ThreadContext) -> InterpretResult {
     do_call(thread_context, function_public_index, 8)
 }
 
-pub fn dcall(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn dyncall(thread_context: &mut ThreadContext) -> InterpretResult {
     let function_public_index = thread_context.stack.pop_i32_u();
     do_call(thread_context, function_public_index, 2)
 }
@@ -46,9 +46,9 @@ fn do_call(
         .items[type_index];
 
     let return_pc = ProgramCounter {
-        // the length of instruction 'call' is 8 bytes (while 'dcall' is 2 bytes).
+        // the length of instruction 'call' is 8 bytes (while 'dyncall' is 2 bytes).
         // so when the target function is finish, the next instruction should be the
-        // instruction after the instruction 'call/dcall'.
+        // instruction after the instruction 'call/dyncall'.
         instruction_address: return_instruction_address + instruction_length,
         function_internal_index: return_function_internal_index,
         module_index: return_module_index,
@@ -159,10 +159,6 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}\n", BytecodeReader::new(&code_main).to_text());
-        // println!("{}\n", BytecodeReader::new(&code_sum_square).to_text());
-        // println!("{}\n", BytecodeReader::new(&code_square).to_text());
-
         let binary0 = build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFunctionEntry {
@@ -207,18 +203,18 @@ mod tests {
     }
 
     #[test]
-    fn test_process_function_call_dcall() {
+    fn test_process_function_call_dyncall() {
         // function $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
-        //     (dcall)
+        //     (dyncall)
         //     (i32_imm 4)
-        //     (dcall)
+        //     (dyncall)
         //     (i32_imm 3)
-        //     (dcall)
+        //     (dyncall)
         //     (i32_imm 1)
-        //     (dcall)
+        //     (dyncall)
         //     (i32_imm 2)
-        //     (dcall)
+        //     (dyncall)
         // end
         //
         // function $eleven (;1;) () -> (i32)
@@ -241,15 +237,15 @@ mod tests {
 
         let code_main = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::dyncall)
             .write_opcode_i32(Opcode::i32_imm, 4)
-            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::dyncall)
             .write_opcode_i32(Opcode::i32_imm, 3)
-            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::dyncall)
             .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::dyncall)
             .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::dcall)
+            .write_opcode(Opcode::dyncall)
             .write_opcode(Opcode::end)
             .to_bytes();
 

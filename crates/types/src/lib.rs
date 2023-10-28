@@ -59,7 +59,7 @@ pub const IMAGE_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_MINOR_VERSION: u16 = 0;
 pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
 
-pub mod ecallcode;
+pub mod envcallcode;
 pub mod opcode;
 pub mod utils;
 

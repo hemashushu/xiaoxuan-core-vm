@@ -66,7 +66,7 @@
         ;; all instructions which contains operands can be writen as fold
         ;; e.g.
         (i32.add (i32.imm 11) (i32.imm 13))
-        (dcall (data.load 0))
+        (dyncall (data.load 0))
         (return (i32.imm 11) (i32.imm 13))
 
         ;; and fold can be nested, e.g.

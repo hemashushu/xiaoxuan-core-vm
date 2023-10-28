@@ -6,17 +6,16 @@
 
 use std::sync::Once;
 
-use ancvm_binary::utils::format_bytecodes;
+use ancvm_binary::utils::print_bytecode_as_text;
 use ancvm_program::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
     DataType, ForeignValue, OPERAND_SIZE_IN_BYTES,
 };
 
-use crate::{
-    ecall::{self, init_ecall_handlers},
-    InterpreterError, InterpreterErrorType,
-};
+use crate::{InterpreterError, InterpreterErrorType};
+
+use self::{envcall::init_ecall_handlers, syscall::init_syscall_handlers};
 
 type InterpretFunc = fn(&mut ThreadContext) -> InterpretResult;
 
@@ -26,12 +25,15 @@ mod comparison;
 mod control_flow;
 mod conversion;
 mod data;
-mod function_call;
+mod envcall;
+mod extcall;
+mod funcall;
 mod fundamental;
 mod heap;
 mod host;
 mod local;
 mod math;
+mod syscall;
 
 pub enum InterpretResult {
     // move to another address within a function
@@ -67,7 +69,7 @@ fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
         .func_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
-    let code_text = format_bytecodes(codes);
+    let code_text = print_bytecode_as_text(codes);
 
     unreachable!(
         "Invalid opcode: 0x{:04x}
@@ -102,6 +104,7 @@ pub fn init_interpreters() {
 fn init_interpreters_internal() {
     // other initializations
     init_ecall_handlers();
+    init_syscall_handlers();
 
     let interpreters = unsafe { &mut INTERPRETERS };
 
@@ -362,12 +365,15 @@ fn init_interpreters_internal() {
     interpreters[Opcode::block_nez as usize] = control_flow::block_nez;
     interpreters[Opcode::break_nez as usize] = control_flow::break_nez;
     interpreters[Opcode::recur_nez as usize] = control_flow::recur_nez;
-    interpreters[Opcode::call as usize] = function_call::call;
-    interpreters[Opcode::dcall as usize] = function_call::dcall;
 
-    interpreters[Opcode::ecall as usize] = ecall::ecall;
+    // function call
+    interpreters[Opcode::call as usize] = funcall::call;
+    interpreters[Opcode::dyncall as usize] = funcall::dyncall;
+    interpreters[Opcode::envcall as usize] = envcall::envcall;
+    interpreters[Opcode::syscall as usize] = syscall::syscall;
+    interpreters[Opcode::extcall as usize] = extcall::extcall;
 
-    // machine
+    // host
     interpreters[Opcode::nop as usize] = host::nop;
     interpreters[Opcode::panic as usize] = host::panic;
     interpreters[Opcode::debug as usize] = host::debug;
@@ -376,6 +382,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::host_addr_data as usize] = host::host_addr_data;
     interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
+    interpreters[Opcode::host_addr_func as usize] = host::host_addr_func;
 }
 
 pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {

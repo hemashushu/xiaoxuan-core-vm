@@ -16,7 +16,6 @@ use std::{
 use ancvm_types::{ForeignValue, RuntimeError};
 
 pub mod bridge;
-pub mod ecall;
 pub mod in_memory_program_source;
 pub mod interpreter;
 pub mod multithread_program;

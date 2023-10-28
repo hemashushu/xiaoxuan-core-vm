@@ -9,7 +9,9 @@ use std::path::PathBuf;
 use ancvm_program::thread_context::ThreadContext;
 use ancvm_types::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 
-pub fn extcall(thread_context: &mut ThreadContext) {
+use super::InterpretResult;
+
+pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
     // `fn (external_func_index:i32) -> void/i32/i64/f32/f64`
     //
     // the 'external_func_index' is the index within a specific module, it is not
@@ -106,6 +108,8 @@ pub fn extcall(thread_context: &mut ThreadContext) {
         let dst = thread_context.stack.push_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }
+
+    InterpretResult::Move(2)
 }
 
 #[cfg(test)]
@@ -121,9 +125,7 @@ mod tests {
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
     use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
-    use ancvm_types::{
-        ecallcode::ECallCode, opcode::Opcode, DataType, ExternalLibraryType, ForeignValue,
-    };
+    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
@@ -131,7 +133,7 @@ mod tests {
     fn test_ecall_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+            .write_opcode(Opcode::extcall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -182,7 +184,7 @@ mod tests {
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+            .write_opcode(Opcode::extcall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();
@@ -237,7 +239,7 @@ mod tests {
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1
             //
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode_i32(Opcode::ecall, ECallCode::extcall as u32) // call external function
+            .write_opcode(Opcode::extcall)
             //
             .write_opcode(Opcode::end)
             .to_bytes();

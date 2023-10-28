@@ -620,8 +620,8 @@ fn parse_instruction_with_parentheses(
                 InstructionKind::Sequence(_) => todo!(),
                 //
                 InstructionKind::Call => todo!(),
-                InstructionKind::DCall => todo!(),
-                InstructionKind::ECall => todo!(),
+                InstructionKind::DynCall => todo!(),
+                InstructionKind::EnvCall => todo!(),
                 InstructionKind::SysCall => todo!(),
                 InstructionKind::ExtCall => todo!(),
             }

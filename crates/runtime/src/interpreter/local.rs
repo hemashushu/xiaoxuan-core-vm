@@ -654,8 +654,6 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", BytecodeReader::new(&code0).to_text());
-
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::F32, DataType::F64], // params
             vec![
@@ -785,8 +783,6 @@ mod tests {
             //
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![], // params

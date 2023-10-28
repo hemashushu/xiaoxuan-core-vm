@@ -19,9 +19,9 @@ pub const RESULT_SUCCESS: u32 = 0;
 pub const RESULT_FAILURE: u32 = 1;
 pub const WAIT_SUCCESS: u32 = 0;
 pub const WAIT_NOT_FOUND: u32 = 1;
-pub const RUNNING_STATUS_RUNNING: u32 = 0;
-pub const RUNNING_STATUS_FINISH: u32 = 1;
-pub const RUNNING_STATUS_NOT_FOUND: u32 = 2;
+// pub const RUNNING_STATUS_RUNNING: u32 = 0;
+// pub const RUNNING_STATUS_FINISH: u32 = 1;
+// pub const RUNNING_STATUS_NOT_FOUND: u32 = 2;
 
 pub fn thread_id(thread_context: &mut ThreadContext) {
     // `fn () -> thread_id:u64`
@@ -181,11 +181,11 @@ mod tests {
         build_module_binary_with_functions_and_blocks, build_module_binary_with_single_function,
         BytecodeWriter, HelperFunctionEntry,
     };
-    use ancvm_types::{ecallcode::ECallCode, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
 
     use crate::{
-        ecall::multithread::WAIT_SUCCESS,
         in_memory_program_source::InMemoryProgramSource,
+        interpreter::envcall::multithread::WAIT_SUCCESS,
         multithread_program::{create_thread, MultithreadProgram},
         CHILD_THREADS,
     };
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn test_multithread_thread_id() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::ecall, ECallCode::thread_id as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
             .write_opcode(Opcode::end)
             .to_bytes();
 
@@ -234,14 +234,12 @@ mod tests {
             .write_opcode_i32(Opcode::i32_imm, 0) // offset
             .write_opcode_i32(Opcode::i32_imm, 4) // length
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // dst address
-            .write_opcode_i32(Opcode::ecall, ECallCode::thread_start_data_read as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
             // read data from heap to stack
             .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // heap addr
             .write_opcode_i16(Opcode::heap_load32, 0) // offset
             .write_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", BytecodeReader::new(&code0).to_text());
 
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32], // params
@@ -269,14 +267,14 @@ mod tests {
     #[test]
     fn test_multithread_thread_create() {
         let code0 = BytecodeWriter::new()
-            // ecall/thread_create params
+            // envcall/thread_create params
             .write_opcode_i32(Opcode::i32_imm, 0) // module_index
             .write_opcode_i32(Opcode::i32_imm, 1) // func_public_index
             .write_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address
             .write_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length
-            .write_opcode_i32(Opcode::ecall, ECallCode::thread_create as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
             // now the operand on the top of stack is the child thread id
-            .write_opcode_i32(Opcode::ecall, ECallCode::thread_wait_for_finish as u32)
+            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_for_finish as u32)
             // now the operand on the top of stack is the (wait status, child thread exit code)
             .write_opcode(Opcode::end)
             .to_bytes();
