@@ -6,7 +6,7 @@
 
 // about the callback function
 //
-// on the XiaoXuan Core Script application, pass VM function as a callback function to the external C library.
+// on the XiaoXuan Core application, pass VM function as a callback function to the external C library.
 //
 //                                      runtime (native)
 //                                   /------------------------\
@@ -39,9 +39,11 @@
 //                                   \------------------------/
 //
 
-use ancvm_program::{memory::Memory, thread_context::ThreadContext, jit_util::build_host_to_vm_function};
+use ancvm_program::{
+    jit_util::build_host_to_vm_function, memory::Memory, thread_context::ThreadContext,
+};
 
-use super::{InterpretResult, process_callback_function_call};
+use super::{process_callback_function_call, InterpretResult};
 
 pub fn nop(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
@@ -148,6 +150,46 @@ pub fn host_addr_heap(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
+pub fn host_copy_from_heap(thread_context: &mut ThreadContext) -> InterpretResult {
+    // copy data from VM heap to host memory
+    // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
+
+    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let src_heap_address = thread_context.stack.pop_i64_u();
+    let dst_host_ptr = thread_context.stack.pop_i64_u();
+
+    let src_heap_ptr = thread_context.heap.get_ptr(src_heap_address as usize);
+    unsafe {
+        std::ptr::copy(
+            src_heap_ptr,
+            dst_host_ptr as *mut u8,
+            length_in_bytes as usize,
+        )
+    };
+
+    InterpretResult::Move(2)
+}
+
+pub fn host_copy_to_heap(thread_context: &mut ThreadContext) -> InterpretResult {
+    // copy data from host memory to VM heap
+    // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
+
+    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let src_host_ptr = thread_context.stack.pop_i64_u();
+    let dst_heap_address = thread_context.stack.pop_i64_u();
+
+    let dst_heap_ptr = thread_context.heap.get_mut_ptr(dst_heap_address as usize);
+    unsafe {
+        std::ptr::copy(
+            src_host_ptr as *const u8,
+            dst_heap_ptr,
+            length_in_bytes as usize,
+        )
+    };
+
+    InterpretResult::Move(2)
+}
+
 fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *const u8) {
     #[cfg(target_pointer_width = "64")]
     {
@@ -163,7 +205,7 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
 }
 
 pub fn host_addr_func(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (func_pub_index:i32) -> i64/i32`
+    // (operand func_pub_index:i32) -> i64/i32
 
     let function_public_index = thread_context.stack.pop_i32_u() as usize;
     let module_index = thread_context.pc.module_index;
@@ -234,17 +276,20 @@ mod tests {
     use ancvm_binary::{
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
-            local_variable_section::LocalVariableEntry, type_section::TypeEntry,
+            local_variable_section::LocalVariableEntry,
+            type_section::TypeEntry,
         },
         utils::{
+            build_module_binary_with_functions_and_external_functions,
             build_module_binary_with_single_function,
-            build_module_binary_with_single_function_and_data_sections, BytecodeWriter, build_module_binary_with_functions_and_external_functions, HelperSlimFunctionEntry, HelperExternalFunctionEntry,
+            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            HelperExternalFunctionEntry, HelperSlimFunctionEntry,
         },
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
-    use ancvm_program::{program_source::ProgramSource, program_settings::ProgramSettings};
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue, ExternalLibraryType};
+    use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
+    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
     #[test]
     fn test_process_host_nop() {
@@ -421,30 +466,33 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
+        #[cfg(target_pointer_width = "64")]
+        let result_datatypes = vec![
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+        ];
+
+        #[cfg(target_pointer_width = "32")]
+        let result_datatypes = vec![
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+        ];
+
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![], // params
-            #[cfg(target_pointer_width = "64")]
-            vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-            ], // results
-            #[cfg(target_pointer_width = "32")]
-            vec![
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-            ], // results
+            vec![],           // params
+            result_datatypes, // results
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_i32(),
@@ -535,30 +583,33 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
+        #[cfg(target_pointer_width = "64")]
+        let result_datatypes = vec![
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+        ];
+
+        #[cfg(target_pointer_width = "32")]
+        let result_datatypes = vec![
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+        ];
+
         let binary0 = build_module_binary_with_single_function_and_data_sections(
-            vec![], // params
-            #[cfg(target_pointer_width = "64")]
-            vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-            ], // results
-            #[cfg(target_pointer_width = "32")]
-            vec![
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-            ], // results
+            vec![],           // params
+            result_datatypes, // results
             vec![
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_bytes(8, 8),
@@ -638,25 +689,28 @@ mod tests {
             .write_opcode(Opcode::end)
             .to_bytes();
 
+        #[cfg(target_pointer_width = "64")]
+        let result_datatypes = vec![
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+            DataType::I64,
+        ];
+
+        #[cfg(target_pointer_width = "32")]
+        let result_datatypes = vec![
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+            DataType::I32,
+        ];
+
         let binary0 = build_module_binary_with_single_function(
-            vec![], // params
-            #[cfg(target_pointer_width = "64")]
-            vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-            ], // results
-            #[cfg(target_pointer_width = "32")]
-            vec![
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-            ], // results
-            vec![], // local vars
+            vec![],           // params
+            result_datatypes, // results
+            vec![],           // local vars
             code0,
         );
 
@@ -675,7 +729,69 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_host_addr_func_and_callback_function() {
+    fn test_process_host_heap_copy() {
+        // fn(src_ptr, dst_ptr) -> ()
+
+        // copy src_ptr -> VM heap 0x100 with 8 bytes
+        // copy VM heap 0x100 -> dst_ptr with 8 bytes
+
+        let code0 = BytecodeWriter::new()
+            .write_opcode_i32(Opcode::i32_imm, 1)
+            .write_opcode(Opcode::heap_resize)
+            .write_opcode(Opcode::drop)
+            //
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .write_opcode(Opcode::host_copy_to_heap)
+            //
+            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 1)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .write_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .write_opcode(Opcode::host_copy_from_heap)
+            //
+            .write_opcode(Opcode::end)
+            .to_bytes();
+
+        #[cfg(target_pointer_width = "64")]
+        let param_datatypes = vec![DataType::I64, DataType::I64];
+
+        #[cfg(target_pointer_width = "32")]
+        let param_datatypes = vec![DataType::I32, DataType::I32];
+
+        let binary0 = build_module_binary_with_single_function(
+            param_datatypes, // params
+            vec![],          // results
+            vec![],          // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let src_buf: &[u8; 8] = b"hello...";
+        let dst_buf: [u8; 8] = [0; 8];
+
+        let src_ptr = src_buf.as_ptr();
+        let dst_ptr = dst_buf.as_ptr();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &[
+                ForeignValue::UInt64(src_ptr as usize as u64),
+                ForeignValue::UInt64(dst_ptr as usize as u64),
+            ],
+        );
+        result0.unwrap();
+
+        assert_eq!(&dst_buf, b"hello...");
+    }
+
+    #[test]
+    fn test_process_host_addr_func_and_callback_function() {
         // extern "C" do_something(callback_func, a:i32, b:i32) -> i32 {
         //     callback_func(a) + b
         // }

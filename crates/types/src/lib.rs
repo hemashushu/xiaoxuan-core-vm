@@ -47,7 +47,7 @@ pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter
 //
 // a program may depend on one or more shared modules, when the program references a
 // shared module, it is also necessary to declare the major and minor version.
-// unlike many other language, 'XiaoXuan Core Script' requires the version of the dependencies
+// unlike many other language, 'XiaoXuan Core' requires the version of the dependencies
 // (shared modules) must be strictly consistent with the declaration, that is to say:
 //
 // - dependency declare major == shared module major
@@ -57,7 +57,7 @@ pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter
 // the max version number the current runtime supported
 pub const IMAGE_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_MINOR_VERSION: u16 = 0;
-pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancsmod\0"; // the abbr of "ANCS module"
+pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
 
 pub mod envcallcode;
 pub mod opcode;

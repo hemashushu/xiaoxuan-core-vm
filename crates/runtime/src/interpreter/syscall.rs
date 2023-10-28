@@ -19,7 +19,7 @@ static mut HANDLERS: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
     [unreachable; MAX_SYSCALL_TYPE_NUMBER];
 
 pub fn syscall(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
+    // (operand syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
     //
     // the syscall arguments should be pushed on the stack first, e.g.
     //
@@ -156,7 +156,7 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_syscall_handler_without_args() {
+    fn test_process_syscall_handler_without_args() {
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
             .write_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_syscall_handler_with_2_args() {
+    fn test_process_syscall_handler_with_2_args() {
         // `char *getcwd(char buf[.size], size_t size);`
 
         const BUF_LENGTH: usize = 1024;
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_syscall_handler_error_no() {
+    fn test_process_syscall_handler_error_no() {
         // `int open(const char *pathname, int flags)`
 
         let file_path0 = b"/this/file/should/not/exist\0";

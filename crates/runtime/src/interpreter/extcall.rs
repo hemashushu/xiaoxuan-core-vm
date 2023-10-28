@@ -12,7 +12,7 @@ use ancvm_types::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 use super::InterpretResult;
 
 pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (external_func_index:i32) -> void/i32/i64/f32/f64`
+    // (operand external_func_index:i32) -> void/i32/i64/f32/f64
     //
     // the 'external_func_index' is the index within a specific module, it is not
     // the 'unified_external_func_index'.
@@ -130,7 +130,7 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_ecall_extcall_with_system_libc_getuid() {
+    fn test_process_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i32(Opcode::i32_imm, 0) // external func index
             .write_opcode(Opcode::extcall)
@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_extcall_with_system_libc_getenv() {
+    fn test_process_extcall_with_system_libc_getenv() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
@@ -233,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ecall_extcall_with_user_lib() {
+    fn test_process_extcall_with_user_lib() {
         let code0 = BytecodeWriter::new()
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
             .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1

@@ -330,9 +330,9 @@ pub enum Opcode {
 
     // heap memory
     heap_fill = 0x480,          // fill the specified memory region with the specified (i8) value
-                                // (operand offset:i64 value:i8 count:i64)
+                                // (operand offset:i64 value:i8 count:i64) -> ()
     heap_copy,                  // copy the specified memory region to the specified location
-                                // (operand dst_offset:i64 src_offset:i64 length_in_bytes:i64)
+                                // (operand dst_offset:i64 src_offset:i64 length_in_bytes:i64) -> ()
     heap_capacity,              // return the amount of pages of the thread-local
                                 // memory (i.e. heap), each page is MEMORY_PAGE_SIZE_IN_BYTES (64 KiB) by default
                                 // () -> pages:i64
@@ -1332,12 +1332,6 @@ pub enum Opcode {
     host_addr_data_long,        // (param data_public_index:i32)                            (operand offset_bytes:i32) -> i64/i32
     host_addr_heap,             // (param offset_bytes:i16)                                 (operand heap_addr:i64) -> i64/i32
 
-    host_copy_from_heap,        // copy data from VM heap to host memory
-                                // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64)
-                                //
-    host_copy_to_heap,          // copy data from host memory to VM heap
-                                // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
-
     host_addr_func,             // create a new host function and map it to a VM function.
                                 // this host function named 'bridge funcion'
                                 //
@@ -1405,6 +1399,12 @@ pub enum Opcode {
     //     exit(EXIT_SUCCESS);
     // }
     // ```
+
+    host_copy_from_heap,        // copy data from VM heap to host memory
+                                // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
+                                //
+    host_copy_to_heap,          // copy data from host memory to VM heap
+                                // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64) -> ()
 
     //
     // SIMD

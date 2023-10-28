@@ -1,3 +1,3 @@
 # XiaoXuan Core VM
 
-VM for _XiaoXuan Core Script_ Language
+VM for _XiaoXuan Core_ Language

@@ -167,7 +167,7 @@ pub fn heap_store8(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn heap_capacity(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn () -> pages:i64`
+    // () -> pages:i64
     let pages = thread_context.heap.get_capacity_in_pages();
     thread_context.stack.push_i64_u(pages as u64);
 
@@ -175,7 +175,7 @@ pub fn heap_capacity(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn heap_resize(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (pages:i64) -> new_pages:i64`
+    // (operand pages:i64) -> new_pages:i64
     let pages = thread_context.stack.pop_i64_u();
     let new_pages = thread_context.heap.resize(pages as usize);
     thread_context.stack.push_i64_u(new_pages as u64);
@@ -184,7 +184,7 @@ pub fn heap_resize(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn heap_fill(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (address:i64, value:i8, count:i64)`
+    // (operand address:i64, value:i8, count:i64) -> ()
     let count = thread_context.stack.pop_i64_u() as usize;
     let value = thread_context.stack.pop_i32_u() as u8;
     let address = thread_context.stack.pop_i64_u() as usize;
@@ -195,7 +195,7 @@ pub fn heap_fill(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn heap_copy(thread_context: &mut ThreadContext) -> InterpretResult {
-    // `fn (dst_address:i64, src_address:i64, length_in_bytes:i64)`
+    // (operand dst_address:i64, src_address:i64, length_in_bytes:i64) -> ()
 
     let length_in_bytes = thread_context.stack.pop_i64_u() as usize;
     let src_address = thread_context.stack.pop_i64_u() as usize;
@@ -365,19 +365,8 @@ mod tests {
     }
 
     #[test]
-    fn test_envcall_heap_capacity() {
-        // bytecodes
-        //
-        // 0x0000 envcall                261
-        // 0x0008 i32_imm              0x2
-        // 0x0010 envcall                262
-        // 0x0018 i32_imm              0x4
-        // 0x0020 envcall                262
-        // 0x0028 i32_imm              0x1
-        // 0x0030 envcall                262
-        // 0x0038 envcall                261
-        // 0x0040 end
-        //
+    fn test_process_heap_capacity() {
+
         // () -> (i64, i64, i64, i64, i64)
 
         let code0 = BytecodeWriter::new()

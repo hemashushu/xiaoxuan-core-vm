@@ -383,6 +383,8 @@ fn init_interpreters_internal() {
     interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
     interpreters[Opcode::host_addr_func as usize] = host::host_addr_func;
+    interpreters[Opcode::host_copy_from_heap as usize] = host::host_copy_from_heap;
+    interpreters[Opcode::host_copy_to_heap as usize] = host::host_copy_to_heap;
 }
 
 pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {
