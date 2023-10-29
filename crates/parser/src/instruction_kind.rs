@@ -114,7 +114,7 @@ pub enum InstructionKind {
     // pesudo instruction, overwrite the original control flow instructions
     For,
 
-    Sequence(&'static str), // for node 'code', 'break', 'recur', 'return', 'tailcall'
+    Sequence(&'static str), // for node 'code', 'do', 'break', 'recur', 'return', 'tailcall'
     Call,
     DynCall,
     EnvCall,

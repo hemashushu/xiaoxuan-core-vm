@@ -6,7 +6,7 @@
 
 use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ModuleNode {
     pub name: String,
 
@@ -17,13 +17,13 @@ pub struct ModuleNode {
     pub element_nodes: Vec<ModuleElementNode>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum ModuleElementNode {
     FuncNode(FuncNode),
     TODONode,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct FuncNode {
     pub name: Option<String>,
     pub params: Vec<ParamNode>,
@@ -52,29 +52,131 @@ pub struct LocalNode {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Instruction {
-    NoParams(Opcode),
+    NoParams {
+        opcode: Opcode,
+        operands: Vec<Instruction>,
+    },
 
     ImmI32(u32),
     ImmI64(u64),
     ImmF32(ImmF32),
     ImmF64(ImmF64),
 
-    LocalAccess(Opcode, /* tag */ String, /* offset */ u16),
-    LocalLongAccess(Opcode, /* tag */ String),
+    LocalLoad {
+        opcode: Opcode,
+        tag: String,
+        offset: u16,
+    },
 
-    DataAccess(Opcode, /* tag */ String, /* offset */ u16),
-    DataLongAccess(Opcode, /* tag */ String),
+    LocalStore {
+        opcode: Opcode,
+        tag: String,
+        offset: u16,
+        value: Box<Instruction>,
+    },
 
-    HeapAccess(Opcode, u16 /* offset */),
+    LocalLongLoad {
+        opcode: Opcode,
+        tag: String,
+        offset: Box<Instruction>,
+    },
 
-    UnaryOp(Opcode),
-    UnaryOpParamI16(Opcode, u16),
-    BinaryOp(Opcode),
+    LocalLongStore {
+        opcode: Opcode,
+        tag: String,
+        offset: Box<Instruction>,
+        value: Box<Instruction>,
+    },
 
-    When(When),
-    If(If),
-    Branch(Branch),
-    For(For),
+    DataLoad {
+        opcode: Opcode,
+        tag: String,
+        offset: u16,
+    },
+
+    DataStore {
+        opcode: Opcode,
+        tag: String,
+        offset: u16,
+        value: Box<Instruction>,
+    },
+
+    DataLongLoad {
+        opcode: Opcode,
+        tag: String,
+        offset: Box<Instruction>,
+    },
+
+    DataLongStore {
+        opcode: Opcode,
+        tag: String,
+        offset: Box<Instruction>,
+        value: Box<Instruction>,
+    },
+
+    HeapLoad {
+        opcode: Opcode,
+        offset: u16,
+        addr: Box<Instruction>,
+    },
+
+    HeapStore {
+        opcode: Opcode,
+        offset: u16,
+        addr: Box<Instruction>,
+        value: Box<Instruction>,
+    },
+
+    UnaryOp {
+        opcode: Opcode,
+        number: Box<Instruction>,
+    },
+
+    UnaryOpParamI16 {
+        opcode: Opcode,
+        amount: u16,
+        number: Box<Instruction>,
+    },
+
+    BinaryOp {
+        opcode: Opcode,
+        left: Box<Instruction>,
+        right: Box<Instruction>,
+    },
+
+    When {
+        // structure 'when' has NO params and NO results, however,
+        // can contains local variables.
+        locals: Vec<LocalNode>,
+        test: Box<Instruction>,
+        consequent: Box<Instruction>,
+    },
+
+    If {
+        params: Vec<ParamNode>,
+        results: Vec<DataType>,
+        locals: Vec<LocalNode>,
+        test: Box<Instruction>,
+        consequent: Box<Instruction>,
+        alternate: Box<Instruction>,
+    },
+
+    Branch {
+        params: Vec<ParamNode>,
+        results: Vec<DataType>,
+        locals: Vec<LocalNode>,
+        cases: Vec<BranchCase>,
+        default: Box<Instruction>,
+    },
+
+    For {
+        params: Vec<ParamNode>,
+        results: Vec<DataType>,
+        locals: Vec<LocalNode>,
+        instructions: Vec<Instruction>,
+    },
+
+    Sequence(Vec<Instruction>),
 
     Break,
     Recur,
@@ -95,43 +197,7 @@ pub enum ImmF64 {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct When {
-    // structure 'when' has NO params and NO results, however,
-    // can contains local variables.
-    locals: Vec<LocalNode>,
-    test: Vec<Instruction>,
-    consequent: Vec<Instruction>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct If {
-    params: Vec<ParamNode>,
-    results: Vec<DataType>,
-    locals: Vec<LocalNode>,
-    test: Vec<Instruction>,
-    consequent: Vec<Instruction>,
-    alternate: Vec<Instruction>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Branch {
-    params: Vec<ParamNode>,
-    results: Vec<DataType>,
-    locals: Vec<LocalNode>,
-    cases: Vec<BranchCase>,
-    default: Vec<Instruction>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub struct BranchCase {
-    test: Vec<Instruction>,
-    consequent: Vec<Instruction>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct For {
-    params: Vec<ParamNode>,
-    results: Vec<DataType>,
-    locals: Vec<LocalNode>,
-    instructions: Vec<Instruction>,
+    test: Box<Instruction>,
+    consequent: Box<Instruction>,
 }

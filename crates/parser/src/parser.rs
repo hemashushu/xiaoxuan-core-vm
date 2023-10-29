@@ -42,6 +42,8 @@
 // the instruction syntax
 // ----------------------
 //
+// `(instruction_name param0 ... paramN operand0 ... operandN)`
+//
 // 1. instructions with NO parameters and NO operands, can be written
 //    with or without parentheses, e.g.
 //    '(nop)'
@@ -212,11 +214,11 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
     let name = expect_identifier_optional(iter);
     let (params, results) = parse_optional_signature(iter)?;
     let locals: Vec<LocalNode> = parse_optional_local_variables(iter)?;
-    let mut instructions: Vec<Instruction> = parse_instruction_sequence(iter, "code")?;
+    let instructions: Vec<Instruction> = parse_instruction_sequence(iter, "code")?;
     consume_right_paren(iter)?;
 
     // function's code implies an instruction 'end' at the end.
-    instructions.push(Instruction::NoParams(Opcode::end));
+    // instructions.push(Instruction::NoParams(Opcode::end));
 
     let func_node = FuncNode {
         name,
@@ -467,6 +469,7 @@ fn parse_instruction_sequence(
     //
     // similar instruction sequence nodes:
     //
+    // - (do ...)
     // - (recur ...)
     // - (tailcall ...)
     // - (break ...)
@@ -476,8 +479,8 @@ fn parse_instruction_sequence(
     consume_symbol(iter, node_name)?;
     let mut instructions = vec![];
 
-    while let Some(mut sub_instructions) = parse_next_instruction_optional(iter)? {
-        instructions.append(&mut sub_instructions);
+    while let Some(instruction) = parse_next_instruction_optional(iter)? {
+        instructions.push(instruction);
     }
 
     consume_right_paren(iter)?;
@@ -487,8 +490,8 @@ fn parse_instruction_sequence(
 
 fn parse_next_instruction_optional(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Option<Vec<Instruction>>, CompileError> {
-    let instructions = if let Some(token) = iter.peek(0) {
+) -> Result<Option<Instruction>, CompileError> {
+    let instruction = if let Some(token) = iter.peek(0) {
         match token {
             Token::LeftParen => {
                 // parse instruction WITH parentheses
@@ -496,7 +499,7 @@ fn parse_next_instruction_optional(
             }
             Token::Symbol(_) => {
                 // parse instruction WITHOUT parentheses
-                vec![parse_instruction_without_parentheses(iter)?]
+                parse_instruction_without_parentheses(iter)?
             }
             _ => return Ok(None),
         }
@@ -504,14 +507,14 @@ fn parse_next_instruction_optional(
         return Ok(None);
     };
 
-    Ok(Some(instructions))
+    Ok(Some(instruction))
 }
 
 fn parse_next_instruction_operand(
     iter: &mut PeekableIterator<Token>,
     for_which_inst: &str,
-) -> Result<Vec<Instruction>, CompileError> {
-    let instructions = if let Some(token) = iter.peek(0) {
+) -> Result<Instruction, CompileError> {
+    let instruction = if let Some(token) = iter.peek(0) {
         match token {
             Token::LeftParen => {
                 // parse instruction WITH parentheses
@@ -519,7 +522,7 @@ fn parse_next_instruction_operand(
             }
             Token::Symbol(_) => {
                 // parse instruction WITHOUT parentheses
-                vec![parse_instruction_without_parentheses(iter)?]
+                parse_instruction_without_parentheses(iter)?
             }
             _ => {
                 return Err(CompileError::new(&format!(
@@ -535,7 +538,7 @@ fn parse_next_instruction_operand(
         )));
     };
 
-    Ok(instructions)
+    Ok(instruction)
 }
 
 // parse the instruction with parentheses,
@@ -545,7 +548,7 @@ fn parse_next_instruction_operand(
 //
 fn parse_instruction_with_parentheses(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (inst_name) ...  //
     // ^           ^____// to here
     // |________________// current token
@@ -560,7 +563,7 @@ fn parse_instruction_with_parentheses(
     if let Some(Token::Symbol(child_node_name)) = iter.peek(1) {
         let owned_name = child_node_name.to_owned();
         let inst_name = owned_name.as_str();
-        let instructions = if let Some(kind) = get_instruction_kind(inst_name) {
+        let instruction = if let Some(kind) = get_instruction_kind(inst_name) {
             match *kind {
                 InstructionKind::NoParams(opcode, operand_count) => {
                     parse_instruction_kind_no_params(iter, inst_name, opcode, operand_count)?
@@ -608,10 +611,10 @@ fn parse_instruction_with_parentheses(
                     parse_instruction_kind_binary_op(iter, inst_name, opcode)?
                 }
                 //
-                InstructionKind::ImmI32 => vec![parse_instruction_kind_imm_i32(iter)?],
-                InstructionKind::ImmI64 => vec![parse_instruction_kind_imm_i64(iter)?],
-                InstructionKind::ImmF32 => vec![parse_instruction_kind_imm_f32(iter)?],
-                InstructionKind::ImmF64 => vec![parse_instruction_kind_imm_f64(iter)?],
+                InstructionKind::ImmI32 => parse_instruction_kind_imm_i32(iter)?,
+                InstructionKind::ImmI64 => parse_instruction_kind_imm_i64(iter)?,
+                InstructionKind::ImmF32 => parse_instruction_kind_imm_f32(iter)?,
+                InstructionKind::ImmF64 => parse_instruction_kind_imm_f64(iter)?,
                 //
                 InstructionKind::When => todo!(),
                 InstructionKind::If => todo!(),
@@ -634,7 +637,7 @@ fn parse_instruction_with_parentheses(
             )));
         };
 
-        Ok(instructions)
+        Ok(instruction)
     } else {
         Err(CompileError::new("Missing symbol for instruction node."))
     }
@@ -665,7 +668,10 @@ fn parse_instruction_without_parentheses(
                         inst_name
                     )))
                 } else {
-                    Ok(Instruction::NoParams(*opcode))
+                    Ok(Instruction::NoParams {
+                        opcode: *opcode,
+                        operands: vec![],
+                    })
                 }
             }
             _ => Err(CompileError::new(&format!(
@@ -686,7 +692,7 @@ fn parse_instruction_kind_no_params(
     inst_name: &str,
     opcode: Opcode,
     operand_count: u8,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (name) ...  //
     // ^      ^____// to here
     // |___________// current token
@@ -696,23 +702,20 @@ fn parse_instruction_kind_no_params(
     // ^                             ^____// to here
     // |__________________________________// current token
 
-    let mut instructions = vec![];
+    let mut operands = vec![];
 
     consume_left_paren(iter, "instruction")?;
     consume_symbol(iter, inst_name)?;
 
     // operands
     for _ in 0..operand_count {
-        let mut child_instructions = parse_next_instruction_operand(iter, inst_name)?;
-        instructions.append(&mut child_instructions);
+        let operand = parse_next_instruction_operand(iter, inst_name)?;
+        operands.push(operand);
     }
 
     consume_right_paren(iter)?;
 
-    // add main instruction at last
-    instructions.push(Instruction::NoParams(opcode));
-
-    Ok(instructions)
+    Ok(Instruction::NoParams { opcode, operands })
 }
 
 fn parse_instruction_kind_imm_i32(
@@ -821,79 +824,12 @@ fn parse_instruction_kind_imm_f64(
     Ok(Instruction::ImmF64(fp))
 }
 
-fn parse_instruction_kind_unary_op(
-    iter: &mut PeekableIterator<Token>,
-    inst_name: &str,
-    opcode: Opcode,
-) -> Result<Vec<Instruction>, CompileError> {
-    // (i32.not OPERAND) ... //
-    // ^                 ^___// to here
-    // |_____________________// current token
-
-    consume_left_paren(iter, "instruction")?;
-    consume_symbol(iter, inst_name)?;
-    let mut instructions = parse_next_instruction_operand(iter, inst_name)?;
-    consume_right_paren(iter)?;
-
-    // add main instruction at last
-    instructions.push(Instruction::UnaryOp(opcode));
-
-    Ok(instructions)
-}
-
-fn parse_instruction_kind_unary_op_param_i16(
-    iter: &mut PeekableIterator<Token>,
-    inst_name: &str,
-    opcode: Opcode,
-) -> Result<Vec<Instruction>, CompileError> {
-    // (i32.inc num OPERAND) ... //
-    // ^                     ^___// to here
-    // |_________________________// current token
-
-    consume_left_paren(iter, "instruction")?;
-    consume_symbol(iter, inst_name)?;
-    let num_string = expect_number(iter, inst_name)?;
-    let param_i16 = parse_u16_string(num_string)?;
-    let mut instructions = parse_next_instruction_operand(iter, inst_name)?;
-    consume_right_paren(iter)?;
-
-    // add main instruction at last
-    instructions.push(Instruction::UnaryOpParamI16(opcode, param_i16));
-
-    Ok(instructions)
-}
-
-fn parse_instruction_kind_binary_op(
-    iter: &mut PeekableIterator<Token>,
-    inst_name: &str,
-    opcode: Opcode,
-) -> Result<Vec<Instruction>, CompileError> {
-    // (i32.add OPERAND_LHS OPERAND_RHS) ... //
-    // ^                                 ^___// to here
-    // |_____________________________________// current token
-
-    consume_left_paren(iter, "instruction")?;
-    consume_symbol(iter, inst_name)?;
-    let mut lhs_instructions = parse_next_instruction_operand(iter, inst_name)?;
-    let mut rhs_instructions = parse_next_instruction_operand(iter, inst_name)?;
-    consume_right_paren(iter)?;
-
-    let mut instructions = vec![];
-    instructions.append(&mut lhs_instructions);
-    instructions.append(&mut rhs_instructions);
-
-    // add main instruction at last
-    instructions.push(Instruction::BinaryOp(opcode));
-
-    Ok(instructions)
-}
-
 fn parse_instruction_kind_local_load(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
     local: bool,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (local.load $id) ... //
     // ^                ^___// to here
     // |____________________// current token
@@ -903,7 +839,7 @@ fn parse_instruction_kind_local_load(
 
     consume_left_paren(iter, "instruction")?;
     consume_symbol(iter, inst_name)?;
-    let id = expect_identifier(iter, inst_name)?;
+    let tag = expect_identifier(iter, inst_name)?;
     let offset = if let Some(offset_str) = expect_number_optional(iter) {
         parse_u16_string(offset_str)?
     } else {
@@ -911,14 +847,19 @@ fn parse_instruction_kind_local_load(
     };
     consume_right_paren(iter)?;
 
-    let mut instructions = vec![];
     if local {
-        instructions.push(Instruction::LocalAccess(opcode, id, offset));
+        Ok(Instruction::LocalLoad {
+            opcode,
+            tag,
+            offset,
+        })
     } else {
-        instructions.push(Instruction::DataAccess(opcode, id, offset));
+        Ok(Instruction::DataLoad {
+            opcode,
+            tag,
+            offset,
+        })
     }
-
-    Ok(instructions)
 }
 
 fn parse_instruction_kind_local_store(
@@ -926,7 +867,7 @@ fn parse_instruction_kind_local_store(
     inst_name: &str,
     opcode: Opcode,
     local: bool,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (local.store $id OPERAND) ... //
     // ^                         ^___// to here
     // |_____________________________// current token
@@ -936,23 +877,31 @@ fn parse_instruction_kind_local_store(
 
     consume_left_paren(iter, "instruction")?;
     consume_symbol(iter, inst_name)?;
-    let id = expect_identifier(iter, inst_name)?;
+    let tag = expect_identifier(iter, inst_name)?;
     let offset = if let Some(offset_str) = expect_number_optional(iter) {
         parse_u16_string(offset_str)?
     } else {
         0
     };
 
-    let mut instructions = parse_next_instruction_operand(iter, inst_name)?;
+    let operand = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
     if local {
-        instructions.push(Instruction::LocalAccess(opcode, id, offset));
+        Ok(Instruction::LocalStore {
+            opcode,
+            tag,
+            offset,
+            value: Box::new(operand),
+        })
     } else {
-        instructions.push(Instruction::DataAccess(opcode, id, offset));
+        Ok(Instruction::DataStore {
+            opcode,
+            tag,
+            offset,
+            value: Box::new(operand),
+        })
     }
-
-    Ok(instructions)
 }
 
 fn parse_instruction_kind_local_long_load(
@@ -960,24 +909,30 @@ fn parse_instruction_kind_local_long_load(
     inst_name: &str,
     opcode: Opcode,
     local: bool,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (local.long_load $id OPERAND_FOR_OFFSET) ... //
     // ^                                        ^___// to here
     // |____________________________________________// current token
 
     consume_left_paren(iter, "instruction")?;
     consume_symbol(iter, inst_name)?;
-    let id = expect_identifier(iter, inst_name)?;
-    let mut instructions = parse_next_instruction_operand(iter, inst_name)?;
+    let tag = expect_identifier(iter, inst_name)?;
+    let offset = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
     if local {
-        instructions.push(Instruction::LocalLongAccess(opcode, id));
+        Ok(Instruction::LocalLongLoad {
+            opcode,
+            tag,
+            offset: Box::new(offset),
+        })
     } else {
-        instructions.push(Instruction::DataLongAccess(opcode, id));
+        Ok(Instruction::DataLongLoad {
+            opcode,
+            tag,
+            offset: Box::new(offset),
+        })
     }
-
-    Ok(instructions)
 }
 
 fn parse_instruction_kind_local_long_store(
@@ -985,36 +940,40 @@ fn parse_instruction_kind_local_long_store(
     inst_name: &str,
     opcode: Opcode,
     local: bool,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (local.long_store $id OPERAND_FOR_OFFSET OPERAND) ... //
     // ^                                                 ^___// to here
     // |_____________________________________________________// current token
 
     consume_left_paren(iter, "instruction")?;
     consume_symbol(iter, inst_name)?;
-    let id = expect_identifier(iter, inst_name)?;
-    let mut offset_instructions = parse_next_instruction_operand(iter, inst_name)?;
-    let mut operand_instructions = parse_next_instruction_operand(iter, inst_name)?;
+    let tag = expect_identifier(iter, inst_name)?;
+    let offset = parse_next_instruction_operand(iter, inst_name)?;
+    let operand = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
-    let mut instructions = vec![];
-    instructions.append(&mut offset_instructions);
-    instructions.append(&mut operand_instructions);
-
     if local {
-        instructions.push(Instruction::LocalLongAccess(opcode, id));
+        Ok(Instruction::LocalLongStore {
+            opcode,
+            tag,
+            offset: Box::new(offset),
+            value: Box::new(operand),
+        })
     } else {
-        instructions.push(Instruction::DataLongAccess(opcode, id));
+        Ok(Instruction::DataLongStore {
+            opcode,
+            tag,
+            offset: Box::new(offset),
+            value: Box::new(operand),
+        })
     }
-
-    Ok(instructions)
 }
 
 fn parse_instruction_kind_heap_load(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (heap.load OPERAND_FOR_ADDR) ... //
     // ^                            ^___// to here
     // |________________________________// current token
@@ -1031,19 +990,21 @@ fn parse_instruction_kind_heap_load(
         0
     };
 
-    let mut instructions = parse_next_instruction_operand(iter, inst_name)?;
+    let addr = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
-    instructions.push(Instruction::HeapAccess(opcode, offset));
-
-    Ok(instructions)
+    Ok(Instruction::HeapLoad {
+        opcode,
+        offset,
+        addr: Box::new(addr),
+    })
 }
 
 fn parse_instruction_kind_heap_store(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (heap.store OPERAND_FOR_ADDR OPERAND) ... //
     // ^                                     ^___// to here
     // |_________________________________________// current token
@@ -1060,18 +1021,82 @@ fn parse_instruction_kind_heap_store(
         0
     };
 
-    let mut addr_instructions = parse_next_instruction_operand(iter, inst_name)?;
-    let mut operand_instructions = parse_next_instruction_operand(iter, inst_name)?;
+    let addr = parse_next_instruction_operand(iter, inst_name)?;
+    let operand = parse_next_instruction_operand(iter, inst_name)?;
 
     consume_right_paren(iter)?;
 
-    let mut instructions = vec![];
-    instructions.append(&mut addr_instructions);
-    instructions.append(&mut operand_instructions);
+    Ok(Instruction::HeapStore {
+        opcode,
+        offset,
+        addr: Box::new(addr),
+        value: Box::new(operand),
+    })
+}
 
-    instructions.push(Instruction::HeapAccess(opcode, offset));
+fn parse_instruction_kind_unary_op(
+    iter: &mut PeekableIterator<Token>,
+    inst_name: &str,
+    opcode: Opcode,
+) -> Result<Instruction, CompileError> {
+    // (i32.not OPERAND) ... //
+    // ^                 ^___// to here
+    // |_____________________// current token
 
-    Ok(instructions)
+    consume_left_paren(iter, "instruction")?;
+    consume_symbol(iter, inst_name)?;
+    let operand = parse_next_instruction_operand(iter, inst_name)?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::UnaryOp {
+        opcode,
+        number: Box::new(operand),
+    })
+}
+
+fn parse_instruction_kind_unary_op_param_i16(
+    iter: &mut PeekableIterator<Token>,
+    inst_name: &str,
+    opcode: Opcode,
+) -> Result<Instruction, CompileError> {
+    // (i32.inc num OPERAND) ... //
+    // ^                     ^___// to here
+    // |_________________________// current token
+
+    consume_left_paren(iter, "instruction")?;
+    consume_symbol(iter, inst_name)?;
+    let num_string = expect_number(iter, inst_name)?;
+    let param_i16 = parse_u16_string(num_string)?;
+    let operand = parse_next_instruction_operand(iter, inst_name)?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::UnaryOpParamI16 {
+        opcode,
+        amount: param_i16,
+        number: Box::new(operand),
+    })
+}
+
+fn parse_instruction_kind_binary_op(
+    iter: &mut PeekableIterator<Token>,
+    inst_name: &str,
+    opcode: Opcode,
+) -> Result<Instruction, CompileError> {
+    // (i32.add OPERAND_LHS OPERAND_RHS) ... //
+    // ^                                 ^___// to here
+    // |_____________________________________// current token
+
+    consume_left_paren(iter, "instruction")?;
+    consume_symbol(iter, inst_name)?;
+    let left = parse_next_instruction_operand(iter, inst_name)?;
+    let right = parse_next_instruction_operand(iter, inst_name)?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::BinaryOp {
+        opcode,
+        left: Box::new(left),
+        right: Box::new(right),
+    })
 }
 
 // helper functions
@@ -1384,7 +1409,7 @@ mod tests {
                     ],
                     results: vec![DataType::I32, DataType::I64,],
                     locals: vec![],
-                    instructions: vec![Instruction::NoParams(Opcode::end)]
+                    instructions: vec![]
                 })]
             }
         );
@@ -1421,7 +1446,7 @@ mod tests {
                     ],
                     results: vec![DataType::I32, DataType::I64,],
                     locals: vec![],
-                    instructions: vec![Instruction::NoParams(Opcode::end)]
+                    instructions: vec![]
                 })]
             }
         );
@@ -1478,7 +1503,7 @@ mod tests {
                             align: 4
                         },
                     ],
-                    instructions: vec![Instruction::NoParams(Opcode::end)]
+                    instructions: vec![]
                 })]
             }
         );
@@ -1510,10 +1535,17 @@ mod tests {
             "#
             ),
             vec![
-                Instruction::NoParams(Opcode::nop),
-                Instruction::NoParams(Opcode::zero),
-                Instruction::NoParams(Opcode::drop),
-                Instruction::NoParams(Opcode::end)
+                Instruction::NoParams {
+                    opcode: Opcode::nop,
+                    operands: vec![]
+                },
+                Instruction::NoParams {
+                    opcode: Opcode::drop,
+                    operands: vec![Instruction::NoParams {
+                        opcode: Opcode::zero,
+                        operands: vec![]
+                    },]
+                },
             ]
         );
 
@@ -1555,7 +1587,6 @@ mod tests {
                 Instruction::ImmI64((-47i64) as u64),
                 Instruction::ImmI64(0xaabb_ccdd),
                 Instruction::ImmI64(0b0110_0111),
-                Instruction::NoParams(Opcode::end)
             ]
         );
 
@@ -1597,8 +1628,6 @@ mod tests {
                 Instruction::ImmF64(ImmF64::Hex(0x400921fb54442d18)),
                 Instruction::ImmF64(ImmF64::Float(std::f64::consts::E)),
                 Instruction::ImmF64(ImmF64::Hex(0x4005bf0a8b145769)),
-                //
-                Instruction::NoParams(Opcode::end)
             ]
         );
 
@@ -1626,23 +1655,32 @@ mod tests {
             ),
             vec![
                 // 11 == 0
-                Instruction::ImmI32(11),
-                Instruction::UnaryOp(Opcode::i32_eqz),
+                Instruction::UnaryOp {
+                    opcode: Opcode::i32_eqz,
+                    number: Box::new(Instruction::ImmI32(11))
+                },
                 // 13 + 1
-                Instruction::ImmI32(13),
-                Instruction::UnaryOpParamI16(Opcode::i32_inc, 1),
+                Instruction::UnaryOpParamI16 {
+                    opcode: Opcode::i32_inc,
+                    amount: 1,
+                    number: Box::new(Instruction::ImmI32(13))
+                },
                 // 17 + 19
-                Instruction::ImmI32(17),
-                Instruction::ImmI32(19),
-                Instruction::BinaryOp(Opcode::i32_add),
-                // 1 + 2 * 3
-                Instruction::ImmI32(2),
-                Instruction::ImmI32(3),
-                Instruction::BinaryOp(Opcode::i32_mul),
-                Instruction::ImmI32(1),
-                Instruction::BinaryOp(Opcode::i32_add),
-                // end
-                Instruction::NoParams(Opcode::end)
+                Instruction::BinaryOp {
+                    opcode: Opcode::i32_add,
+                    left: Box::new(Instruction::ImmI32(17)),
+                    right: Box::new(Instruction::ImmI32(19))
+                },
+                // (2 * 3) + 1
+                Instruction::BinaryOp {
+                    opcode: Opcode::i32_add,
+                    left: Box::new(Instruction::BinaryOp {
+                        opcode: Opcode::i32_mul,
+                        left: Box::new(Instruction::ImmI32(2)),
+                        right: Box::new(Instruction::ImmI32(3))
+                    }),
+                    right: Box::new(Instruction::ImmI32(1)),
+                },
             ]
         );
     }
@@ -1668,23 +1706,43 @@ mod tests {
             "#
             ),
             vec![
-                Instruction::LocalAccess(Opcode::local_load32, "sum".to_owned(), 0),
-                Instruction::LocalAccess(Opcode::local_load, "count".to_owned(), 4),
+                Instruction::LocalLoad {
+                    opcode: Opcode::local_load32,
+                    tag: "sum".to_owned(),
+                    offset: 0
+                },
+                Instruction::LocalLoad {
+                    opcode: Opcode::local_load,
+                    tag: "count".to_owned(),
+                    offset: 4
+                },
                 //
-                Instruction::ImmI32(11),
-                Instruction::LocalAccess(Opcode::local_store32, "left".to_owned(), 0),
+                Instruction::LocalStore {
+                    opcode: Opcode::local_store32,
+                    tag: "left".to_owned(),
+                    offset: 0,
+                    value: Box::new(Instruction::ImmI32(11))
+                },
                 //
-                Instruction::ImmI64(13),
-                Instruction::LocalAccess(Opcode::local_store, "right".to_owned(), 8),
+                Instruction::LocalStore {
+                    opcode: Opcode::local_store,
+                    tag: "right".to_owned(),
+                    offset: 8,
+                    value: Box::new(Instruction::ImmI64(13))
+                },
                 //
-                Instruction::ImmI32(17),
-                Instruction::LocalLongAccess(Opcode::local_long_load, "foo".to_owned()),
+                Instruction::LocalLongLoad {
+                    opcode: Opcode::local_long_load,
+                    tag: "foo".to_owned(),
+                    offset: Box::new(Instruction::ImmI32(17))
+                },
                 //
-                Instruction::ImmI32(19),
-                Instruction::ImmI64(23),
-                Instruction::LocalLongAccess(Opcode::local_long_store, "bar".to_owned()),
-                // end
-                Instruction::NoParams(Opcode::end)
+                Instruction::LocalLongStore {
+                    opcode: Opcode::local_long_store,
+                    tag: "bar".to_owned(),
+                    offset: Box::new(Instruction::ImmI32(19)),
+                    value: Box::new(Instruction::ImmI64(23))
+                },
             ]
         );
 
@@ -1707,23 +1765,43 @@ mod tests {
             "#
             ),
             vec![
-                Instruction::DataAccess(Opcode::data_load32, "sum".to_owned(), 0),
-                Instruction::DataAccess(Opcode::data_load, "count".to_owned(), 4),
+                Instruction::DataLoad {
+                    opcode: Opcode::data_load32,
+                    tag: "sum".to_owned(),
+                    offset: 0
+                },
+                Instruction::DataLoad {
+                    opcode: Opcode::data_load,
+                    tag: "count".to_owned(),
+                    offset: 4
+                },
                 //
-                Instruction::ImmI32(11),
-                Instruction::DataAccess(Opcode::data_store32, "left".to_owned(), 0),
+                Instruction::DataStore {
+                    opcode: Opcode::data_store32,
+                    tag: "left".to_owned(),
+                    offset: 0,
+                    value: Box::new(Instruction::ImmI32(11))
+                },
                 //
-                Instruction::ImmI64(13),
-                Instruction::DataAccess(Opcode::data_store, "right".to_owned(), 8),
+                Instruction::DataStore {
+                    opcode: Opcode::data_store,
+                    tag: "right".to_owned(),
+                    offset: 8,
+                    value: Box::new(Instruction::ImmI64(13))
+                },
                 //
-                Instruction::ImmI32(17),
-                Instruction::DataLongAccess(Opcode::data_long_load, "foo".to_owned()),
+                Instruction::DataLongLoad {
+                    opcode: Opcode::data_long_load,
+                    tag: "foo".to_owned(),
+                    offset: Box::new(Instruction::ImmI32(17))
+                },
                 //
-                Instruction::ImmI32(19),
-                Instruction::ImmI64(23),
-                Instruction::DataLongAccess(Opcode::data_long_store, "bar".to_owned()),
-                // end
-                Instruction::NoParams(Opcode::end)
+                Instruction::DataLongStore {
+                    opcode: Opcode::data_long_store,
+                    tag: "bar".to_owned(),
+                    offset: Box::new(Instruction::ImmI32(19)),
+                    value: Box::new(Instruction::ImmI64(23))
+                },
             ]
         );
     }
@@ -1747,20 +1825,30 @@ mod tests {
             "#
             ),
             vec![
-                Instruction::ImmI32(11),
-                Instruction::HeapAccess(Opcode::heap_load32, 0),
-                Instruction::ImmI32(13),
-                Instruction::HeapAccess(Opcode::heap_load, 4),
+                Instruction::HeapLoad {
+                    opcode: Opcode::heap_load32,
+                    offset: 0,
+                    addr: Box::new(Instruction::ImmI32(11))
+                },
+                Instruction::HeapLoad {
+                    opcode: Opcode::heap_load,
+                    offset: 4,
+                    addr: Box::new(Instruction::ImmI32(13))
+                },
                 //
-                Instruction::ImmI32(17),
-                Instruction::ImmI32(19),
-                Instruction::HeapAccess(Opcode::heap_store32, 0),
+                Instruction::HeapStore {
+                    opcode: Opcode::heap_store32,
+                    offset: 0,
+                    addr: Box::new(Instruction::ImmI32(17)),
+                    value: Box::new(Instruction::ImmI32(19))
+                },
                 //
-                Instruction::ImmI32(23),
-                Instruction::ImmI32(29),
-                Instruction::HeapAccess(Opcode::heap_store, 8),
-                // end
-                Instruction::NoParams(Opcode::end)
+                Instruction::HeapStore {
+                    opcode: Opcode::heap_store,
+                    offset: 8,
+                    addr: Box::new(Instruction::ImmI32(23)),
+                    value: Box::new(Instruction::ImmI32(29))
+                },
             ]
         );
     }
