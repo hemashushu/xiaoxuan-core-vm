@@ -72,7 +72,9 @@
 use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
 use crate::{
-    ast::{FuncNode, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+    ast::{
+        FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode,
+    },
     instruction_kind::{InstructionKind, INSTRUCTION_KIND_TABLE},
     lexer::Token,
     peekable_iterator::PeekableIterator,
@@ -608,8 +610,8 @@ fn parse_instruction_with_parentheses(
                 //
                 InstructionKind::ImmI32 => vec![parse_instruction_kind_imm_i32(iter)?],
                 InstructionKind::ImmI64 => vec![parse_instruction_kind_imm_i64(iter)?],
-                InstructionKind::ImmF32 => todo!(),
-                InstructionKind::ImmF64 => todo!(),
+                InstructionKind::ImmF32 => vec![parse_instruction_kind_imm_f32(iter)?],
+                InstructionKind::ImmF64 => vec![parse_instruction_kind_imm_f64(iter)?],
                 //
                 InstructionKind::When => todo!(),
                 InstructionKind::If => todo!(),
@@ -741,6 +743,82 @@ fn parse_instruction_kind_imm_i64(
     consume_right_paren(iter)?;
 
     Ok(Instruction::ImmI64(parse_u64_string(num_string)?))
+}
+
+fn parse_instruction_kind_imm_f32(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (f32.imm 3.14) ... //
+    // ^              ^___// to here
+    // |__________________// current token
+    //
+    // also:
+    // (f32.imm 0x40490fdb)
+    // (f32.imm 0b0_000_0011)
+    // the hex string is the little-endian bytes in the memory
+
+    consume_left_paren(iter, "f32.imm")?;
+    consume_symbol(iter, "f32.imm")?;
+    let mut num_string = expect_number(iter, "f32.imm")?;
+    consume_right_paren(iter)?;
+
+    let e = CompileError::new(&format!("\"{}\" is not a valid float number.", num_string));
+
+    // remove underscores
+    num_string.retain(|c| c != '_');
+
+    let fp = if num_string.starts_with("0x") {
+        let value =
+            u32::from_str_radix(num_string.strip_prefix("0x").unwrap(), 16).map_err(|_| e)?;
+        ImmF32::Hex(value)
+    } else if num_string.starts_with("0b") {
+        let value =
+            u32::from_str_radix(num_string.strip_prefix("0b").unwrap(), 2).map_err(|_| e)?;
+        ImmF32::Hex(value)
+    } else {
+        let value = num_string.as_str().parse::<f32>().map_err(|_| e)?;
+        ImmF32::Float(value)
+    };
+
+    Ok(Instruction::ImmF32(fp))
+}
+
+fn parse_instruction_kind_imm_f64(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (f64.imm 3.14) ... //
+    // ^              ^___// to here
+    // |__________________// current token
+    //
+    // also:
+    // (f64.imm 0x400921fb54442d18)
+    // (f64.imm 0b0_000_0011)
+    // the hex string is the little-endian bytes in the memory
+
+    consume_left_paren(iter, "f64.imm")?;
+    consume_symbol(iter, "f64.imm")?;
+    let mut num_string = expect_number(iter, "f64.imm")?;
+    consume_right_paren(iter)?;
+
+    let e = CompileError::new(&format!("\"{}\" is not a valid float number.", num_string));
+
+    // remove underscores
+    num_string.retain(|c| c != '_');
+
+    let fp = if num_string.starts_with("0x") {
+        let value =
+            u64::from_str_radix(num_string.strip_prefix("0x").unwrap(), 16).map_err(|_| e)?;
+        ImmF64::Hex(value)
+    } else if num_string.starts_with("0b") {
+        let value =
+            u64::from_str_radix(num_string.strip_prefix("0b").unwrap(), 2).map_err(|_| e)?;
+        ImmF64::Hex(value)
+    } else {
+        let value = num_string.as_str().parse::<f64>().map_err(|_| e)?;
+        ImmF64::Float(value)
+    };
+
+    Ok(Instruction::ImmF64(fp))
 }
 
 fn parse_instruction_kind_unary_op(
@@ -1229,7 +1307,10 @@ mod tests {
     use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
     use crate::{
-        ast::{FuncNode, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode},
+        ast::{
+            FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode, ModuleNode,
+            ParamNode,
+        },
         instruction_kind::init_instruction_table,
         lexer::lex,
         peekable_iterator::PeekableIterator,
@@ -1474,6 +1555,49 @@ mod tests {
                 Instruction::ImmI64((-47i64) as u64),
                 Instruction::ImmI64(0xaabb_ccdd),
                 Instruction::ImmI64(0b0110_0111),
+                Instruction::NoParams(Opcode::end)
+            ]
+        );
+
+        // float consts:
+        //
+        // - PI     f32     0x40490fdb          3.1415927
+        // - E      f32     0x402df854          2.7182817
+        // - PI     f64     0x400921fb54442d18  3.141592653589793
+        // - E      f64     0x4005bf0a8b145769  2.718281828459045
+
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        (f32.imm 3.1415927)
+                        (f32.imm 0x40490fdb)
+                        (f32.imm 2.7182817)
+                        (f32.imm 0x402df854)
+
+                        (f64.imm 3.141592653589793)
+                        (f64.imm 0x400921fb54442d18)
+                        (f64.imm 2.718281828459045)
+                        (f64.imm 0x4005bf0a8b145769)
+                    )
+                )
+            )
+            "#
+            ),
+            vec![
+                Instruction::ImmF32(ImmF32::Float(std::f32::consts::PI)),
+                Instruction::ImmF32(ImmF32::Hex(0x40490fdb)),
+                Instruction::ImmF32(ImmF32::Float(std::f32::consts::E)),
+                Instruction::ImmF32(ImmF32::Hex(0x402df854)),
+                //
+                Instruction::ImmF64(ImmF64::Float(std::f64::consts::PI)),
+                Instruction::ImmF64(ImmF64::Hex(0x400921fb54442d18)),
+                Instruction::ImmF64(ImmF64::Float(std::f64::consts::E)),
+                Instruction::ImmF64(ImmF64::Hex(0x4005bf0a8b145769)),
+                //
                 Instruction::NoParams(Opcode::end)
             ]
         );

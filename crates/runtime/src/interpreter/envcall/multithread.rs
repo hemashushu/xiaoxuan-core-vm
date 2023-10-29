@@ -42,10 +42,7 @@ pub fn thread_id(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
-    // read/copy the thread start data to heap
     // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
-    //
-    // result: 0=success, 1=failed.
 
     let dst_address = thread_context.stack.pop_i64_u();
     let length = thread_context.stack.pop_i32_u();
@@ -72,11 +69,6 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     // fn (module_index:u32, func_public_index:u32,
     //    thread_start_data_address:u32, thread_start_data_length:u32) -> child_thread_id:u32
     // ```
-    //
-    // the value of 'thread_start_data_address' is the address of a data block in the heap
-    //
-    // the signature of the thread start function MUST be:
-    // 'fn (thread_start_data_length:u32) -> result_code:u32'
 
     let mut mt_program_object_address: usize = 0;
     let mut mt_program_source_type: ProgramSourceType = ProgramSourceType::InMemory;
@@ -129,13 +121,7 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_wait_for_finish(thread_context: &mut ThreadContext) {
-    // wait for the specified (child) thread to finish, return the results of the starting function
     // 'fn (child_thread_id:u32) -> (status:u32, thread_exit_code:u32)'
-    // status: 0=success, 1=not_found
-    // thread_exit_code: 0=thread exit with success, 1=thread exit with failure
-    //
-    // when the child thread finish, it will be removed from
-    // the 'child thread collection' automatically.
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 

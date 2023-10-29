@@ -95,31 +95,48 @@ pub enum EnvCallCode {
     thread_id,                  // get the current thread id
                                 // 'fn () -> thread_id:u32'
 
-    thread_create,              // craete a new thread and run the specified function.
+    thread_create,              // craete a new thread and run the specified function (named 'thread start function').
                                 //
-                                // '``
+                                // ```
                                 // fn (module_index:u32, func_public_index:u32,
                                 //    thread_start_data_address:u32, thread_start_data_length:u32) -> child_thread_id:u32
                                 // ```
                                 //
-                                // the value of 'thread_start_data_address' is the address of a data block in the heap
+                                // the value of 'thread_start_data_address' is the address of a data block in the heap, these
+                                // data will be copied to the new thread (temporary on the VM host thread-local memory).
+                                // the new thread can read the data through the function 'thread_start_data_read'.
                                 //
                                 // the signature of the 'thread start function' MUST be:
-                                // 'fn (thread_start_data_length:u32) -> result_code:u32'
+                                // 'fn (thread_start_data_length:u32) -> exit_code:u32'
+                                //
+                                // it's similar to the 'int main(int argc, char* argv[])'
 
-    thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function
+    thread_start_data_read,     // read/copy the 'thread start data' to heap
+                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
+                                //
+                                // result: 0=success, 1=failed.
+
+    thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function.
+                                //
                                 // 'fn (child_thread_id:u32) -> (wait_status:u32, thread_exit_code:u32)'
                                 // - wait_status: 0=success, 1=not_found
                                 // - thread_exit_code: 0=thread exit with success, 1=thread exit with failure
                                 //
-                                // when the child thread finish, it will be removed from
-                                // the 'child thread collection' automatically.
+                                // the caller will be blocked if the child thread is running, when the child thread finish,
+                                // the 'thread_wait_for_finish' gets the (wait_status, thread_exit_code), and the child thread
+                                // will be removed from the 'child thread collection'.
+                                //
+                                // note that if the child thread is finish before the parent thread call 'thread_wait_for_finish',
+                                // the resource of child thread will NOT be released, and it is store in the 'child thread collection'
+                                // until the parent thread call 'thread_wait_for_finish'.
+                                // in the other word, 'thread_wait_for_finish' is equivaent to the function 'thread.join()'
+                                // in the other programming language.
 
     thread_running_status,      // check whether the specified (child) thread is finish
                                 // 'fn (child_thread_id:u32) -> running_status:u32'
                                 // - running_status:  0=running, 1=finish, 2=not_found
 
-    thread_exit,                // drop the specified (child) thread
+    thread_drop,                // drop the specified (child) thread
                                 // 'fn (child_thread_id:u32)'
 
     thread_msg_recive,          // receive message from the upstream (parent) thread
@@ -139,13 +156,31 @@ pub enum EnvCallCode {
                                 //
                                 // result: 0=success, 1=failed.
 
+    // the first start thread called the 'main thread', a thread
+    // can create one or more new threads, these threads called 'child thread's,
+    // and the creator called 'parent thread'.
+    // when the parent thread exit, all its 'child thread's will exit also.
+    //
+    // a PIPE is created between the parent thread and child thread, they can
+    // comunicates through 'thread_msg_recive/thread_msg_send' and
+    // 'thread_msg_receive_from/thread_msg_send_to'. however, there is no direct PIPE
+    // between child threads.
+    //
+    // the example of the thread tree:
+    //
+    // main thread
+    //   |-- child thread 0
+    //   |     |-- child thread 0-0
+    //   |     |-- child thread 0-1
+    //   |     |     |-- child thread 0-1-0
+    //   |     |
+    //   |     |-- child thread 0-2
+    //   |
+    //   |-- child thread 1
+    //   |
+
     thread_msg_receive_from,    // receive message from the specified (child) thread
     thread_msg_send_to,         // send message to the specified (child) thread
-
-    thread_start_data_read,     // read/copy the thread start data to heap
-                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
-                                //
-                                // result: 0=success, 1=failed.
 
     thread_msg_read,            // read/copy the last received message to heap
                                 // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
@@ -162,24 +197,6 @@ pub enum EnvCallCode {
     regex_match,
     regex_test,
     regex_remove,
-
-    //
-    // I/O functions
-    //
-
-    /*
-    print_char = 0x200,     // `fn (fd:i32 char:i32)`
-    print_i32,              // `fn (fd:i32 value:i32)`
-    print_i64,              // `fn (fd:i32 value:i64)`
-    */
-
-    //
-    // delegate to std I/O
-    //
-
-    /*
-    write,                  // `fn (fd:i32 addr:i64 length:i64)`
-    */
 }
 
 pub const MAX_ECALLCODE_NUMBER: usize = 0x400;

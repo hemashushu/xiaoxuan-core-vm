@@ -15,6 +15,8 @@
 // - number: supportes decimal, binary, hexadecimal and float point numbers e.g.
 //   211, 0x11, 0x11_22, 0b1100, 3.14, 2.99e8, +12, -3.14
 //   invalid number: -0xaabb, -0b1100
+//   floating point numbers can be written as HEX, it's the little-endian bytes in the memory,
+//   do not confuse with the C floating-point literal (https://en.cppreference.com/w/cpp/language/floating_literal)
 // - string: a char sequence surround by double quotes, multiline is supported. e.g.
 //   "abc文字😊", "\t\r\n\\\""\u{2d}\u{6587}\0"
 //   "line 0

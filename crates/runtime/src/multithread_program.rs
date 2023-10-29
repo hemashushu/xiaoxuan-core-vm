@@ -111,12 +111,13 @@ where
                         &mut thread_context,
                         module_index,
                         func_public_index,
-                        // the specified function should only has one or zero parameters, the value of argument
-                        // is the length of 'thread_start_data'.
+                        // the specified function should only has one parameter (or has no parameters),
+                        // the value of argument is the length of 'thread_start_data'.
                         &[ForeignValue::UInt32(thread_start_data_length as u32)],
                     );
 
-                    // Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>
+                    // returns Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>.
+                    // the return value of the 'thread start function' is the user custom thread exit code.
                     match rst_foreign_values {
                         Ok(foreign_values) => Ok(foreign_values),
                         Err(e) => Err(Box::new(e) as Box<dyn RuntimeError + Send>),
