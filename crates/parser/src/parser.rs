@@ -42,7 +42,7 @@
 // the instruction syntax
 // ----------------------
 //
-// `(instruction_name param0 ... paramN operand0 ... operandN)`
+// `(instruction_name param_0 ... param_N operand_0 ... operand_N)`
 //
 // 1. instructions with NO parameters and NO operands, can be written
 //    with or without parentheses, e.g.
@@ -75,7 +75,8 @@ use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
 use crate::{
     ast::{
-        FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode, ModuleNode, ParamNode,
+        BranchCase, FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode,
+        ModuleNode, ParamNode,
     },
     instruction_kind::{InstructionKind, INSTRUCTION_KIND_TABLE},
     lexer::Token,
@@ -214,7 +215,7 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
     let name = expect_identifier_optional(iter);
     let (params, results) = parse_optional_signature(iter)?;
     let locals: Vec<LocalNode> = parse_optional_local_variables(iter)?;
-    let instructions: Vec<Instruction> = parse_instruction_sequence(iter, "code")?;
+    let code = parse_instruction_sequence_node(iter, "code")?;
     consume_right_paren(iter)?;
 
     // function's code implies an instruction 'end' at the end.
@@ -225,7 +226,7 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
         params,
         results,
         locals,
-        instructions,
+        code: Box::new(code),
     };
 
     Ok(ModuleElementNode::FuncNode(func_node))
@@ -459,10 +460,10 @@ fn parse_memory_data_type_bytes(
     Ok((MemoryDataType::BYTES, length, align))
 }
 
-fn parse_instruction_sequence(
+fn parse_instruction_sequence_node(
     iter: &mut PeekableIterator<Token>,
     node_name: &str,
-) -> Result<Vec<Instruction>, CompileError> {
+) -> Result<Instruction, CompileError> {
     // (code ...) ...  //
     // ^          ^____// to here
     // ________________// current token
@@ -485,7 +486,16 @@ fn parse_instruction_sequence(
 
     consume_right_paren(iter)?;
 
-    Ok(instructions)
+    let instruction = match node_name {
+        "code" => Instruction::Code(instructions),
+        "do" => Instruction::Do(instructions),
+        "break" => Instruction::Break(instructions),
+        "recur" => Instruction::Recur(instructions),
+        "return" => Instruction::Return(instructions),
+        "tailcall" => Instruction::TailCall(instructions),
+        _ => unreachable!(),
+    };
+    Ok(instruction)
 }
 
 fn parse_next_instruction_optional(
@@ -616,19 +626,26 @@ fn parse_instruction_with_parentheses(
                 InstructionKind::ImmF32 => parse_instruction_kind_imm_f32(iter)?,
                 InstructionKind::ImmF64 => parse_instruction_kind_imm_f64(iter)?,
                 //
-                InstructionKind::When => todo!(),
-                InstructionKind::If => todo!(),
-                InstructionKind::Branch => todo!(),
-                InstructionKind::Case => todo!(),
-                InstructionKind::Default => todo!(),
-                InstructionKind::For => todo!(),
-                InstructionKind::Sequence(_) => todo!(),
+                InstructionKind::When => parse_instruction_kind_when(iter)?,
+                InstructionKind::If => parse_instruction_kind_if(iter)?,
+                InstructionKind::Branch => parse_instruction_kind_branch(iter)?,
+                InstructionKind::For => parse_instruction_kind_for(iter)?,
+
+                InstructionKind::Sequence(node_name) => {
+                    parse_instruction_sequence_node(iter, node_name)?
+                }
                 //
-                InstructionKind::Call => todo!(),
-                InstructionKind::DynCall => todo!(),
-                InstructionKind::EnvCall => todo!(),
-                InstructionKind::SysCall => todo!(),
-                InstructionKind::ExtCall => todo!(),
+                InstructionKind::Call => parse_instruction_kind_call_by_tag(iter, "call", true)?,
+                InstructionKind::DynCall => parse_instruction_kind_call_by_operand_num(iter)?,
+                InstructionKind::EnvCall => {
+                    parse_instruction_kind_call_by_num(iter, "envcall", true)?
+                }
+                InstructionKind::SysCall => {
+                    parse_instruction_kind_call_by_num(iter, "syscall", false)?
+                }
+                InstructionKind::ExtCall => {
+                    parse_instruction_kind_call_by_tag(iter, "extcall", false)?
+                }
             }
         } else {
             return Err(CompileError::new(&format!(
@@ -698,7 +715,7 @@ fn parse_instruction_kind_no_params(
     // |___________// current token
     //
     // also:
-    // (name OPERAND0 ... OPERAND_N) ...  //
+    // (name OPERAND_0 ... OPERAND_N) ...  //
     // ^                             ^____// to here
     // |__________________________________// current token
 
@@ -828,7 +845,7 @@ fn parse_instruction_kind_local_load(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-    local: bool,
+    is_local: bool,
 ) -> Result<Instruction, CompileError> {
     // (local.load $id) ... //
     // ^                ^___// to here
@@ -847,7 +864,7 @@ fn parse_instruction_kind_local_load(
     };
     consume_right_paren(iter)?;
 
-    if local {
+    if is_local {
         Ok(Instruction::LocalLoad {
             opcode,
             tag,
@@ -866,7 +883,7 @@ fn parse_instruction_kind_local_store(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-    local: bool,
+    is_local: bool,
 ) -> Result<Instruction, CompileError> {
     // (local.store $id OPERAND) ... //
     // ^                         ^___// to here
@@ -887,7 +904,7 @@ fn parse_instruction_kind_local_store(
     let operand = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
-    if local {
+    if is_local {
         Ok(Instruction::LocalStore {
             opcode,
             tag,
@@ -908,7 +925,7 @@ fn parse_instruction_kind_local_long_load(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-    local: bool,
+    is_local: bool,
 ) -> Result<Instruction, CompileError> {
     // (local.long_load $id OPERAND_FOR_OFFSET) ... //
     // ^                                        ^___// to here
@@ -920,7 +937,7 @@ fn parse_instruction_kind_local_long_load(
     let offset = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
-    if local {
+    if is_local {
         Ok(Instruction::LocalLongLoad {
             opcode,
             tag,
@@ -939,7 +956,7 @@ fn parse_instruction_kind_local_long_store(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-    local: bool,
+    is_local: bool,
 ) -> Result<Instruction, CompileError> {
     // (local.long_store $id OPERAND_FOR_OFFSET OPERAND) ... //
     // ^                                                 ^___// to here
@@ -952,7 +969,7 @@ fn parse_instruction_kind_local_long_store(
     let operand = parse_next_instruction_operand(iter, inst_name)?;
     consume_right_paren(iter)?;
 
-    if local {
+    if is_local {
         Ok(Instruction::LocalLongStore {
             opcode,
             tag,
@@ -1096,6 +1113,212 @@ fn parse_instruction_kind_binary_op(
         opcode,
         left: Box::new(left),
         right: Box::new(right),
+    })
+}
+
+fn parse_instruction_kind_when(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (when (local...) TEST CONSEQUENT) ... //
+    // ^                                 ^___// to here
+    // |_____________________________________// current token
+
+    consume_left_paren(iter, "when")?;
+    consume_symbol(iter, "when")?;
+    let locals = parse_optional_local_variables(iter)?;
+    let test = parse_next_instruction_operand(iter, "when (test)")?;
+    let consequent = parse_next_instruction_operand(iter, "when (consequent)")?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::When {
+        locals,
+        test: Box::new(test),
+        consequent: Box::new(consequent),
+    })
+}
+
+fn parse_instruction_kind_if(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (if (param...) (result...) (local...)
+    //            TEST CONSEQUENT ALTERNATE) ... //
+    // ^                                     ^___// to here
+    // |_________________________________________// current token
+
+    consume_left_paren(iter, "if")?;
+    consume_symbol(iter, "if")?;
+    let (params, results) = parse_optional_signature(iter)?;
+    let locals = parse_optional_local_variables(iter)?;
+    let test = parse_next_instruction_operand(iter, "if (test)")?;
+    let consequent = parse_next_instruction_operand(iter, "if (consequent)")?;
+    let alternate = parse_next_instruction_operand(iter, "if (alternate)")?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::If {
+        params,
+        results,
+        locals,
+        test: Box::new(test),
+        consequent: Box::new(consequent),
+        alternate: Box::new(alternate),
+    })
+}
+
+fn parse_instruction_kind_branch(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (branch (param...) (result...) (local...)
+    //     (case TEST_0 CONSEQUENT_0)
+    //     ...
+    //     (case TEST_N CONSEQUENT_N)
+    //     (default CONSEQUENT_DEFAULT) ;; optional
+    //     ) ... //
+    // ^     ^___// to here
+    // |_________// current token
+
+    consume_left_paren(iter, "branch")?;
+    consume_symbol(iter, "branch")?;
+    let (params, results) = parse_optional_signature(iter)?;
+    let locals = parse_optional_local_variables(iter)?;
+    let mut cases = vec![];
+
+    while expect_child_node_optional(iter, "case") {
+        consume_left_paren(iter, "case")?;
+        consume_symbol(iter, "case")?;
+        let test = parse_next_instruction_operand(iter, "case")?;
+        let consequent = parse_next_instruction_operand(iter, "case")?;
+        consume_right_paren(iter)?;
+
+        cases.push(BranchCase {
+            test: Box::new(test),
+            consequent: Box::new(consequent),
+        });
+    }
+
+    let mut default = None;
+    if expect_child_node_optional(iter, "default") {
+        consume_left_paren(iter, "default")?;
+        consume_symbol(iter, "default")?;
+        let consequent = parse_next_instruction_operand(iter, "default")?;
+        consume_right_paren(iter)?;
+
+        default = Some(Box::new(consequent));
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::Branch {
+        params,
+        results,
+        locals,
+        cases,
+        default,
+    })
+}
+
+fn parse_instruction_kind_for(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (for (param...) (result...) (local...) INSTRUCTION) ... //
+    // ^                                                   ^___// to here
+    // |_______________________________________________________// current token
+
+    consume_left_paren(iter, "for")?;
+    consume_symbol(iter, "for")?;
+    let (params, results) = parse_optional_signature(iter)?;
+    let locals = parse_optional_local_variables(iter)?;
+    let code = parse_next_instruction_operand(iter, "for (code)")?;
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::For {
+        params,
+        results,
+        locals,
+        code: Box::new(code),
+    })
+}
+
+fn parse_instruction_kind_call_by_tag(
+    iter: &mut PeekableIterator<Token>,
+    node_name: &str,
+    is_call: bool,
+) -> Result<Instruction, CompileError> {
+    // (call/extcall $tag ...) ...  //
+    // ^                       ^____// to here
+    // _____________________________// current token
+
+    consume_left_paren(iter, node_name)?;
+    consume_symbol(iter, node_name)?;
+    let tag = expect_identifier(iter, node_name)?;
+
+    let mut args = vec![];
+    while let Some(arg) = parse_next_instruction_optional(iter)? {
+        args.push(arg);
+    }
+
+    consume_right_paren(iter)?;
+
+    let instruction = if is_call {
+        Instruction::Call { tag, args }
+    } else {
+        Instruction::ExtCall { tag, args }
+    };
+
+    Ok(instruction)
+}
+
+fn parse_instruction_kind_call_by_num(
+    iter: &mut PeekableIterator<Token>,
+    node_name: &str,
+    is_envcall: bool,
+) -> Result<Instruction, CompileError> {
+    // (envcall/syscall num ...) ...  //
+    // ^                         ^____// to here
+    // _______________________________// current token
+
+    consume_left_paren(iter, node_name)?;
+    consume_symbol(iter, node_name)?;
+    let num_string = expect_number(iter, node_name)?;
+    let num = parse_u32_string(num_string)?;
+
+    let mut args = vec![];
+    while let Some(arg) = parse_next_instruction_optional(iter)? {
+        args.push(arg);
+    }
+
+    consume_right_paren(iter)?;
+
+    let instruction = if is_envcall {
+        Instruction::EnvCall { num, args }
+    } else {
+        Instruction::SysCall { num, args }
+    };
+
+    Ok(instruction)
+}
+
+fn parse_instruction_kind_call_by_operand_num(
+    iter: &mut PeekableIterator<Token>,
+) -> Result<Instruction, CompileError> {
+    // (dyncall OPERAND_FOR_NUM ...) ...  //
+    // ^                             ^____// to here
+    // ___________________________________// current token
+
+    consume_left_paren(iter, "dyncall")?;
+    consume_symbol(iter, "dyncall")?;
+
+    let num = parse_next_instruction_operand(iter, "dyncall")?;
+
+    let mut args = vec![];
+    while let Some(arg) = parse_next_instruction_optional(iter)? {
+        args.push(arg);
+    }
+
+    consume_right_paren(iter)?;
+
+    Ok(Instruction::DynCall {
+        num: Box::new(num),
+        args,
     })
 }
 
@@ -1327,14 +1550,16 @@ fn parse_u64_string(mut num_string: String) -> Result<u64, CompileError> {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use pretty_assertions::assert_eq;
 
     use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
 
     use crate::{
         ast::{
-            FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode, ModuleNode,
-            ParamNode,
+            BranchCase, FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode,
+            ModuleNode, ParamNode,
         },
         instruction_kind::init_instruction_table,
         lexer::lex,
@@ -1409,7 +1634,7 @@ mod tests {
                     ],
                     results: vec![DataType::I32, DataType::I64,],
                     locals: vec![],
-                    instructions: vec![]
+                    code: Box::new(Instruction::Code(vec![]))
                 })]
             }
         );
@@ -1446,7 +1671,7 @@ mod tests {
                     ],
                     results: vec![DataType::I32, DataType::I64,],
                     locals: vec![],
-                    instructions: vec![]
+                    code: Box::new(Instruction::Code(vec![]))
                 })]
             }
         );
@@ -1503,23 +1728,30 @@ mod tests {
                             align: 4
                         },
                     ],
-                    instructions: vec![]
+                    code: Box::new(Instruction::Code(vec![]))
                 })]
             }
         );
     }
 
-    fn parse_instructions_from_str(text: &str) -> Vec<Instruction> {
+    fn parse_instructions_from_str(text: &str) -> Box<Instruction> {
         let module_node = parse_from_str(text).unwrap();
         if let ModuleElementNode::FuncNode(func_node) = &module_node.element_nodes[0] {
-            func_node.instructions.clone()
+            func_node.code.clone()
         } else {
             panic!("Expect function node")
         }
     }
 
+    fn noparams_nooperands(opcode: Opcode) -> Instruction {
+        Instruction::NoParams {
+            opcode,
+            operands: vec![],
+        }
+    }
+
     #[test]
-    fn test_parse_function_with_instructions_base() {
+    fn test_parse_instructions_base() {
         assert_eq!(
             parse_instructions_from_str(
                 r#"
@@ -1534,19 +1766,13 @@ mod tests {
             )
             "#
             ),
-            vec![
-                Instruction::NoParams {
-                    opcode: Opcode::nop,
-                    operands: vec![]
-                },
+            Box::new(Instruction::Code(vec![
+                noparams_nooperands(Opcode::nop),
                 Instruction::NoParams {
                     opcode: Opcode::drop,
-                    operands: vec![Instruction::NoParams {
-                        opcode: Opcode::zero,
-                        operands: vec![]
-                    },]
+                    operands: vec![noparams_nooperands(Opcode::zero),]
                 },
-            ]
+            ]))
         );
 
         assert_eq!(
@@ -1574,7 +1800,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 Instruction::ImmI32(11),
                 Instruction::ImmI32(0x13),
                 Instruction::ImmI32(17_19),
@@ -1587,7 +1813,7 @@ mod tests {
                 Instruction::ImmI64((-47i64) as u64),
                 Instruction::ImmI64(0xaabb_ccdd),
                 Instruction::ImmI64(0b0110_0111),
-            ]
+            ]))
         );
 
         // float consts:
@@ -1618,7 +1844,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 Instruction::ImmF32(ImmF32::Float(std::f32::consts::PI)),
                 Instruction::ImmF32(ImmF32::Hex(0x40490fdb)),
                 Instruction::ImmF32(ImmF32::Float(std::f32::consts::E)),
@@ -1628,7 +1854,7 @@ mod tests {
                 Instruction::ImmF64(ImmF64::Hex(0x400921fb54442d18)),
                 Instruction::ImmF64(ImmF64::Float(std::f64::consts::E)),
                 Instruction::ImmF64(ImmF64::Hex(0x4005bf0a8b145769)),
-            ]
+            ]))
         );
 
         assert_eq!(
@@ -1653,7 +1879,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 // 11 == 0
                 Instruction::UnaryOp {
                     opcode: Opcode::i32_eqz,
@@ -1681,12 +1907,12 @@ mod tests {
                     }),
                     right: Box::new(Instruction::ImmI32(1)),
                 },
-            ]
+            ]))
         );
     }
 
     #[test]
-    fn test_parse_function_with_instructions_local_and_data() {
+    fn test_parse_instructions_local_and_data() {
         assert_eq!(
             parse_instructions_from_str(
                 r#"
@@ -1694,6 +1920,7 @@ mod tests {
                 (runtime_version "1.0")
                 (fn $test
                     (code
+                        ;; note that test syntax only here
                         (local.load32 $sum)
                         (local.load $count 4)
                         (local.store32 $left (i32.imm 11))
@@ -1705,7 +1932,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 Instruction::LocalLoad {
                     opcode: Opcode::local_load32,
                     tag: "sum".to_owned(),
@@ -1743,7 +1970,7 @@ mod tests {
                     offset: Box::new(Instruction::ImmI32(19)),
                     value: Box::new(Instruction::ImmI64(23))
                 },
-            ]
+            ]))
         );
 
         assert_eq!(
@@ -1753,6 +1980,7 @@ mod tests {
                 (runtime_version "1.0")
                 (fn $test
                     (code
+                        ;; note that test syntax only here
                         (data.load32 $sum)
                         (data.load $count 4)
                         (data.store32 $left (i32.imm 11))
@@ -1764,7 +1992,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 Instruction::DataLoad {
                     opcode: Opcode::data_load32,
                     tag: "sum".to_owned(),
@@ -1802,12 +2030,12 @@ mod tests {
                     offset: Box::new(Instruction::ImmI32(19)),
                     value: Box::new(Instruction::ImmI64(23))
                 },
-            ]
+            ]))
         );
     }
 
     #[test]
-    fn test_parse_function_with_instructions_heap() {
+    fn test_parse_instructions_heap() {
         assert_eq!(
             parse_instructions_from_str(
                 r#"
@@ -1815,6 +2043,7 @@ mod tests {
                 (runtime_version "1.0")
                 (fn $test
                     (code
+                        ;; note that test syntax only here
                         (heap.load32 (i32.imm 11))
                         (heap.load 4 (i32.imm 13))
                         (heap.store32 (i32.imm 17) (i32.imm 19))
@@ -1824,7 +2053,7 @@ mod tests {
             )
             "#
             ),
-            vec![
+            Box::new(Instruction::Code(vec![
                 Instruction::HeapLoad {
                     opcode: Opcode::heap_load32,
                     offset: 0,
@@ -1849,7 +2078,615 @@ mod tests {
                     addr: Box::new(Instruction::ImmI32(23)),
                     value: Box::new(Instruction::ImmI32(29))
                 },
-            ]
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_when() {
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (when
+                            (i32.eq (i32.imm 11) (i32.imm 13))
+                            (nop)
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::When {
+                locals: vec![],
+                test: Box::new(Instruction::BinaryOp {
+                    opcode: Opcode::i32_eq,
+                    left: Box::new(Instruction::ImmI32(11)),
+                    right: Box::new(Instruction::ImmI32(13))
+                }),
+                consequent: Box::new(noparams_nooperands(Opcode::nop))
+            }]))
+        );
+
+        // test local vars and 'do' statement
+
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (when (local $abc i32) (local $xyz i32)
+                            zero
+                            (do (local.load32 $abc) (local.load32 $xyz))
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::When {
+                locals: vec![
+                    LocalNode {
+                        tag: "abc".to_owned(),
+                        memory_data_type: MemoryDataType::I32,
+                        data_length: 4,
+                        align: 4
+                    },
+                    LocalNode {
+                        tag: "xyz".to_owned(),
+                        memory_data_type: MemoryDataType::I32,
+                        data_length: 4,
+                        align: 4
+                    }
+                ],
+                test: Box::new(noparams_nooperands(Opcode::zero)),
+                consequent: Box::new(Instruction::Do(vec![
+                    Instruction::LocalLoad {
+                        opcode: Opcode::local_load32,
+                        tag: "abc".to_owned(),
+                        offset: 0
+                    },
+                    Instruction::LocalLoad {
+                        opcode: Opcode::local_load32,
+                        tag: "xyz".to_owned(),
+                        offset: 0
+                    }
+                ]))
+            }]))
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_if() {
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (if
+                            (i32.eq (i32.imm 11) (i32.imm 13))
+                            nop
+                            zero
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::If {
+                params: vec![],
+                results: vec![],
+                locals: vec![],
+                test: Box::new(Instruction::BinaryOp {
+                    opcode: Opcode::i32_eq,
+                    left: Box::new(Instruction::ImmI32(11)),
+                    right: Box::new(Instruction::ImmI32(13))
+                }),
+                consequent: Box::new(noparams_nooperands(Opcode::nop)),
+                alternate: Box::new(noparams_nooperands(Opcode::zero))
+            }]))
+        );
+
+        // test params and local vars
+
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (local.store32 $i
+                            (if
+                                (param $m i32) (param $n i32) (result i32)
+                                (local $x i32)
+                                (i32.eq (local.load32 $m) (local.load32 $n))
+                                (i32.add (i32.imm 11) (local.load32 $x))
+                                (i32.mul (i32.imm 13) (local.load32 $x))
+                            )
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::LocalStore {
+                opcode: Opcode::local_store32,
+                tag: "i".to_owned(),
+                offset: 0,
+                value: Box::new(Instruction::If {
+                    params: vec![
+                        ParamNode {
+                            tag: "m".to_owned(),
+                            data_type: DataType::I32
+                        },
+                        ParamNode {
+                            tag: "n".to_owned(),
+                            data_type: DataType::I32
+                        },
+                    ],
+                    results: vec![DataType::I32],
+                    locals: vec![LocalNode {
+                        tag: "x".to_owned(),
+                        memory_data_type: MemoryDataType::I32,
+                        data_length: 4,
+                        align: 4
+                    }],
+                    test: Box::new(Instruction::BinaryOp {
+                        opcode: Opcode::i32_eq,
+                        left: Box::new(Instruction::LocalLoad {
+                            opcode: Opcode::local_load32,
+                            tag: "m".to_owned(),
+                            offset: 0
+                        }),
+                        right: Box::new(Instruction::LocalLoad {
+                            opcode: Opcode::local_load32,
+                            tag: "n".to_owned(),
+                            offset: 0
+                        })
+                    }),
+                    consequent: Box::new(Instruction::BinaryOp {
+                        opcode: Opcode::i32_add,
+                        left: Box::new(Instruction::ImmI32(11)),
+                        right: Box::new(Instruction::LocalLoad {
+                            opcode: Opcode::local_load32,
+                            tag: "x".to_owned(),
+                            offset: 0
+                        })
+                    }),
+                    alternate: Box::new(Instruction::BinaryOp {
+                        opcode: Opcode::i32_mul,
+                        left: Box::new(Instruction::ImmI32(13)),
+                        right: Box::new(Instruction::LocalLoad {
+                            opcode: Opcode::local_load32,
+                            tag: "x".to_owned(),
+                            offset: 0
+                        })
+                    })
+                })
+            }]))
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_branch() {
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (branch (param $x i32) (result i32) (local $temp i32)
+                            (case
+                                (i32.gt_s (local.load32 $x) (i32.imm 11))
+                                (i32.imm 13)
+                            )
+                            (case
+                                (i32.not zero)
+                                (i32.imm 17)
+                            )
+                            (default
+                                (i32.imm 19)
+                            )
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::Branch {
+                params: vec![ParamNode {
+                    tag: "x".to_owned(),
+                    data_type: DataType::I32
+                }],
+                results: vec![DataType::I32],
+                locals: vec![LocalNode {
+                    tag: "temp".to_owned(),
+                    memory_data_type: MemoryDataType::I32,
+                    data_length: 4,
+                    align: 4
+                }],
+                cases: vec![
+                    BranchCase {
+                        test: Box::new(Instruction::BinaryOp {
+                            opcode: Opcode::i32_gt_s,
+                            left: Box::new(Instruction::LocalLoad {
+                                opcode: Opcode::local_load32,
+                                tag: "x".to_owned(),
+                                offset: 0
+                            }),
+                            right: Box::new(Instruction::ImmI32(11))
+                        }),
+                        consequent: Box::new(Instruction::ImmI32(13))
+                    },
+                    BranchCase {
+                        test: Box::new(Instruction::UnaryOp {
+                            opcode: Opcode::i32_not,
+                            number: Box::new(noparams_nooperands(Opcode::zero))
+                        }),
+                        consequent: Box::new(Instruction::ImmI32(17))
+                    }
+                ],
+                default: Some(Box::new(Instruction::ImmI32(19)))
+            }]))
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_for() {
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        (for (param $sum i32) (param $n i32) (result i32) (local $temp i32)
+                            (do
+                                ;; n = n - 1
+                                (local.store32 $n (i32.dec 1 (local.load32 $n)))
+                                (if
+                                    ;; if n == 0
+                                    (i32.eq (local.load32 $n) zero)
+                                    ;; then
+                                    (break (local.load32 $sum))
+                                    ;; else
+                                    (do
+                                        ;; sum = sum + n
+                                        (local.store32 $sum (i32.add
+                                            (local.load32 $sum)
+                                            (local.load32 $n)
+                                        ))
+                                        ;; recur (sum,n)
+                                        (recur
+                                            (local.load32 $sum)
+                                            (local.load32 $n)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![Instruction::For {
+                params: vec![
+                    ParamNode {
+                        tag: "sum".to_owned(),
+                        data_type: DataType::I32
+                    },
+                    ParamNode {
+                        tag: "n".to_owned(),
+                        data_type: DataType::I32
+                    },
+                ],
+                results: vec![DataType::I32],
+                locals: vec![LocalNode {
+                    tag: "temp".to_owned(),
+                    memory_data_type: MemoryDataType::I32,
+                    data_length: 4,
+                    align: 4
+                }],
+                code: Box::new(Instruction::Do(vec![
+                    Instruction::LocalStore {
+                        opcode: Opcode::local_store32,
+                        tag: "n".to_owned(),
+                        offset: 0,
+                        value: Box::new(Instruction::UnaryOpParamI16 {
+                            opcode: Opcode::i32_dec,
+                            amount: 1,
+                            number: Box::new(Instruction::LocalLoad {
+                                opcode: Opcode::local_load32,
+                                tag: "n".to_owned(),
+                                offset: 0
+                            })
+                        })
+                    },
+                    Instruction::If {
+                        params: vec![],
+                        results: vec![],
+                        locals: vec![],
+                        test: Box::new(Instruction::BinaryOp {
+                            opcode: Opcode::i32_eq,
+                            left: Box::new(Instruction::LocalLoad {
+                                opcode: Opcode::local_load32,
+                                tag: "n".to_owned(),
+                                offset: 0
+                            }),
+                            right: Box::new(noparams_nooperands(Opcode::zero))
+                        }),
+                        consequent: Box::new(Instruction::Break(vec![Instruction::LocalLoad {
+                            opcode: Opcode::local_load32,
+                            tag: "sum".to_owned(),
+                            offset: 0
+                        }])),
+                        alternate: Box::new(Instruction::Do(vec![
+                            Instruction::LocalStore {
+                                opcode: Opcode::local_store32,
+                                tag: "sum".to_owned(),
+                                offset: 0,
+                                value: Box::new(Instruction::BinaryOp {
+                                    opcode: Opcode::i32_add,
+                                    left: Box::new(Instruction::LocalLoad {
+                                        opcode: Opcode::local_load32,
+                                        tag: "sum".to_owned(),
+                                        offset: 0
+                                    }),
+                                    right: Box::new(Instruction::LocalLoad {
+                                        opcode: Opcode::local_load32,
+                                        tag: "n".to_owned(),
+                                        offset: 0
+                                    })
+                                })
+                            },
+                            Instruction::Recur(vec![
+                                Instruction::LocalLoad {
+                                    opcode: Opcode::local_load32,
+                                    tag: "sum".to_owned(),
+                                    offset: 0
+                                },
+                                Instruction::LocalLoad {
+                                    opcode: Opcode::local_load32,
+                                    tag: "n".to_owned(),
+                                    offset: 0
+                                }
+                            ])
+                        ]))
+                    }
+                ]))
+            }]))
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_return_and_tailcall() {
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test (param $sum i32) (param $n i32) (result i32)
+                    (code
+                        ;; note that test syntax only here
+                        ;; n = n - 1
+                        (local.store32 $n (i32.dec 1 (local.load32 $n)))
+                        (if
+                            ;; if n == 0
+                            (i32.eq (local.load32 $n) zero)
+                            ;; then
+                            (return (local.load32 $sum))
+                            ;; else
+                            (do
+                                ;; sum = sum + n
+                                (local.store32 $sum (i32.add
+                                    (local.load32 $sum)
+                                    (local.load32 $n)
+                                ))
+                                ;; recur (sum,n)
+                                (tailcall
+                                    (local.load32 $sum)
+                                    (local.load32 $n)
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "lib".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("test".to_owned()),
+                    params: vec![
+                        ParamNode {
+                            tag: "sum".to_owned(),
+                            data_type: DataType::I32
+                        },
+                        ParamNode {
+                            tag: "n".to_owned(),
+                            data_type: DataType::I32
+                        },
+                    ],
+                    results: vec![DataType::I32],
+                    locals: vec![],
+                    code: Box::new(Instruction::Code(vec![
+                        Instruction::LocalStore {
+                            opcode: Opcode::local_store32,
+                            tag: "n".to_owned(),
+                            offset: 0,
+                            value: Box::new(Instruction::UnaryOpParamI16 {
+                                opcode: Opcode::i32_dec,
+                                amount: 1,
+                                number: Box::new(Instruction::LocalLoad {
+                                    opcode: Opcode::local_load32,
+                                    tag: "n".to_owned(),
+                                    offset: 0
+                                })
+                            })
+                        },
+                        Instruction::If {
+                            params: vec![],
+                            results: vec![],
+                            locals: vec![],
+                            test: Box::new(Instruction::BinaryOp {
+                                opcode: Opcode::i32_eq,
+                                left: Box::new(Instruction::LocalLoad {
+                                    opcode: Opcode::local_load32,
+                                    tag: "n".to_owned(),
+                                    offset: 0
+                                }),
+                                right: Box::new(noparams_nooperands(Opcode::zero))
+                            }),
+                            consequent: Box::new(Instruction::Return(vec![
+                                Instruction::LocalLoad {
+                                    opcode: Opcode::local_load32,
+                                    tag: "sum".to_owned(),
+                                    offset: 0
+                                }
+                            ])),
+                            alternate: Box::new(Instruction::Do(vec![
+                                Instruction::LocalStore {
+                                    opcode: Opcode::local_store32,
+                                    tag: "sum".to_owned(),
+                                    offset: 0,
+                                    value: Box::new(Instruction::BinaryOp {
+                                        opcode: Opcode::i32_add,
+                                        left: Box::new(Instruction::LocalLoad {
+                                            opcode: Opcode::local_load32,
+                                            tag: "sum".to_owned(),
+                                            offset: 0
+                                        }),
+                                        right: Box::new(Instruction::LocalLoad {
+                                            opcode: Opcode::local_load32,
+                                            tag: "n".to_owned(),
+                                            offset: 0
+                                        })
+                                    })
+                                },
+                                Instruction::TailCall(vec![
+                                    Instruction::LocalLoad {
+                                        opcode: Opcode::local_load32,
+                                        tag: "sum".to_owned(),
+                                        offset: 0
+                                    },
+                                    Instruction::LocalLoad {
+                                        opcode: Opcode::local_load32,
+                                        tag: "n".to_owned(),
+                                        offset: 0
+                                    }
+                                ])
+                            ]))
+                        }
+                    ]))
+                })]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_instructions_calling() {
+        // test 'call', 'dyncall', 'envcall', 'syscall' and 'extcall'
+        assert_eq!(
+            parse_instructions_from_str(
+                r#"
+            (module "lib"
+                (runtime_version "1.0")
+                (fn $test
+                    (code
+                        ;; note that test syntax only here
+                        ;; call: add(11, 13)
+                        (call $add (i32.imm 11) (i32.imm 13))
+
+                        ;; dyncall: filter(data)
+                        (dyncall (local.load32 $filter) (local.load $data))
+
+                        ;; envcall: runtime_name(buf)
+                        (envcall 0x100 (local.load $buf))
+
+                        ;; syscall: write(1, msg, 7)
+                        (syscall 2 (i32.imm 1) (local.load $msg) (i32.imm 7))
+
+                        ;; extcall: format(str, values)
+                        (extcall $format (local.load $str) (local.load $values))
+                    )
+                )
+            )
+            "#
+            ),
+            Box::new(Instruction::Code(vec![
+                Instruction::Call {
+                    tag: "add".to_owned(),
+                    args: vec![Instruction::ImmI32(11), Instruction::ImmI32(13),]
+                },
+                Instruction::DynCall {
+                    num: Box::new(Instruction::LocalLoad {
+                        opcode: Opcode::local_load32,
+                        tag: "filter".to_owned(),
+                        offset: 0
+                    }),
+                    args: vec![Instruction::LocalLoad {
+                        opcode: Opcode::local_load,
+                        tag: "data".to_owned(),
+                        offset: 0
+                    }]
+                },
+                Instruction::EnvCall {
+                    num: 0x100,
+                    args: vec![Instruction::LocalLoad {
+                        opcode: Opcode::local_load,
+                        tag: "buf".to_owned(),
+                        offset: 0
+                    }]
+                },
+                Instruction::SysCall {
+                    num: 2,
+                    args: vec![
+                        Instruction::ImmI32(1),
+                        Instruction::LocalLoad {
+                            opcode: Opcode::local_load,
+                            tag: "msg".to_owned(),
+                            offset: 0
+                        },
+                        Instruction::ImmI32(7),
+                    ]
+                },
+                Instruction::ExtCall {
+                    tag: "format".to_owned(),
+                    args: vec![
+                        Instruction::LocalLoad {
+                            opcode: Opcode::local_load,
+                            tag: "str".to_owned(),
+                            offset: 0
+                        },
+                        Instruction::LocalLoad {
+                            opcode: Opcode::local_load,
+                            tag: "values".to_owned(),
+                            offset: 0
+                        }
+                    ]
+                }
+            ]))
         );
     }
 }

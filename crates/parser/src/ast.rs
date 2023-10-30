@@ -29,7 +29,7 @@ pub struct FuncNode {
     pub params: Vec<ParamNode>,
     pub results: Vec<DataType>,
     pub locals: Vec<LocalNode>,
-    pub instructions: Vec<Instruction>,
+    pub code: Box<Instruction>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -166,22 +166,47 @@ pub enum Instruction {
         results: Vec<DataType>,
         locals: Vec<LocalNode>,
         cases: Vec<BranchCase>,
-        default: Box<Instruction>,
+        default: Option<Box<Instruction>>,
     },
 
     For {
         params: Vec<ParamNode>,
         results: Vec<DataType>,
         locals: Vec<LocalNode>,
-        instructions: Vec<Instruction>,
+        code: Box<Instruction>,
     },
 
-    Sequence(Vec<Instruction>),
+    Code(Vec<Instruction>),
+    Do(Vec<Instruction>),
+    Break(Vec<Instruction>),
+    Recur(Vec<Instruction>),
+    Return(Vec<Instruction>),
+    TailCall(Vec<Instruction>),
 
-    Break,
-    Recur,
-    Return,
-    TailCall,
+    Call {
+        tag: String,
+        args: Vec<Instruction>,
+    },
+
+    DynCall {
+        num: Box<Instruction>,
+        args: Vec<Instruction>,
+    },
+
+    EnvCall {
+        num: u32,
+        args: Vec<Instruction>,
+    },
+
+    SysCall {
+        num: u32,
+        args: Vec<Instruction>,
+    },
+
+    ExtCall {
+        tag: String,
+        args: Vec<Instruction>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -198,6 +223,6 @@ pub enum ImmF64 {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BranchCase {
-    test: Box<Instruction>,
-    consequent: Box<Instruction>,
+    pub test: Box<Instruction>,
+    pub consequent: Box<Instruction>,
 }

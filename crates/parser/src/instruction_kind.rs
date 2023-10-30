@@ -19,43 +19,43 @@ pub static mut INSTRUCTION_KIND_TABLE: Option<HashMap<&'static str, InstructionK
 pub enum InstructionKind {
     // inst_name                            ;; no operands
     // (inst_name)                          ;; no operands
-    // (inst_name OPERAND0 ... OPERAND_N)   ;; has operands
+    // (inst_name OPERAND_0 ... OPERAND_N)   ;; has operands
     NoParams(Opcode, /* operand_count */ u8),
 
-    // (local.load $id)
-    // (local.load $id offset)              ;; optional offset
+    // (local.load $tag)
+    // (local.load $tag offset)              ;; optional offset
     //
     // includes 'host_addr_local'
     LocalLoad(Opcode),
 
-    // (local.store $id OPERAND)
-    // (local.store $id offset OPERAND)     ;; optional offset
+    // (local.store $tag OPERAND)
+    // (local.store $tag offset OPERAND)     ;; optional offset
     LocalStore(Opcode),
 
-    // (local.load_long $id OPERAND_FOR_OFFSET)
+    // (local.load_long $tag OPERAND_FOR_OFFSET)
     //
     // includes 'host_addr_local_long'
     LocalLongLoad(Opcode),
 
-    // (local.long_store $id OPERAND_FOR_OFFSET OPERAND)
+    // (local.long_store $tag OPERAND_FOR_OFFSET OPERAND)
     LocalLongStore(Opcode),
 
-    // (data.load $id)
-    // (data.load $id offset)              ;; optional offset
+    // (data.load $tag)
+    // (data.load $tag offset)              ;; optional offset
     //
     // includes 'host_addr_data'
     DataLoad(Opcode),
 
-    // (data.store $id OPERAND)
-    // (data.store $id offset OPERAND)     ;; optional offset
+    // (data.store $tag OPERAND)
+    // (data.store $tag offset OPERAND)     ;; optional offset
     DataStore(Opcode),
 
-    // (data.load_long $id OPERAND_FOR_OFFSET)
+    // (data.load_long $tag OPERAND_FOR_OFFSET)
     //
     // includes 'host_addr_data_long'
     DataLongLoad(Opcode),
 
-    // (data.long_store $id OPERAND_FOR_OFFSET OPERAND)
+    // (data.long_store $tag OPERAND_FOR_OFFSET OPERAND)
     DataLongStore(Opcode),
 
     // (heap.load OPERAND_FOR_ADDR)
@@ -81,44 +81,80 @@ pub enum InstructionKind {
     BinaryOp(Opcode),
 
     // (i32.imm 123)
+    // (i32.imm 0x123)
+    // (i32.imm 0b1010)
     //
     // pesudo instruction, overwrite the original instruction i32.imm
     ImmI32,
 
     // (i64.imm 123)
+    // (i64.imm 0x123)
+    // (i64.imm 0b1010)
     //
     // pesudo instruction, overwrite the original instruction i64.imm
     ImmI64,
 
+    // (f32.imm 3.14)
+    // (f32.imm 0x314)
+    // (f32.imm 0b0011)
+    //
     // pesudo instruction, overwrite the original instruction f32.imm
     ImmF32,
 
+    // (f64.imm 3.14)
+    // (f64.imm 0x314)
+    // (f64.imm 0b0011)
+    //
     // pesudo instruction, overwrite the original instruction f64.imm
     ImmF64,
 
+    // (when (local...) TEST CONSEQUENT)
     // pesudo instruction, overwrite the original control flow instructions
     When,
 
+    // (if (param...) (result...) (local...)
+    //            TEST CONSEQUENT ALTERNATE)
     // pesudo instruction, overwrite the original control flow instructions
     If,
 
+    // (branch (param...) (result...) (local...)
+    //     (case TEST_0 CONSEQUENT_0)
+    //     ...
+    //     (case TEST_N CONSEQUENT_N)
+    //     (default CONSEQUENT_DEFAULT) ;; optional
+    // )
     // pesudo instruction, overwrite the original control flow instructions
     Branch,
 
-    // pesudo sub-instruction for instruction 'branch'
-    Case,
-
-    // pesudo sub-instruction for instruction 'branch'
-    Default,
-
+    // (for (param...) (result...) (local...) INSTRUCTION)
     // pesudo instruction, overwrite the original control flow instructions
     For,
 
-    Sequence(&'static str), // for node 'code', 'do', 'break', 'recur', 'return', 'tailcall'
+    // instruction sequence:
+    //
+    // - 'code', for the function body
+    // - 'do', for the tesing and branches
+    // - 'break', for break recur
+    // - 'recur', for recur
+    // - 'return', for exit function
+    // - 'tailcall', for recur function
+    //
+    // the 'code' sequence is the same as 'do' but it is used for the fucntion body only.
+    Sequence(&'static str),
+
+    // (call $tag OPERAND_0 ... OPERAND_N)
     Call,
+
+    // (dyncall OPERAND_FOR_NUM OPERAND_0 ... OPERAND_N)
     DynCall,
+
+    // (envcall num OPERAND_0 ... OPERAND_N)
     EnvCall,
+
+    // (syscall num OPERAND_0 ... OPERAND_N)
     SysCall,
+
+    // (extcall $tag OPERAND_0 ... OPERAND_N)
     ExtCall,
 }
 
@@ -733,13 +769,12 @@ fn init_instruction_table_internal() {
     add("f32.imm", InstructionKind::ImmF32);
     add("f64.imm", InstructionKind::ImmF64);
 
-    add("if", InstructionKind::When);
-    add("cond", InstructionKind::If);
+    add("when", InstructionKind::When);
+    add("if", InstructionKind::If);
     add("branch", InstructionKind::Branch);
-    add("case", InstructionKind::Case);
-    add("default", InstructionKind::Default);
     add("for", InstructionKind::For);
 
+    add("do", InstructionKind::Sequence("do"));
     add("code", InstructionKind::Sequence("code"));
     add("break", InstructionKind::Sequence("break"));
     add("return", InstructionKind::Sequence("return"));
