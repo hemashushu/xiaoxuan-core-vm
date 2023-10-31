@@ -283,7 +283,7 @@ mod tests {
             build_module_binary_with_functions_and_external_functions,
             build_module_binary_with_single_function,
             build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
-            HelperExternalFunctionEntry, HelperSlimFunctionEntry,
+            HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };
 
@@ -841,12 +841,12 @@ mod tests {
                 }, // func1
             ], // types
             vec![
-                HelperSlimFunctionEntry {
+                HelperFuncEntryWithLocalVars {
                     type_index: 1,
                     local_variable_item_entries_without_args: vec![],
                     code: code0,
                 },
-                HelperSlimFunctionEntry {
+                HelperFuncEntryWithLocalVars {
                     type_index: 2,
                     local_variable_item_entries_without_args: vec![],
                     code: code1,

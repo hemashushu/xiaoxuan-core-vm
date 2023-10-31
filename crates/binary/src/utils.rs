@@ -982,14 +982,14 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
 // }
 
 /// helper object for unit test
-pub struct HelperFunctionEntry {
+pub struct HelperFuncEntryWithSignatureAndLocalVars {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     pub code: Vec<u8>,
 }
 
-pub struct HelperSlimFunctionEntry {
+pub struct HelperFuncEntryWithLocalVars {
     pub type_index: usize,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     pub code: Vec<u8>,
@@ -1068,8 +1068,8 @@ pub fn build_module_binary_with_single_function_and_data_sections(
         read_write_data_entries,
         uninit_uninit_data_entries,
         vec![type_entry],
-        vec![func_entry],
         vec![local_var_list_entry],
+        vec![func_entry],
         vec![],
     )
 }
@@ -1085,19 +1085,19 @@ pub fn build_module_binary_with_single_function_and_blocks(
     // it still is necessary create a 'HelperBlockEntry'.
     helper_block_entries: Vec<HelperBlockEntry>,
 ) -> Vec<u8> {
-    let help_func_entry = HelperFunctionEntry {
+    let helper_func_entry = HelperFuncEntryWithSignatureAndLocalVars {
         params: param_datatypes,
         results: result_datatypes,
         local_variable_item_entries_without_args,
         code,
     };
 
-    build_module_binary_with_functions_and_blocks(vec![help_func_entry], helper_block_entries)
+    build_module_binary_with_functions_and_blocks(vec![helper_func_entry], helper_block_entries)
 }
 
 /// helper function for unit test
 pub fn build_module_binary_with_functions_and_blocks(
-    helper_function_entries: Vec<HelperFunctionEntry>,
+    helper_func_entries: Vec<HelperFuncEntryWithSignatureAndLocalVars>,
     helper_block_entries: Vec<HelperBlockEntry>,
 ) -> Vec<u8> {
     // build type entries
@@ -1105,7 +1105,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let func_type_entries = helper_function_entries
+    let func_type_entries = helper_func_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -1130,7 +1130,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let func_local_var_list_entries = helper_function_entries
+    let func_local_var_list_entries = helper_func_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -1173,7 +1173,7 @@ pub fn build_module_binary_with_functions_and_blocks(
     local_var_list_entries.extend_from_slice(&block_local_var_list_entries);
 
     // build func entries
-    let func_entries = helper_function_entries
+    let func_entries = helper_func_entries
         .iter()
         .enumerate()
         .map(|(idx, entry)| FuncEntry {
@@ -1189,8 +1189,8 @@ pub fn build_module_binary_with_functions_and_blocks(
         vec![],
         vec![],
         type_entries,
-        func_entries,
         local_var_list_entries,
+        func_entries,
         vec![],
     )
 }
@@ -1199,7 +1199,7 @@ pub fn build_module_binary_with_functions_and_blocks(
 #[allow(clippy::too_many_arguments)]
 pub fn build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
-    slim_function_entries: Vec<HelperSlimFunctionEntry>,
+    helper_func_entries: Vec<HelperFuncEntryWithLocalVars>,
     read_only_data_entries: Vec<DataEntry>,
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
@@ -1208,7 +1208,7 @@ pub fn build_module_binary_with_functions_and_external_functions(
     let mut func_entries = vec![];
     let mut local_var_list_entries = vec![];
 
-    slim_function_entries
+    helper_func_entries
         .iter()
         .enumerate()
         .for_each(|(idx, entry)| {
@@ -1242,8 +1242,8 @@ pub fn build_module_binary_with_functions_and_external_functions(
         read_write_data_entries,
         uninit_uninit_data_entries,
         type_entries,
-        func_entries,
         local_var_list_entries,
+        func_entries,
         helper_external_function_entries,
     )
 }
@@ -1256,8 +1256,8 @@ pub fn build_module_binary(
     read_write_data_entries: Vec<DataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
-    func_entries: Vec<FuncEntry>,
     local_var_list_entries: Vec<LocalListEntry>, // this local list includes args
+    func_entries: Vec<FuncEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     // build read-only data section
@@ -1505,7 +1505,7 @@ mod tests {
             build_module_binary_with_functions_and_external_functions,
             build_module_binary_with_single_function_and_data_sections, print_bytecode_as_binary,
             print_bytecode_as_text, BytecodeWriter, HelperExternalFunctionEntry,
-            HelperSlimFunctionEntry,
+            HelperFuncEntryWithLocalVars,
         },
     };
 
@@ -1666,7 +1666,7 @@ mod tests {
                     results: vec![DataType::I32],
                 },
             ],
-            vec![HelperSlimFunctionEntry {
+            vec![HelperFuncEntryWithLocalVars {
                 type_index: 0,
                 local_variable_item_entries_without_args: vec![],
                 code: vec![0u8],

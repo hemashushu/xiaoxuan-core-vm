@@ -26,6 +26,7 @@ pub enum ModuleElementNode {
 #[derive(Debug, PartialEq)]
 pub struct FuncNode {
     pub name: Option<String>,
+    pub exported: bool,
     pub params: Vec<ParamNode>,
     pub results: Vec<DataType>,
     pub locals: Vec<LocalNode>,

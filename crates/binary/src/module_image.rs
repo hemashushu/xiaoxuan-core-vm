@@ -31,8 +31,8 @@
 // a minimal module only requires 3 sections:
 //
 // - function type section
-// - function section
 // - local variable section
+// - function section
 //
 // and there are optional sections:
 // - read-only data section
@@ -90,6 +90,7 @@ pub mod external_func_index_section;
 pub mod external_func_section;
 pub mod external_library_section;
 pub mod func_index_section;
+pub mod func_name_section;
 pub mod func_section;
 pub mod local_variable_section;
 pub mod type_section;
@@ -115,6 +116,7 @@ use self::{
     external_func_index_section::ExternalFuncIndexSection,
     external_func_section::ExternalFuncSection,
     external_library_section::ExternalLibrarySection,
+    func_name_section::FuncNameSection,
     local_variable_section::LocalVariableSection,
     unified_external_func_section::UnifiedExternalFuncSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
@@ -174,26 +176,27 @@ impl ModuleSection {
 pub enum ModuleSectionId {
     // essential
     Type = 0x10,   // 0x10
-    Func,          // 0x11
-    LocalVariable, // 0x12
+    LocalVariable, // 0x11
+    Func,          // 0x12
     // optional
     ReadOnlyData = 0x20, // 0x20
     ReadWriteData,       // 0x21
     UninitData,          // 0x22
     AutoFunc,            // 0x23
-    // for debuging and linking
+    // optional, for debuging and linking
     ImportFunc = 0x30, // 0x30
-    ExportFunc,        // 0x31
+    FuncName,          // 0x31
     ImportData,        // 0x32
-    ExportData,        // 0x33
+    DataName,          // 0x33
     ExternalLibrary,   // 0x34
     ExternalFunc,      // 0x35
-    // indices
-    FuncIndex = 0x40,       // 0x40
-    DataIndex,              // 0x41
-    UnifiedExternalLibrary, // 0x42
-    UnifiedExternalFunc,    // 0x43
-    ExternalFuncIndex,      // 0x44 (mapping ext-func to uni-ext-func)
+    // essential indices
+    FuncIndex = 0x40, // 0x40
+    // optional indeces
+    DataIndex = 0x50,       // 0x50
+    UnifiedExternalLibrary, // 0x51
+    UnifiedExternalFunc,    // 0x52
+    ExternalFuncIndex,      // 0x53 (mapping ext-func to uni-ext-func)
 }
 
 // use for data index section and function index section
@@ -252,9 +255,7 @@ impl<'a> ModuleImage<'a> {
     pub fn load(image_data: &'a [u8]) -> Result<Self, BinaryError> {
         let magic_slice = &image_data[0..8];
         if magic_slice != IMAGE_MAGIC_NUMBER {
-            return Err(BinaryError {
-                message: "Not a valid module image file.".to_owned(),
-            });
+            return Err(BinaryError::new("Not a valid module image file."));
         }
 
         // there is another safe approach for obtaining the version number:
@@ -272,9 +273,9 @@ impl<'a> ModuleImage<'a> {
         let supported_module_image_version =
             ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32); // supported version 1.0
         if require_module_image_version > supported_module_image_version {
-            return Err(BinaryError {
-                message: "The module image requires a newer version runtime.".to_owned(),
-            });
+            return Err(BinaryError::new(
+                "The module image requires a newer version runtime.",
+            ));
         }
 
         let ptr_require_runtime_version = unsafe { ptr.offset(12) };
@@ -287,9 +288,9 @@ impl<'a> ModuleImage<'a> {
         // a module will only run if its required major and minor
         // versions match the current runtime version 100%.
         if require_runtime_version != supported_runtime_version {
-            return Err(BinaryError {
-                message: "The module requires a different version runtime to run.".to_owned(),
-            });
+            return Err(BinaryError::new(
+                "The module requires a different version runtime to run.",
+            ));
         }
 
         let ptr_name_length = unsafe { ptr.offset(16) };
@@ -404,20 +405,20 @@ impl<'a> ModuleImage<'a> {
     }
 
     // essential section
-    pub fn get_func_section(&'a self) -> FuncSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::Func)
-            .map_or_else(
-                || panic!("Can not find the function section."),
-                FuncSection::load,
-            )
-    }
-
-    // essential section
     pub fn get_local_variable_section(&'a self) -> LocalVariableSection<'a> {
         self.get_section_data_by_id(ModuleSectionId::LocalVariable)
             .map_or_else(
                 || panic!("Can not find the local variable section."),
                 LocalVariableSection::load,
+            )
+    }
+
+    // essential section
+    pub fn get_func_section(&'a self) -> FuncSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::Func)
+            .map_or_else(
+                || panic!("Can not find the function section."),
+                FuncSection::load,
             )
     }
 
@@ -452,11 +453,15 @@ impl<'a> ModuleImage<'a> {
 
     // todo get_optional_import_func_section
 
-    // todo get_optional_export_func_section
+    // optional section
+    pub fn get_optional_func_name_section(&'a self) -> Option<FuncNameSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::FuncName)
+            .map(FuncNameSection::load)
+    }
 
     // todo get_optional_import_data_section
 
-    // todo get_optional_export_data_section
+    // todo get_optional_data_name_section
 
     // optional
     pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
@@ -629,11 +634,11 @@ mod tests {
                 0, 0, 0, 0, // offset 0
                 36, 0, 0, 0, // length 0
                 //
-                0x11u8, 0, 0, 0, // section id, func section
+                0x12u8, 0, 0, 0, // section id, func section
                 36, 0, 0, 0, // offset 1
                 52, 0, 0, 0, // length 1
                 //
-                0x12u8, 0, 0, 0, // section id, local variable section
+                0x11u8, 0, 0, 0, // section id, local variable section
                 88, 0, 0, 0, // offset 1
                 68, 0, 0, 0, // length 1
             ]
@@ -836,7 +841,7 @@ mod tests {
         assert_eq!(
             section_table_data,
             &[
-                0x41u8, 0, 0, 0, // section id 0, data index
+                0x50u8, 0, 0, 0, // section id 0, data index
                 0, 0, 0, 0, // offset 0
                 64, 0, 0, 0, // length 0
                 //

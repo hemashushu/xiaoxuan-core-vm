@@ -8,7 +8,6 @@ members = [
     "crates/runtime",
     "crates/parser",
     "crates/assembler",
-    "crates/ancsr",
 ]
 
 resolver = "2"

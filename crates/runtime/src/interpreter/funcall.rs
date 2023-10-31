@@ -75,7 +75,7 @@ fn do_call(
 mod tests {
     use ancvm_binary::utils::{
         build_module_binary_with_functions_and_blocks, BytecodeWriter, HelperBlockEntry,
-        HelperFunctionEntry,
+        HelperFuncEntryWithSignatureAndLocalVars,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
@@ -161,19 +161,19 @@ mod tests {
 
         let binary0 = build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_sum_square,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -271,7 +271,7 @@ mod tests {
 
         let binary0 = build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],
                     results: vec![
                         DataType::I32,
@@ -283,25 +283,25 @@ mod tests {
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_eleven,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_thirteen,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_seventeen,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],

@@ -71,7 +71,7 @@
 //    )
 //    ```
 
-use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
+use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
 use crate::{
     ast::{
@@ -81,14 +81,15 @@ use crate::{
     instruction_kind::{InstructionKind, INSTRUCTION_KIND_TABLE},
     lexer::Token,
     peekable_iterator::PeekableIterator,
+    ParseError,
 };
 
-pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileError> {
+pub fn parse(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, ParseError> {
     // there is only one node 'module' in a assembly text
     parse_module_node(iter)
 }
 
-pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, CompileError> {
+pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNode, ParseError> {
     // (module ...) ...  //
     // ^            ^____// to here
     // |_________________// current token, i.e. the value of 'iter.peek(0)'
@@ -111,13 +112,13 @@ pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNod
     let (runtime_version_major, runtime_version_minor) = parse_module_runtime_version_node(iter)?;
 
     // optional parameters
-    if expect_child_node_optional(iter, "constructor") {
+    if exist_child_node(iter, "constructor") {
         todo!()
     }
-    if expect_child_node_optional(iter, "entry") {
+    if exist_child_node(iter, "entry") {
         todo!()
     }
-    if expect_child_node_optional(iter, "destructor") {
+    if exist_child_node(iter, "destructor") {
         todo!()
     }
 
@@ -129,7 +130,7 @@ pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNod
             let element_node = match child_node_name.as_str() {
                 "fn" => parse_func_node(iter)?,
                 _ => {
-                    return Err(CompileError::new(&format!(
+                    return Err(ParseError::new(&format!(
                         "Unknown module element: {}",
                         child_node_name
                     )))
@@ -156,7 +157,7 @@ pub fn parse_module_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleNod
 
 fn parse_module_runtime_version_node(
     iter: &mut PeekableIterator<Token>,
-) -> Result<(u16, u16), CompileError> {
+) -> Result<(u16, u16), ParseError> {
     // (runtime_version "1.0") ...  //
     // ^                       ^____// to here
     // |____________________________// current token
@@ -168,21 +169,21 @@ fn parse_module_runtime_version_node(
 
     let vers: Vec<&str> = ver_string.split('.').collect();
     if vers.len() != 2 {
-        return Err(CompileError::new(&format!(
+        return Err(ParseError::new(&format!(
             "Error runtime version number, expect: \"major.minor\", actual: \"{}\"",
             ver_string
         )));
     }
 
     let major = vers[0].parse::<u16>().map_err(|_| {
-        CompileError::new(&format!(
+        ParseError::new(&format!(
             "Major version '{}' is not a valid number.",
             vers[0]
         ))
     })?;
 
     let minor = vers[1].parse::<u16>().map_err(|_| {
-        CompileError::new(&format!(
+        ParseError::new(&format!(
             "Minor version '{}' is not a valid number.",
             vers[1]
         ))
@@ -191,15 +192,16 @@ fn parse_module_runtime_version_node(
     Ok((major, minor))
 }
 
-fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, CompileError> {
+fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNode, ParseError> {
     // (fn ...) ...  //
     // ^              ^____// to here
     // |___________________// current token
 
     // the node 'fn' syntax:
     //
-    // (fn $add (param $lhs i32) (param $rhs i32) (result i32) ...)         ;; signature
-    // (fn $add (param $lhs i32) (param $rhs i32) (results i32 i32) ...)    ;; signature with multiple return values
+    // (fn $add (param $lhs i32) (param $rhs i32) (result i32) ...)     ;; signature
+    // (fn $add (param $lhs i32) (result i32) (result i32) ...)         ;; signature with multiple return values
+    // (fn $add (param $lhs i32) (results i32 i32) ...)                 ;; signature with multiple return values
     // (fn $add
     //     (local $sum i32)             ;; local variable with identifier and data type
     //     (local $db (bytes 12 4))     ;; bytes-type local variable
@@ -209,10 +211,13 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
     // (fn $add
     //     (code ...)                   ;; the function body, the instructions sequence, sholud be written inside the node '(code)'
     // )
+    //
+    // (fn $add exported ...)           ;; function with 'exported' property
 
     consume_left_paren(iter, "fn")?;
     consume_symbol(iter, "fn")?;
     let name = expect_identifier_optional(iter);
+    let exported = expect_specified_symbol_optional(iter, "exported");
     let (params, results) = parse_optional_signature(iter)?;
     let locals: Vec<LocalNode> = parse_optional_local_variables(iter)?;
     let code = parse_instruction_sequence_node(iter, "code")?;
@@ -223,6 +228,7 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
 
     let func_node = FuncNode {
         name,
+        exported,
         params,
         results,
         locals,
@@ -234,7 +240,7 @@ fn parse_func_node(iter: &mut PeekableIterator<Token>) -> Result<ModuleElementNo
 
 fn parse_optional_signature(
     iter: &mut PeekableIterator<Token>,
-) -> Result<(Vec<ParamNode>, Vec<DataType>), CompileError> {
+) -> Result<(Vec<ParamNode>, Vec<DataType>), ParseError> {
     // (param|result|results ...){0,} ...  //
     // ^                              ^____// to here
     // |___________________________________// current token
@@ -267,7 +273,7 @@ fn parse_optional_signature(
     Ok((params, results))
 }
 
-fn parse_param_node(iter: &mut PeekableIterator<Token>) -> Result<ParamNode, CompileError> {
+fn parse_param_node(iter: &mut PeekableIterator<Token>) -> Result<ParamNode, ParseError> {
     // (param $name i32) ...  //
     // ^                 ^____// to here
     // |______________________// current token
@@ -281,7 +287,7 @@ fn parse_param_node(iter: &mut PeekableIterator<Token>) -> Result<ParamNode, Com
     Ok(ParamNode { tag, data_type })
 }
 
-fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, ParseError> {
     // (result i32) ...  //
     // ^            ^____// to here
     // |_________________// current token
@@ -294,7 +300,7 @@ fn parse_result_node(iter: &mut PeekableIterator<Token>) -> Result<DataType, Com
     Ok(data_type)
 }
 
-fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, CompileError> {
+fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType>, ParseError> {
     // (results i32 i32 i64) ...  //
     // ^                     ^____// to here
     // |__________________________// current token
@@ -313,7 +319,7 @@ fn parse_results_node(iter: &mut PeekableIterator<Token>) -> Result<Vec<DataType
     Ok(data_types)
 }
 
-fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, CompileError> {
+fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, ParseError> {
     // i32 ...  //
     // i64 ...  //
     // f32 ...  //
@@ -328,7 +334,7 @@ fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, Compi
         "f32" => DataType::F32,
         "f64" => DataType::F64,
         _ => {
-            return Err(CompileError::new(&format!(
+            return Err(ParseError::new(&format!(
                 "Unknown data type: {}",
                 data_type_name
             )))
@@ -339,7 +345,7 @@ fn parse_data_type(iter: &mut PeekableIterator<Token>) -> Result<DataType, Compi
 
 fn parse_optional_local_variables(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Vec<LocalNode>, CompileError> {
+) -> Result<Vec<LocalNode>, ParseError> {
     // (local $name i32){0,} ...  //
     // ^                     ^____// to here
     // |__________________________// current token
@@ -363,7 +369,7 @@ fn parse_optional_local_variables(
     Ok(local_nodes)
 }
 
-fn parse_local_node(iter: &mut PeekableIterator<Token>) -> Result<LocalNode, CompileError> {
+fn parse_local_node(iter: &mut PeekableIterator<Token>) -> Result<LocalNode, ParseError> {
     // (local $name i32) ...  //
     // ^                 ^____// to here
     // |______________________// current token
@@ -391,7 +397,7 @@ fn parse_local_node(iter: &mut PeekableIterator<Token>) -> Result<LocalNode, Com
 // return '(MemoryDataType, data length, align)'
 fn parse_memory_data_type_primitive(
     iter: &mut PeekableIterator<Token>,
-) -> Result<(MemoryDataType, u32, u16), CompileError> {
+) -> Result<(MemoryDataType, u32, u16), ParseError> {
     // i32 ...  //
     // i64 ...  //
     // f32 ...  //
@@ -406,7 +412,7 @@ fn parse_memory_data_type_primitive(
         "f32" => (MemoryDataType::F32, 4, 4),
         "f64" => (MemoryDataType::F64, 8, 8),
         _ => {
-            return Err(CompileError::new(&format!(
+            return Err(ParseError::new(&format!(
                 "Unknown memory data type: {}",
                 memory_data_type_name
             )))
@@ -419,7 +425,7 @@ fn parse_memory_data_type_primitive(
 // return '(MemoryDataType, data length, align)'
 fn parse_memory_data_type_bytes(
     iter: &mut PeekableIterator<Token>,
-) -> Result<(MemoryDataType, u32, u16), CompileError> {
+) -> Result<(MemoryDataType, u32, u16), ParseError> {
     // (bytes 12 8)) ...  //
     // ^             ^____// to here
     // |__________________// current token
@@ -435,21 +441,21 @@ fn parse_memory_data_type_bytes(
     let align_string = expect_number(iter, "the align of memory data type bytes")?;
 
     let length = length_string.parse::<u32>().map_err(|_| {
-        CompileError::new(&format!(
+        ParseError::new(&format!(
             "The length of memory data type bytes '{}' is not a valid number.",
             length_string
         ))
     })?;
 
     let align = align_string.parse::<u16>().map_err(|_| {
-        CompileError::new(&format!(
+        ParseError::new(&format!(
             "The align of memory data type bytes '{}' is not a valid number.",
             align_string
         ))
     })?;
 
     if align == 0 || align > 8 {
-        return Err(CompileError::new(&format!(
+        return Err(ParseError::new(&format!(
             "The range of align of memory data type bytes should be 1 to 8, actual: '{}'.",
             align
         )));
@@ -463,7 +469,7 @@ fn parse_memory_data_type_bytes(
 fn parse_instruction_sequence_node(
     iter: &mut PeekableIterator<Token>,
     node_name: &str,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (code ...) ...  //
     // ^          ^____// to here
     // ________________// current token
@@ -500,7 +506,7 @@ fn parse_instruction_sequence_node(
 
 fn parse_next_instruction_optional(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Option<Instruction>, CompileError> {
+) -> Result<Option<Instruction>, ParseError> {
     let instruction = if let Some(token) = iter.peek(0) {
         match token {
             Token::LeftParen => {
@@ -523,7 +529,7 @@ fn parse_next_instruction_optional(
 fn parse_next_instruction_operand(
     iter: &mut PeekableIterator<Token>,
     for_which_inst: &str,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     let instruction = if let Some(token) = iter.peek(0) {
         match token {
             Token::LeftParen => {
@@ -535,14 +541,14 @@ fn parse_next_instruction_operand(
                 parse_instruction_without_parentheses(iter)?
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Expect operand for instruction \"{}\", actual {:?}",
                     for_which_inst, token
                 )))
             }
         }
     } else {
-        return Err(CompileError::new(&format!(
+        return Err(ParseError::new(&format!(
             "Missing operand for instruction \"{}\"",
             for_which_inst
         )));
@@ -558,7 +564,7 @@ fn parse_next_instruction_operand(
 //
 fn parse_instruction_with_parentheses(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (inst_name) ...  //
     // ^           ^____// to here
     // |________________// current token
@@ -648,7 +654,7 @@ fn parse_instruction_with_parentheses(
                 }
             }
         } else {
-            return Err(CompileError::new(&format!(
+            return Err(ParseError::new(&format!(
                 "Unknown instruction: {}",
                 child_node_name
             )));
@@ -656,7 +662,7 @@ fn parse_instruction_with_parentheses(
 
         Ok(instruction)
     } else {
-        Err(CompileError::new("Missing symbol for instruction node."))
+        Err(ParseError::new("Missing symbol for instruction node."))
     }
 }
 
@@ -668,7 +674,7 @@ fn parse_instruction_with_parentheses(
 //
 fn parse_instruction_without_parentheses(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // zero ... //
     // ^    ^___// to here
     // |________// current token
@@ -680,7 +686,7 @@ fn parse_instruction_without_parentheses(
         match kind {
             InstructionKind::NoParams(opcode, operand_cound) => {
                 if *operand_cound > 0 {
-                    Err(CompileError::new(&format!(
+                    Err(ParseError::new(&format!(
                         "Instruction \"{}\" has operands and should be written with parentheses.",
                         inst_name
                     )))
@@ -691,13 +697,13 @@ fn parse_instruction_without_parentheses(
                     })
                 }
             }
-            _ => Err(CompileError::new(&format!(
+            _ => Err(ParseError::new(&format!(
                 "Instruction \"{}\" should have parameters.",
                 inst_name
             ))),
         }
     } else {
-        Err(CompileError::new(&format!(
+        Err(ParseError::new(&format!(
             "Unknown instruction: {}",
             inst_name
         )))
@@ -709,7 +715,7 @@ fn parse_instruction_kind_no_params(
     inst_name: &str,
     opcode: Opcode,
     operand_count: u8,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (name) ...  //
     // ^      ^____// to here
     // |___________// current token
@@ -737,7 +743,7 @@ fn parse_instruction_kind_no_params(
 
 fn parse_instruction_kind_imm_i32(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (i32.imm 123) ... //
     // ^             ^___// to here
     // |_________________// current token
@@ -752,7 +758,7 @@ fn parse_instruction_kind_imm_i32(
 
 fn parse_instruction_kind_imm_i64(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (i64.imm 123) ... //
     // ^             ^___// to here
     // |_________________// current token
@@ -767,7 +773,7 @@ fn parse_instruction_kind_imm_i64(
 
 fn parse_instruction_kind_imm_f32(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (f32.imm 3.14) ... //
     // ^              ^___// to here
     // |__________________// current token
@@ -782,7 +788,7 @@ fn parse_instruction_kind_imm_f32(
     let mut num_string = expect_number(iter, "f32.imm")?;
     consume_right_paren(iter)?;
 
-    let e = CompileError::new(&format!("\"{}\" is not a valid float number.", num_string));
+    let e = ParseError::new(&format!("\"{}\" is not a valid float number.", num_string));
 
     // remove underscores
     num_string.retain(|c| c != '_');
@@ -805,7 +811,7 @@ fn parse_instruction_kind_imm_f32(
 
 fn parse_instruction_kind_imm_f64(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (f64.imm 3.14) ... //
     // ^              ^___// to here
     // |__________________// current token
@@ -820,7 +826,7 @@ fn parse_instruction_kind_imm_f64(
     let mut num_string = expect_number(iter, "f64.imm")?;
     consume_right_paren(iter)?;
 
-    let e = CompileError::new(&format!("\"{}\" is not a valid float number.", num_string));
+    let e = ParseError::new(&format!("\"{}\" is not a valid float number.", num_string));
 
     // remove underscores
     num_string.retain(|c| c != '_');
@@ -846,7 +852,7 @@ fn parse_instruction_kind_local_load(
     inst_name: &str,
     opcode: Opcode,
     is_local: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (local.load $id) ... //
     // ^                ^___// to here
     // |____________________// current token
@@ -884,7 +890,7 @@ fn parse_instruction_kind_local_store(
     inst_name: &str,
     opcode: Opcode,
     is_local: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (local.store $id OPERAND) ... //
     // ^                         ^___// to here
     // |_____________________________// current token
@@ -926,7 +932,7 @@ fn parse_instruction_kind_local_long_load(
     inst_name: &str,
     opcode: Opcode,
     is_local: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (local.long_load $id OPERAND_FOR_OFFSET) ... //
     // ^                                        ^___// to here
     // |____________________________________________// current token
@@ -957,7 +963,7 @@ fn parse_instruction_kind_local_long_store(
     inst_name: &str,
     opcode: Opcode,
     is_local: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (local.long_store $id OPERAND_FOR_OFFSET OPERAND) ... //
     // ^                                                 ^___// to here
     // |_____________________________________________________// current token
@@ -990,7 +996,7 @@ fn parse_instruction_kind_heap_load(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (heap.load OPERAND_FOR_ADDR) ... //
     // ^                            ^___// to here
     // |________________________________// current token
@@ -1021,7 +1027,7 @@ fn parse_instruction_kind_heap_store(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (heap.store OPERAND_FOR_ADDR OPERAND) ... //
     // ^                                     ^___// to here
     // |_________________________________________// current token
@@ -1055,7 +1061,7 @@ fn parse_instruction_kind_unary_op(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (i32.not OPERAND) ... //
     // ^                 ^___// to here
     // |_____________________// current token
@@ -1075,7 +1081,7 @@ fn parse_instruction_kind_unary_op_param_i16(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (i32.inc num OPERAND) ... //
     // ^                     ^___// to here
     // |_________________________// current token
@@ -1098,7 +1104,7 @@ fn parse_instruction_kind_binary_op(
     iter: &mut PeekableIterator<Token>,
     inst_name: &str,
     opcode: Opcode,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (i32.add OPERAND_LHS OPERAND_RHS) ... //
     // ^                                 ^___// to here
     // |_____________________________________// current token
@@ -1118,7 +1124,7 @@ fn parse_instruction_kind_binary_op(
 
 fn parse_instruction_kind_when(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (when (local...) TEST CONSEQUENT) ... //
     // ^                                 ^___// to here
     // |_____________________________________// current token
@@ -1139,7 +1145,7 @@ fn parse_instruction_kind_when(
 
 fn parse_instruction_kind_if(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (if (param...) (result...) (local...)
     //            TEST CONSEQUENT ALTERNATE) ... //
     // ^                                     ^___// to here
@@ -1166,7 +1172,7 @@ fn parse_instruction_kind_if(
 
 fn parse_instruction_kind_branch(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (branch (param...) (result...) (local...)
     //     (case TEST_0 CONSEQUENT_0)
     //     ...
@@ -1182,7 +1188,7 @@ fn parse_instruction_kind_branch(
     let locals = parse_optional_local_variables(iter)?;
     let mut cases = vec![];
 
-    while expect_child_node_optional(iter, "case") {
+    while exist_child_node(iter, "case") {
         consume_left_paren(iter, "case")?;
         consume_symbol(iter, "case")?;
         let test = parse_next_instruction_operand(iter, "case")?;
@@ -1196,7 +1202,7 @@ fn parse_instruction_kind_branch(
     }
 
     let mut default = None;
-    if expect_child_node_optional(iter, "default") {
+    if exist_child_node(iter, "default") {
         consume_left_paren(iter, "default")?;
         consume_symbol(iter, "default")?;
         let consequent = parse_next_instruction_operand(iter, "default")?;
@@ -1218,7 +1224,7 @@ fn parse_instruction_kind_branch(
 
 fn parse_instruction_kind_for(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (for (param...) (result...) (local...) INSTRUCTION) ... //
     // ^                                                   ^___// to here
     // |_______________________________________________________// current token
@@ -1242,7 +1248,7 @@ fn parse_instruction_kind_call_by_tag(
     iter: &mut PeekableIterator<Token>,
     node_name: &str,
     is_call: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (call/extcall $tag ...) ...  //
     // ^                       ^____// to here
     // _____________________________// current token
@@ -1271,7 +1277,7 @@ fn parse_instruction_kind_call_by_num(
     iter: &mut PeekableIterator<Token>,
     node_name: &str,
     is_envcall: bool,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (envcall/syscall num ...) ...  //
     // ^                         ^____// to here
     // _______________________________// current token
@@ -1299,7 +1305,7 @@ fn parse_instruction_kind_call_by_num(
 
 fn parse_instruction_kind_call_by_operand_num(
     iter: &mut PeekableIterator<Token>,
-) -> Result<Instruction, CompileError> {
+) -> Result<Instruction, ParseError> {
     // (dyncall OPERAND_FOR_NUM ...) ...  //
     // ^                             ^____// to here
     // ___________________________________// current token
@@ -1327,19 +1333,19 @@ fn parse_instruction_kind_call_by_operand_num(
 fn consume_token(
     iter: &mut PeekableIterator<Token>,
     expect_token: Token,
-) -> Result<(), CompileError> {
+) -> Result<(), ParseError> {
     let opt_token = iter.next();
     if let Some(token) = opt_token {
         if token == expect_token {
             Ok(())
         } else {
-            Err(CompileError::new(&format!(
+            Err(ParseError::new(&format!(
                 "Expect token: {:?}, actual token: {:?}",
                 expect_token, token
             )))
         }
     } else {
-        Err(CompileError::new(&format!(
+        Err(ParseError::new(&format!(
             "Missing token: {:?}",
             expect_token
         )))
@@ -1349,40 +1355,34 @@ fn consume_token(
 fn consume_left_paren(
     iter: &mut PeekableIterator<Token>,
     for_what: &str,
-) -> Result<(), CompileError> {
+) -> Result<(), ParseError> {
     let opt_token = iter.next();
     if let Some(token) = opt_token {
         if token == Token::LeftParen {
             Ok(())
         } else {
-            Err(CompileError::new(&format!(
-                "Expect a node for {}",
-                for_what
-            )))
+            Err(ParseError::new(&format!("Expect a node for {}", for_what)))
         }
     } else {
-        Err(CompileError::new(&format!(
+        Err(ParseError::new(&format!(
             "Missing a node for: {}",
             for_what
         )))
     }
 }
 
-fn consume_right_paren(iter: &mut PeekableIterator<Token>) -> Result<(), CompileError> {
+fn consume_right_paren(iter: &mut PeekableIterator<Token>) -> Result<(), ParseError> {
     consume_token(iter, Token::RightParen)
 }
 
-fn consume_symbol(iter: &mut PeekableIterator<Token>, name: &str) -> Result<(), CompileError> {
+fn consume_symbol(iter: &mut PeekableIterator<Token>, name: &str) -> Result<(), ParseError> {
     consume_token(iter, Token::new_symbol(name))
 }
 
-fn expect_number(
-    iter: &mut PeekableIterator<Token>,
-    for_what: &str,
-) -> Result<String, CompileError> {
+fn expect_number(iter: &mut PeekableIterator<Token>, for_what: &str) -> Result<String, ParseError> {
     match iter.next() {
         Some(Token::Number(s)) => Ok(s),
-        _ => Err(CompileError::new(&format!(
+        _ => Err(ParseError::new(&format!(
             "Expect a number for {}",
             for_what
         ))),
@@ -1394,7 +1394,7 @@ fn expect_number_optional(iter: &mut PeekableIterator<Token>) -> Option<String> 
         Some(token) => {
             if let Token::Number(s) = token {
                 let cs = s.clone();
-                iter.next().unwrap();
+                iter.next();
                 Some(cs)
             } else {
                 None
@@ -1404,51 +1404,56 @@ fn expect_number_optional(iter: &mut PeekableIterator<Token>) -> Option<String> 
     }
 }
 
-fn expect_string(
-    iter: &mut PeekableIterator<Token>,
-    for_what: &str,
-) -> Result<String, CompileError> {
+fn expect_string(iter: &mut PeekableIterator<Token>, for_what: &str) -> Result<String, ParseError> {
     match iter.next() {
         Some(Token::String_(s)) => Ok(s),
-        _ => Err(CompileError::new(&format!(
+        _ => Err(ParseError::new(&format!(
             "Expect a string for {}",
             for_what
         ))),
     }
 }
 
-fn expect_symbol(
-    iter: &mut PeekableIterator<Token>,
-    for_what: &str,
-) -> Result<String, CompileError> {
+fn expect_symbol(iter: &mut PeekableIterator<Token>, for_what: &str) -> Result<String, ParseError> {
     match iter.next() {
         Some(token) => match token {
             Token::Symbol(s) => Ok(s),
-            _ => Err(CompileError::new(&format!(
+            _ => Err(ParseError::new(&format!(
                 "Expect a symbol for {}",
                 for_what
             ))),
         },
-        None => Err(CompileError::new(&format!(
+        None => Err(ParseError::new(&format!(
             "Missing a symbol for {}",
             for_what
         ))),
     }
 }
 
+// consume the specified symbol if it exists
+fn expect_specified_symbol_optional(iter: &mut PeekableIterator<Token>, name: &str) -> bool {
+    match iter.peek(0) {
+        Some(Token::Symbol(s)) if s == name => {
+            iter.next();
+            true
+        }
+        _ => false,
+    }
+}
+
 fn expect_identifier(
     iter: &mut PeekableIterator<Token>,
     for_what: &str,
-) -> Result<String, CompileError> {
+) -> Result<String, ParseError> {
     match iter.next() {
         Some(token) => match token {
             Token::Identifier(s) => Ok(s),
-            _ => Err(CompileError::new(&format!(
+            _ => Err(ParseError::new(&format!(
                 "Expect a identifier for {}",
                 for_what
             ))),
         },
-        None => Err(CompileError::new(&format!(
+        None => Err(ParseError::new(&format!(
             "Missing a identifier for {}",
             for_what
         ))),
@@ -1457,20 +1462,26 @@ fn expect_identifier(
 
 fn expect_identifier_optional(iter: &mut PeekableIterator<Token>) -> Option<String> {
     match iter.peek(0) {
-        Some(token) => {
-            if let Token::Identifier(s) = token {
-                let cs = s.clone();
-                iter.next().unwrap();
-                Some(cs)
-            } else {
-                None
-            }
+        // Some(token) => {
+        //     if let Token::Identifier(s) = token {
+        //         let cs = s.clone();
+        //         iter.next().unwrap();
+        //         Some(cs)
+        //     } else {
+        //         None
+        //     }
+        // }
+        // None => None,
+        Some(Token::Identifier(s)) => {
+            let id = s.clone();
+            iter.next();
+            Some(id)
         }
-        None => None,
+        _ => None,
     }
 }
 
-fn expect_child_node_optional(iter: &mut PeekableIterator<Token>, child_node_name: &str) -> bool {
+fn exist_child_node(iter: &mut PeekableIterator<Token>, child_node_name: &str) -> bool {
     if let Some(Token::LeftParen) = iter.peek(0) {
         matches!(iter.peek(1), Some(Token::Symbol(n)) if n == child_node_name)
     } else {
@@ -1488,8 +1499,8 @@ fn get_instruction_kind(inst_name: &str) -> Option<&InstructionKind> {
     }
 }
 
-fn parse_u16_string(mut num_string: String) -> Result<u16, CompileError> {
-    let e = CompileError::new(&format!(
+fn parse_u16_string(mut num_string: String) -> Result<u16, ParseError> {
+    let e = ParseError::new(&format!(
         "\"{}\" is not a valid integer number.",
         num_string
     ));
@@ -1508,8 +1519,8 @@ fn parse_u16_string(mut num_string: String) -> Result<u16, CompileError> {
     Ok(num)
 }
 
-fn parse_u32_string(mut num_string: String) -> Result<u32, CompileError> {
-    let e = CompileError::new(&format!(
+fn parse_u32_string(mut num_string: String) -> Result<u32, ParseError> {
+    let e = ParseError::new(&format!(
         "\"{}\" is not a valid integer number.",
         num_string
     ));
@@ -1528,8 +1539,8 @@ fn parse_u32_string(mut num_string: String) -> Result<u32, CompileError> {
     Ok(num)
 }
 
-fn parse_u64_string(mut num_string: String) -> Result<u64, CompileError> {
-    let e = CompileError::new(&format!(
+fn parse_u64_string(mut num_string: String) -> Result<u64, ParseError> {
+    let e = ParseError::new(&format!(
         "\"{}\" is not a valid integer number.",
         num_string
     ));
@@ -1554,22 +1565,23 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use ancvm_types::{opcode::Opcode, CompileError, DataType, MemoryDataType};
+    use ancvm_types::{opcode::Opcode, DataType, MemoryDataType};
 
     use crate::{
         ast::{
             BranchCase, FuncNode, ImmF32, ImmF64, Instruction, LocalNode, ModuleElementNode,
             ModuleNode, ParamNode,
         },
-        instruction_kind::init_instruction_table,
+        instruction_kind::init_instruction_kind_table,
         lexer::lex,
         peekable_iterator::PeekableIterator,
+        ParseError,
     };
 
     use super::parse;
 
-    fn parse_from_str(s: &str) -> Result<ModuleNode, CompileError> {
-        init_instruction_table();
+    fn parse_from_str(s: &str) -> Result<ModuleNode, ParseError> {
+        init_instruction_kind_table();
 
         let mut chars = s.chars();
         let mut char_iter = PeekableIterator::new(&mut chars, 2);
@@ -1622,6 +1634,7 @@ mod tests {
                 shared_packages: vec![],
                 element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
                     name: Some("add".to_owned()),
+                    exported: false,
                     params: vec![
                         ParamNode {
                             tag: "lhs".to_owned(),
@@ -1639,12 +1652,14 @@ mod tests {
             }
         );
 
+        // test multiple results
+
         assert_eq!(
             parse_from_str(
                 r#"
             (module "main"
                 (runtime_version "1.0")
-                (fn $add (param $lhs i32) (param $rhs i64) (results i32 i64)
+                (fn $add (param $lhs i32) (param $rhs i64) (results i32 i64) (result f32) (result f64)
                     ;; no local variables
                     (code)
                 )
@@ -1659,6 +1674,7 @@ mod tests {
                 shared_packages: vec![],
                 element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
                     name: Some("add".to_owned()),
+                    exported: false,
                     params: vec![
                         ParamNode {
                             tag: "lhs".to_owned(),
@@ -1669,7 +1685,63 @@ mod tests {
                             data_type: DataType::I64
                         }
                     ],
-                    results: vec![DataType::I32, DataType::I64,],
+                    results: vec![DataType::I32, DataType::I64, DataType::F32, DataType::F64],
+                    locals: vec![],
+                    code: Box::new(Instruction::Code(vec![]))
+                })]
+            }
+        );
+
+        // test no function name
+
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "main"
+                (runtime_version "1.0")
+                (fn (code))
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: None,
+                    exported: false,
+                    params: vec![],
+                    results: vec![],
+                    locals: vec![],
+                    code: Box::new(Instruction::Code(vec![]))
+                })]
+            }
+        );
+
+        // test property 'exported'
+
+        assert_eq!(
+            parse_from_str(
+                r#"
+            (module "main"
+                (runtime_version "1.0")
+                (fn $add exported (code))
+            )
+            "#
+            )
+            .unwrap(),
+            ModuleNode {
+                name: "main".to_owned(),
+                runtime_version_major: 1,
+                runtime_version_minor: 0,
+                shared_packages: vec![],
+                element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
+                    name: Some("add".to_owned()),
+                    exported: true,
+                    params: vec![],
+                    results: vec![],
                     locals: vec![],
                     code: Box::new(Instruction::Code(vec![]))
                 })]
@@ -1700,6 +1772,7 @@ mod tests {
                 shared_packages: vec![],
                 element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
                     name: Some("add".to_owned()),
+                    exported: false,
                     params: vec![],
                     results: vec![],
                     locals: vec![
@@ -2518,6 +2591,7 @@ mod tests {
                 shared_packages: vec![],
                 element_nodes: vec![ModuleElementNode::FuncNode(FuncNode {
                     name: Some("test".to_owned()),
+                    exported: false,
                     params: vec![
                         ParamNode {
                             tag: "sum".to_owned(),

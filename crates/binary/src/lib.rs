@@ -6,7 +6,7 @@
 
 use std::{any::Any, fmt::Display};
 
-use ancvm_types::RuntimeError;
+use ancvm_types::VMError;
 use module_image::ModuleImage;
 
 pub mod cache_info;
@@ -18,13 +18,21 @@ pub struct BinaryError {
     message: String,
 }
 
-impl Display for BinaryError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "binary error: {}", self.message)
+impl BinaryError {
+    pub fn new(message:&str) -> Self {
+        Self {
+            message: message.to_owned()
+        }
     }
 }
 
-impl RuntimeError for BinaryError {
+impl Display for BinaryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Binary error: {}", self.message)
+    }
+}
+
+impl VMError for BinaryError {
     fn as_any(&self) -> &dyn Any {
         self
     }

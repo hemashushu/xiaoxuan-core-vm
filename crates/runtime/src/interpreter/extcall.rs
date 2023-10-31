@@ -120,7 +120,7 @@ mod tests {
         module_image::{data_section::DataEntry, type_section::TypeEntry},
         utils::{
             build_module_binary_with_functions_and_external_functions, BytecodeWriter,
-            HelperExternalFunctionEntry, HelperSlimFunctionEntry,
+            HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
@@ -152,7 +152,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperSlimFunctionEntry {
+            vec![HelperFuncEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -203,7 +203,7 @@ mod tests {
                     results: vec![DataType::I64], // pointer
                 }, // main
             ], // types
-            vec![HelperSlimFunctionEntry {
+            vec![HelperFuncEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -258,7 +258,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperSlimFunctionEntry {
+            vec![HelperFuncEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,

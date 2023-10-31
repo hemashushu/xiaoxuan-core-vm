@@ -75,7 +75,7 @@ mod tests {
         let binary0 = build_module_binary_with_single_function(
             vec![],              // params
             vec![DataType::I64], // results
-            vec![],              // local varslist which
+            vec![],              // local vars
             code0,
         );
 
@@ -119,7 +119,7 @@ mod tests {
         let binary0 = build_module_binary_with_single_function_and_data_sections(
             vec![],                             // params
             vec![DataType::I32, DataType::I64], // results
-            vec![],                             // local varslist which
+            vec![],                             // local vars
             code0,
             vec![],
             vec![],

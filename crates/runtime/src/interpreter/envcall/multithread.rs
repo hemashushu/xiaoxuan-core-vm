@@ -165,7 +165,7 @@ pub fn thread_wait_for_finish(thread_context: &mut ThreadContext) {
 mod tests {
     use ancvm_binary::utils::{
         build_module_binary_with_functions_and_blocks, build_module_binary_with_single_function,
-        BytecodeWriter, HelperFunctionEntry,
+        BytecodeWriter, HelperFuncEntryWithSignatureAndLocalVars,
     };
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
 
@@ -186,7 +186,7 @@ mod tests {
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32], // params
             vec![DataType::I32], // results
-            vec![],              // local varslist which
+            vec![],              // local vars
             code0,
         );
 
@@ -196,18 +196,19 @@ mod tests {
 
         const FIRST_CHILD_THREAD_ID: u32 = 1;
 
-        CHILD_THREADS.with(|child_threads_cell| {
+        let r0 = CHILD_THREADS.with(|child_threads_cell| {
             let mut child_threads = child_threads_cell.borrow_mut();
             let opt_child_thread = child_threads.remove(&child_thread_id0);
             let child_thread = opt_child_thread.unwrap();
 
             let result0 = child_thread.join_handle.join().unwrap();
-
-            assert_eq!(
-                result0.unwrap(),
-                vec![ForeignValue::UInt32(FIRST_CHILD_THREAD_ID)]
-            );
+            result0
         });
+
+        assert_eq!(
+            r0.unwrap(),
+            vec![ForeignValue::UInt32(FIRST_CHILD_THREAD_ID)]
+        );
     }
 
     #[test]
@@ -230,7 +231,7 @@ mod tests {
         let binary0 = build_module_binary_with_single_function(
             vec![DataType::I32], // params
             vec![DataType::I32], // results
-            vec![],              // local varslist which
+            vec![],              // local vars
             code0,
         );
 
@@ -273,16 +274,16 @@ mod tests {
 
         let binary0 = build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],                      // params
                     results: vec![DataType::I32, DataType::I32],      // results
-                    local_variable_item_entries_without_args: vec![], // local varslist which
+                    local_variable_item_entries_without_args: vec![], // local vars
                     code: code0,
                 },
-                HelperFunctionEntry {
+                HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],                      // params
                     results: vec![DataType::I32],                     // results
-                    local_variable_item_entries_without_args: vec![], // local varslist which
+                    local_variable_item_entries_without_args: vec![], // local vars
                     code: code1,
                 },
             ],

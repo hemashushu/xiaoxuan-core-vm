@@ -7,7 +7,7 @@
 use std::{cell::RefCell, sync::Arc};
 
 use ancvm_program::{program_source::ProgramSource, ProgramSourceType};
-use ancvm_types::{ForeignValue, RuntimeError};
+use ancvm_types::{ForeignValue, VMError};
 
 use crate::{
     interpreter::process_function, ChildThread, CHILD_THREADS, CHILD_THREAD_MAX_ID,
@@ -120,12 +120,12 @@ where
                     // the return value of the 'thread start function' is the user custom thread exit code.
                     match rst_foreign_values {
                         Ok(foreign_values) => Ok(foreign_values),
-                        Err(e) => Err(Box::new(e) as Box<dyn RuntimeError + Send>),
+                        Err(e) => Err(Box::new(e) as Box<dyn VMError + Send>),
                     }
                 }
                 Err(e) => {
                     // Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>
-                    Err(Box::new(e) as Box<dyn RuntimeError + Send>)
+                    Err(Box::new(e) as Box<dyn VMError + Send>)
                 }
             }
         })

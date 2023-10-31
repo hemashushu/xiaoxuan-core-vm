@@ -395,7 +395,7 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
             ], // results
-            vec![], // local varslist which
+            vec![], // local vars
             code0,
         );
 

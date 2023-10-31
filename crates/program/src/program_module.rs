@@ -5,13 +5,9 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_binary::module_image::{
-    data_section::DataItem,
-    external_func_section::{ExternalFuncItem, ExternalFuncSection},
-    external_library_section::{ExternalLibraryItem, ExternalLibrarySection},
-    func_section::FuncSection,
-    local_variable_section::LocalVariableSection,
-    type_section::TypeSection,
-    ModuleImage,
+    external_func_section::ExternalFuncSection, external_library_section::ExternalLibrarySection,
+    func_name_section::FuncNameSection, func_section::FuncSection,
+    local_variable_section::LocalVariableSection, type_section::TypeSection, ModuleImage,
 };
 
 use crate::{
@@ -19,43 +15,39 @@ use crate::{
     indexed_memory::IndexedMemory,
 };
 
-const EMPTY_DATA: &[u8] = &[];
-const EMPTY_DATA_ITEMS: &[DataItem] = &[];
-const EMPTY_EXTERNAL_LIBRARY_ITEMS: &[ExternalLibraryItem] = &[];
-const EMPTY_EXTERNAL_FUNC_ITEMS: &[ExternalFuncItem] = &[];
-
 pub struct ProgramModule<'a> {
     pub name: &'a str,
     pub type_section: TypeSection<'a>,
-    pub func_section: FuncSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
+    pub func_section: FuncSection<'a>,
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
     pub external_library_section: ExternalLibrarySection<'a>,
     pub external_func_section: ExternalFuncSection<'a>,
+    pub func_name_section: FuncNameSection<'a>,
 }
 
 impl<'a> ProgramModule<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
         let type_section = module_image.get_type_section();
-        let func_section = module_image.get_func_section();
         let local_variable_section = module_image.get_local_variable_section();
+        let func_section = module_image.get_func_section();
 
         let read_only_data = module_image
             .get_optional_read_only_data_section()
             .map_or_else(
-                || ReadOnlyDatas::new(EMPTY_DATA_ITEMS, EMPTY_DATA),
+                || ReadOnlyDatas::new(&[], &[]),
                 |section| ReadOnlyDatas::new(section.items, section.datas_data),
             );
 
         let read_write_data = module_image
             .get_optional_read_write_data_section()
             .map_or_else(
-                || ReadWriteDatas::new(EMPTY_DATA_ITEMS, Vec::<u8>::new()),
+                || ReadWriteDatas::new(&[], Vec::<u8>::new()),
                 |section| ReadWriteDatas::new(section.items, section.datas_data.to_vec()),
             );
 
         let uninit_data = module_image.get_optional_uninit_data_section().map_or_else(
-            || UninitDatas::new(EMPTY_DATA_ITEMS, Vec::<u8>::new()),
+            || UninitDatas::new(&[], Vec::<u8>::new()),
             |section| {
                 let length = section
                     .items
@@ -70,16 +62,24 @@ impl<'a> ProgramModule<'a> {
         let external_library_section = module_image
             .get_optional_external_library_section()
             .unwrap_or(ExternalLibrarySection {
-                items: EMPTY_EXTERNAL_LIBRARY_ITEMS,
-                names_data: EMPTY_DATA,
+                items: &[],
+                names_data: &[],
             });
 
         let external_func_section =
             module_image
                 .get_optional_external_func_section()
                 .unwrap_or(ExternalFuncSection {
-                    items: EMPTY_EXTERNAL_FUNC_ITEMS,
-                    names_data: EMPTY_DATA,
+                    items: &[],
+                    names_data: &[],
+                });
+
+        let func_name_section =
+            module_image
+                .get_optional_func_name_section()
+                .unwrap_or(FuncNameSection {
+                    items: &[],
+                    names_data: &[],
                 });
 
         Self {
@@ -94,6 +94,7 @@ impl<'a> ProgramModule<'a> {
             ],
             external_library_section,
             external_func_section,
+            func_name_section,
         }
     }
 }

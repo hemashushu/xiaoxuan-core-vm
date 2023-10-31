@@ -180,19 +180,31 @@ pub enum ExternalLibraryType {
 /// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
 /// - https://doc.rust-lang.org/std/any/
 /// - https://bennett.dev/rust/downcast-trait-object/
-pub trait RuntimeError: Debug + Display {
+pub trait VMError: Debug + Display {
     fn as_any(&self) -> &dyn Any;
 }
 
-#[derive(Debug)]
-pub struct CompileError {
-    pub message: String,
-}
-
-impl CompileError {
-    pub fn new(message: &str) -> Self {
-        Self {
-            message: message.to_owned(),
-        }
-    }
-}
+// #[derive(Debug)]
+// pub struct CompileError {
+//     pub message: String,
+// }
+//
+// impl CompileError {
+//     pub fn new(message: &str) -> Self {
+//         Self {
+//             message: message.to_owned(),
+//         }
+//     }
+// }
+//
+// impl Display for CompileError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "Compile error: {}", self.message)
+//     }
+// }
+//
+// impl VMError for CompileError {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+// }

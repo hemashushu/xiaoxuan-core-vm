@@ -13,7 +13,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use ancvm_types::{ForeignValue, RuntimeError};
+use ancvm_types::{ForeignValue, VMError};
 
 pub mod bridge;
 pub mod in_memory_program_source;
@@ -62,18 +62,18 @@ impl InterpreterError {
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let error_code = match self.error_type {
-            InterpreterErrorType::InvalidFunctionCall => "invalid_function_call",
-            InterpreterErrorType::DataTypeMissmatch => "data_type_missmatch",
-            InterpreterErrorType::InvalidOperation => "invalid_operation",
-            InterpreterErrorType::IndexNotFound => "index_not_found",
-            InterpreterErrorType::OutOfBoundary => "out_of_boundary",
+            InterpreterErrorType::InvalidFunctionCall => "Invalid function call",
+            InterpreterErrorType::DataTypeMissmatch => "Data type missmatch",
+            InterpreterErrorType::InvalidOperation => "Invalid operation",
+            InterpreterErrorType::IndexNotFound => "Index not found",
+            InterpreterErrorType::OutOfBoundary => "Out of boundary",
         };
 
-        f.write_fmt(format_args!("interpreter error: {}", error_code))
+        f.write_fmt(format_args!("Interpreter error: {}", error_code))
     }
 }
 
-impl RuntimeError for InterpreterError {
+impl VMError for InterpreterError {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -84,7 +84,7 @@ impl RuntimeError for InterpreterError {
 }
 
 pub struct ChildThread {
-    pub join_handle: JoinHandle<Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>>,
+    pub join_handle: JoinHandle<Result<Vec<ForeignValue>, Box<dyn VMError + Send>>>,
     pub rx: RefCell<Option<Receiver<Vec<u8>>>>,
     pub tx: RefCell<Option<Sender<Vec<u8>>>>,
 }

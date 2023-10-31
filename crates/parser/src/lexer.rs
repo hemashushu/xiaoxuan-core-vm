@@ -78,9 +78,7 @@
 // '(import $add (module 0) (function "add" (param $left i32) (param $right i32) (result i32)))'
 // '(import $add (module $math) (function "add" (type 0)))'
 
-use ancvm_types::CompileError;
-
-use crate::peekable_iterator::PeekableIterator;
+use crate::{peekable_iterator::PeekableIterator, ParseError};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
@@ -95,7 +93,7 @@ pub enum Token {
     Symbol(String),
 }
 
-pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError> {
+pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, ParseError> {
     let mut tokens: Vec<Token> = vec![];
 
     while let Some(ch) = iter.peek(0) {
@@ -132,29 +130,29 @@ pub fn lex(iter: &mut PeekableIterator<char>) -> Result<Vec<Token>, CompileError
                 if iter.look_ahead_equals(1, &';') {
                     comsume_line_comment(iter)?;
                 } else if iter.look_ahead_equals(1, &')') {
-                    return Err(CompileError::new("Unpaired block comment."));
+                    return Err(ParseError::new("Unpaired block comment."));
                 } else {
-                    return Err(CompileError::new("Unexpected char \";\""));
+                    return Err(ParseError::new("Unexpected char \";\""));
                 }
             }
             '#' => {
                 if iter.look_ahead_equals(1, &'(') {
                     comsume_node_comment(iter)?;
                 } else {
-                    return Err(CompileError::new("Unexpected char: #"));
+                    return Err(ParseError::new("Unexpected char: #"));
                 }
             }
             'a'..='z' | 'A'..='Z' | '_' => {
                 tokens.push(lex_symbol(iter)?);
             }
-            _ => return Err(CompileError::new(&format!("Unexpected char: {}", ch))),
+            _ => return Err(ParseError::new(&format!("Unexpected char: {}", ch))),
         }
     }
 
     Ok(tokens)
 }
 
-fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // $name  //
     // ^______// current char, i.e. the value of 'iter.peek(0)'
 
@@ -162,7 +160,7 @@ fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
 
     if matches!(iter.peek(0), Some(nc) if *nc >= '0' && *nc <= '9') {
         // identifier should starts with /a-zA-Z_/
-        return Err(CompileError::new(
+        return Err(ParseError::new(
             "Identifier should not start with a number.",
         ));
     }
@@ -180,7 +178,7 @@ fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
                 break;
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Invalid char for identifier: {}",
                     *nc
                 )))
@@ -189,13 +187,13 @@ fn lex_identifier(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
     }
 
     if s.is_empty() {
-        Err(CompileError::new("Empty identifier."))
+        Err(ParseError::new("Empty identifier."))
     } else {
         Ok(Token::Identifier(s))
     }
 }
 
-fn lex_number(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // 1234  //
     // ^_____// current char
 
@@ -212,7 +210,7 @@ fn lex_number(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
     lex_number_decimal(iter)
 }
 
-fn lex_number_decimal(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number_decimal(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // 1234  //
     // ^_____// current char
 
@@ -236,7 +234,7 @@ fn lex_number_decimal(iter: &mut PeekableIterator<char>) -> Result<Token, Compil
                 break;
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Invalid char for decimal number: {}",
                     *nc
                 )))
@@ -247,7 +245,7 @@ fn lex_number_decimal(iter: &mut PeekableIterator<char>) -> Result<Token, Compil
     Ok(Token::Number(s))
 }
 
-fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // 0b0101  //
     // ^_______// current char
 
@@ -269,7 +267,7 @@ fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, Compile
                 break;
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Invalid char for binary number: {}",
                     *nc
                 )))
@@ -278,13 +276,13 @@ fn lex_number_binary(iter: &mut PeekableIterator<char>) -> Result<Token, Compile
     }
 
     if s.len() < 3 {
-        Err(CompileError::new("Incomplete binary number"))
+        Err(ParseError::new("Incomplete binary number"))
     } else {
         Ok(Token::Number(s))
     }
 }
 
-fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // 0xabcd  //
     // ^_______// current char
 
@@ -306,7 +304,7 @@ fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
                 break;
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Invalid char for hexadecimal number: {}",
                     *nc
                 )))
@@ -315,13 +313,13 @@ fn lex_number_hex(iter: &mut PeekableIterator<char>) -> Result<Token, CompileErr
     }
 
     if s.len() < 3 {
-        Err(CompileError::new("Incomplete hex number"))
+        Err(ParseError::new("Incomplete hex number"))
     } else {
         Ok(Token::Number(s))
     }
 }
 
-fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // "abc"  //
     // ^______// UNverified/current char
 
@@ -366,16 +364,14 @@ fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
                                     s.push(lex_string_unescape_unicode(iter)?);
                                 }
                                 _ => {
-                                    return Err(CompileError::new(&format!(
+                                    return Err(ParseError::new(&format!(
                                         "Unsupported escape char for string: \"{}\"",
                                         nc
                                     )))
                                 }
                             }
                         }
-                        None => {
-                            return Err(CompileError::new("Incomplete escape char for string."))
-                        }
+                        None => return Err(ParseError::new("Incomplete escape char for string.")),
                     }
                 }
                 '"' => {
@@ -387,19 +383,19 @@ fn lex_string(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
                     s.push(ch);
                 }
             },
-            None => return Err(CompileError::new("Missing end quote for string.")),
+            None => return Err(ParseError::new("Missing end quote for string.")),
         }
     }
 
     Ok(Token::String_(s))
 }
 
-fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char, CompileError> {
+fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char, ParseError> {
     // \u{6587}  //
     //   ^_______// current char
 
     if !matches!(iter.next(), Some(c) if c == '{') {
-        return Err(CompileError::new(
+        return Err(ParseError::new(
             "Missing left brace for unicode escape sequence.",
         ));
     }
@@ -415,21 +411,21 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
                 '}' => break,
                 '0'..='9' | 'a'..='f' | 'A'..='F' => s.push(ch),
                 _ => {
-                    return Err(CompileError::new(&format!(
+                    return Err(ParseError::new(&format!(
                         "Invalid character for unicode escape sequence: {}",
                         ch
                     )))
                 }
             },
             None => {
-                return Err(CompileError::new(
+                return Err(ParseError::new(
                     "Missing right brace for unicode escape sequence.",
                 ))
             }
         }
 
         if s.len() > 5 {
-            return Err(CompileError::new(
+            return Err(ParseError::new(
                 "The value of unicode point code is to large.",
             ));
         }
@@ -440,11 +436,11 @@ fn lex_string_unescape_unicode(iter: &mut PeekableIterator<char>) -> Result<char
     if let Some(c) = char::from_u32(code_point) {
         Ok(c)
     } else {
-        Err(CompileError::new("Invalid unicode code point."))
+        Err(ParseError::new("Invalid unicode code point."))
     }
 }
 
-fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // b"0011aabb"  //
     // ^____________// verified/current char
 
@@ -463,7 +459,7 @@ fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
                     }
                     '"' => {
                         if !buf.is_empty() {
-                            return Err(CompileError::new("Incomplete byte string."));
+                            return Err(ParseError::new("Incomplete byte string."));
                         } else {
                             break;
                         }
@@ -478,21 +474,21 @@ fn lex_bytes(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
                         }
                     }
                     _ => {
-                        return Err(CompileError::new(&format!(
+                        return Err(ParseError::new(&format!(
                             "Invalid char for byte string: {}",
                             ch
                         )))
                     }
                 }
             }
-            None => return Err(CompileError::new("Missing end quote for byte string.")),
+            None => return Err(ParseError::new("Missing end quote for byte string.")),
         }
     }
 
     Ok(Token::Bytes(bytes))
 }
 
-fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
+fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), ParseError> {
     // ;;...  //
     // ^______// current char
 
@@ -508,7 +504,7 @@ fn comsume_line_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
     Ok(())
 }
 
-fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
+fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), ParseError> {
     // (;...;)  //
     // ^________// current char
 
@@ -537,14 +533,14 @@ fn comsume_block_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compil
                     // ignore
                 }
             },
-            None => return Err(CompileError::new("Incomplete block comment.")),
+            None => return Err(ParseError::new("Incomplete block comment.")),
         }
     }
 
     Ok(())
 }
 
-fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), CompileError> {
+fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), ParseError> {
     // #(comment ...)  //
     // ^_______________// current char
 
@@ -574,23 +570,23 @@ fn comsume_node_comment(iter: &mut PeekableIterator<char>) -> Result<(), Compile
                     if iter.look_ahead_equals(0, &';') {
                         comsume_line_comment(iter)?;
                     } else if iter.look_ahead_equals(0, &')') {
-                        return Err(CompileError::new("Unpaired block comment."));
+                        return Err(ParseError::new("Unpaired block comment."));
                     } else {
-                        return Err(CompileError::new("Unexpected char: ;"));
+                        return Err(ParseError::new("Unexpected char: ;"));
                     }
                 }
                 _ => {
                     // continue
                 }
             },
-            None => return Err(CompileError::new("Incomplete node comment.")),
+            None => return Err(ParseError::new("Incomplete node comment.")),
         }
     }
 
     Ok(())
 }
 
-fn lex_symbol(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> {
+fn lex_symbol(iter: &mut PeekableIterator<char>) -> Result<Token, ParseError> {
     // i32.imm  //
     // ^________// current char
 
@@ -607,7 +603,7 @@ fn lex_symbol(iter: &mut PeekableIterator<char>) -> Result<Token, CompileError> 
                 break;
             }
             _ => {
-                return Err(CompileError::new(&format!(
+                return Err(ParseError::new(&format!(
                     "Invalid char for symbol: {}",
                     *nc
                 )))
@@ -642,13 +638,11 @@ impl Token {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::CompileError;
-
-    use crate::{lexer::Token, peekable_iterator::PeekableIterator};
+    use crate::{lexer::Token, peekable_iterator::PeekableIterator, ParseError};
 
     use super::lex;
 
-    fn lex_from_str(s: &str) -> Result<Vec<Token>, CompileError> {
+    fn lex_from_str(s: &str) -> Result<Vec<Token>, ParseError> {
         let mut chars = s.chars();
         let mut iter = PeekableIterator::new(&mut chars, 2);
         lex(&mut iter)
@@ -705,21 +699,18 @@ mod tests {
         );
 
         // incomplete identifier
-        assert!(matches!(
-            lex_from_str("$"),
-            Err(CompileError { message: _ })
-        ));
+        assert!(matches!(lex_from_str("$"), Err(ParseError { message: _ })));
 
         // invalid identifier
         assert!(matches!(
             lex_from_str("$1abc"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // invalid char for identifier
         assert!(matches!(
             lex_from_str("$abc+xyz"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -784,49 +775,43 @@ mod tests {
         // invalid char for decimal number
         assert!(matches!(
             lex_from_str("123abc"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // invalid char for decimal number
         assert!(matches!(
             lex_from_str("123-456"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // incomplete hex number
-        assert!(matches!(
-            lex_from_str("0x"),
-            Err(CompileError { message: _ })
-        ));
+        assert!(matches!(lex_from_str("0x"), Err(ParseError { message: _ })));
 
         // invalid char for hex number
         assert!(matches!(
             lex_from_str("0x123xyz"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // incomplete binary number
-        assert!(matches!(
-            lex_from_str("0b"),
-            Err(CompileError { message: _ })
-        ));
+        assert!(matches!(lex_from_str("0b"), Err(ParseError { message: _ })));
 
         // invalid char for binary number
         assert!(matches!(
             lex_from_str("0b1234"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // neg hex number
         assert!(matches!(
             lex_from_str("-0xaabb"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // neg binary number
         assert!(matches!(
             lex_from_str("-0b1010"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -885,7 +870,7 @@ mod tests {
             "abc\vxyz"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // unsupported byte escape \x..
@@ -895,13 +880,13 @@ mod tests {
             "abc\x33xyz"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // incomplete escape string
         assert!(matches!(
             lex_from_str(r#""abc\"#),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // unicode code point is too large
@@ -911,7 +896,7 @@ mod tests {
             "abc\u{123456}xyz"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // invalid char for unicode escape sequence
@@ -921,7 +906,7 @@ mod tests {
             "abc\u{mn}xyz"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing left brace for unicode escape sequence
@@ -931,13 +916,13 @@ mod tests {
             "abc\u1234}xyz"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing right brace for unicode escape sequence
         assert!(matches!(
             lex_from_str(r#""abc\u{1234"#),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing right quote
@@ -947,7 +932,7 @@ mod tests {
             "abc
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -1010,7 +995,7 @@ mod tests {
             b"1113171"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // invalid char for byte string
@@ -1020,7 +1005,7 @@ mod tests {
             b"1113171z"
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing end quote
@@ -1030,7 +1015,7 @@ mod tests {
             b"11131719
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -1104,7 +1089,7 @@ mod tests {
             7 (; 11 (; 13 ;) 17
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // unpaired
@@ -1114,7 +1099,7 @@ mod tests {
             7 ;) 11
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -1178,7 +1163,7 @@ mod tests {
             7 #( 11
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing end pair
@@ -1188,7 +1173,7 @@ mod tests {
             7 #) 11
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // missing end pair
@@ -1198,7 +1183,7 @@ mod tests {
             7 #( 11 ()
             "#
             ),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 
@@ -1241,13 +1226,13 @@ mod tests {
         // invalid symbol
         assert!(matches!(
             lex_from_str("1abc"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
 
         // invalid char for symbol
         assert!(matches!(
             lex_from_str("abc+xyz"),
-            Err(CompileError { message: _ })
+            Err(ParseError { message: _ })
         ));
     }
 

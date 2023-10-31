@@ -138,8 +138,6 @@ pub enum InstructionKind {
     // - 'recur', for recur
     // - 'return', for exit function
     // - 'tailcall', for recur function
-    //
-    // the 'code' sequence is the same as 'do' but it is used for the fucntion body only.
     Sequence(&'static str),
 
     // (call $tag OPERAND_0 ... OPERAND_N)
@@ -158,13 +156,13 @@ pub enum InstructionKind {
     ExtCall,
 }
 
-pub fn init_instruction_table() {
+pub fn init_instruction_kind_table() {
     INIT.call_once(|| {
-        init_instruction_table_internal();
+        init_instruction_kind_table_internal();
     });
 }
 
-fn init_instruction_table_internal() {
+fn init_instruction_kind_table_internal() {
     let mut table: HashMap<&'static str, InstructionKind> = HashMap::new();
 
     let mut add = |name: &'static str, inst_kind: InstructionKind| {
