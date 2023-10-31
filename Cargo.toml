@@ -6,8 +6,6 @@ members = [
     "crates/extfunc_util",
     "crates/program",
     "crates/runtime",
-    "crates/parser",
-    "crates/assembler",
 ]
 
 resolver = "2"
