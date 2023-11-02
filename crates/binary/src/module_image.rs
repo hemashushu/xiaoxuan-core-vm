@@ -85,8 +85,10 @@
 // on the host side, the data type of '*index' is usually represented as the 'usize'.
 
 pub mod data_index_section;
+pub mod data_name_section;
 pub mod data_section;
 pub mod external_func_index_section;
+pub mod external_func_name_section;
 pub mod external_func_section;
 pub mod external_library_section;
 pub mod func_index_section;
@@ -190,6 +192,8 @@ pub enum ModuleSectionId {
     DataName,          // 0x33
     ExternalLibrary,   // 0x34
     ExternalFunc,      // 0x35
+    ExternalFuncName,  // 0x36
+
     // essential indices
     FuncIndex = 0x40, // 0x40
     // optional indeces
