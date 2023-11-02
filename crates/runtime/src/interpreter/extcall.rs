@@ -119,7 +119,7 @@ mod tests {
     use ancvm_binary::{
         module_image::{data_section::DataEntry, type_section::TypeEntry},
         utils::{
-            build_module_binary_with_functions_and_external_functions, BytecodeWriter,
+            helper_build_module_binary_with_functions_and_external_functions, BytecodeWriter,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };
@@ -132,16 +132,16 @@ mod tests {
     #[test]
     fn test_process_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode(Opcode::extcall)
+            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode(Opcode::extcall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         // `man 3 getuid`
         // 'uid_t getuid(void);'
 
-        let binary0 = build_module_binary_with_functions_and_external_functions(
+        let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![],
@@ -181,18 +181,18 @@ mod tests {
     #[test]
     fn test_process_extcall_with_system_libc_getenv() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
-            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode(Opcode::extcall)
+            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode(Opcode::extcall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         // `man 3 getenv`
         // 'char *getenv(const char *name);'
 
-        let binary0 = build_module_binary_with_functions_and_external_functions(
+        let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![DataType::I64],  // pointer
@@ -235,19 +235,19 @@ mod tests {
     #[test]
     fn test_process_extcall_with_user_lib() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1
             //
-            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode(Opcode::extcall)
+            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode(Opcode::extcall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         // `man 3 getenv`
         // 'char *getenv(const char *name);'
 
-        let binary0 = build_module_binary_with_functions_and_external_functions(
+        let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![DataType::I32, DataType::I32],

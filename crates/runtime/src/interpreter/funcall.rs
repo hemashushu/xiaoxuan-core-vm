@@ -74,7 +74,7 @@ fn do_call(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{
-        build_module_binary_with_functions_and_blocks, BytecodeWriter, HelperBlockEntry,
+        helper_build_module_binary_with_functions_and_blocks, BytecodeWriter, HelperBlockEntry,
         HelperFuncEntryWithSignatureAndLocalVars,
     };
 
@@ -121,45 +121,45 @@ mod tests {
         // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
 
         let code_main = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::call, 1)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::call, 1)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_sum_square = BytecodeWriter::new()
-            .write_opcode(Opcode::zero)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i32_i32(Opcode::block, 3, 3)
+            .append_opcode(Opcode::zero)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i32_i32(Opcode::block, 3, 3)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode(Opcode::i32_eqz)
-            .write_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode(Opcode::i32_eqz)
+            .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .write_opcode_i16_i32(Opcode::break_, 0, 0x3a)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i32(Opcode::break_, 0, 0x3a)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i32(Opcode::call, 2)
-            .write_opcode(Opcode::i32_add)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i32(Opcode::call, 2)
+            .append_opcode(Opcode::i32_add)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
-            .write_opcode_i16(Opcode::i32_dec, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16(Opcode::i32_dec, 1)
             //
-            .write_opcode_i16_i32(Opcode::recur, 1, 0x54)
+            .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
             //
-            .write_opcode(Opcode::end)
-            .write_opcode(Opcode::end)
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_square = BytecodeWriter::new()
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode(Opcode::i32_mul)
-            .write_opcode(Opcode::end)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode(Opcode::i32_mul)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_functions_and_blocks(
+        let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],
@@ -236,40 +236,40 @@ mod tests {
         // expect (13, 19, 17, 11, 13)
 
         let code_main = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::dyncall)
-            .write_opcode_i32(Opcode::i32_imm, 4)
-            .write_opcode(Opcode::dyncall)
-            .write_opcode_i32(Opcode::i32_imm, 3)
-            .write_opcode(Opcode::dyncall)
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::dyncall)
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::dyncall)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode(Opcode::dyncall)
+            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode(Opcode::dyncall)
+            .append_opcode_i32(Opcode::i32_imm, 3)
+            .append_opcode(Opcode::dyncall)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::dyncall)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode(Opcode::dyncall)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_eleven = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 11)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 11)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_thirteen = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 13)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_seventeen = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 17)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_nineteen = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 19)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_functions_and_blocks(
+        let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],

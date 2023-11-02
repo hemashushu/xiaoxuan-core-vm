@@ -164,7 +164,7 @@ pub fn thread_wait_for_finish(thread_context: &mut ThreadContext) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::utils::{
-        build_module_binary_with_functions_and_blocks, build_module_binary_with_single_function,
+        helper_build_module_binary_with_functions_and_blocks, helper_build_module_binary_with_single_function,
         BytecodeWriter, HelperFuncEntryWithSignatureAndLocalVars,
     };
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
@@ -179,11 +179,11 @@ mod tests {
     #[test]
     fn test_multithread_thread_id() {
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32], // params
             vec![DataType::I32], // results
             vec![],              // local vars
@@ -215,20 +215,20 @@ mod tests {
     fn test_multithread_thread_start_data_read() {
         let code0 = BytecodeWriter::new()
             // resize heap to 1 page
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::heap_resize)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
             // read the thread start data to heap
-            .write_opcode_i32(Opcode::i32_imm, 0) // offset
-            .write_opcode_i32(Opcode::i32_imm, 4) // length
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // dst address
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
+            .append_opcode_i32(Opcode::i32_imm, 0) // offset
+            .append_opcode_i32(Opcode::i32_imm, 4) // length
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0) // dst address
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
             // read data from heap to stack
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // heap addr
-            .write_opcode_i16(Opcode::heap_load32, 0) // offset
-            .write_opcode(Opcode::end)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0) // heap addr
+            .append_opcode_i16(Opcode::heap_load32, 0) // offset
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32], // params
             vec![DataType::I32], // results
             vec![],              // local vars
@@ -255,24 +255,24 @@ mod tests {
     fn test_multithread_thread_create() {
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
-            .write_opcode_i32(Opcode::i32_imm, 0) // module_index
-            .write_opcode_i32(Opcode::i32_imm, 1) // func_public_index
-            .write_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address
-            .write_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
+            .append_opcode_i32(Opcode::i32_imm, 0) // module_index
+            .append_opcode_i32(Opcode::i32_imm, 1) // func_public_index
+            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address
+            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
             // now the operand on the top of stack is the child thread id
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_for_finish as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_for_finish as u32)
             // now the operand on the top of stack is the (wait status, child thread exit code)
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code1 = BytecodeWriter::new()
             // set the thread exit code
-            .write_opcode_i32(Opcode::i32_imm, 0x13171923)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 0x13171923)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_functions_and_blocks(
+        let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![DataType::I32],                      // params

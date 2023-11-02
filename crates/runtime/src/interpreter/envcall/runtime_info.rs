@@ -46,8 +46,8 @@ mod tests {
     use ancvm_binary::{
         module_image::data_section::UninitDataEntry,
         utils::{
-            build_module_binary_with_single_function,
-            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            helper_build_module_binary_with_single_function,
+            helper_build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
         },
     };
     use ancvm_program::program_source::ProgramSource;
@@ -68,11 +68,11 @@ mod tests {
         // () -> (i64)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::runtime_version as u32)
-            .write_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_version as u32)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![DataType::I64], // results
             vec![],              // local vars
@@ -110,13 +110,13 @@ mod tests {
         //        |name length
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
-            .write_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
-            .write_opcode_i16_i32(Opcode::data_load, 0, 0)
-            .write_opcode(Opcode::end)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
+            .append_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![],                             // params
             vec![DataType::I32, DataType::I64], // results
             vec![],                             // local vars

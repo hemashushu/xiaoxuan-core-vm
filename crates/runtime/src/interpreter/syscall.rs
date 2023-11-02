@@ -148,7 +148,7 @@ fn handle_syscall_with_6_args(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_binary::utils::{helper_build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_program::program_source::ProgramSource;
     use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
@@ -159,15 +159,15 @@ mod tests {
     fn test_process_syscall_handler_without_args() {
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .write_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
-            .write_opcode_i32(Opcode::i32_imm, 0) // the amount of syscall args
+            .append_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
+            .append_opcode_i32(Opcode::i32_imm, 0) // the amount of syscall args
             //
-            .write_opcode(Opcode::syscall)
+            .append_opcode(Opcode::syscall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
             vec![DataType::I64, DataType::I32], // results
             vec![],                             // local vars
@@ -197,18 +197,18 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .write_opcode_pesudo_i64(Opcode::i64_imm, buf_addr as u64) // buf addr
-            .write_opcode_pesudo_i64(Opcode::i64_imm, BUF_LENGTH as u64) // buf length
+            .append_opcode_pesudo_i64(Opcode::i64_imm, buf_addr as u64) // buf addr
+            .append_opcode_pesudo_i64(Opcode::i64_imm, BUF_LENGTH as u64) // buf length
             // prepare syscall
-            .write_opcode_i32(Opcode::i32_imm, SysCallNum::getcwd as u32) // syscall num
-            .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::i32_imm, SysCallNum::getcwd as u32) // syscall num
+            .append_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
             //
-            .write_opcode(Opcode::syscall)
+            .append_opcode(Opcode::syscall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
             vec![DataType::I64, DataType::I32], // results
             vec![],                             // local vars
@@ -253,18 +253,18 @@ mod tests {
         // fn (i64) -> (i64, i32)
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0) // file path addr
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0) // open flags
+            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0) // file path addr
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0) // open flags
             // prepare syscall
-            .write_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num
-            .write_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num
+            .append_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
             //
-            .write_opcode(Opcode::syscall)
+            .append_opcode(Opcode::syscall)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I64],                // params
             vec![DataType::I64, DataType::I32], // results
             vec![],                             // local vars

@@ -688,17 +688,19 @@ pub enum Opcode {
     //
     // control flow
     //
-    end = 0xa00, // finish a block or a function.
+
     // when the instruction 'end' is executed, a stack frame will be removed and
     // the results of the current block or function will be placed on the top of stack.
-    block, // (param type_index:i32, local_list_index:i32)
     //
+    end = 0xa00, // finish a block or a function.
+
     // create a block scope. a block is similar to a function, it also has
     // parameters and results, it shares the type with function, so the 'block'
     // instruction has a parameter called 'type_index'.
     // this instruction leads VM to create a stack frame which is called 'block frame',
     // block frame is similar to 'function frame' except it has no local variables.
-    break_, // (param reversed_index:i16, next_inst_offset:i32)
+    //
+    block, // (param type_index:i32, local_list_index:i32)
 
     // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
@@ -775,7 +777,7 @@ pub enum Opcode {
     // after balancing between performance and elegance, XiaoXuan instruction
     // 'break' implies 'end' as well as jumps directly to the next instruction
     // after the instruction 'end'.
-    recur, // (param reversed_index:i16, start_inst_offset:i32)
+    break_, // (param reversed_index:i16, next_inst_offset:i32)
 
     // the instruction 'recur' lets VM to jump to the instruction next to the instruction 'block', 'block_alt'
     // or the first instruction of the current function,
@@ -815,7 +817,7 @@ pub enum Opcode {
     // 0d0030   end
     // 0d0032 end
     // ```
-    block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
+    recur, // (param reversed_index:i16, start_inst_offset:i32)
 
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
@@ -854,7 +856,7 @@ pub enum Opcode {
     // ```
     //
     // (+ => execute, - => pass)
-    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
+    block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is
     // NOT equals to ZERO (logic TRUE).
@@ -882,7 +884,7 @@ pub enum Opcode {
     // 0d0102 nop               ;; <----/ jump to here when FALSE
     // ```
     //
-    break_nez, // (param reversed_index:i16, next_inst_offset:i32)
+    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
 
     // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
     // and 'break_nez', e.g.
@@ -926,7 +928,7 @@ pub enum Opcode {
     // 0d0208 end               ;;          |
     // 0d0210 ...               ;; <--------/
     // ```
-    recur_nez, // (param reversed_index:i16, start_inst_offset:i32)
+    break_nez, // (param reversed_index:i16, next_inst_offset:i32)
 
     // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
     // all local variables will be reset to 0.
@@ -1043,6 +1045,7 @@ pub enum Opcode {
     //     }
     // }
     // ```
+    recur_nez, // (param reversed_index:i16, start_inst_offset:i32)
 
     // table of control flow structures and control flow instructions:
     //
@@ -1067,15 +1070,15 @@ pub enum Opcode {
     // |                   |                   | ..a..              |
     // | if ..a.. {        | (if (a)           | block_alt ---\     |
     // |    ..b..          |     (b)           |   ..b..      |     |
-    // | } else if ..c.. { |     (if (c)       |   break 0 ---|--\  |
-    // |    ..d..          |         (d)       |   ..c..  <---/  |  |
-    // | } else {          |         (e)       |   block_alt --\ |  |
-    // |    ..e..          |     )             |     ..d..     | |  |
-    // | }                 | )                 |     break 1 --|-|  |
-    // |                   |                   |     ..e..  <--/ |  |
-    // |                   |                   |   end           |  |
-    // |                   |                   | end             |  |
-    // |                   |                   | ...        <----/  |
+    // | } else if ..c.. { |     (if (c)       |   break 0 ---|---\ |
+    // |    ..d..          |         (d)       |   ..c..  <---/   | |
+    // | } else {          |         (e)       |   block_alt --\  | |
+    // |    ..e..          |     )             |     ..d..     |  | |
+    // | }                 | )                 |     break 0 --|-\| |
+    // |                   |                   |     ..e..  <--/ || |
+    // |                   |                   |   end           || |
+    // |                   |                   | end        <----/| |
+    // |                   |                   | ...        <-----/ |
     // |                   |                   |                    |
     // |                   | ----------------- | ------------------ |
     // |                   |                   |                    |

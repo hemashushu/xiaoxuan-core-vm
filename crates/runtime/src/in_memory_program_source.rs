@@ -69,7 +69,7 @@ mod tests {
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
         },
-        utils::build_module_binary_with_single_function_and_data_sections,
+        utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
     use ancvm_program::{
         program_source::ProgramSource, resizeable_memory::ResizeableMemory,
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_in_memory_program() {
-        let binary0 = build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![DataType::I32, DataType::I32],
             vec![DataType::I64],
             vec![LocalVariableEntry::from_i32()],

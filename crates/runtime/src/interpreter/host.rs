@@ -280,9 +280,9 @@ mod tests {
             type_section::TypeEntry,
         },
         utils::{
-            build_module_binary_with_functions_and_external_functions,
-            build_module_binary_with_single_function,
-            build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            helper_build_module_binary_with_functions_and_external_functions,
+            helper_build_module_binary_with_single_function,
+            helper_build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };
@@ -301,11 +301,11 @@ mod tests {
         // (i32, i32) -> (i32, i32)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode(Opcode::nop)
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::nop)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
             vec![DataType::I32, DataType::I32], // results
             vec![],                             // local vars
@@ -436,34 +436,34 @@ mod tests {
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
-            .write_opcode_i16_i32(Opcode::data_store, 0, 2)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
+            .append_opcode_i16_i32(Opcode::data_store, 0, 2)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0x19)
-            .write_opcode_i16_i32(Opcode::data_store32, 0, 3)
+            .append_opcode_i32(Opcode::i32_imm, 0x19)
+            .append_opcode_i16_i32(Opcode::data_store32, 0, 3)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0x23)
-            .write_opcode_i16_i32(Opcode::data_store32, 0, 4)
+            .append_opcode_i32(Opcode::i32_imm, 0x23)
+            .append_opcode_i16_i32(Opcode::data_store32, 0, 4)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x29)
-            .write_opcode_i16_i32(Opcode::data_store, 0, 5)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x29)
+            .append_opcode_i16_i32(Opcode::data_store, 0, 5)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0x31)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
-            .write_opcode_i32(Opcode::i32_imm, 0x37)
-            .write_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
+            .append_opcode_i32(Opcode::i32_imm, 0x31)
+            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
+            .append_opcode_i32(Opcode::i32_imm, 0x37)
+            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             //
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 1)
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 2)
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 3)
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 4)
-            .write_opcode_i16_i32(Opcode::host_addr_data, 0, 5)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 2)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 3)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 4)
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 5)
             //
-            .write_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 1)
-            .write_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         #[cfg(target_pointer_width = "64")]
@@ -490,7 +490,7 @@ mod tests {
             DataType::I32,
         ];
 
-        let binary0 = build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![],           // params
             result_datatypes, // results
             vec![
@@ -559,28 +559,28 @@ mod tests {
         // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
-            .write_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 1)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
+            .append_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 1)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0)
-            .write_opcode_i32(Opcode::host_addr_data_long, 0)
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode_i32(Opcode::host_addr_data_long, 0)
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode_i32(Opcode::host_addr_data_long, 1)
-            .write_opcode_i32(Opcode::i32_imm, 3)
-            .write_opcode_i32(Opcode::host_addr_data_long, 1)
+            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::host_addr_data_long, 0)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode_i32(Opcode::host_addr_data_long, 0)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode_i32(Opcode::host_addr_data_long, 1)
+            .append_opcode_i32(Opcode::i32_imm, 3)
+            .append_opcode_i32(Opcode::host_addr_data_long, 1)
             //
-            .write_opcode_i32(Opcode::i32_imm, 0)
-            .write_opcode_i32(Opcode::host_addr_local_long, 1)
-            .write_opcode_i32(Opcode::i32_imm, 3)
-            .write_opcode_i32(Opcode::host_addr_local_long, 1)
-            .write_opcode_i32(Opcode::i32_imm, 6)
-            .write_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
-            .write_opcode_i32(Opcode::i32_imm, 7)
-            .write_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::host_addr_local_long, 1)
+            .append_opcode_i32(Opcode::i32_imm, 3)
+            .append_opcode_i32(Opcode::host_addr_local_long, 1)
+            .append_opcode_i32(Opcode::i32_imm, 6)
+            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i32(Opcode::i32_imm, 7)
+            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         #[cfg(target_pointer_width = "64")]
@@ -607,7 +607,7 @@ mod tests {
             DataType::I32,
         ];
 
-        let binary0 = build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![],           // params
             result_datatypes, // results
             vec![
@@ -662,31 +662,31 @@ mod tests {
         // () -> (i64,i64,i64,i64,i64)
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::heap_resize)
-            .write_opcode(Opcode::drop)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::drop)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i32(Opcode::i32_imm, 0x07050302)
-            .write_opcode_i16(Opcode::heap_store32, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i32(Opcode::i32_imm, 0x07050302)
+            .append_opcode_i16(Opcode::heap_store32, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
-            .write_opcode_i16(Opcode::heap_store, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
+            .append_opcode_i16(Opcode::heap_store, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::host_addr_heap, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::host_addr_heap, 2)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::host_addr_heap, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::host_addr_heap, 2)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_i16(Opcode::host_addr_heap, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_i16(Opcode::host_addr_heap, 4)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_i16(Opcode::host_addr_heap, 7)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16(Opcode::host_addr_heap, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16(Opcode::host_addr_heap, 4)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16(Opcode::host_addr_heap, 7)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         #[cfg(target_pointer_width = "64")]
@@ -707,7 +707,7 @@ mod tests {
             DataType::I32,
         ];
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![],           // params
             result_datatypes, // results
             vec![],           // local vars
@@ -736,21 +736,21 @@ mod tests {
         // copy VM heap 0x100 -> dst_ptr with 8 bytes
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::heap_resize)
-            .write_opcode(Opcode::drop)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::drop)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 8)
-            .write_opcode(Opcode::host_copy_to_heap)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .append_opcode(Opcode::host_copy_to_heap)
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 1)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 8)
-            .write_opcode(Opcode::host_copy_from_heap)
+            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 1)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .append_opcode(Opcode::host_copy_from_heap)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         #[cfg(target_pointer_width = "64")]
@@ -759,7 +759,7 @@ mod tests {
         #[cfg(target_pointer_width = "32")]
         let param_datatypes = vec![DataType::I32, DataType::I32];
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             param_datatypes, // params
             vec![],          // results
             vec![],          // local vars
@@ -805,27 +805,27 @@ mod tests {
         // }
 
         let code0 = BytecodeWriter::new()
-            .write_opcode_i32(Opcode::i32_imm, 1) // func1 index
-            .write_opcode(Opcode::host_addr_func) // get host address of the func1
+            .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
+            .append_opcode(Opcode::host_addr_func) // get host address of the func1
             //
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 1
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 2
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 1
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 2
             //
-            .write_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .write_opcode(Opcode::extcall) // call external function
+            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode(Opcode::extcall) // call external function
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
         let code1 = BytecodeWriter::new()
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::i32_mul)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode(Opcode::i32_mul)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_functions_and_external_functions(
+        let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
                     params: vec![DataType::I64, DataType::I32, DataType::I32],

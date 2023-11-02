@@ -185,7 +185,7 @@ pub fn get_data<T>(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_binary::utils::{helper_build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType};
 
@@ -199,13 +199,13 @@ mod tests {
         // 0x0008 local_load32         0 0 1
         // 0x0010 i32_add
         let code0 = BytecodeWriter::new()
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .write_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .write_opcode(Opcode::i32_add)
-            .write_opcode(Opcode::end)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32], // params
             vec![DataType::I32],                // results
             vec![],                             // local vars

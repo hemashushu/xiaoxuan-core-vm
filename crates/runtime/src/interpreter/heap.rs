@@ -211,7 +211,7 @@ pub fn heap_copy(thread_context: &mut ThreadContext) -> InterpretResult {
 #[cfg(test)]
 mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
-    use ancvm_binary::utils::{build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_binary::utils::{helper_build_module_binary_with_single_function, BytecodeWriter};
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
@@ -245,70 +245,70 @@ mod tests {
         let code0 = BytecodeWriter::new()
             // note that the init size of heap is 0
             // change the capacity of heap before test
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::heap_resize)
-            .write_opcode(Opcode::drop)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::drop)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i32(Opcode::i32_imm, 0x19171311)
-            .write_opcode_i16(Opcode::heap_store32, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .append_opcode_i16(Opcode::heap_store32, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i32(Opcode::i32_imm, 0xd0c0)
-            .write_opcode_i16(Opcode::heap_store16, 4)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .append_opcode_i16(Opcode::heap_store16, 4)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i32(Opcode::i32_imm, 0xe0)
-            .write_opcode_i16(Opcode::heap_store32, 6)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i32(Opcode::i32_imm, 0xe0)
+            .append_opcode_i16(Opcode::heap_store32, 6)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i32(Opcode::i32_imm, 0xf0)
-            .write_opcode_i16(Opcode::heap_store32, 7)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i32(Opcode::i32_imm, 0xf0)
+            .append_opcode_i16(Opcode::heap_store32, 7)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
-            .write_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .write_opcode_i16(Opcode::heap_store, 0) // store f64
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .write_opcode_i16(Opcode::heap_store32, 0) // store f32
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16(Opcode::heap_store, 0) // store f64
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
+            .append_opcode_i16(Opcode::heap_store32, 0) // store f32
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load, 0)
-            .write_opcode_i16(Opcode::heap_store, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_i16(Opcode::heap_store, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load, 0)
-            .write_opcode_i16(Opcode::heap_store32, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_i16(Opcode::heap_store32, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load32, 4)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load32_i16_u, 6)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load32_i16_s, 6)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load32_i8_u, 7)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .write_opcode_i16(Opcode::heap_load32_i8_s, 7)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load32, 4)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load32_i16_u, 6)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load32_i16_s, 6)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load32_i8_u, 7)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_i16(Opcode::heap_load32_i8_s, 7)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
-            .write_opcode_i16(Opcode::heap_load32_f32, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
-            .write_opcode_i16(Opcode::heap_load_f64, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16(Opcode::heap_load32_f32, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .append_opcode_i16(Opcode::heap_load_f64, 0)
             //
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
-            .write_opcode_i16(Opcode::heap_load, 0)
-            .write_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
-            .write_opcode_i16(Opcode::heap_load32, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
+            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
+            .append_opcode_i16(Opcode::heap_load32, 0)
             //
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::F32, DataType::F64], // params
             vec![
                 DataType::I64,
@@ -371,22 +371,22 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // get the capacity
-            .write_opcode(Opcode::heap_capacity)
+            .append_opcode(Opcode::heap_capacity)
             // resize - increase
-            .write_opcode_i32(Opcode::i32_imm, 2)
-            .write_opcode(Opcode::heap_resize)
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode(Opcode::heap_resize)
             // resize - increase
-            .write_opcode_i32(Opcode::i32_imm, 4)
-            .write_opcode(Opcode::heap_resize)
+            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode(Opcode::heap_resize)
             // resize - decrease
-            .write_opcode_i32(Opcode::i32_imm, 1)
-            .write_opcode(Opcode::heap_resize)
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
             // get the capcity
-            .write_opcode(Opcode::heap_capacity)
-            .write_opcode(Opcode::end)
+            .append_opcode(Opcode::heap_capacity)
+            .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = build_module_binary_with_single_function(
+        let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![
                 DataType::I64,
