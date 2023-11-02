@@ -9,6 +9,8 @@ use std::{any::Any, fmt::Display};
 use ancvm_types::VMError;
 use module_image::ModuleImage;
 
+pub mod bytecode_reader;
+pub mod bytecode_writer;
 pub mod cache_info;
 pub mod module_image;
 pub mod utils;
@@ -19,9 +21,9 @@ pub struct BinaryError {
 }
 
 impl BinaryError {
-    pub fn new(message:&str) -> Self {
+    pub fn new(message: &str) -> Self {
         Self {
-            message: message.to_owned()
+            message: message.to_owned(),
         }
     }
 }

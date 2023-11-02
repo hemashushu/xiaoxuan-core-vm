@@ -274,6 +274,7 @@ fn get_callback_function_ptr(
 mod tests {
 
     use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
         module_image::{
             data_section::{DataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
@@ -282,7 +283,7 @@ mod tests {
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
-            helper_build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            helper_build_module_binary_with_single_function_and_data_sections,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };

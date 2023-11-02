@@ -579,8 +579,8 @@ fn do_local_store8(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        module_image::local_variable_section::LocalVariableEntry,
-        utils::{helper_build_module_binary_with_single_function, BytecodeWriter},
+        bytecode_writer::BytecodeWriter, module_image::local_variable_section::LocalVariableEntry,
+        utils::helper_build_module_binary_with_single_function,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};

@@ -211,7 +211,9 @@ pub fn heap_copy(thread_context: &mut ThreadContext) -> InterpretResult {
 #[cfg(test)]
 mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
-    use ancvm_binary::utils::{helper_build_module_binary_with_single_function, BytecodeWriter};
+    use ancvm_binary::{
+        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
+    };
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
@@ -366,7 +368,6 @@ mod tests {
 
     #[test]
     fn test_process_heap_capacity() {
-
         // () -> (i64, i64, i64, i64, i64)
 
         let code0 = BytecodeWriter::new()

@@ -44,10 +44,11 @@ pub fn runtime_version(thread_context: &mut ThreadContext) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
         module_image::data_section::UninitDataEntry,
         utils::{
             helper_build_module_binary_with_single_function,
-            helper_build_module_binary_with_single_function_and_data_sections, BytecodeWriter,
+            helper_build_module_binary_with_single_function_and_data_sections,
         },
     };
     use ancvm_program::program_source::ProgramSource;

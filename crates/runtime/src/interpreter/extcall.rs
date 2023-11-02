@@ -117,9 +117,10 @@ mod tests {
     use std::env;
 
     use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
         module_image::{data_section::DataEntry, type_section::TypeEntry},
         utils::{
-            helper_build_module_binary_with_functions_and_external_functions, BytecodeWriter,
+            helper_build_module_binary_with_functions_and_external_functions,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
         },
     };

@@ -6,7 +6,7 @@
 
 use std::sync::Once;
 
-use ancvm_binary::utils::print_bytecode_as_text;
+use ancvm_binary::bytecode_reader::print_bytecode_as_text;
 use ancvm_program::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},

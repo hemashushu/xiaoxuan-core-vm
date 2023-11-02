@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_binary::utils::print_bytecode_as_text;
+use ancvm_binary::bytecode_reader::print_bytecode_as_text;
 use ancvm_program::thread_context::ThreadContext;
 use ancvm_types::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
 

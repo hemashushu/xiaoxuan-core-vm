@@ -163,9 +163,13 @@ pub fn thread_wait_for_finish(thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::utils::{
-        helper_build_module_binary_with_functions_and_blocks, helper_build_module_binary_with_single_function,
-        BytecodeWriter, HelperFuncEntryWithSignatureAndLocalVars,
+    use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
+        utils::{
+            helper_build_module_binary_with_functions_and_blocks,
+            helper_build_module_binary_with_single_function,
+            HelperFuncEntryWithSignatureAndLocalVars,
+        },
     };
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
 

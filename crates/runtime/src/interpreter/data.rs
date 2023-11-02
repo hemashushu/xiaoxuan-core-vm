@@ -489,8 +489,9 @@ fn do_data_store8(
 mod tests {
 
     use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
         module_image::data_section::{DataEntry, UninitDataEntry},
-        utils::{helper_build_module_binary_with_single_function_and_data_sections, BytecodeWriter},
+        utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};

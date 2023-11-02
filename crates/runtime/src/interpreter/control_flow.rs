@@ -218,10 +218,9 @@ fn do_recur(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
         module_image::local_variable_section::LocalVariableEntry,
-        utils::{
-            helper_build_module_binary_with_single_function_and_blocks, BytecodeWriter, HelperBlockEntry,
-        },
+        utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockEntry},
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};

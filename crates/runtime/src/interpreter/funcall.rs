@@ -73,9 +73,12 @@ fn do_call(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::utils::{
-        helper_build_module_binary_with_functions_and_blocks, BytecodeWriter, HelperBlockEntry,
-        HelperFuncEntryWithSignatureAndLocalVars,
+    use ancvm_binary::{
+        bytecode_writer::BytecodeWriter,
+        utils::{
+            helper_build_module_binary_with_functions_and_blocks, HelperBlockEntry,
+            HelperFuncEntryWithSignatureAndLocalVars,
+        },
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
