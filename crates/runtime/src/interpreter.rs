@@ -54,6 +54,8 @@ pub enum InterpretResult {
 
     Panic,
 
+    Unreachable,
+
     // pause the interpreter
     // for debug the program or the VM itself
     // param (code: u32)
@@ -376,6 +378,7 @@ fn init_interpreters_internal() {
     // host
     interpreters[Opcode::nop as usize] = host::nop;
     interpreters[Opcode::panic as usize] = host::panic;
+    interpreters[Opcode::unreachable as usize] = host::unreachable;
     interpreters[Opcode::debug as usize] = host::debug;
     interpreters[Opcode::host_addr_local as usize] = host::host_addr_local;
     interpreters[Opcode::host_addr_local_long as usize] = host::host_addr_local_long;
@@ -416,10 +419,13 @@ pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
                 break;
             }
             InterpretResult::Panic => {
-                panic!("VM was terminated by instruction panic.");
+                panic!("VM was terminated by panic.");
+            }
+            InterpretResult::Unreachable => {
+                panic!("VM was terminated by unreachable code.");
             }
             InterpretResult::Debug(code) => {
-                panic!("VM was terminated by with code: {}", code);
+                panic!("VM was terminated by debug with code: {}", code);
             }
         }
     }

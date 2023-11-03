@@ -260,7 +260,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_arithmetic_i32() {
+    fn test_interpreter_arithmetic_i32() {
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_arithmetic_i64() {
+    fn test_interpreter_arithmetic_i64() {
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -491,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_arithmetic_f32() {
+    fn test_interpreter_arithmetic_f32() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -548,7 +548,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_arithmetic_f64() {
+    fn test_interpreter_arithmetic_f64() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123

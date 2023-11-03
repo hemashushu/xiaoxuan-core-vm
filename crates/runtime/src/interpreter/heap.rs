@@ -218,7 +218,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_heap_load_store() {
+    fn test_interpreter_heap_load_store() {
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |
@@ -367,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_heap_capacity() {
+    fn test_interpreter_heap_capacity() {
         // () -> (i64, i64, i64, i64, i64)
 
         let code0 = BytecodeWriter::new()

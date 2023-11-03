@@ -499,7 +499,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_data_load_store() {
+    fn test_interpreter_data_load_store() {
         //        read-only data section
         //        ======================
         //
@@ -644,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_data_load_store_uninitialized() {
+    fn test_interpreter_data_load_store_uninitialized() {
         //        read-only data section
         //        ======================
         //
@@ -789,7 +789,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_data_long_load_store() {
+    fn test_interpreter_data_long_load_store() {
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |
@@ -911,7 +911,7 @@ mod tests {
 
     #[test]
     // #[should_panic]
-    fn test_process_data_bounds_check0() {
+    fn test_interpreter_data_bounds_check0() {
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
@@ -945,7 +945,7 @@ mod tests {
 
     #[test]
     // #[should_panic]
-    fn test_process_data_bounds_check1() {
+    fn test_interpreter_data_bounds_check1() {
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
@@ -979,7 +979,7 @@ mod tests {
 
     #[test]
     // #[should_panic]
-    fn test_process_data_bounds_check2() {
+    fn test_interpreter_data_bounds_check2() {
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
@@ -1014,7 +1014,7 @@ mod tests {
 
     #[test]
     // #[should_panic]
-    fn test_process_data_bounds_check3() {
+    fn test_interpreter_data_bounds_check3() {
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 

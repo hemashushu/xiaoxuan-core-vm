@@ -228,7 +228,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_control_flow_block() {
+    fn test_interpreter_control_flow_block() {
         // function () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -283,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_block_with_args_and_results() {
+    fn test_interpreter_control_flow_block_with_args_and_results() {
         // function () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_block_with_local_vars() {
+    fn test_interpreter_control_flow_block_with_local_vars() {
         // func (a/0:i32, b/1:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
         //     (local c/2:i32, d/3:i32)
         //     ;; c=a+1                     ;; 20
@@ -492,7 +492,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_break_function() {
+    fn test_interpreter_control_flow_break_function() {
         // function () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -532,7 +532,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_break_block() {
+    fn test_interpreter_control_flow_break_block() {
         // function () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -593,7 +593,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_break_block_crossing() {
+    fn test_interpreter_control_flow_break_block_crossing() {
         // cross jump
         //
         // function () -> (i32, i32)
@@ -651,7 +651,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_if() {
+    fn test_interpreter_control_flow_structure_if() {
         // func $max (i32, i32) -> (i32)
         //     (local $res/2 i32)
         //
@@ -721,7 +721,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_if_else() {
+    fn test_interpreter_control_flow_structure_if_else() {
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
         //     (local_load32 0 1)
@@ -782,7 +782,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_if_else_nested() {
+    fn test_interpreter_control_flow_structure_if_else_nested() {
         // func $level (i32) -> (i32)
         //     (local_load32 0 0)
         //     (i32_imm 85)
@@ -889,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_switch_case() {
+    fn test_interpreter_control_flow_structure_switch_case() {
         // func $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
@@ -1015,7 +1015,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_while() {
+    fn test_interpreter_control_flow_structure_while() {
         // func $accu (n/0:i32) -> (i32)
         //     (local sum/1:i32)
         //     (block 1 1) ()->()
@@ -1089,7 +1089,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_while_with_functional_style() {
+    fn test_interpreter_control_flow_structure_while_with_functional_style() {
         // func $accu (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1164,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_while_with_optimized() {
+    fn test_interpreter_control_flow_structure_while_with_optimized() {
         // func $accu_optimized (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1242,7 +1242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_do_while() {
+    fn test_interpreter_control_flow_structure_do_while() {
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1326,7 +1326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_structure_do_while_with_block_local_vars() {
+    fn test_interpreter_control_flow_structure_do_while_with_block_local_vars() {
         // note:
         //
         // also test the block-level local variables
@@ -1418,7 +1418,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_tco() {
+    fn test_interpreter_control_flow_tco() {
         // func $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
@@ -1502,7 +1502,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_tco_with_optimized() {
+    fn test_interpreter_control_flow_tco_with_optimized() {
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
         //     (local_load32 0)
@@ -1572,7 +1572,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_control_flow_tco_with_branch() {
+    fn test_interpreter_control_flow_tco_with_branch() {
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
         //     i32_eqz

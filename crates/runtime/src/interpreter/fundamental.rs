@@ -32,13 +32,22 @@ pub fn swap(thread_context: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn select_nez(thread_context: &mut ThreadContext) -> InterpretResult {
-    // pop (cond, a, b)
-    // push b if cond != 0
-    let cond = thread_context.stack.pop_i32_u();
-    let a = thread_context.stack.pop_i64_u();
-    if cond == 0 {
+    // (operand when_true:any when_false:any test:i32) -> any
+    //
+    // | test    | a
+    // | false   | b
+    // | true    | c
+    // | ...     |
+    // \---------/
+    //
+    // pop operands a, b and c, then push c if a!=0, otherwise push b.
+
+    let test = thread_context.stack.pop_i32_u();
+    let alternate = thread_context.stack.pop_i64_u();
+
+    if test == 0 {
         thread_context.stack.drop_();
-        thread_context.stack.push_i64_u(a);
+        thread_context.stack.push_i64_u(alternate);
     }
 
     InterpretResult::Move(2)
@@ -62,7 +71,6 @@ pub fn i64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
 
 pub fn f32_imm(thread_context: &mut ThreadContext) -> InterpretResult {
     let i32_value = thread_context.get_param_i32();
-    // let value = unsafe { std::mem::transmute::<u32, f32>(i32_value) };
     let value = f32::from_bits(i32_value);
 
     thread_context.stack.push_f32(value);
@@ -95,12 +103,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_fundamental_zero() {
-        // bytecodes
-        //
-        // 0x0000 zero
-        // 0x0002 end
-        //
+    fn test_interpreter_fundamental_zero() {
         // () -> (i32)
 
         let code0 = BytecodeWriter::new()
@@ -124,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_fundamental_drop() {
+    fn test_interpreter_fundamental_drop() {
         // () -> (i32)
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 13)
@@ -149,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_fundamental_duplicate() {
+    fn test_interpreter_fundamental_duplicate() {
         // () -> (i32, i32)
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 19)
@@ -176,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_fundamental_swap() {
+    fn test_interpreter_fundamental_swap() {
         // () -> (i32, i32)
 
         let code0 = BytecodeWriter::new()
@@ -205,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_fundamental_select_nez() {
+    fn test_interpreter_fundamental_select_nez_false() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)
@@ -230,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_fundamental_select_nez_alt() {
+    fn test_interpreter_fundamental_select_nez_true() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)
@@ -255,14 +258,15 @@ mod tests {
     }
 
     #[test]
-    fn test_process_immediate_int() {
+    fn test_interpreter_fundamental_immediate_int() {
         // bytecodes
         //
-        // 0x0000 i32_imm              0x17
-        // 0x0008 i64_imm              0x43475359 0x29313741    ;; 0x29313741_43475359
-        // 0x0014 i32_imm              0xffffff21               ;; -223
-        // 0x001c i64_imm              0xffffff1d 0xffffffff    ;; -227
-        // 0x0028 end
+        // 0x0000  i32.imm         0x00000017
+        // 0x0008  i64.imm         low:0x43475359  high:0x29313741
+        // 0x0014  i32.imm         0xffffff21                           ;; -223
+        // 0x001c  i64.imm         low:0xffffff1d  high:0xffffffff      ;; -227
+        // 0x0028  end
+        //
         // () -> (i32, i64, i32, i64)
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 23)
@@ -289,28 +293,28 @@ mod tests {
             vec![
                 ForeignValue::UInt32(23),
                 ForeignValue::UInt64(0x29313741_43475359u64),
-                ForeignValue::UInt32((0i32 - 223) as u32),
-                ForeignValue::UInt64((0i64 - 227) as u64)
+                ForeignValue::UInt32((-223i32) as u32),
+                ForeignValue::UInt64((-227i64) as u64)
             ]
         );
     }
 
     #[test]
-    fn test_process_immediate_float() {
+    fn test_interpreter_fundamental_immediate_float() {
         // bytecodes
         //
-        // 0x0000 f32_imm              0x40490fda               ;; 3.1415926
-        // 0x0008 f64_imm              0xc5445f02 0x390b85f8    ;; 6.626e-34
-        // 0x0014 f32_imm              0xc02df84d               ;; -2.71828
-        // 0x001c f64_imm              0xb0000000 0xc1b1de6e    ;; -2.9979e8
-        // 0x0028 end
+        // 0x0000  f32.imm         0x40490fdb                           ;; Pi
+        // 0x0008  f64.imm         low:0x667f3bcd  high:0x3ff6a09e      ;; sqrt(2)
+        // 0x0014  f32.imm         0xc02df854                           ;; E
+        // 0x001c  f64.imm         low:0x382d7366  high:0xbfe0c152      ;; Pi/6
+        // 0x0028  end
         //
         // () -> (f32, f64, f32, f64)
         let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI) // 3.1415926f32
-            .append_opcode_pesudo_f64(Opcode::f64_imm, std::f64::consts::SQRT_2) // deprecated 6.626e-34f64
-            .append_opcode_pesudo_f32(Opcode::f32_imm, -std::f32::consts::E) // -2.71828f32
-            .append_opcode_pesudo_f64(Opcode::f64_imm, -std::f64::consts::FRAC_PI_6) // deprecated -2.9979e8f64
+            .append_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI)
+            .append_opcode_pesudo_f64(Opcode::f64_imm, std::f64::consts::SQRT_2)
+            .append_opcode_pesudo_f32(Opcode::f32_imm, -std::f32::consts::E)
+            .append_opcode_pesudo_f64(Opcode::f64_imm, -std::f64::consts::FRAC_PI_6)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -329,10 +333,10 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::SQRT_2), // deprecated 6.626e-34f64
-                ForeignValue::Float32(-std::f32::consts::E), // -2.71828f32
-                ForeignValue::Float64(-std::f64::consts::FRAC_PI_6), // deprecated -2.9979e8f64
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::SQRT_2),
+                ForeignValue::Float32(-std::f32::consts::E),
+                ForeignValue::Float64(-std::f64::consts::FRAC_PI_6),
             ]
         );
     }

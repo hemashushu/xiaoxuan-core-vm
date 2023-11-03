@@ -366,7 +366,11 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             }
             Opcode::dyncall | Opcode::syscall | Opcode::extcall => (offset_param, String::new()),
             // machine
-            Opcode::nop | Opcode::panic | Opcode::debug => (offset_param, String::new()),
+            Opcode::nop | Opcode::panic | Opcode::unreachable => (offset_param, String::new()),
+            Opcode::debug => {
+                let (o, code) = read_param_i32(codes, offset_param);
+                (o, format!("code:{}", code))
+            }
             Opcode::host_addr_local => {
                 let (o, reversed_idx, offset, idx) = read_param_i16_i16_i16(codes, offset_param);
                 (

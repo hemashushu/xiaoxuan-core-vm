@@ -131,7 +131,7 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_process_extcall_with_system_libc_getuid() {
+    fn test_interpreter_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 0) // external func index
             .append_opcode(Opcode::extcall)
@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_extcall_with_system_libc_getenv() {
+    fn test_interpreter_extcall_with_system_libc_getenv() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
@@ -234,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_extcall_with_user_lib() {
+    fn test_interpreter_extcall_with_user_lib() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 0
             .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 1

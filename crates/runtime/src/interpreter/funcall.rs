@@ -86,7 +86,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_function_call() {
+    fn test_interpreter_function_call() {
         // function $main (i32) -> (i32)
         //     (call $sum_square)
         // end
@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_function_call_dyncall() {
+    fn test_interpreter_function_call_dyncall() {
         // function $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
         //     (dyncall)

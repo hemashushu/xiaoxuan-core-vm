@@ -226,7 +226,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_bitwise_i32() {
+    fn test_interpreter_bitwise_i32() {
         // numbers:
         //   - 0: 0xff0000ff
         //   - 1: 0xf0f000ff
@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_bitwise_i64() {
+    fn test_interpreter_bitwise_i64() {
         // numbers:
         //   - 0: 0xff00ff00_00ff00ff
         //   - 1: 0xf0f00f0f_00ff00ff

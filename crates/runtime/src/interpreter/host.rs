@@ -53,8 +53,12 @@ pub fn panic(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Panic
 }
 
+pub fn unreachable(_thread: &mut ThreadContext) -> InterpretResult {
+    InterpretResult::Unreachable
+}
+
 pub fn debug(thread: &mut ThreadContext) -> InterpretResult {
-    let code = thread.stack.pop_i32_u();
+    let code = thread.get_param_i32();
     InterpretResult::Debug(code)
 }
 
@@ -293,7 +297,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
     #[test]
-    fn test_process_host_nop() {
+    fn test_interpreter_host_nop() {
         // bytecodes
         //
         // 0x0000 nop
@@ -398,7 +402,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_host_address() {
+    fn test_interpreter_host_address() {
         //        read-only data section
         //       |low address    high addr|
         //       |                        |
@@ -533,7 +537,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_host_address_long() {
+    fn test_interpreter_host_address_long() {
         //        read-only data section
         //       |low address  high addr|
         //       |                      |
@@ -649,7 +653,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_host_address_heap() {
+    fn test_interpreter_host_address_heap() {
         //
         //        heap
         //       |low address                high addr|
@@ -730,7 +734,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_host_heap_copy() {
+    fn test_interpreter_host_heap_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> VM heap 0x100 with 8 bytes
@@ -792,7 +796,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_host_addr_func_and_callback_function() {
+    fn test_interpreter_host_addr_func_and_callback_function() {
         // extern "C" do_something(callback_func, a:i32, b:i32) -> i32 {
         //     callback_func(a) + b
         // }

@@ -282,7 +282,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_comparison_i32() {
+    fn test_interpreter_comparison_i32() {
         // numbers:
         //   - 0: 0
         //   - 1: 11
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_comparison_i64() {
+    fn test_interpreter_comparison_i64() {
         // numbers:
         //   - 0: 0
         //   - 1: 11
@@ -610,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_comparison_f32() {
+    fn test_interpreter_comparison_f32() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 1.732
@@ -736,7 +736,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_comparison_f64() {
+    fn test_interpreter_comparison_f64() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 1.732

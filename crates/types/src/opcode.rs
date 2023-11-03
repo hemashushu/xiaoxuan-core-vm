@@ -175,8 +175,16 @@ pub enum Opcode {
     drop,                       // drop one operand (the top most operand)          (operand op:any) -> ()
     duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
     swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
-    select_nez,                 // pop operands a,b and c, push c if a!=0,          (operand test:i32 when_false:any when_true:any) -> any
-                                // otherwise push b.
+    select_nez,                 // (operand when_true:any when_false:any test:i32) -> any
+                                //
+                                // | test    | a
+                                // | false   | b
+                                // | true    | c
+                                // | ...     |
+                                // \---------/
+                                //
+                                // pop operands a, b and c, then push c if a!=0, otherwise push b.
+
                                 // b and c should be the same data type.
     i32_imm = 0x180,            // (param immediate_number:i32) -> i32
     i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> i64
@@ -1305,7 +1313,8 @@ pub enum Opcode {
     nop = 0xc00,                // instruction to do nothing,
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     panic,                      // terminate VM
-    debug,                      // for VM debug     (operand code:u32) -> ()
+    unreachable,                // indicates unreachable code
+    debug,                      // for VM debug     (param code:u32) -> ()
 
     // get the host address of memory
     //

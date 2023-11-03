@@ -265,6 +265,7 @@ impl Opcode {
             //
             Opcode::nop => "nop",
             Opcode::panic => "panic",
+            Opcode::unreachable => "unreachable",
             Opcode::debug => "debug",
             Opcode::host_addr_local => "host.addr_local",
             Opcode::host_addr_local_long => "host.addr_local_long",

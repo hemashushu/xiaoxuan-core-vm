@@ -158,7 +158,7 @@ mod tests {
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
-    fn test_process_syscall_handler_without_args() {
+    fn test_interpreter_syscall_handler_without_args() {
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
             .append_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_syscall_handler_with_2_args() {
+    fn test_interpreter_syscall_handler_with_2_args() {
         // `char *getcwd(char buf[.size], size_t size);`
 
         const BUF_LENGTH: usize = 1024;
@@ -243,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_syscall_handler_error_no() {
+    fn test_interpreter_syscall_handler_error_no() {
         // `int open(const char *pathname, int flags)`
 
         let file_path0 = b"/this/file/should/not/exist\0";

@@ -529,7 +529,7 @@ mod tests {
     };
 
     #[test]
-    fn test_module_image_save_and_load() {
+    fn test_save_module_image_and_load_module_image() {
         // build TypeSection instance
         // arbitrary data
         let type_entries = vec![

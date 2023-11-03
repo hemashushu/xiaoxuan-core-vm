@@ -434,7 +434,7 @@ mod tests {
     use super::ReadWriteDataSection;
 
     #[test]
-    fn test_save_read_write_data_section() {
+    fn test_save_section_read_write_data() {
         let data_entry0 = DataEntry::from_i32(11);
         let data_entry1 = DataEntry::from_i64(13);
         let data_entry2 = DataEntry::from_bytes(b"hello".to_vec(), 1);
@@ -551,7 +551,7 @@ mod tests {
     }
 
     #[test]
-    fn test_load_read_write_data_section() {
+    fn test_load_section_read_write_data() {
         let section_data = vec![
             8u8, 0, 0, 0, // item count
             0, 0, 0, 0, // padding
@@ -664,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    fn test_save_uninit_data_section() {
+    fn test_save_section_uninitialized_data() {
         let data_entry0 = UninitDataEntry::from_i32();
         let data_entry1 = UninitDataEntry::from_i64();
         let data_entry2 = UninitDataEntry::from_bytes(5, 1);
@@ -747,7 +747,7 @@ mod tests {
     }
 
     #[test]
-    fn test_load_uninit_data_section() {
+    fn test_load_section_uninitialized_data() {
         let section_data = vec![
             8u8, 0, 0, 0, // item count
             0, 0, 0, 0, // padding

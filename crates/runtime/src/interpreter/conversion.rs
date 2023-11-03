@@ -152,7 +152,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_process_conversion_extend_and_trunc() {
+    fn test_interpreter_conversion_extend_and_trunc() {
         // (i64, i32)  ->  (i64, i64, i32)
         //  |    |          ^    ^    ^
         //  |    | promote  |0   |1   |2
@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_conversion_demote_and_promote() {
+    fn test_interpreter_conversion_demote_and_promote() {
         // (f64, f32)  ->  (f64, f32)
         //  |    |          ^    ^
         //  |    | promote  |0   |2
@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_conversion_float_to_int() {
+    fn test_interpreter_conversion_float_to_int() {
         // (f32,              f64,            -f32,             -f64)
         //  |                 |                |                 |
         //  |                 |                |                 |
@@ -372,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_conversion_int_to_float() {
+    fn test_interpreter_conversion_int_to_float() {
         // (i32,              i64,            -i32,             -i64)
         //  |                 |                |                 |
         //  |                 |                |                 |
