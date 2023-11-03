@@ -284,35 +284,24 @@ mod tests {
 
     #[test]
     fn test_convert() {
-        let mut entries: Vec<TypeEntry> = Vec::new();
-
-        let p0 = vec![DataType::I32, DataType::I64];
-        let r0 = vec![DataType::I32];
-        entries.push(TypeEntry {
-            params: p0,
-            results: r0,
-        });
-
-        let p1 = vec![DataType::I64];
-        let r1 = vec![DataType::I64, DataType::I32];
-        entries.push(TypeEntry {
-            params: p1,
-            results: r1,
-        });
-
-        let p2 = vec![];
-        let r2 = vec![DataType::F32];
-        entries.push(TypeEntry {
-            params: p2,
-            results: r2,
-        });
-
-        let p3 = vec![];
-        let r3 = vec![];
-        entries.push(TypeEntry {
-            params: p3,
-            results: r3,
-        });
+        let entries = vec![
+            TypeEntry {
+                params: vec![DataType::I32, DataType::I64],
+                results: vec![DataType::I32],
+            },
+            TypeEntry {
+                params: vec![DataType::I64],
+                results: vec![DataType::I64, DataType::I32],
+            },
+            TypeEntry {
+                params: vec![],
+                results: vec![DataType::F32],
+            },
+            TypeEntry {
+                params: vec![],
+                results: vec![],
+            },
+        ];
 
         let (items, types_data) = TypeSection::convert_from_entries(&entries);
         let section = TypeSection {
@@ -326,6 +315,19 @@ mod tests {
                 vec![DataType::I32, DataType::I64].as_ref(),
                 vec![DataType::I32].as_ref()
             )
+        );
+
+        assert_eq!(
+            section.get_item_params_and_results(1),
+            (
+                vec![DataType::I64].as_ref(),
+                vec![DataType::I64, DataType::I32].as_ref()
+            )
+        );
+
+        assert_eq!(
+            section.get_item_params_and_results(2),
+            ([].as_ref(), vec![DataType::F32].as_ref())
         );
 
         assert_eq!(

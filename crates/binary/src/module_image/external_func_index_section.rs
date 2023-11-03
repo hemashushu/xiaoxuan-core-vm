@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-// the purpose of these sections are to remove duplicate external functon items.
+// the purpose of these sections is to remove duplicated external functon items.
 // - "external function index section"
 // - "unified external library section"
 // - "unified external library section"
@@ -38,12 +38,61 @@ pub struct ExternalFuncIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct ExternalFuncIndexItem {
+    // this field is REDUNDANT because its value always starts
+    // from 0 to the total number of items (within a certain range)/(within a module).
     pub external_func_index: u32,
+
     pub unified_external_func_index: u32,
 
     // copy the type_index from ExternalFuncSection of the specific module,
     // so that the ExternalFuncSection can be omitted at runtime.
     pub type_index: u32,
+}
+
+impl ExternalFuncIndexItem {
+    pub fn new(
+        external_func_index: u32,
+        unified_external_func_index: u32,
+        type_index: u32,
+    ) -> Self {
+        Self {
+            external_func_index,
+            unified_external_func_index,
+            type_index,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExternalFuncIndexEntry {
+    pub external_func_index: usize,
+    pub unified_external_func_index: usize,
+    pub type_index: usize,
+}
+
+impl ExternalFuncIndexEntry {
+    pub fn new(
+        external_func_index: usize,
+        unified_external_func_index: usize,
+        type_index: usize,
+    ) -> Self {
+        Self {
+            external_func_index,
+            unified_external_func_index,
+            type_index,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExternalFuncIndexModuleEntry {
+    pub index_entries: Vec<ExternalFuncIndexEntry>,
+}
+
+impl ExternalFuncIndexModuleEntry {
+    pub fn new(index_entries: Vec<ExternalFuncIndexEntry>) -> Self {
+        Self { index_entries }
+    }
 }
 
 impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
@@ -60,20 +109,6 @@ impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
 
     fn id(&'a self) -> ModuleSectionId {
         ModuleSectionId::ExternalFuncIndex
-    }
-}
-
-impl ExternalFuncIndexItem {
-    pub fn new(
-        external_func_index: u32,
-        unified_external_func_index: u32,
-        type_index: u32,
-    ) -> Self {
-        Self {
-            external_func_index,
-            unified_external_func_index,
-            type_index,
-        }
     }
 }
 
@@ -102,6 +137,36 @@ impl<'a> ExternalFuncIndexSection<'a> {
             item.unified_external_func_index as usize,
             item.type_index as usize,
         )
+    }
+
+    pub fn convert_from_entries(
+        sorted_module_entries: &[ExternalFuncIndexModuleEntry],
+    ) -> (Vec<RangeItem>, Vec<ExternalFuncIndexItem>) {
+        let mut range_start_offset: u32 = 0;
+        let range_items = sorted_module_entries
+            .iter()
+            .map(|index_module_entry| {
+                let count = index_module_entry.index_entries.len() as u32;
+                let range_item = RangeItem::new(range_start_offset, count);
+                range_start_offset += count;
+                range_item
+            })
+            .collect::<Vec<_>>();
+
+        let external_func_index_items = sorted_module_entries
+            .iter()
+            .flat_map(|index_module_entry| {
+                index_module_entry.index_entries.iter().map(|entry| {
+                    ExternalFuncIndexItem::new(
+                        entry.external_func_index as u32,
+                        entry.unified_external_func_index as u32,
+                        entry.type_index as u32,
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        (range_items, external_func_index_items)
     }
 }
 
@@ -210,5 +275,10 @@ mod tests {
                 23, 0, 0, 0, // type index 2
             ]
         );
+    }
+
+    #[test]
+    fn test_convert() {
+        // todo
     }
 }

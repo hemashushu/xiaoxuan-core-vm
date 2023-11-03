@@ -36,6 +36,9 @@ pub struct FuncIndexItem {
     // the index of function item, includes the imported functions and internal functions.
     // 'function public index' equals to
     // 'amount of imported functions' + 'function internal index'
+    //
+    // this field is REDUNDANT because its value always starts
+    // from 0 to the total number of items (within a certain range)/(within a module).
     pub func_public_index: u32,
 
     // target module index
@@ -46,6 +49,52 @@ pub struct FuncIndexItem {
     // this index is the actual index of the internal functions in a specified module
     // i.e., it excludes the imported functions.
     pub function_internal_index: u32,
+}
+
+impl FuncIndexItem {
+    pub fn new(
+        func_public_index: u32,
+        target_module_index: u32,
+        function_internal_index: u32,
+    ) -> Self {
+        Self {
+            func_public_index,
+            target_module_index,
+            function_internal_index,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FuncIndexEntry {
+    pub func_public_index: usize,
+    pub target_module_index: usize,
+    pub function_internal_index: usize,
+}
+
+impl FuncIndexEntry {
+    pub fn new(
+        func_public_index: usize,
+        target_module_index: usize,
+        function_internal_index: usize,
+    ) -> Self {
+        Self {
+            func_public_index,
+            target_module_index,
+            function_internal_index,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FuncIndexModuleEntry {
+    pub index_entries: Vec<FuncIndexEntry>,
+}
+
+impl FuncIndexModuleEntry {
+    pub fn new(index_entries: Vec<FuncIndexEntry>) -> Self {
+        Self { index_entries }
+    }
 }
 
 impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
@@ -62,20 +111,6 @@ impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
 
     fn id(&'a self) -> ModuleSectionId {
         ModuleSectionId::FuncIndex
-    }
-}
-
-impl FuncIndexItem {
-    pub fn new(
-        func_public_index: u32,
-        target_module_index: u32,
-        function_internal_index: u32,
-    ) -> Self {
-        Self {
-            func_public_index,
-            target_module_index,
-            function_internal_index,
-        }
     }
 }
 
@@ -106,6 +141,36 @@ impl<'a> FuncIndexSection<'a> {
             item.function_internal_index as usize,
         )
     }
+
+    pub fn convert_from_entries(
+        sorted_entries: &[FuncIndexModuleEntry],
+    ) -> (Vec<RangeItem>, Vec<FuncIndexItem>) {
+        let mut range_start_offset: u32 = 0;
+        let range_items = sorted_entries
+            .iter()
+            .map(|index_module_entry| {
+                let count = index_module_entry.index_entries.len() as u32;
+                let range_item = RangeItem::new(range_start_offset, count);
+                range_start_offset += count;
+                range_item
+            })
+            .collect::<Vec<_>>();
+
+        let func_index_items = sorted_entries
+            .iter()
+            .flat_map(|index_module_entry| {
+                index_module_entry.index_entries.iter().map(|entry| {
+                    FuncIndexItem::new(
+                        entry.func_public_index as u32,
+                        entry.target_module_index as u32,
+                        entry.function_internal_index as u32,
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        (range_items, func_index_items)
+    }
 }
 
 #[cfg(test)]
@@ -114,6 +179,8 @@ mod tests {
         func_index_section::{FuncIndexItem, FuncIndexSection},
         RangeItem, SectionEntry,
     };
+
+    use super::{FuncIndexEntry, FuncIndexModuleEntry};
 
     #[test]
     fn test_load_section() {
@@ -212,6 +279,53 @@ mod tests {
                 17, 0, 0, 0, // target module idx 2
                 19, 0, 0, 0, // func internal idx 2
             ]
+        );
+    }
+
+    #[test]
+    fn test_convert() {
+        let entries = vec![
+            FuncIndexModuleEntry::new(vec![
+                FuncIndexEntry::new(0, 1, 3),
+                FuncIndexEntry::new(1, 5, 7),
+            ]),
+            FuncIndexModuleEntry::new(vec![
+                FuncIndexEntry::new(0, 11, 13),
+                FuncIndexEntry::new(1, 17, 19),
+                FuncIndexEntry::new(2, 23, 29),
+            ]),
+        ];
+
+        let (ranges, items) = FuncIndexSection::convert_from_entries(&entries);
+
+        let section = FuncIndexSection {
+            ranges: &ranges,
+            items: &items,
+        };
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(0, 0),
+            (1, 3)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(0, 1),
+            (5, 7)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(1, 0),
+            (11, 13)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(1, 1),
+            (17, 19)
+        );
+
+        assert_eq!(
+            section.get_item_target_module_index_and_function_internal_index(1, 2),
+            (23, 29)
         );
     }
 }

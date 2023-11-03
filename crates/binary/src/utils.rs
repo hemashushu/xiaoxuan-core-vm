@@ -354,7 +354,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
     local_variables.extend_from_slice(&local_variable_item_entries_without_args);
 
     let local_var_list_entry = LocalListEntry {
-        variables: local_variables,
+        variable_entries: local_variables,
     };
 
     let func_entry = FuncEntry {
@@ -448,7 +448,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
-                variables: local_variables,
+                variable_entries: local_variables,
             }
         })
         .collect::<Vec<_>>();
@@ -467,7 +467,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
-                variables: local_variables,
+                variable_entries: local_variables,
             }
         })
         .collect::<Vec<_>>();
@@ -527,7 +527,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             let local_var_list_entry = LocalListEntry {
-                variables: local_variables,
+                variable_entries: local_variables,
             };
 
             let func_entry = FuncEntry {

@@ -104,12 +104,12 @@ pub struct LocalVariableItem {
 // both function and block can contains a 'local variables list'
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalListEntry {
-    pub variables: Vec<LocalVariableEntry>,
+    pub variable_entries: Vec<LocalVariableEntry>,
 }
 
 impl LocalListEntry {
-    pub fn new(variables: Vec<LocalVariableEntry>) -> Self {
-        Self { variables }
+    pub fn new(variable_entries: Vec<LocalVariableEntry>) -> Self {
+        Self { variable_entries }
     }
 }
 
@@ -240,7 +240,7 @@ impl<'a> LocalVariableSection<'a> {
                 let mut next_offset: u32 = 0;
 
                 let items = list_entry
-                    .variables
+                    .variable_entries
                     .iter()
                     .map(|var_entry| {
                         let item = LocalVariableItem::new(
@@ -711,5 +711,10 @@ mod tests {
             list6,
             &[LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),]
         );
+    }
+
+    #[test]
+    fn test_convert() {
+        // todo
     }
 }

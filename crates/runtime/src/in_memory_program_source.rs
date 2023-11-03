@@ -29,10 +29,10 @@ impl InMemoryProgramSource {
         }
     }
 
-    pub fn with_settings(module_binaries: Vec<Vec<u8>>, program_settings: ProgramSettings) -> Self {
+    pub fn with_settings(module_binaries: Vec<Vec<u8>>, program_settings: &ProgramSettings) -> Self {
         Self {
             module_binaries,
-            program_settings,
+            program_settings: program_settings.clone(),
             extenal_function_table: Mutex::new(ExtenalFunctionTable::default()),
         }
     }

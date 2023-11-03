@@ -184,22 +184,18 @@ mod tests {
 
     #[test]
     fn test_convert() {
-        let mut entries: Vec<FuncEntry> = Vec::new();
-
-        let code0 = b"bar".to_vec();
-        let code1 = b"world".to_vec();
-
-        entries.push(FuncEntry {
-            type_index: 7,
-            local_list_index: 9,
-            code: code0.clone(),
-        });
-
-        entries.push(FuncEntry {
-            type_index: 11,
-            local_list_index: 13,
-            code: code1.clone(),
-        });
+        let entries = vec![
+            FuncEntry {
+                type_index: 7,
+                local_list_index: 9,
+                code: b"bar".to_vec(),
+            },
+            FuncEntry {
+                type_index: 11,
+                local_list_index: 13,
+                code: b"world".to_vec(),
+            },
+        ];
 
         let (items, codes_data) = FuncSection::convert_from_entries(&entries);
         let section = FuncSection {
@@ -209,12 +205,12 @@ mod tests {
 
         assert_eq!(
             section.get_item_type_index_and_local_variable_index_and_code(0),
-            (7, 9, code0.as_ref())
+            (7, 9, b"bar".to_vec().as_ref())
         );
 
         assert_eq!(
             section.get_item_type_index_and_local_variable_index_and_code(1),
-            (11, 13, code1.as_ref())
+            (11, 13, b"world".to_vec().as_ref())
         );
     }
 }

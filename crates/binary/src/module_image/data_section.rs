@@ -308,17 +308,17 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
 
 impl ReadOnlyDataSection<'_> {
     pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
-        convert_from_data_entries(entries)
+        convert_from_entries_internal(entries)
     }
 }
 
 impl ReadWriteDataSection<'_> {
     pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
-        convert_from_data_entries(entries)
+        convert_from_entries_internal(entries)
     }
 }
 
-fn convert_from_data_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+fn convert_from_entries_internal(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
     // | type  | size | alignment |
     // |-------|------|-----------|
     // | i32   | 4    | 4         |

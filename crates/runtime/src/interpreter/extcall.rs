@@ -281,7 +281,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::with_settings(
             vec![binary0],
-            ProgramSettings::new(program_source_path, true, "", ""),
+            &ProgramSettings::new(program_source_path, true, "", ""),
         );
 
         let program0 = program_source0.build_program().unwrap();

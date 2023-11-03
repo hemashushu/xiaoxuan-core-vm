@@ -42,6 +42,9 @@ pub struct DataIndexItem {
     // - internal read-write data items
     // - imported uninitilized data items
     // - internal uninitilized data items
+    //
+    // this field is REDUNDANT because its value always starts
+    // from 0 to the total number of items (within a certain range)/(within a module).
     pub data_public_index: u32,
 
     // target module index
@@ -58,22 +61,6 @@ pub struct DataIndexItem {
     _padding0: [u8; 3],
 }
 
-impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
-    fn load(section_data: &'a [u8]) -> Self {
-        let (ranges, items) =
-            load_section_with_two_tables::<RangeItem, DataIndexItem>(section_data);
-        DataIndexSection { ranges, items }
-    }
-
-    fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        save_section_with_two_tables(self.ranges, self.items, writer)
-    }
-
-    fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::DataIndex
-    }
-}
-
 impl DataIndexItem {
     pub fn new(
         data_public_index: u32,
@@ -88,6 +75,57 @@ impl DataIndexItem {
             target_data_section_type,
             _padding0: [0, 0, 0],
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct DataIndexEntry {
+    pub data_public_index: usize,
+    pub target_module_index: usize,
+    pub data_internal_index: usize,
+    pub target_data_section_type: DataSectionType,
+}
+
+impl DataIndexEntry {
+    pub fn new(
+        data_public_index: usize,
+        target_module_index: usize,
+        data_internal_index: usize,
+        target_data_section_type: DataSectionType,
+    ) -> Self {
+        Self {
+            data_public_index,
+            target_module_index,
+            data_internal_index,
+            target_data_section_type,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DataIndexModuleEntry {
+    pub index_entries: Vec<DataIndexEntry>,
+}
+
+impl DataIndexModuleEntry {
+    pub fn new(index_entries: Vec<DataIndexEntry>) -> Self {
+        Self { index_entries }
+    }
+}
+
+impl<'a> SectionEntry<'a> for DataIndexSection<'a> {
+    fn load(section_data: &'a [u8]) -> Self {
+        let (ranges, items) =
+            load_section_with_two_tables::<RangeItem, DataIndexItem>(section_data);
+        DataIndexSection { ranges, items }
+    }
+
+    fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        save_section_with_two_tables(self.ranges, self.items, writer)
+    }
+
+    fn id(&'a self) -> ModuleSectionId {
+        ModuleSectionId::DataIndex
     }
 }
 
@@ -118,6 +156,38 @@ impl<'a> DataIndexSection<'a> {
             item.target_data_section_type,
         )
     }
+
+    pub fn convert_from_entries(
+        sorted_module_entries: &[DataIndexModuleEntry],
+    ) -> (Vec<RangeItem>, Vec<DataIndexItem>) {
+        let mut range_start_offset: u32 = 0;
+
+        let range_items = sorted_module_entries
+            .iter()
+            .map(|index_module_entry| {
+                let count = index_module_entry.index_entries.len() as u32;
+                let range_item = RangeItem::new(range_start_offset, count);
+                range_start_offset += count;
+                range_item
+            })
+            .collect::<Vec<_>>();
+
+        let data_index_items = sorted_module_entries
+            .iter()
+            .flat_map(|index_module_entry| {
+                index_module_entry.index_entries.iter().map(|entry| {
+                    DataIndexItem::new(
+                        entry.data_public_index as u32,
+                        entry.target_module_index as u32,
+                        entry.data_internal_index as u32,
+                        entry.target_data_section_type,
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        (range_items, data_index_items)
+    }
 }
 
 #[cfg(test)]
@@ -127,6 +197,8 @@ mod tests {
         data_section::DataSectionType,
         SectionEntry,
     };
+
+    use super::{DataIndexEntry, DataIndexModuleEntry};
 
     #[test]
     fn test_load_section() {
@@ -252,6 +324,58 @@ mod tests {
                 1, // t data section type
                 0, 0, 0, // padding
             ]
+        );
+    }
+
+    #[test]
+    fn test_convert() {
+        let entries = vec![
+            DataIndexModuleEntry::new(vec![
+                DataIndexEntry::new(0, 1, 3, DataSectionType::ReadOnly),
+                DataIndexEntry::new(1, 5, 7, DataSectionType::ReadWrite),
+                DataIndexEntry::new(2, 11, 13, DataSectionType::Uninit),
+            ]),
+            DataIndexModuleEntry::new(vec![
+                DataIndexEntry::new(0, 17, 19, DataSectionType::ReadWrite),
+                DataIndexEntry::new(1, 23, 29, DataSectionType::ReadWrite),
+            ]),
+        ];
+
+        let (ranges, items) = DataIndexSection::convert_from_entries(&entries);
+
+        let section = DataIndexSection {
+            ranges: &ranges,
+            items: &items,
+        };
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(0, 0),
+            (1, 3, DataSectionType::ReadOnly)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(0, 1),
+            (5, 7, DataSectionType::ReadWrite)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(0, 2),
+            (11, 13, DataSectionType::Uninit)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(1, 0),
+            (17, 19, DataSectionType::ReadWrite)
+        );
+
+        assert_eq!(
+            section
+                .get_item_target_module_index_and_data_internal_index_and_data_section_type(1, 1),
+            (23, 29, DataSectionType::ReadWrite)
         );
     }
 }
