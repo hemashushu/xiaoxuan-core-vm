@@ -499,7 +499,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_interpreter_data_load_store() {
+    fn test_interpreter_data_load_and_store() {
         //        read-only data section
         //        ======================
         //
@@ -644,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_load_store_uninitialized() {
+    fn test_interpreter_data_load_and_store_uninitialized() {
         //        read-only data section
         //        ======================
         //
@@ -789,7 +789,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_long_load_store() {
+    fn test_interpreter_data_long_load_and_store() {
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |

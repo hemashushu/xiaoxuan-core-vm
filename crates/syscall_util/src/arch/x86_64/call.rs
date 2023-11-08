@@ -35,9 +35,9 @@
 // r10, r11 for temporary, as well as the registers above are not preserved
 // across a function call.
 //
-// in short, rax, rdi, rsi, rdx, rcx and r8, r9, r10, 11 are scratch (caller saved) registers,
-//           ---  ---  ---  ---  ---     --  --  ---
-//           ret  a1   a2   a3   a4(std) a5  a6  a4(syscall)
+// in short, rax, rdi, rsi, rdx, rcx,    r10,    and r8, r9, 11 are scratch (caller saved) registers,
+//           ---  ---  ---  ---  ---     ---         --  --
+//           ret  a1   a2   a3   a4(std) a4(syscall) a5  a6
 //
 // any of these registers may be used in a function without have to save the original value.
 // this also means that you need to save them BEFORE invoking a function call

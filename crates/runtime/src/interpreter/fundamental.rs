@@ -105,7 +105,6 @@ mod tests {
     #[test]
     fn test_interpreter_fundamental_zero() {
         // () -> (i32)
-
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::end)
@@ -181,7 +180,6 @@ mod tests {
     #[test]
     fn test_interpreter_fundamental_swap() {
         // () -> (i32, i32)
-
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 211)
             .append_opcode_i32(Opcode::i32_imm, 223)
@@ -209,6 +207,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_fundamental_select_nez_false() {
+        // () -> (i32)
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)
@@ -234,6 +233,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_fundamental_select_nez_true() {
+        // () -> (i32)
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)

@@ -588,7 +588,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_interpreter_local_load_store() {
+    fn test_interpreter_local_load_and_store() {
         // args index (also local var):     0       1
         // data type:                       f32     f64
         //
@@ -711,7 +711,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_long_load_store() {
+    fn test_interpreter_local_long_load_and_store() {
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |
