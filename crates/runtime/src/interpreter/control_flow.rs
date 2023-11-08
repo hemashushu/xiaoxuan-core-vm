@@ -300,7 +300,7 @@ mod tests {
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local list index = 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 17)
             .append_opcode(Opcode::end)
             .append_opcode_i32(Opcode::i32_imm, 19)
@@ -368,66 +368,66 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // c=a+1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16(Opcode::i32_inc, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             // d=b+1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_inc, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3)
             // block 1
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // a=a-1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
             // b=b-1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             // p=c+d
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
             .append_opcode(Opcode::i32_add)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // q=c-d
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
             .append_opcode(Opcode::i32_sub)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // load c, d
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
             // block 2
             .append_opcode_i32_i32(Opcode::block, 2, 2)
             // x+q
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode(Opcode::i32_add)
             // y+p
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode(Opcode::i32_add)
             // d=d+1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 2, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 2, 0, 3)
             .append_opcode_i16(Opcode::i32_inc, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 2, 0, 3)
             // q=q-1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             //
             .append_opcode(Opcode::end)
             // load p, q
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             //
             .append_opcode(Opcode::end)
             // load a, b, c, d
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -672,18 +672,18 @@ mod tests {
         // assert (19, 17) -> (19)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_lt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 1, 0x1e)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 2)
             .append_opcode(Opcode::end)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -737,13 +737,13 @@ mod tests {
         // assert (19, 17) -> (19)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x12)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -816,19 +816,19 @@ mod tests {
         // assert (40) -> (68) 'D'
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 85)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
             .append_opcode_i32(Opcode::i32_imm, 65)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x7e)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 70)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x20)
             .append_opcode_i32(Opcode::i32_imm, 66)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x4a)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 2, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 2, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 55)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 3, 3, 0x20)
@@ -931,7 +931,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // case 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 85)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
@@ -939,7 +939,7 @@ mod tests {
             .append_opcode_i16_i32(Opcode::break_, 1, 0x7c)
             .append_opcode(Opcode::end)
             // case 2
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 70)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
@@ -947,7 +947,7 @@ mod tests {
             .append_opcode_i16_i32(Opcode::break_, 1, 0x48)
             .append_opcode(Opcode::end)
             // case 3
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 55)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 4, 0x1e)
@@ -1044,16 +1044,16 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode(Opcode::i32_eqz)
             .append_opcode_i16_i32(Opcode::break_nez, 0, 0x42)
             // sum = sum + n
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode(Opcode::i32_add)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             // n = n - 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 0)
             //
@@ -1061,7 +1061,7 @@ mod tests {
             // block end
             .append_opcode(Opcode::end)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -1116,21 +1116,21 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             //
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // load sum
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             // break if n==0
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_eqz)
             .append_opcode_i16_i32(Opcode::break_nez, 0, 0x32)
             // sum + n
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             // n - 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             // recur
             .append_opcode_i16_i32(Opcode::recur, 0, 0x3c)
@@ -1192,23 +1192,23 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             //
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // load sum
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             // break if n==0
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_eqz)
             .append_opcode_i16_i32(Opcode::break_nez, 0, 0x32)
             // drop sum
             .append_opcode(Opcode::drop)
             // sum + n
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             // n - 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             // recur
             .append_opcode_i16_i32(Opcode::recur, 0, 0x3c)
@@ -1274,23 +1274,23 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             //
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i16_i32(Opcode::recur_nez, 0, 0x4c)
@@ -1363,23 +1363,23 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             //
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i16_i32(Opcode::recur_nez, 0, 0x4c)
@@ -1445,26 +1445,26 @@ mod tests {
         // assert (0, 100) -> (5050)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 1, 0x26)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16_i32(Opcode::recur, 1, 0)
             // block end
             .append_opcode(Opcode::end)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -1525,11 +1525,11 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // sum + n
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
             // n - 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             //
             .append_opcode(Opcode::duplicate)
@@ -1595,18 +1595,18 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_eqz)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
             // then
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x32)
             // else
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode(Opcode::i32_add)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             //
             .append_opcode_i16_i32(Opcode::recur, 1, 0)

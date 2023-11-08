@@ -122,69 +122,69 @@ fn init_interpreters_internal() {
     interpreters[Opcode::f64_imm as usize] = fundamental::f64_imm;
 
     // local variables
-    interpreters[Opcode::local_load as usize] = local::local_load;
-    interpreters[Opcode::local_load32 as usize] = local::local_load32;
+    interpreters[Opcode::local_load64_i64 as usize] = local::local_load64_i64;
+    interpreters[Opcode::local_load64_f64 as usize] = local::local_load64_f64;
+    interpreters[Opcode::local_load32_i32 as usize] = local::local_load32_i32;
     interpreters[Opcode::local_load32_i16_s as usize] = local::local_load32_i16_s;
     interpreters[Opcode::local_load32_i16_u as usize] = local::local_load32_i16_u;
     interpreters[Opcode::local_load32_i8_s as usize] = local::local_load32_i8_s;
     interpreters[Opcode::local_load32_i8_u as usize] = local::local_load32_i8_u;
     interpreters[Opcode::local_load32_f32 as usize] = local::local_load32_f32;
-    interpreters[Opcode::local_load_f64 as usize] = local::local_load_f64;
-    interpreters[Opcode::local_store as usize] = local::local_store;
+    interpreters[Opcode::local_store64 as usize] = local::local_store64;
     interpreters[Opcode::local_store32 as usize] = local::local_store32;
     interpreters[Opcode::local_store16 as usize] = local::local_store16;
     interpreters[Opcode::local_store8 as usize] = local::local_store8;
 
-    interpreters[Opcode::local_long_load as usize] = local::local_long_load;
-    interpreters[Opcode::local_long_load32 as usize] = local::local_long_load32;
+    interpreters[Opcode::local_long_load64_i64 as usize] = local::local_long_load64_i64;
+    interpreters[Opcode::local_long_load64_f64 as usize] = local::local_long_load64_f64;
+    interpreters[Opcode::local_long_load32_i32 as usize] = local::local_long_load32_i32;
     interpreters[Opcode::local_long_load32_i16_s as usize] = local::local_long_load32_i16_s;
     interpreters[Opcode::local_long_load32_i16_u as usize] = local::local_long_load32_i16_u;
     interpreters[Opcode::local_long_load32_i8_s as usize] = local::local_long_load32_i8_s;
     interpreters[Opcode::local_long_load32_i8_u as usize] = local::local_long_load32_i8_u;
     interpreters[Opcode::local_long_load32_f32 as usize] = local::local_long_load32_f32;
-    interpreters[Opcode::local_long_load_f64 as usize] = local::local_long_load_f64;
-    interpreters[Opcode::local_long_store as usize] = local::local_long_store;
+    interpreters[Opcode::local_long_store64 as usize] = local::local_long_store64;
     interpreters[Opcode::local_long_store32 as usize] = local::local_long_store32;
     interpreters[Opcode::local_long_store16 as usize] = local::local_long_store16;
     interpreters[Opcode::local_long_store8 as usize] = local::local_long_store8;
 
     // data sections
-    interpreters[Opcode::data_load as usize] = data::data_load;
-    interpreters[Opcode::data_load32 as usize] = data::data_load32;
+    interpreters[Opcode::data_load64_i64 as usize] = data::data_load64_i64;
+    interpreters[Opcode::data_load64_f64 as usize] = data::data_load64_f64;
+    interpreters[Opcode::data_load32_i32 as usize] = data::data_load32_i32;
     interpreters[Opcode::data_load32_i16_s as usize] = data::data_load32_i16_s;
     interpreters[Opcode::data_load32_i16_u as usize] = data::data_load32_i16_u;
     interpreters[Opcode::data_load32_i8_s as usize] = data::data_load32_i8_s;
     interpreters[Opcode::data_load32_i8_u as usize] = data::data_load32_i8_u;
     interpreters[Opcode::data_load32_f32 as usize] = data::data_load32_f32;
-    interpreters[Opcode::data_load_f64 as usize] = data::data_load_f64;
-    interpreters[Opcode::data_store as usize] = data::data_store;
+    interpreters[Opcode::data_store64 as usize] = data::data_store64;
     interpreters[Opcode::data_store32 as usize] = data::data_store32;
     interpreters[Opcode::data_store16 as usize] = data::data_store16;
     interpreters[Opcode::data_store8 as usize] = data::data_store8;
 
-    interpreters[Opcode::data_long_load as usize] = data::data_long_load;
-    interpreters[Opcode::data_long_load32 as usize] = data::data_long_load32;
+    interpreters[Opcode::data_long_load64_i64 as usize] = data::data_long_load64_i64;
+    interpreters[Opcode::data_long_load64_f64 as usize] = data::data_long_load64_f64;
+    interpreters[Opcode::data_long_load32_i32 as usize] = data::data_long_load32_i32;
     interpreters[Opcode::data_long_load32_i16_s as usize] = data::data_long_load32_i16_s;
     interpreters[Opcode::data_long_load32_i16_u as usize] = data::data_long_load32_i16_u;
     interpreters[Opcode::data_long_load32_i8_s as usize] = data::data_long_load32_i8_s;
     interpreters[Opcode::data_long_load32_i8_u as usize] = data::data_long_load32_i8_u;
     interpreters[Opcode::data_long_load32_f32 as usize] = data::data_long_load32_f32;
-    interpreters[Opcode::data_long_load_f64 as usize] = data::data_long_load_f64;
-    interpreters[Opcode::data_long_store as usize] = data::data_long_store;
+    interpreters[Opcode::data_long_store64 as usize] = data::data_long_store64;
     interpreters[Opcode::data_long_store32 as usize] = data::data_long_store32;
     interpreters[Opcode::data_long_store16 as usize] = data::data_long_store16;
     interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
 
     // heap
-    interpreters[Opcode::heap_load as usize] = heap::heap_load;
-    interpreters[Opcode::heap_load32 as usize] = heap::heap_load32;
+    interpreters[Opcode::heap_load64_i64 as usize] = heap::heap_load64_i64;
+    interpreters[Opcode::heap_load64_f64 as usize] = heap::heap_load64_f64;
+    interpreters[Opcode::heap_load32_i32 as usize] = heap::heap_load32_i32;
     interpreters[Opcode::heap_load32_i16_s as usize] = heap::heap_load32_i16_s;
     interpreters[Opcode::heap_load32_i16_u as usize] = heap::heap_load32_i16_u;
     interpreters[Opcode::heap_load32_i8_s as usize] = heap::heap_load32_i8_s;
     interpreters[Opcode::heap_load32_i8_u as usize] = heap::heap_load32_i8_u;
     interpreters[Opcode::heap_load32_f32 as usize] = heap::heap_load32_f32;
-    interpreters[Opcode::heap_load_f64 as usize] = heap::heap_load_f64;
-    interpreters[Opcode::heap_store as usize] = heap::heap_store;
+    interpreters[Opcode::heap_store64 as usize] = heap::heap_store64;
     interpreters[Opcode::heap_store32 as usize] = heap::heap_store32;
     interpreters[Opcode::heap_store16 as usize] = heap::heap_store16;
     interpreters[Opcode::heap_store8 as usize] = heap::heap_store8;

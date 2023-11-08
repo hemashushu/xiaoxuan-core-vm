@@ -255,7 +255,7 @@ mod tests {
         // fn (i64) -> (i64, i32)
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0) // file path addr
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0) // file path addr
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0) // open flags
             // prepare syscall
             .append_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num

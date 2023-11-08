@@ -228,7 +228,7 @@ mod tests {
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
             // read data from heap to stack
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0) // heap addr
-            .append_opcode_i16(Opcode::heap_load32, 0) // offset
+            .append_opcode_i16(Opcode::heap_load32_i32, 0) // offset
             .append_opcode(Opcode::end)
             .to_bytes();
 

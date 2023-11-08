@@ -113,7 +113,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
-            .append_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 

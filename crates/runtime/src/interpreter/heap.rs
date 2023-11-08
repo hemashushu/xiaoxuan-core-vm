@@ -10,7 +10,7 @@ use ancvm_program::{
 
 use super::InterpretResult;
 
-pub fn heap_load(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_load64_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
@@ -22,7 +22,7 @@ pub fn heap_load(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
-pub fn heap_load32(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_load32_i32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
@@ -90,7 +90,7 @@ pub fn heap_load32_i8_u(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
-pub fn heap_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_load64_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
@@ -118,7 +118,7 @@ pub fn heap_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
-pub fn heap_store(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_store64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 number:i64)
     let offset_bytes = thread_context.get_param_i16();
 
@@ -268,26 +268,26 @@ mod tests {
             .append_opcode_i16(Opcode::heap_store32, 7)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .append_opcode_i16(Opcode::heap_store, 0) // store f64
+            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
+            .append_opcode_i16(Opcode::heap_store64, 0) // store f64
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16(Opcode::heap_store32, 0) // store f32
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load, 0)
-            .append_opcode_i16(Opcode::heap_store, 0)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0)
+            .append_opcode_i16(Opcode::heap_store64, 0)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0)
             .append_opcode_i16(Opcode::heap_store32, 0)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load32, 4)
+            .append_opcode_i16(Opcode::heap_load32_i32, 4)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i16_u, 6)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
@@ -300,12 +300,12 @@ mod tests {
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
             .append_opcode_i16(Opcode::heap_load32_f32, 0)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
-            .append_opcode_i16(Opcode::heap_load_f64, 0)
+            .append_opcode_i16(Opcode::heap_load64_f64, 0)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
-            .append_opcode_i16(Opcode::heap_load, 0)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
-            .append_opcode_i16(Opcode::heap_load32, 0)
+            .append_opcode_i16(Opcode::heap_load32_i32, 0)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

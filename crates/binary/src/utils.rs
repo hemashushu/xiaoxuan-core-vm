@@ -1151,7 +1151,7 @@ mod tests {
 
         // 32 bits
         let code1 = BytecodeWriter::new()
-            .append_opcode_i16(Opcode::heap_load, 7)
+            .append_opcode_i16(Opcode::heap_load64_i64, 7)
             .to_bytes();
 
         assert_eq!(
@@ -1192,7 +1192,7 @@ mod tests {
 
         // 64 bits - 3 params
         let code4 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load, 19, 23, 29)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 19, 23, 29)
             .to_bytes();
 
         assert_eq!(
@@ -1289,17 +1289,17 @@ mod tests {
     fn test_bytecode_writer_with_instructions_padding() {
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::i32_add)
-            .append_opcode_i16(Opcode::heap_load, 0x2)
-            .append_opcode_i16(Opcode::heap_store, 0x3)
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
-            .append_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0x2)
+            .append_opcode_i16(Opcode::heap_store64, 0x3)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0x5, 0x7, 0x11)
+            .append_opcode_i16_i16_i16(Opcode::local_store64, 0x13, 0x17, 0x19)
             // padding
-            .append_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
-            .append_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x23, 0x29)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x31, 0x37)
             .append_opcode(Opcode::i32_sub)
             .append_opcode(Opcode::i32_eqz)
-            .append_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
-            .append_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x41, 0x43)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x47, 0x53)
             .append_opcode(Opcode::i32_nez)
             // padding
             .append_opcode_i32(Opcode::i32_imm, 0x59)
@@ -1356,17 +1356,17 @@ mod tests {
     fn test_print_bytecodes_as_binary() {
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::i32_add)
-            .append_opcode_i16(Opcode::heap_load, 0x2)
-            .append_opcode_i16(Opcode::heap_store, 0x3)
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
-            .append_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0x2)
+            .append_opcode_i16(Opcode::heap_store64, 0x3)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0x5, 0x7, 0x11)
+            .append_opcode_i16_i16_i16(Opcode::local_store64, 0x13, 0x17, 0x19)
             // padding
-            .append_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
-            .append_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x23, 0x29)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x31, 0x37)
             .append_opcode(Opcode::i32_sub)
             .append_opcode(Opcode::i32_eqz)
-            .append_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
-            .append_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x41, 0x43)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x47, 0x53)
             .append_opcode(Opcode::i32_nez)
             // padding
             .append_opcode_i32(Opcode::i32_imm, 0x59)
@@ -1418,17 +1418,17 @@ mod tests {
     fn test_print_bytecodes_as_text() {
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::i32_add)
-            .append_opcode_i16(Opcode::heap_load, 0x2)
-            .append_opcode_i16(Opcode::heap_store, 0x3)
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0x5, 0x7, 0x11)
-            .append_opcode_i16_i16_i16(Opcode::local_store, 0x13, 0x17, 0x19)
+            .append_opcode_i16(Opcode::heap_load64_i64, 0x2)
+            .append_opcode_i16(Opcode::heap_store64, 0x3)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0x5, 0x7, 0x11)
+            .append_opcode_i16_i16_i16(Opcode::local_store64, 0x13, 0x17, 0x19)
             // padding
-            .append_opcode_i16_i32(Opcode::data_load, 0x23, 0x29)
-            .append_opcode_i16_i32(Opcode::data_store, 0x31, 0x37)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x23, 0x29)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x31, 0x37)
             .append_opcode(Opcode::i32_sub)
             .append_opcode(Opcode::i32_eqz)
-            .append_opcode_i16_i32(Opcode::data_load, 0x41, 0x43)
-            .append_opcode_i16_i32(Opcode::data_store, 0x47, 0x53)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0x41, 0x43)
+            .append_opcode_i16_i32(Opcode::data_store64, 0x47, 0x53)
             .append_opcode(Opcode::i32_nez)
             // padding
             .append_opcode_i32(Opcode::i32_imm, 0x59)
@@ -1451,32 +1451,32 @@ mod tests {
             text,
             "
 0x0000  00 07                       i32.add
-0x0002  00 04 02 00                 heap.load       off:0x02
-0x0006  08 04 03 00                 heap.store      off:0x03
-0x000a  00 02 05 00  07 00 11 00    local.load      off:0x05  rev-idx: 7  idx:17
-0x0012  08 02 13 00  17 00 19 00    local.store     off:0x13  rev-idx:23  idx:25
+0x0002  00 04 02 00                 heap.load64_i64   off:0x02
+0x0006  08 04 03 00                 heap.store64      off:0x03
+0x000a  00 02 05 00  07 00 11 00    local.load64_i64  off:0x05  rev:7   idx:17
+0x0012  08 02 13 00  17 00 19 00    local.store64     off:0x13  rev:23  idx:25
 0x001a  00 0c                       nop
-0x001c  00 03 23 00  29 00 00 00    data.load       off:0x23  idx:41
-0x0024  08 03 31 00  37 00 00 00    data.store      off:0x31  idx:55
+0x001c  00 03 23 00  29 00 00 00    data.load64_i64   off:0x23  idx:41
+0x0024  08 03 31 00  37 00 00 00    data.store64      off:0x31  idx:55
 0x002c  01 07                       i32.sub
 0x002e  00 06                       i32.eqz
-0x0030  00 03 41 00  43 00 00 00    data.load       off:0x41  idx:67
-0x0038  08 03 47 00  53 00 00 00    data.store      off:0x47  idx:83
+0x0030  00 03 41 00  43 00 00 00    data.load64_i64   off:0x41  idx:67
+0x0038  08 03 47 00  53 00 00 00    data.store64      off:0x47  idx:83
 0x0040  01 06                       i32.nez
 0x0042  00 0c                       nop
-0x0044  80 01 00 00  59 00 00 00    i32.imm         0x00000059
-0x004c  00 0b 00 00  61 00 00 00    call            idx:97
+0x0044  80 01 00 00  59 00 00 00    i32.imm           0x00000059
+0x004c  00 0b 00 00  61 00 00 00    call              idx:97
 0x0054  02 06                       i32.eq
 0x0056  00 0c                       nop
-0x0058  81 01 00 00  67 00 00 00    i64.imm         low:0x00000067  high:0x00000071
+0x0058  81 01 00 00  67 00 00 00    i64.imm           low:0x00000067  high:0x00000071
         71 00 00 00
-0x0064  01 0a 00 00  73 00 00 00    block           type-idx:115  local-idx:121
+0x0064  01 0a 00 00  73 00 00 00    block             type:115  local:121
         79 00 00 00
 0x0070  00 01                       zero
 0x0072  00 0c                       nop
-0x0074  04 0a 00 00  11 00 00 00    block_alt       type-idx:17  local-idx:19  off:0x17
+0x0074  04 0a 00 00  11 00 00 00    block_alt         type:17  local:19  off:0x17
         13 00 00 00  17 00 00 00
-0x0084  05 0a 00 00  19 00 00 00    block_nez       local-idx:25  off:0x23
+0x0084  05 0a 00 00  19 00 00 00    block_nez         local:25  off:0x23
         23 00 00 00
 0x0090  00 0a                       end"[1..]
         )

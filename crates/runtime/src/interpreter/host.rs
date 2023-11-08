@@ -442,7 +442,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 2)
             //
             .append_opcode_i32(Opcode::i32_imm, 0x19)
             .append_opcode_i16_i32(Opcode::data_store32, 0, 3)
@@ -451,7 +451,7 @@ mod tests {
             .append_opcode_i16_i32(Opcode::data_store32, 0, 4)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x29)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 5)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 5)
             //
             .append_opcode_i32(Opcode::i32_imm, 0x31)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
@@ -565,7 +565,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
-            .append_opcode_i16_i16_i16(Opcode::local_store, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_store64, 0, 0, 1)
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
             .append_opcode_i32(Opcode::host_addr_data_long, 0)
@@ -677,7 +677,7 @@ mod tests {
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x3731292319171311)
-            .append_opcode_i16(Opcode::heap_store, 0)
+            .append_opcode_i16(Opcode::heap_store64, 0)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i16(Opcode::host_addr_heap, 0)
@@ -746,11 +746,11 @@ mod tests {
             .append_opcode(Opcode::drop)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
             .append_opcode(Opcode::host_copy_to_heap)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
             .append_opcode(Opcode::host_copy_from_heap)
@@ -813,8 +813,8 @@ mod tests {
             .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
             .append_opcode(Opcode::host_addr_func) // get host address of the func1
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0) // external func param 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 1) // external func param 2
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 1
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 2
             //
             .append_opcode_i32(Opcode::i32_imm, 0) // external func index
             .append_opcode(Opcode::extcall) // call external function
@@ -823,7 +823,7 @@ mod tests {
             .to_bytes();
 
         let code1 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 2)
             .append_opcode(Opcode::i32_mul)
             //

@@ -49,7 +49,6 @@ pub fn print_bytecode_as_binary(codes: &[u8]) -> String {
 // 0x0000  00 07                       i32.add
 // 0x0002  00 04 02 00                 heap.load       off:0x02
 // 0x0006  08 04 03 00                 heap.store      off:0x03
-// 0x000a  00 02 05 00  07 00 11 00    local.load      off:0x05  rev-idx: 7  idx:17
 pub fn print_bytecode_as_text(codes: &[u8]) -> String {
     let mut lines: Vec<String> = Vec::new();
 
@@ -77,15 +76,15 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (o, format!("low:0x{:08x}  high:0x{:08x}", v_low, v_high))
             }
             // local load/store
-            Opcode::local_load
-            | Opcode::local_load32
+            Opcode::local_load64_i64
+            | Opcode::local_load32_i32
             | Opcode::local_load32_i16_s
             | Opcode::local_load32_i16_u
             | Opcode::local_load32_i8_s
             | Opcode::local_load32_i8_u
-            | Opcode::local_load_f64
+            | Opcode::local_load64_f64
             | Opcode::local_load32_f32
-            | Opcode::local_store
+            | Opcode::local_store64
             | Opcode::local_store32
             | Opcode::local_store16
             | Opcode::local_store8 => {
@@ -94,69 +93,69 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (
                     o,
                     format!(
-                        "off:0x{:02x}  rev-idx:{:2}  idx:{:2}",
+                        "off:0x{:02x}  rev:{:<2}  idx:{}",
                         offset, reversed_index, index
                     ),
                 )
             }
             //
-            Opcode::local_long_load
-            | Opcode::local_long_load32
+            Opcode::local_long_load64_i64
+            | Opcode::local_long_load32_i32
             | Opcode::local_long_load32_i16_s
             | Opcode::local_long_load32_i16_u
             | Opcode::local_long_load32_i8_s
             | Opcode::local_long_load32_i8_u
-            | Opcode::local_long_load_f64
+            | Opcode::local_long_load64_f64
             | Opcode::local_long_load32_f32
-            | Opcode::local_long_store
+            | Opcode::local_long_store64
             | Opcode::local_long_store32
             | Opcode::local_long_store16
             | Opcode::local_long_store8 => {
                 let (o, reversed_index, index) = read_param_i16_i32(codes, offset_param);
-                (o, format!("rev-idx:{:2}  idx:{:2}", reversed_index, index))
+                (o, format!("rev:{:<2}  idx:{}", reversed_index, index))
             }
             // data load/store
-            Opcode::data_load
-            | Opcode::data_load32
+            Opcode::data_load64_i64
+            | Opcode::data_load32_i32
             | Opcode::data_load32_i16_s
             | Opcode::data_load32_i16_u
             | Opcode::data_load32_i8_s
             | Opcode::data_load32_i8_u
-            | Opcode::data_load_f64
+            | Opcode::data_load64_f64
             | Opcode::data_load32_f32
-            | Opcode::data_store
+            | Opcode::data_store64
             | Opcode::data_store32
             | Opcode::data_store16
             | Opcode::data_store8 => {
                 let (o, offset, index) = read_param_i16_i32(codes, offset_param);
-                (o, format!("off:0x{:02x}  idx:{:2}", offset, index))
+                (o, format!("off:0x{:02x}  idx:{}", offset, index))
             }
             //
-            Opcode::data_long_load
-            | Opcode::data_long_load32
+            Opcode::data_long_load64_i64
+            | Opcode::data_long_load32_i32
             | Opcode::data_long_load32_i16_s
             | Opcode::data_long_load32_i16_u
             | Opcode::data_long_load32_i8_s
             | Opcode::data_long_load32_i8_u
-            | Opcode::data_long_load_f64
+            | Opcode::data_long_load64_f64
             | Opcode::data_long_load32_f32
-            | Opcode::data_long_store
+            | Opcode::data_long_store64
             | Opcode::data_long_store32
             | Opcode::data_long_store16
             | Opcode::data_long_store8 => {
                 let (o, index) = read_param_i32(codes, offset_param);
-                (o, format!("idx:{:2}", index))
+                (o, format!("idx:{}", index))
             }
             // heap load/store
-            Opcode::heap_load
-            | Opcode::heap_load32
+            Opcode::heap_load64_i64
+            | Opcode::heap_load32_i32
             | Opcode::heap_load32_i16_s
             | Opcode::heap_load32_i16_u
             | Opcode::heap_load32_i8_s
             | Opcode::heap_load32_i8_u
-            | Opcode::heap_load_f64
+            | Opcode::heap_load64_f64
             | Opcode::heap_load32_f32
-            | Opcode::heap_store
+            | Opcode::heap_store64
             | Opcode::heap_store32
             | Opcode::heap_store16
             | Opcode::heap_store8 => {
@@ -333,14 +332,14 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 let (o, type_idx, local_list_index) = read_param_i32_i32(codes, offset_param);
                 (
                     o,
-                    format!("type-idx:{:2}  local-idx:{:2}", type_idx, local_list_index),
+                    format!("type:{:<2}  local:{}", type_idx, local_list_index),
                 )
             }
             Opcode::block_nez => {
                 let (o, local_idx, offset) = read_param_i32_i32(codes, offset_param);
                 (
                     o,
-                    format!("local-idx:{:2}  off:0x{:02x}", local_idx, offset),
+                    format!("local:{:<2}  off:0x{:02x}", local_idx, offset),
                 )
             }
             Opcode::block_alt => {
@@ -348,7 +347,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (
                     o,
                     format!(
-                        "type-idx:{:2}  local-idx:{:2}  off:0x{:02x}",
+                        "type:{:<2}  local:{:<2}  off:0x{:02x}",
                         type_idx, local_idx, offset
                     ),
                 )
@@ -357,12 +356,12 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 let (o, reversed_index, offset) = read_param_i16_i32(codes, offset_param);
                 (
                     o,
-                    format!("rev-idx:{:2}  off:0x{:02x}", reversed_index, offset),
+                    format!("rev:{:<2}  off:0x{:02x}", reversed_index, offset),
                 )
             }
             Opcode::call | Opcode::envcall => {
                 let (o, idx) = read_param_i32(codes, offset_param);
-                (o, format!("idx:{:2}", idx))
+                (o, format!("idx:{}", idx))
             }
             Opcode::dyncall | Opcode::syscall | Opcode::extcall => (offset_param, String::new()),
             // machine
@@ -376,22 +375,22 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (
                     o,
                     format!(
-                        "rev-idx:{:2}  off:0x{:02x}  idx:{:2}",
+                        "rev:{:<2}  off:0x{:02x}  idx:{}",
                         reversed_idx, offset, idx
                     ),
                 )
             }
             Opcode::host_addr_local_long => {
                 let (o, reversed_idx, idx) = read_param_i16_i32(codes, offset_param);
-                (o, format!("rev-idx:{:2}  idx:{:2}", reversed_idx, idx))
+                (o, format!("rev:{:<2}  idx:{}", reversed_idx, idx))
             }
             Opcode::host_addr_data => {
                 let (o, offset, idx) = read_param_i16_i32(codes, offset_param);
-                (o, format!("off:0x{:02x}  idx:{:2}", offset, idx))
+                (o, format!("off:0x{:02x}  idx:{}", offset, idx))
             }
             Opcode::host_addr_data_long => {
                 let (o, idx) = read_param_i32(codes, offset_param);
-                (o, format!("idx:{:2}", idx))
+                (o, format!("idx:{}", idx))
             }
             Opcode::host_addr_heap => {
                 let (o, offset) = read_param_i16(codes, offset_param);
@@ -439,7 +438,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             ));
         } else {
             line.push_str(&format!(
-                "{:28}{:12}    {}",
+                "{:28}{:16}  {}",
                 print_binary(chunks.next().unwrap()),
                 opcode.get_name(),
                 param_text

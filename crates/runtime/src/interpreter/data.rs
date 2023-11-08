@@ -13,28 +13,28 @@ const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
 const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
 const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
 
-pub fn data_load(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_load64_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
-    do_data_load(
+    do_data_load64_i64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn data_long_load(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_long_load64_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
-    do_data_load(
+    do_data_load64_i64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-fn do_data_load(
+fn do_data_load64_i64(
     thread_context: &mut ThreadContext,
     data_public_index: usize,
     offset_bytes: usize,
@@ -51,28 +51,28 @@ fn do_data_load(
     InterpretResult::Move(8)
 }
 
-pub fn data_load32(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_load32_i32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
-    do_data_load32(
+    do_data_load32_i32(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn data_long_load32(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_long_load32_i32(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
-    do_data_load32(
+    do_data_load32_i32(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-fn do_data_load32(
+fn do_data_load32_i32(
     thread_context: &mut ThreadContext,
     data_public_index: usize,
     offset_bytes: usize,
@@ -279,28 +279,28 @@ fn do_data_load32_f32(
     InterpretResult::Move(8)
 }
 
-pub fn data_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_load64_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
-    do_data_load_f64(
+    do_data_load64_f64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-pub fn data_long_load_f64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_long_load64_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
-    do_data_load_f64(
+    do_data_load64_f64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
     )
 }
 
-fn do_data_load_f64(
+fn do_data_load64_f64(
     thread_context: &mut ThreadContext,
     data_public_index: usize,
     offset_bytes: usize,
@@ -317,11 +317,11 @@ fn do_data_load_f64(
     InterpretResult::Move(8)
 }
 
-pub fn data_store(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_store64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16 data_public_index:i32)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    do_data_store(
+    do_data_store64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
@@ -329,12 +329,12 @@ pub fn data_store(thread_context: &mut ThreadContext) -> InterpretResult {
     )
 }
 
-pub fn data_long_store(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn data_long_store64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let offset_bytes = thread_context.stack.pop_i32_u();
-    do_data_store(
+    do_data_store64(
         thread_context,
         data_public_index as usize,
         offset_bytes as usize,
@@ -342,7 +342,7 @@ pub fn data_long_store(thread_context: &mut ThreadContext) -> InterpretResult {
     )
 }
 
-fn do_data_store(
+fn do_data_store64(
     thread_context: &mut ThreadContext,
     data_public_index: usize,
     offset_bytes: usize,
@@ -547,36 +547,36 @@ mod tests {
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 3, 1)
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 2, 1)
             .append_opcode_i16_i32(Opcode::data_load32_i16_u, 0, 1)
-            .append_opcode_i16_i32(Opcode::data_load32, 0, 0)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 0, 0)
             //
             .append_opcode_i16_i32(Opcode::data_store32, 0, 2)
             .append_opcode_i16_i32(Opcode::data_store16, 4, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
+            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 4) // store f64
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 5)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 5)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
             .append_opcode_i16_i32(Opcode::data_store32, 0, 6)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
-            .append_opcode_i16_i32(Opcode::data_load32, 4, 2)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 4, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i16_u, 6, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i16_s, 6, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 7, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i8_s, 7, 2)
             //
             .append_opcode_i16_i32(Opcode::data_load32_f32, 0, 3)
-            .append_opcode_i16_i32(Opcode::data_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::data_load64_f64, 0, 4)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 5)
-            .append_opcode_i16_i32(Opcode::data_load32, 0, 6)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 5)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 0, 6)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -692,36 +692,36 @@ mod tests {
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 3, 1)
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 2, 1)
             .append_opcode_i16_i32(Opcode::data_load32_i16_u, 0, 1)
-            .append_opcode_i16_i32(Opcode::data_load32, 0, 0)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 0, 0)
             //
             .append_opcode_i16_i32(Opcode::data_store32, 0, 2)
             .append_opcode_i16_i32(Opcode::data_store16, 4, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 7, 2)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 4) // store f64
+            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 4) // store f64
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
-            .append_opcode_i16_i32(Opcode::data_store, 0, 5)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_store64, 0, 5)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
             .append_opcode_i16_i32(Opcode::data_store32, 0, 6)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 2)
-            .append_opcode_i16_i32(Opcode::data_load32, 4, 2)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 4, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i16_u, 6, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i16_s, 6, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 7, 2)
             .append_opcode_i16_i32(Opcode::data_load32_i8_s, 7, 2)
             //
             .append_opcode_i16_i32(Opcode::data_load32_f32, 0, 3)
-            .append_opcode_i16_i32(Opcode::data_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::data_load64_f64, 0, 4)
             //
-            .append_opcode_i16_i32(Opcode::data_load, 0, 5)
-            .append_opcode_i16_i32(Opcode::data_load32, 0, 6)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 5)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 0, 6)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -834,13 +834,13 @@ mod tests {
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::data_long_load, 0) // load 64
-            .append_opcode_i32(Opcode::data_long_store, 1) // store 64
+            .append_opcode_i32(Opcode::data_long_load64_i64, 0) // load 64
+            .append_opcode_i32(Opcode::data_long_store64, 1) // store 64
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::data_long_load, 0)
+            .append_opcode_i32(Opcode::data_long_load64_i64, 0)
             .append_opcode_i32(Opcode::i32_imm, 4)
-            .append_opcode_i32(Opcode::data_long_load32, 0)
+            .append_opcode_i32(Opcode::data_long_load32_i32, 0)
             .append_opcode_i32(Opcode::i32_imm, 6)
             .append_opcode_i32(Opcode::data_long_load32_i16_u, 0)
             .append_opcode_i32(Opcode::i32_imm, 6)
@@ -851,9 +851,9 @@ mod tests {
             .append_opcode_i32(Opcode::data_long_load32_i8_s, 0)
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::data_long_load, 1)
+            .append_opcode_i32(Opcode::data_long_load64_i64, 1)
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::data_long_load32, 1)
+            .append_opcode_i32(Opcode::data_long_load32_i32, 1)
             .append_opcode_i32(Opcode::i32_imm, 0)
             .append_opcode_i32(Opcode::data_long_load32_i16_u, 1)
             .append_opcode_i32(Opcode::i32_imm, 0)
@@ -916,7 +916,7 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i32(Opcode::data_load32, 2, 0)
+            .append_opcode_i16_i32(Opcode::data_load32_i32, 2, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -950,7 +950,7 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i32(Opcode::data_load, 0, 0)
+            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -1020,7 +1020,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 2) // offset
-            .append_opcode_i32(Opcode::data_long_load32, 0)
+            .append_opcode_i32(Opcode::data_long_load32_i32, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
