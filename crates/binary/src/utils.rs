@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_types::{DataType, ExternalLibraryType};
+use ancvm_types::{DataSectionType, DataType, ExternalLibraryType};
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -23,7 +23,7 @@ use crate::module_image::unified_external_library_section::{
 use crate::module_image::{
     data_index_section::{DataIndexItem, DataIndexSection},
     data_section::{
-        DataEntry, DataSectionType, ReadOnlyDataSection, ReadWriteDataSection, UninitDataEntry,
+        InitedDataEntry, ReadOnlyDataSection, ReadWriteDataSection, UninitDataEntry,
         UninitDataSection,
     },
     func_index_section::{FuncIndexItem, FuncIndexSection},
@@ -335,8 +335,8 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
     result_datatypes: Vec<DataType>,
     local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
-    read_only_data_entries: Vec<DataEntry>,
-    read_write_data_entries: Vec<DataEntry>,
+    read_only_data_entries: Vec<InitedDataEntry>,
+    read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
 ) -> Vec<u8> {
     let type_entry = TypeEntry {
@@ -504,8 +504,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
 pub fn helper_build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
     helper_func_entries: Vec<HelperFuncEntryWithLocalVars>,
-    read_only_data_entries: Vec<DataEntry>,
-    read_write_data_entries: Vec<DataEntry>,
+    read_only_data_entries: Vec<InitedDataEntry>,
+    read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
@@ -556,8 +556,8 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
 #[allow(clippy::too_many_arguments)]
 pub fn helper_build_module_binary(
     name: &str,
-    read_only_data_entries: Vec<DataEntry>,
-    read_write_data_entries: Vec<DataEntry>,
+    read_only_data_entries: Vec<InitedDataEntry>,
+    read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
     local_var_list_entries: Vec<LocalListEntry>, // this local list includes args
@@ -792,7 +792,9 @@ pub fn helper_build_module_binary(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, MemoryDataType};
+    use ancvm_types::{
+        opcode::Opcode, DataSectionType, DataType, ExternalLibraryType, MemoryDataType,
+    };
 
     use crate::{
         bytecode_reader::{print_bytecode_as_binary, print_bytecode_as_text},
@@ -800,7 +802,7 @@ mod tests {
         load_modules_from_binaries,
         module_image::{
             data_index_section::DataIndexItem,
-            data_section::{DataEntry, DataItem, DataSectionType, UninitDataEntry},
+            data_section::{DataItem, InitedDataEntry, UninitDataEntry},
             external_func_index_section::ExternalFuncIndexItem,
             func_index_section::FuncIndexItem,
             local_variable_section::{LocalVariableEntry, LocalVariableItem},
@@ -821,8 +823,11 @@ mod tests {
             vec![DataType::I32],
             vec![LocalVariableEntry::from_i32()],
             vec![0u8],
-            vec![DataEntry::from_i32(0x11), DataEntry::from_i64(0x13)],
-            vec![DataEntry::from_bytes(
+            vec![
+                InitedDataEntry::from_i32(0x11),
+                InitedDataEntry::from_i64(0x13),
+            ],
+            vec![InitedDataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],

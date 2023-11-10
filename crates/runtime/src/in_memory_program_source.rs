@@ -66,7 +66,7 @@ impl ProgramSource for InMemoryProgramSource {
 mod tests {
     use ancvm_binary::{
         module_image::{
-            data_section::{DataEntry, UninitDataEntry},
+            data_section::{InitedDataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
         },
         utils::helper_build_module_binary_with_single_function_and_data_sections,
@@ -86,8 +86,8 @@ mod tests {
             vec![DataType::I64],
             vec![LocalVariableEntry::from_i32()],
             vec![0u8],
-            vec![DataEntry::from_i32(0x11), DataEntry::from_i64(0x13)],
-            vec![DataEntry::from_bytes(
+            vec![InitedDataEntry::from_i32(0x11), InitedDataEntry::from_i64(0x13)],
+            vec![InitedDataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],

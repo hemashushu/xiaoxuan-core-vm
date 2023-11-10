@@ -280,7 +280,7 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
         module_image::{
-            data_section::{DataEntry, UninitDataEntry},
+            data_section::{InitedDataEntry, UninitDataEntry},
             local_variable_section::LocalVariableEntry,
             type_section::TypeEntry,
         },
@@ -504,10 +504,10 @@ mod tests {
                 LocalVariableEntry::from_i32(),
             ], // local vars
             code0,
-            vec![DataEntry::from_i32(0x11), DataEntry::from_i32(0x13)],
+            vec![InitedDataEntry::from_i32(0x11), InitedDataEntry::from_i32(0x13)],
             vec![
-                DataEntry::from_i64(0xee), // init data
-                DataEntry::from_i32(0xff), // init data
+                InitedDataEntry::from_i64(0xee), // init data
+                InitedDataEntry::from_i32(0xff), // init data
             ],
             vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
         );
@@ -621,8 +621,8 @@ mod tests {
             ], // local vars
             code0,
             vec![
-                DataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
-                DataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+                InitedDataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                InitedDataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
             ], // init data
             vec![],
             vec![],

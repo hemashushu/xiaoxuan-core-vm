@@ -339,27 +339,24 @@ mod tests {
             &[
                 // https://baseconvert.com/ieee-754-floating-point
                 // https://www.binaryconvert.com/convert_float.html
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                // 0x40490FDA
-                // 218,15,73,64
-                ForeignValue::Float64(std::f64::consts::E), // deprecated 2.9979e8f64
-                                                            // 0x41B1DE6EB0000000
-                                                            // 0,0,0,176,110,222,177,65
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0xf0e0d0c0u32),
                 ForeignValue::UInt32(0xf0e0u32),
                 ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
-                //
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
-                //
+                // group 1
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
+                // group 2
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
             ]

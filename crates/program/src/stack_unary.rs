@@ -1001,8 +1001,8 @@ mod tests {
         // check push, peek and pop
         stack.push_i32_u(11);
         stack.push_i64_u(13);
-        stack.push_f32(std::f32::consts::PI); // 3.14
-        stack.push_f64(std::f64::consts::E); // deprecated 2.9979e8
+        stack.push_f32(std::f32::consts::PI);
+        stack.push_f64(std::f64::consts::E);
 
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4 + INIT_SP);
         assert_eq!(stack.peek_f64(), std::f64::consts::E);

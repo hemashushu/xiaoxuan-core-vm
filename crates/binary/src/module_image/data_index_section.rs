@@ -20,9 +20,11 @@
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
+use ancvm_types::DataSectionType;
+
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
-use super::{data_section::DataSectionType, ModuleSectionId, RangeItem, SectionEntry};
+use super::{ModuleSectionId, RangeItem, SectionEntry};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct DataIndexSection<'a> {
@@ -192,9 +194,10 @@ impl<'a> DataIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ancvm_types::DataSectionType;
+
     use crate::module_image::{
         data_index_section::{DataIndexItem, DataIndexSection, RangeItem},
-        data_section::DataSectionType,
         SectionEntry,
     };
 

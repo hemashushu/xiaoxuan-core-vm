@@ -118,7 +118,7 @@ mod tests {
 
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
-        module_image::{data_section::DataEntry, type_section::TypeEntry},
+        module_image::{data_section::InitedDataEntry, type_section::TypeEntry},
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
@@ -209,7 +209,7 @@ mod tests {
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
             }],
-            vec![DataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
+            vec![InitedDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {

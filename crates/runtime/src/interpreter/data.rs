@@ -490,7 +490,7 @@ mod tests {
 
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
-        module_image::data_section::{DataEntry, UninitDataEntry},
+        module_image::data_section::{InitedDataEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
 
@@ -598,15 +598,15 @@ mod tests {
             vec![],                             // local vars
             code0,
             vec![
-                DataEntry::from_i32(0x19171311),
-                DataEntry::from_i32(0xf0e0d0c0),
+                InitedDataEntry::from_i32(0x19171311),
+                InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
             vec![
-                DataEntry::from_bytes(vec![0u8; 8], 8),
-                DataEntry::from_f32(0.0f32),
-                DataEntry::from_f64(0.0f64),
-                DataEntry::from_i64(0),
-                DataEntry::from_i32(0),
+                InitedDataEntry::from_bytes(vec![0u8; 8], 8),
+                InitedDataEntry::from_f32(0.0f32),
+                InitedDataEntry::from_f64(0.0f64),
+                InitedDataEntry::from_i64(0),
+                InitedDataEntry::from_i32(0),
             ],
             vec![],
         );
@@ -620,8 +620,8 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
             ],
         );
         assert_eq!(
@@ -634,8 +634,8 @@ mod tests {
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
                 //
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
                 //
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
@@ -743,8 +743,8 @@ mod tests {
             vec![],                             // local vars
             code0,
             vec![
-                DataEntry::from_i32(0x19171311),
-                DataEntry::from_i32(0xf0e0d0c0),
+                InitedDataEntry::from_i32(0x19171311),
+                InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
             vec![],
             vec![
@@ -765,23 +765,24 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0xf0e0d0c0u32),
                 ForeignValue::UInt32(0xf0e0u32),
                 ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
-                //
-                ForeignValue::Float32(std::f32::consts::PI), // 3.1415926f32
-                ForeignValue::Float64(std::f64::consts::E),  // deprecated 2.9979e8f64
-                //
+                // group 1
+                ForeignValue::Float32(std::f32::consts::PI),
+                ForeignValue::Float64(std::f64::consts::E),
+                // group 2
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
             ]
@@ -894,13 +895,14 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0xf0e0d0c0u32),
                 ForeignValue::UInt32(0xf0e0u32),
                 ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
-                //
+                // group 1
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
                 ForeignValue::UInt32(0x00001311u32), // extend from i16 to i32
@@ -926,7 +928,7 @@ mod tests {
             vec![], // local vars
             code0,
             vec![],
-            vec![DataEntry::from_i32(11)],
+            vec![InitedDataEntry::from_i32(11)],
             vec![],
         );
 
@@ -960,7 +962,7 @@ mod tests {
             vec![], // local vars
             code0,
             vec![],
-            vec![DataEntry::from_i32(11)],
+            vec![InitedDataEntry::from_i32(11)],
             vec![],
         );
 
@@ -995,7 +997,7 @@ mod tests {
             vec![], // local vars
             code0,
             vec![],
-            vec![DataEntry::from_i32(11)],
+            vec![InitedDataEntry::from_i32(11)],
             vec![],
         );
 
@@ -1030,7 +1032,7 @@ mod tests {
             vec![], // local vars
             code0,
             vec![],
-            vec![DataEntry::from_i32(11)],
+            vec![InitedDataEntry::from_i32(11)],
             vec![],
         );
 

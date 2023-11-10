@@ -42,8 +42,6 @@
 // when storing "struct" data, the data type "byte" should be used, as well as
 // the alignment should be speicified.
 
-use std::fmt::Display;
-
 use ancvm_types::MemoryDataType;
 
 use crate::utils::{
@@ -89,27 +87,8 @@ pub struct DataItem {
     pub data_align: u16,
 }
 
-#[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum DataSectionType {
-    ReadOnly = 0x0,
-    ReadWrite,
-    Uninit,
-}
-
-impl Display for DataSectionType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            DataSectionType::ReadOnly => "read-only",
-            DataSectionType::ReadWrite => "read-write",
-            DataSectionType::Uninit => "unitialized",
-        };
-        f.write_str(name)
-    }
-}
-
 #[derive(Debug)]
-pub struct DataEntry {
+pub struct InitedDataEntry {
     pub memory_data_type: MemoryDataType,
     pub data: Vec<u8>,
     pub length: u32,
@@ -123,7 +102,7 @@ pub struct UninitDataEntry {
     pub align: u16, // should not be '0'
 }
 
-impl DataEntry {
+impl InitedDataEntry {
     /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
     /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
     /// the same applies to the i8, i16 and i64.
@@ -307,18 +286,20 @@ impl<'a> SectionEntry<'a> for UninitDataSection<'a> {
 }
 
 impl ReadOnlyDataSection<'_> {
-    pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
-        convert_from_entries_internal(entries)
+    pub fn convert_from_entries(entries: &[InitedDataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+        convert_inited_data_entries_into_data_items_and_datas(entries)
     }
 }
 
 impl ReadWriteDataSection<'_> {
-    pub fn convert_from_entries(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
-        convert_from_entries_internal(entries)
+    pub fn convert_from_entries(entries: &[InitedDataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+        convert_inited_data_entries_into_data_items_and_datas(entries)
     }
 }
 
-fn convert_from_entries_internal(entries: &[DataEntry]) -> (Vec<DataItem>, Vec<u8>) {
+fn convert_inited_data_entries_into_data_items_and_datas(
+    entries: &[InitedDataEntry],
+) -> (Vec<DataItem>, Vec<u8>) {
     // | type  | size | alignment |
     // |-------|------|-----------|
     // | i32   | 4    | 4         |
@@ -427,7 +408,7 @@ mod tests {
     use ancvm_types::MemoryDataType;
 
     use crate::module_image::{
-        data_section::{DataEntry, DataItem, UninitDataEntry, UninitDataSection},
+        data_section::{DataItem, InitedDataEntry, UninitDataEntry, UninitDataSection},
         SectionEntry,
     };
 
@@ -435,14 +416,14 @@ mod tests {
 
     #[test]
     fn test_save_section_read_write_data() {
-        let data_entry0 = DataEntry::from_i32(11);
-        let data_entry1 = DataEntry::from_i64(13);
-        let data_entry2 = DataEntry::from_bytes(b"hello".to_vec(), 1);
-        let data_entry3 = DataEntry::from_f32(std::f32::consts::PI);
-        let data_entry4 = DataEntry::from_f64(std::f64::consts::E); // deprecated 2.9979e8
-        let data_entry5 = DataEntry::from_bytes(b"foo".to_vec(), 8);
-        let data_entry6 = DataEntry::from_i64(17);
-        let data_entry7 = DataEntry::from_i32(19);
+        let data_entry0 = InitedDataEntry::from_i32(11);
+        let data_entry1 = InitedDataEntry::from_i64(13);
+        let data_entry2 = InitedDataEntry::from_bytes(b"hello".to_vec(), 1);
+        let data_entry3 = InitedDataEntry::from_f32(std::f32::consts::PI);
+        let data_entry4 = InitedDataEntry::from_f64(std::f64::consts::E);
+        let data_entry5 = InitedDataEntry::from_bytes(b"foo".to_vec(), 8);
+        let data_entry6 = InitedDataEntry::from_i64(17);
+        let data_entry7 = InitedDataEntry::from_i32(19);
 
         let (items, datas) = ReadWriteDataSection::convert_from_entries(&[
             data_entry0,

@@ -127,6 +127,25 @@ pub enum MemoryDataType {
     BYTES,
 }
 
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum DataSectionType {
+    ReadOnly = 0x0,
+    ReadWrite,
+    Uninit,
+}
+
+impl Display for DataSectionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            DataSectionType::ReadOnly => "read-only",
+            DataSectionType::ReadWrite => "read-write",
+            DataSectionType::Uninit => "unitialized",
+        };
+        f.write_str(name)
+    }
+}
+
 // for foreign function interface (FFI)
 // that is, for calling function (in a module of the VM) from the outside,
 // or returning values to the outside.
