@@ -79,8 +79,9 @@ pub struct DataItem {
 
     _padding0: u8,
 
-    // the align field is not necessary for data loading and storing, because the value of 'data_offset'
-    // is aligned at compilation time, it is only needed when copying data into other memory, such as
+    // the align field is not necessary for data loading and storing at runtime,
+    // because the value of 'data_offset' is implied the 'align' at compilation time,
+    // but it is also needed when copying data into other memory, such as
     // copying a struct from data section into heap.
     //
     // the value of this field should not be '0'

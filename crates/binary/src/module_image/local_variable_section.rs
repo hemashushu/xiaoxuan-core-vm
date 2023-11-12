@@ -91,8 +91,8 @@ pub struct LocalVariableItem {
     _padding0: u8,
 
     // the var_align field is not necessary for local variables loading and storing,
-    // because the local variable is always 8-byte aligned in the local variable area,
-    // it is helpful for debugging when copying data into other memory, such as
+    // the local variable is always 8-byte aligned in the local variable area currently,
+    // but it is needed for copying data into other memory, such as
     // copying a struct from local variables area to heap.
     //
     // if the data is a byte array (includes string), the value should be 1,

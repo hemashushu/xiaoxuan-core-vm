@@ -864,6 +864,9 @@ pub enum Opcode {
     // ```
     //
     // (+ => execute, - => pass)
+    //
+    // 'block_alt' has NO PARAMS, but it can return RESULTS and own local variables.
+    //
     block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is

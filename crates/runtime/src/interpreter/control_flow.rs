@@ -229,7 +229,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_control_flow_block() {
-        // function () -> (i32, i32, i32, i32)
+        // fn () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) () -> ()
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_control_flow_block_with_args_and_results() {
-        // function () -> (i32, i32, i32, i32)
+        // fn () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) (i32) -> (i32, i32)
@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_control_flow_break_function() {
-        // function () -> (i32, i32)
+        // fn () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (break 0 0)
@@ -533,7 +533,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_control_flow_break_block() {
-        // function () -> (i32, i32, i32, i32)
+        // fn () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) () -> (i32, i32)
@@ -596,7 +596,7 @@ mod tests {
     fn test_interpreter_control_flow_break_block_crossing() {
         // cross jump
         //
-        // function () -> (i32, i32)
+        // fn () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) () -> ()
@@ -661,7 +661,7 @@ mod tests {
         //     (local_load32 0 0)
         //     (local_load32 0 1)
         //     i32_lt
-        //     (block_nez 1) ()->()
+        //     (block_nez local_idx:1) ()->()
         //          (local_load32 1 1)
         //          (local_store32 1 2)
         //     end
@@ -754,7 +754,7 @@ mod tests {
             vec![],                             // local vars
             code0,
             vec![HelperBlockEntry {
-                params: vec![],
+                params: vec![], // 'block_alt' has no PARAMS
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
@@ -848,17 +848,17 @@ mod tests {
             code0,
             vec![
                 HelperBlockEntry {
-                    params: vec![],
+                    params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockEntry {
-                    params: vec![],
+                    params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockEntry {
-                    params: vec![],
+                    params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
@@ -1622,7 +1622,7 @@ mod tests {
             vec![],                             // local vars
             code0,
             vec![HelperBlockEntry {
-                params: vec![],
+                params: vec![], // 'block_alt' has no PARAMS
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }], // blocks
