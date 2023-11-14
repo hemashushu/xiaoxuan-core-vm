@@ -10,19 +10,19 @@ use super::InterpretResult;
 
 pub fn i32_add(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread_context);
-    store_i32_u(thread_context, left + right);
+    store_i32_u(thread_context, left.wrapping_add(right));
     InterpretResult::Move(2)
 }
 
 pub fn i32_sub(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread_context);
-    store_i32_u(thread_context, left - right);
+    store_i32_u(thread_context, left.wrapping_sub(right));
     InterpretResult::Move(2)
 }
 
 pub fn i32_mul(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i32_u(thread_context);
-    store_i32_u(thread_context, left * right);
+    store_i32_u(thread_context, left.wrapping_mul(right));
     InterpretResult::Move(2)
 }
 
@@ -53,32 +53,32 @@ pub fn i32_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
 pub fn i32_inc(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
-    store_i32_u(thread_context, value + amount as u32);
+    store_i32_u(thread_context, value.wrapping_add(amount as u32));
     InterpretResult::Move(4)
 }
 
 pub fn i32_dec(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
-    store_i32_u(thread_context, value - amount as u32);
+    store_i32_u(thread_context, value.wrapping_sub(amount as u32));
     InterpretResult::Move(4)
 }
 
 pub fn i64_add(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread_context);
-    store_i64_u(thread_context, left + right);
+    store_i64_u(thread_context, left.wrapping_add(right));
     InterpretResult::Move(2)
 }
 
 pub fn i64_sub(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread_context);
-    store_i64_u(thread_context, left - right);
+    store_i64_u(thread_context, left.wrapping_sub(right));
     InterpretResult::Move(2)
 }
 
 pub fn i64_mul(thread_context: &mut ThreadContext) -> InterpretResult {
     let (left, right) = load_operands_i64_u(thread_context);
-    store_i64_u(thread_context, left * right);
+    store_i64_u(thread_context, left.wrapping_mul(right));
     InterpretResult::Move(2)
 }
 
@@ -109,14 +109,14 @@ pub fn i64_rem_u(thread_context: &mut ThreadContext) -> InterpretResult {
 pub fn i64_inc(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
-    store_i64_u(thread_context, value + amount as u64);
+    store_i64_u(thread_context, value.wrapping_add(amount as u64));
     InterpretResult::Move(4)
 }
 
 pub fn i64_dec(thread_context: &mut ThreadContext) -> InterpretResult {
     let amount = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
-    store_i64_u(thread_context, value - amount as u64);
+    store_i64_u(thread_context, value.wrapping_sub(amount as u64));
     InterpretResult::Move(4)
 }
 
@@ -267,18 +267,33 @@ mod tests {
         //   - 2: -13
 
         // arithemtic:
+        //   group 0:
         //   - add   0 1      -> 222
         //   - sub   1 0      -> 200
+        //   - sub   0 1      -> -200
         //   - mul   0 1      -> 2321
+        //
+        //   group 1:
         //   - div_s 1 2      -> -16
+        //   - div_u 1 2      -> 0
+        //   - div_s 2 1      -> 0
         //   - div_u 2 1      -> 20355295 (= 4294967283/211)
         //   - rem_s 1 2      -> 3
         //   - rem_u 2 1      -> 38
         //
-        //   - inc   0 3      -> 14
-        //   - dec   0 3      -> 8
-        //   - inc   2 3      -> -10
-        //   - dec   2 3      -> -16
+        //   group 2:
+        //   - inc   0 amount:3     -> 14
+        //   - dec   0 amount:3     -> 8
+        //   - inc   2 amount:3     -> -10
+        //   - dec   2 amount:3     -> -16
+        //
+        //   group 3:
+        //   - add 0xffff_ffff 0x2  -> 0x1                  ;; -1 + 2 = 1
+        //   - mul 0xf0e0_d0c0 0x2  -> 0xf0e0_d0c0 << 1
+        //   - inc 0xffff_ffff 0x2  -> 0x1
+        //   - dec 0x1         0x2  -> 0xffff_ffff
+        //
+        // (i32 i32 i32) -> (i32 i32 i32 i32  i32 i32 i32 i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32)
 
         // note of the 'remainder':
         // (211 % -13) = 3
@@ -287,6 +302,7 @@ mod tests {
         //  |dividend <--------- the result always takes the sign of the dividend.
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_add)
@@ -295,10 +311,19 @@ mod tests {
             .append_opcode(Opcode::i32_sub)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode(Opcode::i32_sub)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_mul)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode(Opcode::i32_div_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode(Opcode::i32_div_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_div_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
@@ -309,29 +334,51 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_rem_u)
+            // group 2
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16(Opcode::i32_inc, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16(Opcode::i32_dec, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16(Opcode::i32_inc, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16(Opcode::i32_dec, 3)
+            // group 3
+            .append_opcode_i32(Opcode::i32_imm, 0xffff_ffff)
+            .append_opcode_i32(Opcode::i32_imm, 0x2)
+            .append_opcode(Opcode::i32_add)
+            .append_opcode_i32(Opcode::i32_imm, 0xf0e0_d0c0)
+            .append_opcode_i32(Opcode::i32_imm, 0x2)
+            .append_opcode(Opcode::i32_mul)
+            .append_opcode_i32(Opcode::i32_imm, 0xffff_ffff)
+            .append_opcode_i16(Opcode::i32_inc, 2)
+            .append_opcode_i32(Opcode::i32_imm, 0x1)
+            .append_opcode_i16(Opcode::i32_dec, 2)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i16(Opcode::i32_inc, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i16(Opcode::i32_dec, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16(Opcode::i32_inc, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16(Opcode::i32_dec, 3)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32, DataType::I32], // params
             vec![
+                // group 0
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                // group 1
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 2
                 DataType::I32,
-                //
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                // group 3
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -358,18 +405,28 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(222),
                 ForeignValue::UInt32(200),
+                ForeignValue::UInt32(-200i32 as u32),
                 ForeignValue::UInt32(2321),
+                // group 1
                 ForeignValue::UInt32(-16i32 as u32),
+                ForeignValue::UInt32(0),
+                ForeignValue::UInt32(0),
                 ForeignValue::UInt32(20355295),
                 ForeignValue::UInt32(3),
                 ForeignValue::UInt32(38),
-                //
+                // group 2
                 ForeignValue::UInt32(14),
                 ForeignValue::UInt32(8),
                 ForeignValue::UInt32(-10i32 as u32),
                 ForeignValue::UInt32(-16i32 as u32),
+                // group 3
+                ForeignValue::UInt32(0x1),
+                ForeignValue::UInt32(0xf0e0_d0c0 << 1),
+                ForeignValue::UInt32(0x1),
+                ForeignValue::UInt32(0xffff_ffff),
             ]
         );
     }
@@ -382,18 +439,33 @@ mod tests {
         //   - 2: -13
 
         // arithemtic:
+        //   group 0:
         //   - add   0 1      -> 222
         //   - sub   1 0      -> 200
+        //   - sub   0 1      -> -200
         //   - mul   0 1      -> 2321
+        //
+        //   group 1:
         //   - div_s 1 2      -> -16
+        //   - div_u 1 2      -> 0
+        //   - div_s 2 1      -> 0
         //   - div_u 2 1      -> 87425327363552377 (= 18446744073709551603/211)
         //   - rem_s 1 2      -> 3
         //   - rem_u 2 1      -> 56
         //
-        //   - inc   0 3      -> 14
-        //   - dec   0 3      -> 8
-        //   - inc   2 3      -> -10
-        //   - dec   2 3      -> -16
+        //   group 2:
+        //   - inc   0 amount:3     -> 14
+        //   - dec   0 amount:3     -> 8
+        //   - inc   2 amount:3     -> -10
+        //   - dec   2 amount:3     -> -16
+        //
+        //   group 3:
+        //   - add 0xffff_ffff_ffff_ffff 0x2  -> 0x1    ;; -1 + 2 = 1
+        //   - mul 0xf0e0_d0c0_b0a0_9080 0x2  -> 0xf0e0_d0c0_b0a0_9080 << 1
+        //   - inc 0xffff_ffff_ffff_ffff 0x2  -> 0x1
+        //   - dec 0x1                   0x2  -> 0xffff_ffff_ffff_ffff
+        //
+        // (i64 i64 i64) -> (i64 i64 i64 i64  i64 i64 i64 i64 i64 i64  i64 i64 i64 i64  i64 i64 i64 i64)
 
         // note of the 'remainder':
         // (211 % -13) = 3
@@ -402,6 +474,7 @@ mod tests {
         //  |dividend <--------- the result always takes the sign of the dividend.
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_add)
@@ -410,10 +483,19 @@ mod tests {
             .append_opcode(Opcode::i64_sub)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode(Opcode::i64_sub)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_mul)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode(Opcode::i64_div_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode(Opcode::i64_div_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_div_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
@@ -424,7 +506,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_rem_u)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_i16(Opcode::i64_inc, 3)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
@@ -433,6 +515,17 @@ mod tests {
             .append_opcode_i16(Opcode::i64_inc, 3)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16(Opcode::i64_dec, 3)
+            // group 3
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0xffff_ffff_ffff_ffff)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x2)
+            .append_opcode(Opcode::i64_add)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0xf0e0_d0c0_b0a0_9080)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x2)
+            .append_opcode(Opcode::i64_mul)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0xffff_ffff_ffff_ffff)
+            .append_opcode_i16(Opcode::i64_inc, 2)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x1)
+            .append_opcode_i16(Opcode::i64_dec, 2)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -440,9 +533,19 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I64, DataType::I64, DataType::I64], // params
             vec![
+                //
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+                DataType::I64,
+                //
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                //
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
@@ -474,18 +577,28 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(222),
                 ForeignValue::UInt64(200),
+                ForeignValue::UInt64(-200_i64 as u64),
                 ForeignValue::UInt64(2321),
+                // group 1
                 ForeignValue::UInt64(-16i64 as u64),
+                ForeignValue::UInt64(0),
+                ForeignValue::UInt64(0),
                 ForeignValue::UInt64(87425327363552377),
                 ForeignValue::UInt64(3),
                 ForeignValue::UInt64(56),
-                //
+                // group 2
                 ForeignValue::UInt64(14),
                 ForeignValue::UInt64(8),
                 ForeignValue::UInt64(-10i64 as u64),
                 ForeignValue::UInt64(-16i64 as u64),
+                // group 3
+                ForeignValue::UInt64(0x1),
+                ForeignValue::UInt64(0xf0e0_d0c0_b0a0_9080 << 1),
+                ForeignValue::UInt64(0x1),
+                ForeignValue::UInt64(0xffff_ffff_ffff_ffff),
             ]
         );
     }
@@ -501,6 +614,8 @@ mod tests {
         //   - sub 1 0      -> 2.709
         //   - mul 0 1      -> 5.829922
         //   - div 1 0      -> 2.91584158416
+        //
+        // (f32 f32) -> (f32 f32 f32 f32)
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
@@ -558,6 +673,8 @@ mod tests {
         //   - sub 1 0      -> 2.709
         //   - mul 0 1      -> 5.829922
         //   - div 1 0      -> 2.91584158416
+        //
+        // (f64 f64) -> (f64 f64 f64 f64)
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)

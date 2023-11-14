@@ -353,7 +353,7 @@ pub enum Opcode {
 
     // truncate i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_trunc_i64 = 0x500,      // (operand number:i64) -> i32
+    i32_truncate_i64 = 0x500,   // (operand number:i64) -> i32
 
     // extend i32 to i64
     i64_extend_i32_s,           // (operand number:i32) -> i64
@@ -481,14 +481,19 @@ pub enum Opcode {
     // arithmetic
     //
     i32_add = 0x700,            // (operand left:i32 right:i32) -> i32
+                                // wrapping add, e.g. 0xffff_ffff + 2 = 1 (-1 + 2 = 1)
     i32_sub,                    // (operand left:i32 right:i32) -> i32
+                                // wrapping sub, e.g. 11 - 211 = -200
     i32_mul,                    // (operand left:i32 right:i32) -> i32
+                                // wrapping mul, e.g. 0xf0e0d0c0 * 2 = 0xf0e0d0c0 << 1
     i32_div_s,                  // (operand left:i32 right:i32) -> i32
     i32_div_u,                  // (operand left:i32 right:i32) -> i32
     i32_rem_s,                  // calculate the remainder      (operand left:i32 right:i32) -> i32
     i32_rem_u,                  // (operand left:i32 right:i32) -> i32
     i32_inc,                    // (param amount:i16) (operand number:i32) -> i32
+                                // wrapping inc, e.g. 0xffff_ffff inc 2 = 1
     i32_dec,                    // (param amount:i16) (operand number:i32) -> i32
+                                // wrapping dec, e.g. 0x1 dec 2 = 0xffff_ffff
 
     // remainder vs modulus
     // --------------------
@@ -550,15 +555,15 @@ pub enum Opcode {
     // ;; the top item on the stack will be 1 (10 % 3 = 1)
     // i32.rem_u
     // ```
-    i64_add,                    // (operand left:i64 right:i64) -> i64
-    i64_sub,                    // (operand left:i64 right:i64) -> i64
-    i64_mul,                    // (operand left:i64 right:i64) -> i64
+    i64_add,                    // wrapping add     (operand left:i64 right:i64) -> i64
+    i64_sub,                    // wrapping sub     (operand left:i64 right:i64) -> i64
+    i64_mul,                    // wrapping mul     (operand left:i64 right:i64) -> i64
     i64_div_s,                  // (operand left:i64 right:i64) -> i64
     i64_div_u,                  // (operand left:i64 right:i64) -> i64
     i64_rem_s,                  // (operand left:i64 right:i64) -> i64
     i64_rem_u,                  // (operand left:i64 right:i64) -> i64
-    i64_inc,                    // (param amount:i16) (operand number:i64) -> i64
-    i64_dec,                    // (param amount:i16) (operand number:i64) -> i64
+    i64_inc,                    // wrapping inc     (param amount:i16) (operand number:i64) -> i64
+    i64_dec,                    // wrapping dec     (param amount:i16) (operand number:i64) -> i64
 
     f32_add,                    // (operand left:f32 right:f32) -> f32
     f32_sub,                    // (operand left:f32 right:f32) -> f32
@@ -579,15 +584,15 @@ pub enum Opcode {
     i32_and = 0x800,            // bitwise AND                  (operand left:i32 right:i32) -> i32
     i32_or,                     // bitwise OR                   (operand left:i32 right:i32) -> i32
     i32_xor,                    // bitwise XOR                  (operand left:i32 right:i32) -> i32
-    i32_not,                    // bitwise NOT                  (operand number:i32) -> i32
-    i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
-    i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
-    i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
     i32_shift_left,             // left shift                   (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_shift_right_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    i32_not,                    // bitwise NOT                  (operand number:i32) -> i32
+    i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
+    i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
+    i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
 
     // instruction `i32.shl` example:
     //
@@ -624,15 +629,15 @@ pub enum Opcode {
     i64_and,                    // (operand left:i64 right:i64) -> i64
     i64_or,                     // (operand left:i64 right:i64) -> i64
     i64_xor,                    // (operand left:i64 right:i64) -> i64
-    i64_not,                    // (operand number:i64) -> i64
-    i64_leading_zeros,          // (operand number:i64) -> i32
-    i64_trailing_zeros,         // (operand number:i64) -> i32
-    i64_count_ones,             // (operand number:i64) -> i32
     i64_shift_left,             // left shift                   (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
     i64_shift_right_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
     i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
     i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
     i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    i64_not,                    // (operand number:i64) -> i64
+    i64_leading_zeros,          // (operand number:i64) -> i32
+    i64_trailing_zeros,         // (operand number:i64) -> i32
+    i64_count_ones,             // (operand number:i64) -> i32
 
     //
     // math
@@ -647,11 +652,9 @@ pub enum Opcode {
     f32_fract,                  // the fractional part of  x        (operand number:f32) -> f32
     f32_sqrt,                   // sqrt(x)                          (operand number:f32) -> f32
     f32_cbrt,                   // cbrt(x), the cube root of x      (operand number:f32) -> f32
-    f32_pow,                    // left^right                       (operand left:f32 right:f32) -> f32
     f32_exp,                    // e^x                              (operand number:f32) -> f32
     f32_exp2,                   // 2^x                              (operand number:f32) -> f32
     f32_ln,                     // log_e(x)                         (operand number:f32) -> f32
-    f32_log,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
     f32_log2,                   // log_2(x)                         (operand number:f32) -> f32
     f32_log10,                  // log_10(x)                        (operand number:f32) -> f32
     f32_sin,                    // (operand number:f32) -> f32
@@ -660,6 +663,8 @@ pub enum Opcode {
     f32_asin,                   // (operand number:f32) -> f32
     f32_acos,                   // (operand number:f32) -> f32
     f32_atan,                   // (operand number:f32) -> f32
+    f32_pow,                    // left^right                       (operand left:f32 right:f32) -> f32
+    f32_log,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -679,11 +684,9 @@ pub enum Opcode {
     f64_fract,                  // (operand number:f64) -> f64
     f64_sqrt,                   // (operand number:f64) -> f64
     f64_cbrt,                   // (operand number:f64) -> f64
-    f64_pow,                    // (operand left:f32 right:f32) -> f64
     f64_exp,                    // (operand number:f64) -> f64
     f64_exp2,                   // (operand number:f64) -> f64
     f64_ln,                     // (operand number:f64) -> f64
-    f64_log,                    // (operand left:f32 right:f32) -> f64
     f64_log2,                   // (operand number:f64) -> f64
     f64_log10,                  // (operand number:f64) -> f64
     f64_sin,                    // (operand number:f64) -> f64
@@ -692,6 +695,8 @@ pub enum Opcode {
     f64_asin,                   // (operand number:f64) -> f64
     f64_acos,                   // (operand number:f64) -> f64
     f64_atan,                   // (operand number:f64) -> f64
+    f64_pow,                    // (operand left:f32 right:f32) -> f64
+    f64_log,                    // (operand left:f32 right:f32) -> f64
 
     //
     // control flow

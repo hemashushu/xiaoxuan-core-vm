@@ -448,7 +448,7 @@ impl Stack {
                 panic!(
                     "Out of the bound of the current operand stack frame.
 FP: {}, frame info length in bytes: {}, local variables area length in bytes: {},
-SP: {}, pop length in bytes: {}",
+SP: {}, expect popping length in bytes: {}",
                     self.fp,
                     size_of::<FrameInfo>(),
                     local_variables_allocate_bytes,
@@ -620,6 +620,18 @@ SP: {}, pop length in bytes: {}",
         }
 
         let count_in_bytes = operands_count * OPERAND_SIZE_IN_BYTES;
+
+        #[cfg(feature = "bounds_check")]
+        {
+            if self.sp < self.fp + count_in_bytes {
+                panic!(
+                    "Not enough operands for returning values.
+FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
+                    self.fp, self.sp, operands_count, count_in_bytes
+                )
+            }
+        }
+
         let offset = self.sp - count_in_bytes;
 
         // memory copy

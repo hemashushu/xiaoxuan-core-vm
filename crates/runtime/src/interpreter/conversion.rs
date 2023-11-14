@@ -10,7 +10,7 @@ use super::InterpretResult;
 
 // demote i64 to i32
 // discard the high 32 bits of an i64 number directly
-pub fn i32_trunc_i64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn i32_truncate_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_i32_u(value as u32);
     InterpretResult::Move(2)
@@ -152,12 +152,12 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_interpreter_conversion_extend_and_trunc() {
+    fn test_interpreter_conversion_extend_and_truncate() {
         // (i64, i32)  ->  (i64, i64, i32)
         //  |    |          ^    ^    ^
-        //  |    | promote  |0   |1   |2
+        //  |    | extend   |    |    |
         //  |    \----------/----/    |
-        //  \-------------------------/ demote
+        //  \-------------------------/ truncate
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
@@ -165,7 +165,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i64_extend_i32_u)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode(Opcode::i32_trunc_i64)
+            .append_opcode(Opcode::i32_truncate_i64)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -203,7 +203,7 @@ mod tests {
     fn test_interpreter_conversion_demote_and_promote() {
         // (f64, f32)  ->  (f64, f32)
         //  |    |          ^    ^
-        //  |    | promote  |0   |2
+        //  |    | promote  |    |
         //  |    \----------/    |
         //  \--------------------/ demote
 
@@ -231,19 +231,17 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float64(std::f64::consts::PI), // 3.1415926535897931159979634685f64
-                // 0x400921FB54442D18 -> 0x40490FDB (3.1415927410125732421875)
-                ForeignValue::Float32(std::f32::consts::E), // 2.71828f32
-                                                            // 0x402DF84D -> 0x4005BF0995AAF790 (2.71828000000000002955857780762016773223876953125)
+                ForeignValue::Float64(std::f64::consts::PI),
+                ForeignValue::Float32(std::f32::consts::E),
             ],
         );
 
-        let exp0 = std::f32::consts::E as f64; // 2.71828f32 as f64;
-        let exp1 = std::f64::consts::PI as f32; // 3.141_592_653_589_793_64 as f32;
-
         assert_eq!(
             result0.unwrap(),
-            vec![ForeignValue::Float64(exp0), ForeignValue::Float32(exp1),]
+            vec![
+                ForeignValue::Float64(std::f32::consts::E as f64),
+                ForeignValue::Float32(std::f64::consts::PI as f32),
+            ]
         );
     }
 
@@ -259,6 +257,7 @@ mod tests {
         // (i32 i32 i64 i64   i32 i32 i64 i64  i32 i32 i64 i64   i32 i32 i64 i64)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode(Opcode::i32_convert_f32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
@@ -267,7 +266,7 @@ mod tests {
             .append_opcode(Opcode::i64_convert_f32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode(Opcode::i64_convert_f32_u)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
             .append_opcode(Opcode::i32_convert_f64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
@@ -276,7 +275,7 @@ mod tests {
             .append_opcode(Opcode::i64_convert_f64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
             .append_opcode(Opcode::i64_convert_f64_u)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .append_opcode(Opcode::i32_convert_f32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
@@ -285,7 +284,7 @@ mod tests {
             .append_opcode(Opcode::i64_convert_f32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
             .append_opcode(Opcode::i64_convert_f32_u)
-            //
+            // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
             .append_opcode(Opcode::i32_convert_f64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
@@ -294,7 +293,6 @@ mod tests {
             .append_opcode(Opcode::i64_convert_f64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
             .append_opcode(Opcode::i64_convert_f64_u)
-            //
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -347,26 +345,26 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(2),
                 ForeignValue::UInt32(2),
                 ForeignValue::UInt64(2),
                 ForeignValue::UInt64(2),
-                //
+                // group 1
                 ForeignValue::UInt32(3),
                 ForeignValue::UInt32(3),
                 ForeignValue::UInt64(3),
                 ForeignValue::UInt64(3),
-                //
+                // group 2
                 ForeignValue::UInt32(-5i32 as u32),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt64(-5i64 as u64),
                 ForeignValue::UInt64(0),
-                //
+                // group 3
                 ForeignValue::UInt32(-7i32 as u32),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt64(-7i64 as u64),
                 ForeignValue::UInt64(0),
-                //
             ]
         );
     }
@@ -383,6 +381,7 @@ mod tests {
         // (f32 f32 f64 f64   f32 f32 f64 f64  f32 f32 f64 f64   f32 f32 f64 f64)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode(Opcode::f32_convert_i32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
@@ -391,7 +390,7 @@ mod tests {
             .append_opcode(Opcode::f64_convert_i32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode(Opcode::f64_convert_i32_u)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::f32_convert_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
@@ -400,7 +399,7 @@ mod tests {
             .append_opcode(Opcode::f64_convert_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::f64_convert_i64_u)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::f32_convert_i32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
@@ -409,7 +408,7 @@ mod tests {
             .append_opcode(Opcode::f64_convert_i32_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::f64_convert_i32_u)
-            //
+            // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
             .append_opcode(Opcode::f32_convert_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
@@ -467,34 +466,30 @@ mod tests {
 
         // -11 -> 0xffffffef (u32)
         // -19 -> 0xffffffffffffffed (u64)
-        let exp0 = -17i32 as u32 as f32;
-        let exp1 = -17i32 as u32 as f64;
-        let exp2 = -19i64 as u64 as f32;
-        let exp3 = -19i64 as u64 as f64;
 
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::Float32(11.0),
                 ForeignValue::Float32(11.0),
                 ForeignValue::Float64(11.0),
                 ForeignValue::Float64(11.0),
-                //
+                // group 1
                 ForeignValue::Float32(13.0),
                 ForeignValue::Float32(13.0),
                 ForeignValue::Float64(13.0),
                 ForeignValue::Float64(13.0),
-                //
+                // group 2
                 ForeignValue::Float32(-17.0),
-                ForeignValue::Float32(exp0),
+                ForeignValue::Float32(-17i32 as u32 as f32),
                 ForeignValue::Float64(-17.0),
-                ForeignValue::Float64(exp1),
-                //
+                ForeignValue::Float64(-17i32 as u32 as f64),
+                // group 3
                 ForeignValue::Float32(-19.0),
-                ForeignValue::Float32(exp2),
+                ForeignValue::Float32(-19i64 as u64 as f32),
                 ForeignValue::Float64(-19.0),
-                ForeignValue::Float64(exp3),
-                //
+                ForeignValue::Float64(-19i64 as u64 as f64),
             ]
         );
     }

@@ -38,7 +38,7 @@ pub struct FuncIndexItem {
     // 'amount of imported functions' + 'function internal index'
     //
     // this field is REDUNDANT because its value always starts
-    // from 0 to the total number of items (within a certain range)/(within a module).
+    // from 0 to the total number of items within [a certain range | a module].
     pub func_public_index: u32,
 
     // target module index

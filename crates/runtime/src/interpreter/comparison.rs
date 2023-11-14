@@ -289,28 +289,40 @@ mod tests {
         //   - 2: 13
         //   - 3: -7
         // comparison:
+        //   group 0:
         //   - eqz  0         -> 1
-        //   - eqz  11        -> 0
+        //   - eqz  1         -> 0
         //   - nez  0         -> 0
-        //   - nez  11        -> 1
-        //   - eq   11 13     -> 0
-        //   - ne   11 13     -> 1
-        //   - eq   11 11     -> 1
-        //   - ne   11 11     -> 0
-        //   - lt_s 13 -7     -> 0
-        //   - lt_u 13 -7     -> 1
-        //   - gt_s 13 -7     -> 1
-        //   - gt_u 13 -7     -> 0
-        //   - le_s 13 11     -> 0
-        //   - le_u 13 11     -> 0
-        //   - le_s 11 11     -> 1
-        //   - le_u 11 11     -> 1
-        //   - ge_s 11 13     -> 0
-        //   - ge_u 11 13     -> 0
-        //   - ge_s 11 11     -> 1
-        //   - ge_u 11 11     -> 1
+        //   - nez  1         -> 1
+        //
+        //   group 1:
+        //   - eq   1  2      -> 0
+        //   - ne   1  2      -> 1
+        //   - eq   1  1      -> 1
+        //   - ne   1  1      -> 0
+        //
+        //   group 2:
+        //   - lt_s 2  3      -> 0
+        //   - lt_u 2  3      -> 1
+        //   - gt_s 2  3      -> 1
+        //   - gt_u 2  3      -> 0
+        //
+        //   group 3:
+        //   - le_s 2  1      -> 0
+        //   - le_u 2  1      -> 0
+        //   - le_s 1  1      -> 1
+        //   - le_u 1  1      -> 1
+        //
+        //   group 4:
+        //   - ge_s 1  2      -> 0
+        //   - ge_u 1  2      -> 0
+        //   - ge_s 1  1      -> 1
+        //   - ge_u 1  1      -> 1
+        //
+        // (i32 i32 i32 i32) -> (i32 i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode(Opcode::i32_eqz)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
@@ -319,7 +331,7 @@ mod tests {
             .append_opcode(Opcode::i32_nez)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_nez)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::i32_eq)
@@ -332,7 +344,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_ne)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             .append_opcode(Opcode::i32_lt_s)
@@ -345,7 +357,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             .append_opcode(Opcode::i32_gt_u)
-            //
+            // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_le_s)
@@ -358,7 +370,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_le_u)
-            //
+            // group 4
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::i32_ge_s)
@@ -378,22 +390,27 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // params
             vec![
+                // group 0
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 1
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 2
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 3
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 4
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -421,22 +438,27 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
+                // group 1
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 2
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 3
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
+                // group 4
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
@@ -453,28 +475,40 @@ mod tests {
         //   - 2: 13
         //   - 3: -7
         // comparison:
+        //   group 0:
         //   - eqz  0         -> 1
-        //   - eqz  11        -> 0
+        //   - eqz  1         -> 0
         //   - nez  0         -> 0
-        //   - nez  11        -> 1
-        //   - eq   11 13     -> 0
-        //   - ne   11 13     -> 1
-        //   - eq   11 11     -> 1
-        //   - ne   11 11     -> 0
-        //   - lt_s 13 -7     -> 0
-        //   - lt_u 13 -7     -> 1
-        //   - gt_s 13 -7     -> 1
-        //   - gt_u 13 -7     -> 0
-        //   - le_s 13 11     -> 0
-        //   - le_u 13 11     -> 0
-        //   - le_s 11 11     -> 1
-        //   - le_u 11 11     -> 1
-        //   - ge_s 11 13     -> 0
-        //   - ge_u 11 13     -> 0
-        //   - ge_s 11 11     -> 1
-        //   - ge_u 11 11     -> 1
+        //   - nez  1         -> 1
+        //
+        //   group 1:
+        //   - eq   1  2      -> 0
+        //   - ne   1  2      -> 1
+        //   - eq   1  1      -> 1
+        //   - ne   1  1      -> 0
+        //
+        //   group 2:
+        //   - lt_s 2  3      -> 0
+        //   - lt_u 2  3      -> 1
+        //   - gt_s 2  3      -> 1
+        //   - gt_u 2  3      -> 0
+        //
+        //   group 3:
+        //   - le_s 2  1      -> 0
+        //   - le_u 2  1      -> 0
+        //   - le_s 1  1      -> 1
+        //   - le_u 1  1      -> 1
+        //
+        //   group 4:
+        //   - ge_s 1  2      -> 0
+        //   - ge_u 1  2      -> 0
+        //   - ge_s 1  1      -> 1
+        //   - ge_u 1  1      -> 1
+        //
+        // (i64 i64 i64 i64) -> (i32 i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_eqz)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
@@ -483,7 +517,7 @@ mod tests {
             .append_opcode(Opcode::i64_nez)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_nez)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_eq)
@@ -496,7 +530,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_ne)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
             .append_opcode(Opcode::i64_lt_s)
@@ -509,7 +543,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
             .append_opcode(Opcode::i64_gt_u)
-            //
+            // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_le_s)
@@ -522,7 +556,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_le_u)
-            //
+            // group 4
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_ge_s)
@@ -542,22 +576,27 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I64, DataType::I64, DataType::I64, DataType::I64], // params
             vec![
+                // group 0
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 1
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 2
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 3
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
+                // group 4
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -585,22 +624,27 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
+                // group 1
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 2
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 3
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
+                // group 4
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
@@ -615,22 +659,30 @@ mod tests {
         //   - 0: 1.414
         //   - 1: 1.732
         // comparison:
-        //   - eq 0 1         -> 0
-        //   - ne 0 1         -> 1
-        //   - eq 0 0         -> 1
-        //   - ne 0 0         -> 0
-        //   - lt 0 1         -> 1
-        //   - lt 1 0         -> 0
-        //   - lt 0 0         -> 0
-        //   - gt 0 1         -> 0
-        //   - gt 1 0         -> 1
-        //   - gt 0 0         -> 0
-        //   - le 1 0         -> 0
-        //   - le 0 0         -> 1
-        //   - ge 0 1         -> 0
-        //   - ge 0 0         -> 1
+        //   group 0:
+        //   - eq 0  1        -> 0
+        //   - ne 0  1        -> 1
+        //   - eq 0  0        -> 1
+        //   - ne 0  0        -> 0
+        //
+        //   group 1:
+        //   - lt 0  1        -> 1
+        //   - lt 1  0        -> 0
+        //   - lt 0  0        -> 0
+        //   - gt 0  1        -> 0
+        //   - gt 1  0        -> 1
+        //   - gt 0  0        -> 0
+        //
+        //   group 2:
+        //   - le 1  0        -> 0
+        //   - le 0  0        -> 1
+        //   - ge 0  1        -> 0
+        //   - ge 0  0        -> 1
+        //
+        // (f32 f32) -> (i32 i32 i32 i32  i32 i32 i32 i32 i32 i32  i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .append_opcode(Opcode::f32_eq)
@@ -643,7 +695,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode(Opcode::f32_ne)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .append_opcode(Opcode::f32_lt)
@@ -662,7 +714,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode(Opcode::f32_gt)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode(Opcode::f32_le)
@@ -682,16 +734,19 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::F32, DataType::F32], // params
             vec![
+                // group 0
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                // group 1
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                // group 2
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -717,16 +772,19 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 1
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 2
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
@@ -741,22 +799,30 @@ mod tests {
         //   - 0: 1.414
         //   - 1: 1.732
         // comparison:
-        //   - eq 0 1         -> 0
-        //   - ne 0 1         -> 1
-        //   - eq 0 0         -> 1
-        //   - ne 0 0         -> 0
-        //   - lt 0 1         -> 1
-        //   - lt 1 0         -> 0
-        //   - lt 0 0         -> 0
-        //   - gt 0 1         -> 0
-        //   - gt 1 0         -> 1
-        //   - gt 0 0         -> 0
-        //   - le 1 0         -> 0
-        //   - le 0 0         -> 1
-        //   - ge 0 1         -> 0
-        //   - ge 0 0         -> 1
+        //   group 0:
+        //   - eq 0  1        -> 0
+        //   - ne 0  1        -> 1
+        //   - eq 0  0        -> 1
+        //   - ne 0  0        -> 0
+        //
+        //   group 1:
+        //   - lt 0  1        -> 1
+        //   - lt 1  0        -> 0
+        //   - lt 0  0        -> 0
+        //   - gt 0  1        -> 0
+        //   - gt 1  0        -> 1
+        //   - gt 0  0        -> 0
+        //
+        //   group 2:
+        //   - le 1  0        -> 0
+        //   - le 0  0        -> 1
+        //   - ge 0  1        -> 0
+        //   - ge 0  0        -> 1
+        //
+        // (f64 f64) -> (i32 i32 i32 i32  i32 i32 i32 i32 i32 i32  i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
             .append_opcode(Opcode::f64_eq)
@@ -769,7 +835,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode(Opcode::f64_ne)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
             .append_opcode(Opcode::f64_lt)
@@ -788,7 +854,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode(Opcode::f64_gt)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
             .append_opcode(Opcode::f64_le)
@@ -808,16 +874,19 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::F64, DataType::F64], // params
             vec![
+                // group 0
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
+                // group 1
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                // group 2
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -836,23 +905,26 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float32(1.414f32),
-                ForeignValue::Float32(1.732f32),
+                ForeignValue::Float64(1.414f64),
+                ForeignValue::Float64(1.732f64),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 1
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),
+                // group 2
                 ForeignValue::UInt32(0),
                 ForeignValue::UInt32(1),
                 ForeignValue::UInt32(0),

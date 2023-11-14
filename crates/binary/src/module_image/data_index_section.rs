@@ -46,7 +46,7 @@ pub struct DataIndexItem {
     // - internal uninitilized data items
     //
     // this field is REDUNDANT because its value always starts
-    // from 0 to the total number of items (within a certain range)/(within a module).
+    // from 0 to the total number of items within [a certain range | a module].
     pub data_public_index: u32,
 
     // target module index
@@ -55,7 +55,7 @@ pub struct DataIndexItem {
     // the index of the internal data item in a specified data section (in a specified module)
     //
     // this index is the actual index of the internal data item in a specified data section
-    // i.e., it excludes the imported data items.
+    // i.e., it excludes the imported data items, and it is section relevant.
     pub data_internal_index: u32,
 
     // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT

@@ -196,7 +196,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::heap_resize as usize] = heap::heap_resize;
 
     // conversion
-    interpreters[Opcode::i32_trunc_i64 as usize] = conversion::i32_trunc_i64;
+    interpreters[Opcode::i32_truncate_i64 as usize] = conversion::i32_truncate_i64;
     interpreters[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;
     interpreters[Opcode::i64_extend_i32_u as usize] = conversion::i64_extend_i32_u;
     interpreters[Opcode::f32_demote_f64 as usize] = conversion::f32_demote_f64;
@@ -463,7 +463,7 @@ pub fn process_function(
     // the number of arguments does not match the specified funcion.
     if arguments.len() != params.len() {
         return Err(InterpreterError::new(
-            InterpreterErrorType::InvalidFunctionCall,
+            InterpreterErrorType::ParametersAmountMissmatch,
         ));
     }
 

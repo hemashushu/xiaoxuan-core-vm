@@ -227,13 +227,14 @@ impl<'a> ThreadContext<'a> {
                 panic!(
                     "Out of bounds of the data.
 module index: {}, function internal index: {}, instruction address: {},
-data section type: {}, data internal index: {},
+data section type: {}, data public index: {}, data internal index: {},
 data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}.",
                     module_index,
                     self.pc.function_internal_index,
                     self.pc.instruction_address,
-                    data_internal_index,
                     target_data_section_type,
+                    data_public_index,
+                    data_internal_index,
                     data_actual_length,
                     expect_offset_bytes,
                     expect_data_length_in_bytes,

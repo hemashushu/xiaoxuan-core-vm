@@ -234,25 +234,32 @@ mod tests {
         //   - 3: 0x80000000
 
         // arithemtic:
+        //   group 0:
         //   - and       0 1      -> 0xf00000ff
         //   - or        0 1      -> 0xfff000ff
         //   - xor       0 1      -> 0x0ff00000
-        //   - not       0        -> 0x00ffff00
         //
+        //   group 1:
+        //   - shift_l   2 imm:4    -> 0x0f000000
+        //   - shift_r_s 3 imm:16   -> 0xffff8000
+        //   - shift_r_u 3 imm:16   -> 0x00008000
+        //
+        //   group 2:
+        //   - shift_l   2 imm:24   -> 0x00000000
+        //   - rotate_l  2 imm:24   -> 0x0000f000
+        //   - shift_r_u 2 imm:28   -> 0x00000000
+        //   - rotate_r  2 imm:28   -> 0x0f000000
+        //
+        //   group 3:
+        //   - not       0        -> 0x00ffff00
         //   - lz        2        -> 8
         //   - tz        2        -> 20
         //   - ones      2        -> 4
         //
-        //   - shift_l   2 4      -> 0x0f000000
-        //   - shift_r_s 3 16     -> 0xffff8000
-        //   - shift_r_u 3 16     -> 0x00008000
-        //
-        //   - shift_l   2 24     -> 0x00000000
-        //   - rotate_l  2 24     -> 0x0000f000
-        //   - shift_r_u 2 28     -> 0x00000000
-        //   - rotate_r  2 28     -> 0x0f000000
+        // (i32 i32 i32 i32) -> (i32 i32 i32  i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_and)
@@ -262,16 +269,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode(Opcode::i32_xor)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode(Opcode::i32_not)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_leading_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_trailing_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_count_ones)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 4)
             .append_opcode(Opcode::i32_shift_left)
@@ -281,7 +279,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
             .append_opcode_i32(Opcode::i32_imm, 16)
             .append_opcode(Opcode::i32_shift_right_u)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 24)
             .append_opcode(Opcode::i32_shift_left)
@@ -294,6 +292,15 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 28)
             .append_opcode(Opcode::i32_rotate_right)
+            // group 3
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode(Opcode::i32_not)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode(Opcode::i32_leading_zeros)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode(Opcode::i32_trailing_zeros)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode(Opcode::i32_count_ones)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -304,12 +311,12 @@ mod tests {
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
-                DataType::I32,
                 //
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 //
+                DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -342,23 +349,24 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt32(0xf00000ff),
                 ForeignValue::UInt32(0xfff000ff),
                 ForeignValue::UInt32(0x0ff00000),
-                ForeignValue::UInt32(0x00ffff00),
-                //
-                ForeignValue::UInt32(8),
-                ForeignValue::UInt32(20),
-                ForeignValue::UInt32(4),
-                //
+                // group 1
                 ForeignValue::UInt32(0x0f000000),
                 ForeignValue::UInt32(0xffff8000),
                 ForeignValue::UInt32(0x00008000),
-                //
+                // group 2
                 ForeignValue::UInt32(0x00000000),
                 ForeignValue::UInt32(0x0000f000),
                 ForeignValue::UInt32(0x00000000),
                 ForeignValue::UInt32(0x0f000000),
+                // group 3
+                ForeignValue::UInt32(0x00ffff00),
+                ForeignValue::UInt32(8),
+                ForeignValue::UInt32(20),
+                ForeignValue::UInt32(4),
             ]
         );
     }
@@ -372,25 +380,32 @@ mod tests {
         //   - 3: 0x80000000_00000000
 
         // arithemtic:
+        //   group 0:
         //   - and       0 1      -> 0xf0000f00_00ff00ff
         //   - or        0 1      -> 0xfff0ff0f_00ff00ff
         //   - xor       0 1      -> 0x0ff0f00f_00000000
-        //   - not       0        -> 0x00ff00ff_ff00ff00
         //
-        //   - lz        2        -> 16
-        //   - tz        2        -> 40
-        //   - ones      2        -> 8
-        //
+        //   group 1:
         //   - shift_l   2 8      -> 0x00ff0000_00000000
         //   - shift_r_s 3 16     -> 0xffff8000_00000000
         //   - shift_r_u 3 16     -> 0x00008000_00000000
         //
+        //   group 2:
         //   - shift_l   2 32     -> 0x00000000_00000000
         //   - rotate_l  2 32     -> 0x00000000_0000ff00
         //   - shift_r_u 2 56     -> 0x00000000_00000000
         //   - rotate_r  2 56     -> 0x00ff0000_00000000
+        //
+        //   group 3:
+        //   - not       0        -> 0x00ff00ff_ff00ff00
+        //   - lz        2        -> 16
+        //   - tz        2        -> 40
+        //   - ones      2        -> 8
+        //
+        // (i64 i64 i64 i64) -> (i64 i64 i64  i64 i64 i64  i64 i64 i64 i64  i64 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
+            // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_and)
@@ -400,16 +415,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_xor)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode(Opcode::i64_not)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_leading_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_trailing_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_count_ones)
-            //
+            // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 8)
             .append_opcode(Opcode::i64_shift_left)
@@ -419,7 +425,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
             .append_opcode_i32(Opcode::i32_imm, 16)
             .append_opcode(Opcode::i64_shift_right_u)
-            //
+            // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 32)
             .append_opcode(Opcode::i64_shift_left)
@@ -432,6 +438,15 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode_i32(Opcode::i32_imm, 56)
             .append_opcode(Opcode::i64_rotate_right)
+            // group 3
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode(Opcode::i64_not)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode(Opcode::i64_leading_zeros)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode(Opcode::i64_trailing_zeros)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode(Opcode::i64_count_ones)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -442,11 +457,6 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
-                DataType::I64,
-                //
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
                 //
                 DataType::I64,
                 DataType::I64,
@@ -456,6 +466,11 @@ mod tests {
                 DataType::I64,
                 DataType::I64,
                 DataType::I64,
+                //
+                DataType::I64,
+                DataType::I32,
+                DataType::I32,
+                DataType::I32,
                 //
             ], // results
             vec![],                                                           // local vars
@@ -480,23 +495,24 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(0xf0000f00_00ff00ff),
                 ForeignValue::UInt64(0xfff0ff0f_00ff00ff),
                 ForeignValue::UInt64(0x0ff0f00f_00000000),
-                ForeignValue::UInt64(0x00ff00ff_ff00ff00),
-                //
-                ForeignValue::UInt32(16),
-                ForeignValue::UInt32(40),
-                ForeignValue::UInt32(8),
-                //
+                // group 1
                 ForeignValue::UInt64(0x00ff0000_00000000),
                 ForeignValue::UInt64(0xffff8000_00000000),
                 ForeignValue::UInt64(0x00008000_00000000),
-                //
+                // group 2
                 ForeignValue::UInt64(0x00000000_00000000),
                 ForeignValue::UInt64(0x00000000_0000ff00),
                 ForeignValue::UInt64(0x00000000_00000000),
                 ForeignValue::UInt64(0x00ff0000_00000000),
+                // group 3
+                ForeignValue::UInt64(0x00ff00ff_ff00ff00),
+                ForeignValue::UInt32(16),
+                ForeignValue::UInt32(40),
+                ForeignValue::UInt32(8),
             ]
         );
     }

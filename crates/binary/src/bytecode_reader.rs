@@ -167,7 +167,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (offset_param, String::new())
             }
             // conversion
-            Opcode::i32_trunc_i64
+            Opcode::i32_truncate_i64
             | Opcode::i64_extend_i32_s
             | Opcode::i64_extend_i32_u
             | Opcode::f32_demote_f64

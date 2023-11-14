@@ -90,7 +90,7 @@ impl Opcode {
             Opcode::heap_capacity => "heap.capacity",
             Opcode::heap_resize => "heap.resize",
             //
-            Opcode::i32_trunc_i64 => "i32.trunc_i64",
+            Opcode::i32_truncate_i64 => "i32.truncate_i64",
             Opcode::i64_extend_i32_s => "i64.extend_i32_s",
             Opcode::i64_extend_i32_u => "i64.extend_i32_u",
             Opcode::f32_demote_f64 => "f32.demote_f64",

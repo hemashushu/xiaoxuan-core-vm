@@ -46,7 +46,7 @@ pub struct InterpreterError {
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InterpreterErrorType {
-    InvalidFunctionCall, // The number of arguments does not match the specified funcion.
+    ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
     DataTypeMissmatch,   // data type does not match
     InvalidOperation, // such as invoke 'popx' instructions when there is no operands on the stack
     IndexNotFound,    // the index of function (data, local variables) not found
@@ -62,7 +62,7 @@ impl InterpreterError {
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let error_code = match self.error_type {
-            InterpreterErrorType::InvalidFunctionCall => "Invalid function call",
+            InterpreterErrorType::ParametersAmountMissmatch => "Parameters amount missmatch",
             InterpreterErrorType::DataTypeMissmatch => "Data type missmatch",
             InterpreterErrorType::InvalidOperation => "Invalid operation",
             InterpreterErrorType::IndexNotFound => "Index not found",

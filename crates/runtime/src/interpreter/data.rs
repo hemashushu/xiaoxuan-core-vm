@@ -499,7 +499,7 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
-    fn test_interpreter_data_load_and_store() {
+    fn test_interpreter_data_load_and_store_initialized() {
         //        read-only data section
         //        ======================
         //
@@ -523,16 +523,16 @@ mod tests {
         // index |2(0)                               3(1)   4(2)   5(3)                      6(4)      |
         //  type |bytes-------------------|         |f32|  |f64|  |i64------------------|   |i32-------|
         //
-        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |          |      |      ^                          ^
-        //       |store32    |store16 |  |          |sf32  |sf64  |                          |
-        //                            |  |          |stepN'|stepN |                          |
+        //       |store32    |store16 |  |          |      |      |                          |
+        //                            |  |          |      |      |                          |
         //                      store8|  |          |      |      |                          |
         //       |                       |store8    |      |      |store64                   |store32
         //       |                                  |      |      |                          |
         //       \----->--load64-->---------------------------->--/-->-------------------->--/
         //
-        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |load8u    |      |      |                          |
         //       |           |        |  |load8s  loadf32  |      |                          |
         //       |           |        |                  loadf64  |                          |
@@ -541,7 +541,7 @@ mod tests {
         //       |           |
         //       |load64     |load32
         //
-        // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
+        // () -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i32(Opcode::data_load32_i8_u, 3, 1)
@@ -553,11 +553,6 @@ mod tests {
             .append_opcode_i16_i32(Opcode::data_store16, 4, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 6, 2)
             .append_opcode_i16_i32(Opcode::data_store8, 7, 2)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i32(Opcode::data_store64, 0, 4) // store f64
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i32(Opcode::data_store32, 0, 3) // store f32
             //
             .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 2)
             .append_opcode_i16_i32(Opcode::data_store64, 0, 5)
@@ -582,7 +577,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
-            vec![DataType::F32, DataType::F64], // params
+            vec![], // params
             vec![
                 DataType::I64,
                 DataType::I32,
@@ -595,16 +590,16 @@ mod tests {
                 DataType::I64,
                 DataType::I32,
             ], // results
-            vec![],                             // local vars
+            vec![], // local vars
             code0,
             vec![
                 InitedDataEntry::from_i32(0x19171311),
                 InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
             vec![
-                InitedDataEntry::from_bytes(vec![0u8; 8], 8),
-                InitedDataEntry::from_f32(0.0f32),
-                InitedDataEntry::from_f64(0.0f64),
+                InitedDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
+                InitedDataEntry::from_f32(std::f32::consts::PI),
+                InitedDataEntry::from_f64(std::f64::consts::E),
                 InitedDataEntry::from_i64(0),
                 InitedDataEntry::from_i32(0),
             ],
@@ -615,28 +610,21 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(
-            &mut thread_context0,
-            0,
-            0,
-            &[
-                ForeignValue::Float32(std::f32::consts::PI),
-                ForeignValue::Float64(std::f64::consts::E),
-            ],
-        );
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
+                // group 0
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0xf0e0d0c0u32),
                 ForeignValue::UInt32(0xf0e0u32),
                 ForeignValue::UInt32(0xfffff0e0u32), // extend from i16 to i32
                 ForeignValue::UInt32(0xf0u32),
                 ForeignValue::UInt32(0xfffffff0u32), // extend from i8 to i32
-                //
+                // group 1
                 ForeignValue::Float32(std::f32::consts::PI),
                 ForeignValue::Float64(std::f64::consts::E),
-                //
+                // group 2
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
             ]
@@ -668,7 +656,7 @@ mod tests {
         // index |2(0)                               3(1)   4(2)   5(3)                      6(4)      |
         //  type |bytes-------------------|         |f32|  |f64|  |i64------------------|   |i32-------|
         //
-        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |          |      |      ^                          ^
         //       |store32    |store16 |  |          |sf32  |sf64  |                          |
         //                            |  |          |stepN'|stepN |                          |
@@ -677,7 +665,7 @@ mod tests {
         //       |                                  |      |      |                          |
         //       \----->--load64-->---------------------------->--/-->-------------------->--/
         //
-        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |load8u    |      |      |                          |
         //       |           |        |  |load8s  loadf32  |      |                          |
         //       |           |        |                  loadf64  |                          |
@@ -791,6 +779,9 @@ mod tests {
 
     #[test]
     fn test_interpreter_data_long_load_and_store() {
+        //        uninitialized data section
+        //        ==========================
+        //
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |

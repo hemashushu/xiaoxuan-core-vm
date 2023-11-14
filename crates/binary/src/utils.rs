@@ -1246,7 +1246,7 @@ mod tests {
     fn test_bytecode_writer_with_pesudo_instructions() {
         // pesudo f32
         let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI) // 3.1415927
+            .append_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI)
             .to_bytes();
 
         // 3.1415927 -> 0x40490FDB

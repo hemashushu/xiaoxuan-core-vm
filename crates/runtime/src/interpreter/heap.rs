@@ -218,13 +218,65 @@ mod tests {
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
+    fn test_interpreter_heap_capacity() {
+        // () -> (i64, i64, i64, i64, i64)
+
+        let code0 = BytecodeWriter::new()
+            // get the capacity
+            .append_opcode(Opcode::heap_capacity)
+            // resize - increase
+            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode(Opcode::heap_resize)
+            // resize - increase
+            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode(Opcode::heap_resize)
+            // resize - decrease
+            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode(Opcode::heap_resize)
+            // get the capcity
+            .append_opcode(Opcode::heap_capacity)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![], // params
+            vec![
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+                DataType::I64,
+            ], // results
+            vec![], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt64(0),
+                ForeignValue::UInt64(2),
+                ForeignValue::UInt64(4),
+                ForeignValue::UInt64(1),
+                ForeignValue::UInt64(1),
+            ]
+        );
+    }
+
+    #[test]
     fn test_interpreter_heap_load_and_store() {
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |
         //  type |bytes-------------------|         |f32|  |f64|  |i64------------------|   |i32-------|
         //
-        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //  data 11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |          |      |      ^                          ^
         //       |store32    |store16 |  |          |sf32  |sf64  |                          |
         //        step0       step1   |  |          |step5 |step4 |                          |
@@ -233,7 +285,7 @@ mod tests {
         //       |                        step3     |      |      |                          |
         //       \----->--load64-->---------------------------->--/-->-------------------->--/
         //
-        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 12 17 19
+        //       11 13 17 19 c0 d0    e0 f0         f32    f64    11 13 17 19 c0 d0 e0 f0    11 13 17 19
         //       |           |        |  |load8u    |      |      |                          |
         //       |           |        |  |load8s  loadf32  |      |                          |
         //       |           |        |                  loadf64  |                          |
@@ -247,6 +299,8 @@ mod tests {
         let code0 = BytecodeWriter::new()
             // note that the init size of heap is 0
             // change the capacity of heap before test
+
+            // init heap size
             .append_opcode_i32(Opcode::i32_imm, 1)
             .append_opcode(Opcode::heap_resize)
             .append_opcode(Opcode::drop)
@@ -261,11 +315,11 @@ mod tests {
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i32(Opcode::i32_imm, 0xe0)
-            .append_opcode_i16(Opcode::heap_store32, 6)
+            .append_opcode_i16(Opcode::heap_store8, 6)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i32(Opcode::i32_imm, 0xf0)
-            .append_opcode_i16(Opcode::heap_store32, 7)
+            .append_opcode_i16(Opcode::heap_store8, 7)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
@@ -359,58 +413,6 @@ mod tests {
                 // group 2
                 ForeignValue::UInt64(0xf0e0d0c0_19171311u64),
                 ForeignValue::UInt32(0x19171311u32),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_interpreter_heap_capacity() {
-        // () -> (i64, i64, i64, i64, i64)
-
-        let code0 = BytecodeWriter::new()
-            // get the capacity
-            .append_opcode(Opcode::heap_capacity)
-            // resize - increase
-            .append_opcode_i32(Opcode::i32_imm, 2)
-            .append_opcode(Opcode::heap_resize)
-            // resize - increase
-            .append_opcode_i32(Opcode::i32_imm, 4)
-            .append_opcode(Opcode::heap_resize)
-            // resize - decrease
-            .append_opcode_i32(Opcode::i32_imm, 1)
-            .append_opcode(Opcode::heap_resize)
-            // get the capcity
-            .append_opcode(Opcode::heap_capacity)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-            ], // results
-            vec![], // local vars
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-
-        assert_eq!(
-            result0.unwrap(),
-            vec![
-                ForeignValue::UInt64(0),
-                ForeignValue::UInt64(2),
-                ForeignValue::UInt64(4),
-                ForeignValue::UInt64(1),
-                ForeignValue::UInt64(1),
             ]
         );
     }
