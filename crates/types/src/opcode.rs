@@ -832,6 +832,34 @@ pub enum Opcode {
     // ```
     recur, // (param reversed_index:i16, start_inst_offset:i32)
 
+    // create a block scope only if the operand on the top of stack is
+    // NOT equals to ZERO (logic TRUE).
+    //
+    // the value of 'next_inst_offset' should be the address of the next instructions
+    // AFTER the instruction 'end'.
+    //
+    // instruction 'block_nez' is commonly used to construct the 'if' structures
+    // in general programming languages.
+    //
+    // e.g
+    //
+    // ```c
+    // if (i != 0) {
+    //     ...
+    // }
+    // ```
+    //
+    // ```bytecode
+    // 0d0000 block_nez 0 100   ;; -----\
+    // ....                     ;;      |
+    // 0d0100 end               ;;      |
+    // 0d0102 nop               ;; <----/ jump to here when FALSE
+    // ```
+    //
+    // 'block_nez' has NO PARAMS and NO RESULTS, but it can owns local variables.
+    //
+    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
+
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
     // but it jumps to the 'alternative instruction' if the operand on the top of stack is
@@ -870,37 +898,9 @@ pub enum Opcode {
     //
     // (+ => execute, - => pass)
     //
-    // 'block_alt' has NO PARAMS, but it can return RESULTS and own local variables.
+    // 'block_alt' has NO PARAMS, but it can return values and own local variables.
     //
     block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
-
-    // create a block scope only if the operand on the top of stack is
-    // NOT equals to ZERO (logic TRUE).
-    //
-    // the value of 'next_inst_offset' should be the address of the next instructions
-    // AFTER the instruction 'end'.
-    //
-    // 'block_nez' has NO PARAMS and NO RESULTS, but it can owns local variables.
-    //
-    // instruction 'block_nez' is commonly used to construct the 'if' structures
-    // in general programming languages.
-    //
-    // e.g
-    //
-    // ```c
-    // if (i != 0) {
-    //     ...
-    // }
-    // ```
-    //
-    // ```bytecode
-    // 0d0000 block_nez 0 100   ;; -----\
-    // ....                     ;;      |
-    // 0d0100 end               ;;      |
-    // 0d0102 nop               ;; <----/ jump to here when FALSE
-    // ```
-    //
-    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
 
     // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
     // and 'break_nez', e.g.

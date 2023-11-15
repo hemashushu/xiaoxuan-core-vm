@@ -492,7 +492,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_function() {
+    fn test_interpreter_control_flow_break_the_function() {
         // fn () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
@@ -528,6 +528,62 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::UInt32(11), ForeignValue::UInt32(13),]
+        );
+    }
+
+    #[test]
+    fn test_interpreter_control_flow_break_the_function_in_block() {
+        // fn () -> (i32, i32)
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) () -> ()
+        //         (i32_imm 17)
+        //         (i32_imm 19)
+        //         (break 1 1)
+        //         (i32_imm 23)
+        //         (i32_imm 29)
+        //     end
+        //     (i32_imm 31)
+        //     (i32_imm 37)
+        // end
+        //
+        // expect (17, 19)
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode_i32(Opcode::i32_imm, 11)
+            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
+            .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i16_i32(Opcode::break_, 1, 1)
+            .append_opcode_i32(Opcode::i32_imm, 23)
+            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 31)
+            .append_opcode_i32(Opcode::i32_imm, 37)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function_and_blocks(
+            vec![],                             // params
+            vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
+            code0,
+            vec![HelperBlockEntry {
+                params: vec![],
+                results: vec![],
+                local_variable_item_entries_without_args: vec![],
+            }],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
         );
     }
 
@@ -651,7 +707,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_if() {
+    fn test_interpreter_control_flow_structure_when() {
         // func $max (i32, i32) -> (i32)
         //     (local $res/2 i32)
         //
@@ -721,7 +777,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_if_else() {
+    fn test_interpreter_control_flow_structure_if() {
         // func $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
         //     (local_load32 0 1)
@@ -782,7 +838,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_if_else_nested() {
+    fn test_interpreter_control_flow_structure_if_nested() {
         // func $level (i32) -> (i32)
         //     (local_load32 0 0)
         //     (i32_imm 85)
@@ -889,7 +945,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_switch_case() {
+    fn test_interpreter_control_flow_structure_branch() {
         // func $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
@@ -1015,7 +1071,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_while() {
+    fn test_interpreter_control_flow_structure_loop() {
         // func $accu (n/0:i32) -> (i32)
         //     (local sum/1:i32)
         //     (block 1 1) ()->()
@@ -1089,7 +1145,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_while_with_functional_style() {
+    fn test_interpreter_control_flow_structure_loop_with_parameters_and_local_vars() {
         // func $accu (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1164,7 +1220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_while_with_optimized() {
+    fn test_interpreter_control_flow_structure_loop_with_optimized_inst_break_nez() {
         // func $accu_optimized (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1242,7 +1298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_do_while() {
+    fn test_interpreter_control_flow_structure_loop_variant() {
         // func $acc (n/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; n
@@ -1326,7 +1382,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_do_while_with_block_local_vars() {
+    fn test_interpreter_control_flow_structure_loop_with_local_vars() {
         // note:
         //
         // also test the block-level local variables
@@ -1418,7 +1474,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_tco() {
+    fn test_interpreter_control_flow_function_tco() {
         // func $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
@@ -1502,7 +1558,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_tco_with_optimized() {
+    fn test_interpreter_control_flow_function_tco_with_optimized_inst_recur_nez() {
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
         //     (local_load32 0)
@@ -1572,7 +1628,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_tco_with_branch() {
+    fn test_interpreter_control_flow_function_tco_inside_if() {
         // func $accu_opti (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
         //     i32_eqz

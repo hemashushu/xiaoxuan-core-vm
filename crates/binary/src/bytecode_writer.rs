@@ -9,7 +9,7 @@ use std::io::Write;
 use ancvm_types::opcode::Opcode;
 
 pub struct BytecodeWriter {
-    pub buffer: Vec<u8>, // trait std::io::Write
+    buffer: Vec<u8>, // trait std::io::Write
 }
 
 /// note that the word 'i32' in these function names indicate it's a 32-bit integer,
@@ -149,6 +149,46 @@ impl BytecodeWriter {
 
     pub fn save_bytecodes(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         writer.write_all(&self.buffer)
+    }
+}
+
+impl BytecodeWriter {
+    pub fn get_addr(&self) -> usize {
+        self.buffer.len()
+    }
+
+    fn rewrite(&mut self, addr: usize, value: u32) {
+        self.buffer[addr..].copy_from_slice(&value.to_le_bytes().to_vec());
+    }
+
+    pub fn fill_break_stub(&mut self, addr: usize, next_inst_offset: u32) {
+        // (opcode:i16 reversed_index:i16, next_inst_offset:i32)
+        self.rewrite(addr + 4, next_inst_offset);
+    }
+
+    pub fn fill_recur_stub(&mut self, addr: usize, start_inst_offset: u32) {
+        // (opcode:i16 reversed_index:i16, start_inst_offset:i32)
+        self.rewrite(addr + 4, start_inst_offset);
+    }
+
+    pub fn fill_block_alt_stub(&mut self, addr: usize, alt_inst_offset: u32) {
+        // (opcode:i16 padding:i16 type_index:i32 local_list_index:i32 alt_inst_offset:i32)
+        self.rewrite(addr + 12, alt_inst_offset);
+    }
+
+    pub fn fill_block_nez_stub(&mut self, addr: usize, next_inst_offset: u32) {
+        // (opcode:i16 padding:i16 local_list_index:i32 next_inst_offset:i32)
+        self.rewrite(addr + 4, next_inst_offset);
+    }
+
+    pub fn fill_break_nez_stub(&mut self, addr: usize, next_inst_offset: u32) {
+        // (opcode:i16 reversed_index:i16 next_inst_offset:i32)
+        self.rewrite(addr + 4, next_inst_offset);
+    }
+
+    pub fn fill_recur_nez_stub(&mut self, addr: usize, start_inst_offset: u32) {
+        // (opcode:i16 reversed_index:i16 start_inst_offset:i32)
+        self.rewrite(addr + 4, start_inst_offset);
     }
 }
 
