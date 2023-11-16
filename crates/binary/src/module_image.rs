@@ -510,6 +510,7 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex)
             .map(ExternalFuncIndexSection::load)
     }
+
 }
 
 #[cfg(test)]

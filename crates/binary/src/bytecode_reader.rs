@@ -88,13 +88,13 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             | Opcode::local_store32
             | Opcode::local_store16
             | Opcode::local_store8 => {
-                let (o, offset, reversed_index, index) =
+                let (o, reversed_index, offset, index) =
                     read_param_i16_i16_i16(codes, offset_param);
                 (
                     o,
                     format!(
-                        "off:0x{:02x}  rev:{:<2}  idx:{}",
-                        offset, reversed_index, index
+                        "rev:{:<2}  off:0x{:02x}  idx:{}",
+                        reversed_index, offset, index
                     ),
                 )
             }

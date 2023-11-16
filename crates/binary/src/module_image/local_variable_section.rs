@@ -226,6 +226,20 @@ impl<'a> LocalVariableSection<'a> {
         unsafe { &*items }
     }
 
+    // for inspect
+    pub fn get_local_list_entry(&self, idx: usize) -> LocalListEntry {
+        let items = self.get_local_list(idx);
+        let variable_entries = items
+            .iter()
+            .map(|item| LocalVariableEntry {
+                memory_data_type: item.memory_data_type,
+                length: item.var_actual_length,
+                align: item.var_align,
+            })
+            .collect::<Vec<_>>();
+        LocalListEntry { variable_entries }
+    }
+
     pub fn convert_from_entries(entiress: &[LocalListEntry]) -> (Vec<LocalList>, Vec<u8>) {
         let var_item_length_in_bytes = size_of::<LocalVariableItem>();
 

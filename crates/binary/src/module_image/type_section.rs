@@ -101,6 +101,15 @@ impl<'a> TypeSection<'a> {
         (params_slice, results_slice)
     }
 
+    // for inspect
+    pub fn get_type_entry(&self, idx: usize) -> TypeEntry {
+        let (params, results) = self.get_item_params_and_results(idx);
+        TypeEntry {
+            params: params.to_vec(),
+            results: results.to_vec(),
+        }
+    }
+
     pub fn convert_from_entries(entries: &[TypeEntry]) -> (Vec<TypeItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
 

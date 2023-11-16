@@ -158,7 +158,7 @@ impl BytecodeWriter {
     }
 
     fn rewrite(&mut self, addr: usize, value: u32) {
-        self.buffer[addr..].copy_from_slice(&value.to_le_bytes().to_vec());
+        self.buffer[addr..].copy_from_slice(value.to_le_bytes().as_ref());
     }
 
     pub fn fill_break_stub(&mut self, addr: usize, next_inst_offset: u32) {

@@ -78,6 +78,20 @@ impl<'a> FuncSection<'a> {
         )
     }
 
+    // for inspect
+    pub fn get_func_entry(&self, idx: usize) -> FuncEntry {
+        let func_item = &self.items[idx];
+        let code = self.codes_data[func_item.code_offset as usize
+            ..(func_item.code_offset + func_item.code_length) as usize]
+            .to_vec();
+
+        FuncEntry {
+            type_index: func_item.type_index as usize,
+            local_list_index: func_item.local_list_index as usize,
+            code,
+        }
+    }
+
     pub fn convert_from_entries(entries: &[FuncEntry]) -> (Vec<FuncItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
 

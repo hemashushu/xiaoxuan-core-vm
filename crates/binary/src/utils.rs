@@ -1454,12 +1454,12 @@ mod tests {
 
         assert_eq!(
             text,
-            "
+            "\
 0x0000  00 07                       i32.add
 0x0002  00 04 02 00                 heap.load64_i64   off:0x02
 0x0006  08 04 03 00                 heap.store64      off:0x03
-0x000a  00 02 05 00  07 00 11 00    local.load64_i64  off:0x05  rev:7   idx:17
-0x0012  08 02 13 00  17 00 19 00    local.store64     off:0x13  rev:23  idx:25
+0x000a  00 02 05 00  07 00 11 00    local.load64_i64  rev:5   off:0x07  idx:17
+0x0012  08 02 13 00  17 00 19 00    local.store64     rev:19  off:0x17  idx:25
 0x001a  00 0c                       nop
 0x001c  00 03 23 00  29 00 00 00    data.load64_i64   off:0x23  idx:41
 0x0024  08 03 31 00  37 00 00 00    data.store64      off:0x31  idx:55
@@ -1483,7 +1483,7 @@ mod tests {
         13 00 00 00  17 00 00 00
 0x0084  04 0a 00 00  19 00 00 00    block_nez         local:25  off:0x23
         23 00 00 00
-0x0090  00 0a                       end"[1..]
+0x0090  00 0a                       end"
         )
     }
 }

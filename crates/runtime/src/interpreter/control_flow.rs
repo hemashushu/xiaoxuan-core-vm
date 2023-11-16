@@ -218,6 +218,7 @@ fn do_recur(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
+        bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
         module_image::local_variable_section::LocalVariableEntry,
         utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockEntry},
@@ -241,6 +242,20 @@ mod tests {
         // end
         //
         // expect (11, 13, 23, 29)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x001c  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x0024  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x002c  00 0a                       end
+        // 0x002e  00 0c                       nop
+        // 0x0030  80 01 00 00  17 00 00 00    i32.imm           0x00000017
+        // 0x0038  80 01 00 00  1d 00 00 00    i32.imm           0x0000001d
+        // 0x0040  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
@@ -284,17 +299,31 @@ mod tests {
 
     #[test]
     fn test_interpreter_control_flow_block_with_args_and_results() {
-        // fn () -> (i32, i32, i32, i32)
+        // fn () -> (i32, i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
-        //     (block 1 1) (i32) -> (i32, i32)
+        //     (block 1 1) (i32) -> (i32)
         //         (local_load 0)
         //         (i32_imm 17)
+        //         (i32_add)
         //     end
         //     (i32_imm 19)
         // end
         //
-        // expect (11, 13, 17, 19)
+        // expect (11, 30, 19)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x001c  02 02 00 00  00 00 00 00    local.load32_i32  off:0x00  rev:0   idx:0
+        // 0x0024  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x002c  00 07                       i32.add
+        // 0x002e  00 0a                       end
+        // 0x0030  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x0038  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
@@ -302,19 +331,22 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local list index = 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode(Opcode::i32_add)
             .append_opcode(Opcode::end)
             .append_opcode_i32(Opcode::i32_imm, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
 
+        // println!("{}", print_bytecode_as_text(&code0));
+
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![],                                                           // params
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
-            vec![],                                                           // local vars
+            vec![],                                            // params
+            vec![DataType::I32, DataType::I32, DataType::I32], // results
+            vec![],                                            // local vars
             code0,
             vec![HelperBlockEntry {
                 params: vec![DataType::I32],
-                results: vec![DataType::I32, DataType::I32],
+                results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -328,8 +360,7 @@ mod tests {
             result0.unwrap(),
             vec![
                 ForeignValue::UInt32(11),
-                ForeignValue::UInt32(13),
-                ForeignValue::UInt32(17),
+                ForeignValue::UInt32(30),
                 ForeignValue::UInt32(19),
             ]
         );
@@ -350,21 +381,71 @@ mod tests {
         //         ;; load c
         //         ;; load d
         //         (block 2 2) (x/0:i32, y/1:i32) -> (i32,i32)
-        //             ;; x+q               ;; 28
-        //             ;; y+p               ;; 44
         //             ;; d=d+1             ;; 13
         //             ;; q=q-1             ;; 7
+        //             ;; x+q               ;; 27 (ret 0)
+        //             ;; y+p               ;; 44 (ret 1)
         //         end
-        //         ;; load p
-        //         ;; load q
+        //         ;; load p (ret 2)
+        //         ;; load q (ret 3)
         //     end
-        //     ;; load a
-        //     ;; load b
-        //     ;; load c
-        //     ;; load d
+        //     ;; load a (ret 4)
+        //     ;; load b (ret 5)
+        //     ;; load c (ret 6)
+        //     ;; load d (ret 7)
         // end
         //
-        // expect (19, 11) -> (28,44, 32, 7, 18, 10, 20, 13)
+        // expect (19, 11) -> (27, 44, 32, 7, 18, 10, 20, 13)
+
+        // bytecode:
+        //
+        // 0x0000  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x0008  07 07 01 00                 i32.inc           1
+        // 0x000c  09 02 00 00  00 00 02 00    local.store32     rev:0   off:0x00  idx:2
+        // 0x0014  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
+        // 0x001c  07 07 01 00                 i32.inc           1
+        // 0x0020  09 02 00 00  00 00 03 00    local.store32     rev:0   off:0x00  idx:3
+        // 0x0028  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x0034  02 02 01 00  00 00 00 00    local.load32_i32  rev:1   off:0x00  idx:0
+        // 0x003c  08 07 01 00                 i32.dec           1
+        // 0x0040  09 02 01 00  00 00 00 00    local.store32     rev:1   off:0x00  idx:0
+        // 0x0048  02 02 01 00  00 00 01 00    local.load32_i32  rev:1   off:0x00  idx:1
+        // 0x0050  08 07 01 00                 i32.dec           1
+        // 0x0054  09 02 01 00  00 00 01 00    local.store32     rev:1   off:0x00  idx:1
+        // 0x005c  02 02 01 00  00 00 02 00    local.load32_i32  rev:1   off:0x00  idx:2
+        // 0x0064  02 02 01 00  00 00 03 00    local.load32_i32  rev:1   off:0x00  idx:3
+        // 0x006c  00 07                       i32.add
+        // 0x006e  09 02 00 00  00 00 00 00    local.store32     rev:0   off:0x00  idx:0
+        // 0x0076  02 02 01 00  00 00 02 00    local.load32_i32  rev:1   off:0x00  idx:2
+        // 0x007e  02 02 01 00  00 00 03 00    local.load32_i32  rev:1   off:0x00  idx:3
+        // 0x0086  01 07                       i32.sub
+        // 0x0088  09 02 00 00  00 00 01 00    local.store32     rev:0   off:0x00  idx:1
+        // 0x0090  02 02 01 00  00 00 02 00    local.load32_i32  rev:1   off:0x00  idx:2
+        // 0x0098  02 02 01 00  00 00 03 00    local.load32_i32  rev:1   off:0x00  idx:3
+        // 0x00a0  01 0a 00 00  02 00 00 00    block             type:2   local:2
+        //         02 00 00 00
+        // 0x00ac  02 02 02 00  00 00 03 00    local.load32_i32  rev:2   off:0x00  idx:3
+        // 0x00b4  07 07 01 00                 i32.inc           1
+        // 0x00b8  09 02 02 00  00 00 03 00    local.store32     rev:2   off:0x00  idx:3
+        // 0x00c0  02 02 01 00  00 00 01 00    local.load32_i32  rev:1   off:0x00  idx:1
+        // 0x00c8  08 07 01 00                 i32.dec           1
+        // 0x00cc  09 02 01 00  00 00 01 00    local.store32     rev:1   off:0x00  idx:1
+        // 0x00d4  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x00dc  02 02 01 00  00 00 01 00    local.load32_i32  rev:1   off:0x00  idx:1
+        // 0x00e4  00 07                       i32.add
+        // 0x00e6  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
+        // 0x00ee  02 02 01 00  00 00 00 00    local.load32_i32  rev:1   off:0x00  idx:0
+        // 0x00f6  00 07                       i32.add
+        // 0x00f8  00 0a                       end
+        // 0x00fa  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x0102  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
+        // 0x010a  00 0a                       end
+        // 0x010c  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x0114  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
+        // 0x011c  02 02 00 00  00 00 02 00    local.load32_i32  rev:0   off:0x00  idx:2
+        // 0x0124  02 02 00 00  00 00 03 00    local.load32_i32  rev:0   off:0x00  idx:3
+        // 0x012c  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             // c=a+1
@@ -400,14 +481,6 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
             // block 2
             .append_opcode_i32_i32(Opcode::block, 2, 2)
-            // x+q
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode(Opcode::i32_add)
-            // y+p
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode(Opcode::i32_add)
             // d=d+1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 2, 0, 3)
             .append_opcode_i16(Opcode::i32_inc, 1)
@@ -416,6 +489,14 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
+            // x+q
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
+            .append_opcode(Opcode::i32_add)
+            // y+p
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
+            .append_opcode(Opcode::i32_add)
             //
             .append_opcode(Opcode::end)
             // load p, q
@@ -431,6 +512,8 @@ mod tests {
             //
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32], // params
@@ -479,7 +562,7 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::UInt32(28),
+                ForeignValue::UInt32(27),
                 ForeignValue::UInt32(44),
                 ForeignValue::UInt32(32),
                 ForeignValue::UInt32(7),
@@ -492,16 +575,25 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_the_function() {
+    fn test_interpreter_control_flow_break_function() {
         // fn () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
-        //     (break 0 0)
+        //     (break 0)
         //     (i32_imm 17)
         //     (i32_imm 19)
         // end
         //
         // expect (11, 13)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  02 0a 00 00  00 00 00 00    break             rev:0   off:0x00
+        // 0x0018  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x0020  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x0028  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
@@ -511,6 +603,8 @@ mod tests {
             .append_opcode_i32(Opcode::i32_imm, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
@@ -532,62 +626,6 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_the_function_in_block() {
-        // fn () -> (i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
-        //     (block 1 1) () -> ()
-        //         (i32_imm 17)
-        //         (i32_imm 19)
-        //         (break 1 1)
-        //         (i32_imm 23)
-        //         (i32_imm 29)
-        //     end
-        //     (i32_imm 31)
-        //     (i32_imm 37)
-        // end
-        //
-        // expect (17, 19)
-
-        let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
-            .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
-            .append_opcode_i16_i32(Opcode::break_, 1, 1)
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_i32(Opcode::i32_imm, 29)
-            .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 31)
-            .append_opcode_i32(Opcode::i32_imm, 37)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![],                             // params
-            vec![DataType::I32, DataType::I32], // results
-            vec![],                             // local vars
-            code0,
-            vec![HelperBlockEntry {
-                params: vec![],
-                results: vec![],
-                local_variable_item_entries_without_args: vec![],
-            }],
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::UInt32(17), ForeignValue::UInt32(19),]
-        );
-    }
-
-    #[test]
     fn test_interpreter_control_flow_break_block() {
         // fn () -> (i32, i32, i32, i32)
         //     (i32_imm 11)
@@ -595,7 +633,7 @@ mod tests {
         //     (block 1 1) () -> (i32, i32)
         //         (i32_imm 17)
         //         (i32_imm 19)
-        //         (break 0 x)
+        //         (break 0)
         //         (i32_imm 23)
         //         (i32_imm 29)
         //     end
@@ -604,6 +642,23 @@ mod tests {
         // end
         //
         // expect (17, 19, 31, 37)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x001c  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x0024  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x002c  02 0a 00 00  1a 00 00 00    break             rev:0   off:0x1a
+        // 0x0034  80 01 00 00  17 00 00 00    i32.imm           0x00000017
+        // 0x003c  80 01 00 00  1d 00 00 00    i32.imm           0x0000001d
+        // 0x0044  00 0a                       end
+        // 0x0046  00 0c                       nop
+        // 0x0048  80 01 00 00  1f 00 00 00    i32.imm           0x0000001f
+        // 0x0050  80 01 00 00  25 00 00 00    i32.imm           0x00000025
+        // 0x0058  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
@@ -619,6 +674,8 @@ mod tests {
             .append_opcode_i32(Opcode::i32_imm, 37)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                                           // params
@@ -649,16 +706,14 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_block_crossing() {
-        // cross jump
-        //
+    fn test_interpreter_control_flow_break_block_to_function() {
         // fn () -> (i32, i32)
         //     (i32_imm 11)
         //     (i32_imm 13)
         //     (block 1 1) () -> ()
         //         (i32_imm 17)
         //         (i32_imm 19)
-        //         (break 1 0)
+        //         (break 1)
         //         (i32_imm 23)
         //         (i32_imm 29)
         //     end
@@ -668,10 +723,27 @@ mod tests {
         //
         // expect (17, 19)
 
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x001c  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x0024  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x002c  02 0a 01 00  00 00 00 00    break             rev:1   off:0x00
+        // 0x0034  80 01 00 00  17 00 00 00    i32.imm           0x00000017
+        // 0x003c  80 01 00 00  1d 00 00 00    i32.imm           0x0000001d
+        // 0x0044  00 0a                       end
+        // 0x0046  00 0c                       nop
+        // 0x0048  80 01 00 00  1f 00 00 00    i32.imm           0x0000001f
+        // 0x0050  80 01 00 00  25 00 00 00    i32.imm           0x00000025
+        // 0x0058  00 0a                       end
+
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i32(Opcode::i32_imm, 13)
-            .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
+            .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
             .append_opcode_i32(Opcode::i32_imm, 17)
             .append_opcode_i32(Opcode::i32_imm, 19)
             .append_opcode_i16_i32(Opcode::break_, 1, 0)
@@ -682,6 +754,8 @@ mod tests {
             .append_opcode_i32(Opcode::i32_imm, 37)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
@@ -707,9 +781,118 @@ mod tests {
     }
 
     #[test]
+    fn test_interpreter_control_flow_break_block_crossing() {
+        // cross jump
+        //
+        // fn () -> (i32 i32 i32 i32)
+        //     (i32_imm 11)
+        //     (i32_imm 13)
+        //     (block 1 1) () -> (i32 i32)
+        //         (i32_imm 17)
+        //         (i32_imm 19)
+        //         (block 2 2) () -> (i32 i32)
+        //             (i32_imm 23)
+        //             (i32_imm 29)
+        //             (break 1)
+        //             (i32_imm 31)
+        //             (i32_imm 37)
+        //         end
+        //         (i32_imm 41)
+        //         (i32_imm 43)
+        //     end
+        //     (i32_imm 51)
+        //     (i32_imm 53)
+        // end
+        //
+        // expect (23, 29, 51, 53)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  0b 00 00 00    i32.imm           0x0000000b
+        // 0x0008  80 01 00 00  0d 00 00 00    i32.imm           0x0000000d
+        // 0x0010  01 0a 00 00  01 00 00 00    block             type:1   local:1
+        //         01 00 00 00
+        // 0x001c  80 01 00 00  11 00 00 00    i32.imm           0x00000011
+        // 0x0024  80 01 00 00  13 00 00 00    i32.imm           0x00000013
+        // 0x002c  01 0a 00 00  02 00 00 00    block             type:2   local:2
+        //         02 00 00 00
+        // 0x0038  80 01 00 00  17 00 00 00    i32.imm           0x00000017
+        // 0x0040  80 01 00 00  1d 00 00 00    i32.imm           0x0000001d
+        // 0x0048  02 0a 01 00  2e 00 00 00    break             rev:1   off:0x2e
+        // 0x0050  80 01 00 00  1f 00 00 00    i32.imm           0x0000001f
+        // 0x0058  80 01 00 00  25 00 00 00    i32.imm           0x00000025
+        // 0x0060  00 0a                       end
+        // 0x0062  00 0c                       nop
+        // 0x0064  80 01 00 00  29 00 00 00    i32.imm           0x00000029
+        // 0x006c  80 01 00 00  2b 00 00 00    i32.imm           0x0000002b
+        // 0x0074  00 0a                       end
+        // 0x0076  00 0c                       nop
+        // 0x0078  80 01 00 00  33 00 00 00    i32.imm           0x00000033
+        // 0x0080  80 01 00 00  35 00 00 00    i32.imm           0x00000035
+        // 0x0088  00 0a                       end
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode_i32(Opcode::i32_imm, 11)
+            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
+            .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32_i32(Opcode::block, 2, 2) // block type = 2
+            .append_opcode_i32(Opcode::i32_imm, 23)
+            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode_i16_i32(Opcode::break_, 1, 0x2e)
+            .append_opcode_i32(Opcode::i32_imm, 31)
+            .append_opcode_i32(Opcode::i32_imm, 37)
+            .append_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 41)
+            .append_opcode_i32(Opcode::i32_imm, 43)
+            .append_opcode(Opcode::end)
+            .append_opcode_i32(Opcode::i32_imm, 51)
+            .append_opcode_i32(Opcode::i32_imm, 53)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
+
+        let binary0 = helper_build_module_binary_with_single_function_and_blocks(
+            vec![],                                                           // params
+            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            vec![],                                                           // local vars
+            code0,
+            vec![
+                HelperBlockEntry {
+                    params: vec![],
+                    results: vec![DataType::I32, DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                },
+                HelperBlockEntry {
+                    params: vec![],
+                    results: vec![DataType::I32, DataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                },
+            ],
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![
+                ForeignValue::UInt32(23),
+                ForeignValue::UInt32(29),
+                ForeignValue::UInt32(51),
+                ForeignValue::UInt32(53),
+            ]
+        );
+    }
+
+    #[test]
     fn test_interpreter_control_flow_structure_when() {
         // func $max (i32, i32) -> (i32)
-        //     (local $res/2 i32)
+        //     (local $ret/2 i32)
         //
         //     (local_load32 0 0)
         //     (local_store32 0 2)
@@ -727,6 +910,22 @@ mod tests {
         // assert (11, 13) -> (13)
         // assert (19, 17) -> (19)
 
+        // bytecode:
+        //
+        // 0x0000  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x0008  09 02 00 00  00 00 02 00    local.store32     rev:0   off:0x00  idx:2
+        // 0x0010  02 02 00 00  00 00 00 00    local.load32_i32  rev:0   off:0x00  idx:0
+        // 0x0018  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
+        // 0x0020  05 06                       i32.lt_u
+        // 0x0022  00 0c                       nop
+        // 0x0024  04 0a 00 00  01 00 00 00    block_nez         local:1   off:0x1e
+        //         1e 00 00 00
+        // 0x0030  02 02 01 00  00 00 01 00    local.load32_i32  rev:1   off:0x00  idx:1
+        // 0x0038  09 02 01 00  00 00 02 00    local.store32     rev:1   off:0x00  idx:2
+        // 0x0040  00 0a                       end
+        // 0x0042  02 02 00 00  00 00 02 00    local.load32_i32  rev:0   off:0x00  idx:2
+        // 0x004a  00 0a                       end
+
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
@@ -742,6 +941,8 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32],   // params
