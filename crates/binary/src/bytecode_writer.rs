@@ -34,44 +34,56 @@ impl BytecodeWriter {
     }
 
     /// 16-bit instruction
-    pub fn write_opcode(&mut self, opcode: Opcode) {
+    ///
+    /// return the address of instruction
+    pub fn write_opcode(&mut self, opcode: Opcode) -> usize {
+        let addr = self.get_addr();
         self.write_i16(opcode as u16);
+        addr
     }
 
     /// 32-bit instruction
     /// opcode 16 + param 16
-    pub fn write_opcode_i16(&mut self, opcode: Opcode, value: u16) {
-        self.write_opcode(opcode);
-        self.write_i16(value)
+    pub fn write_opcode_i16(&mut self, opcode: Opcode, value: u16) -> usize {
+        let addr = self.write_opcode(opcode);
+        self.write_i16(value);
+        addr
     }
 
-    fn write_padding_if_necessary(&mut self) {
+    fn insert_padding_if_necessary(&mut self) -> usize {
+        let addr_of_next_inst = self.get_addr();
+
         // insert the padding instruction 'nop' if
         // the current position of byte stream is not 4-byte alignment.
         // all instructions contains 'u32' require this alignment.
         if self.buffer.len() % 4 != 0 {
             self.write_i16(Opcode::nop as u16);
+            addr_of_next_inst + 2
+        } else {
+            addr_of_next_inst
         }
     }
 
-    fn write_opcode_with_16bits_padding(&mut self, opcode: Opcode) {
-        self.write_opcode_i16(opcode, 0);
+    fn write_opcode_with_16bits_padding(&mut self, opcode: Opcode) -> usize {
+        self.write_opcode_i16(opcode, 0)
     }
 
     /// 64-bit instruction
     /// opcode 16 + padding 16 + param 16
-    pub fn write_opcode_i32(&mut self, opcode: Opcode, value: u32) {
-        self.write_padding_if_necessary();
+    pub fn write_opcode_i32(&mut self, opcode: Opcode, value: u32) -> usize {
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.write_i32(value);
+        addr
     }
 
     /// 64-bit instruction
     /// opcode 16 + param0 16 + param1 32
-    pub fn write_opcode_i16_i32(&mut self, opcode: Opcode, param0: u16, param1: u32) {
-        self.write_padding_if_necessary();
+    pub fn write_opcode_i16_i32(&mut self, opcode: Opcode, param0: u16, param1: u32) -> usize {
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_i16(opcode, param0);
         self.write_i32(param1);
+        addr
     }
 
     /// 64-bit instruction
@@ -82,19 +94,21 @@ impl BytecodeWriter {
         param0: u16,
         param1: u16,
         param2: u16,
-    ) {
-        self.write_opcode_i16(opcode, param0);
+    ) -> usize {
+        let addr = self.write_opcode_i16(opcode, param0);
         self.write_i16(param1);
         self.write_i16(param2);
+        addr
     }
 
     /// 96-bit instruction
     /// opcode 16 + padding 16 + param0 32 + param1 32
-    pub fn write_opcode_i32_i32(&mut self, opcode: Opcode, param0: u32, param1: u32) {
-        self.write_padding_if_necessary();
+    pub fn write_opcode_i32_i32(&mut self, opcode: Opcode, param0: u32, param1: u32) -> usize {
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.write_i32(param0);
         self.write_i32(param1);
+        addr
     }
 
     /// 128-bit instruction
@@ -105,42 +119,46 @@ impl BytecodeWriter {
         param0: u32,
         param1: u32,
         param2: u32,
-    ) {
-        self.write_padding_if_necessary();
+    ) -> usize {
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.write_i32(param0);
         self.write_i32(param1);
         self.write_i32(param2);
+        addr
     }
 
     /// 96-bit pesudo instruction
     /// opcode 16 + padding 16 + (param0 32 + param1 32)
-    pub fn write_opcode_pesudo_i64(&mut self, opcode: Opcode, value: u64) {
+    pub fn write_opcode_pesudo_i64(&mut self, opcode: Opcode, value: u64) -> usize {
         let data = value.to_le_bytes();
 
-        self.write_padding_if_necessary();
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.buffer.write_all(&data).unwrap();
+        addr
     }
 
     /// 64-bit pesudo instruction
     /// opcode 16 + padding 16 + param0 32
-    pub fn write_opcode_pesudo_f32(&mut self, opcode: Opcode, value: f32) {
+    pub fn write_opcode_pesudo_f32(&mut self, opcode: Opcode, value: f32) -> usize {
         let data = value.to_le_bytes();
 
-        self.write_padding_if_necessary();
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.buffer.write_all(&data).unwrap();
+        addr
     }
 
     /// 96-bit pesudo instruction
     /// opcode 16 + padding 16 + (param0 32 + param1 32)
-    pub fn write_opcode_pesudo_f64(&mut self, opcode: Opcode, value: f64) {
+    pub fn write_opcode_pesudo_f64(&mut self, opcode: Opcode, value: f64) -> usize {
         let data = value.to_le_bytes();
 
-        self.write_padding_if_necessary();
+        let addr = self.insert_padding_if_necessary();
         self.write_opcode_with_16bits_padding(opcode);
         self.buffer.write_all(&data).unwrap();
+        addr
     }
 
     pub fn to_bytes(self) -> Vec<u8> {
@@ -158,7 +176,7 @@ impl BytecodeWriter {
     }
 
     fn rewrite(&mut self, addr: usize, value: u32) {
-        self.buffer[addr..].copy_from_slice(value.to_le_bytes().as_ref());
+        self.buffer[addr..(addr + 4)].copy_from_slice(value.to_le_bytes().as_ref());
     }
 
     pub fn fill_break_stub(&mut self, addr: usize, next_inst_offset: u32) {
@@ -178,7 +196,7 @@ impl BytecodeWriter {
 
     pub fn fill_block_nez_stub(&mut self, addr: usize, next_inst_offset: u32) {
         // (opcode:i16 padding:i16 local_list_index:i32 next_inst_offset:i32)
-        self.rewrite(addr + 4, next_inst_offset);
+        self.rewrite(addr + 8, next_inst_offset);
     }
 
     pub fn fill_break_nez_stub(&mut self, addr: usize, next_inst_offset: u32) {
