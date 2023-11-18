@@ -19,7 +19,7 @@ static mut HANDLERS: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
     [unreachable; MAX_SYSCALL_TYPE_NUMBER];
 
 pub fn syscall(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (operand syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
+    // (operand args..., syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
     //
     // the syscall arguments should be pushed on the stack first, e.g.
     //

@@ -17,7 +17,8 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
     // the 'external_func_index' is the index within a specific module, it is not
     // the 'unified_external_func_index'.
 
-    let external_function_index = thread_context.stack.pop_i32_u() as usize;
+    // let external_function_index = thread_context.stack.pop_i32_u() as usize;
+    let external_function_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
     // get the unified external function index
@@ -109,7 +110,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }
 
-    InterpretResult::Move(2)
+    InterpretResult::Move(8)
 }
 
 #[cfg(test)]
@@ -133,8 +134,8 @@ mod tests {
     #[test]
     fn test_interpreter_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .append_opcode(Opcode::extcall)
+            // .append_opcode_i32(Opcode::i32_imm, 0) // 0 is the external func index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -184,8 +185,8 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
-            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .append_opcode(Opcode::extcall)
+            // .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -239,8 +240,8 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 1
             //
-            .append_opcode_i32(Opcode::i32_imm, 0) // external func index
-            .append_opcode(Opcode::extcall)
+            // .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
             .to_bytes();

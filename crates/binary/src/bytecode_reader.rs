@@ -337,10 +337,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             }
             Opcode::block_nez => {
                 let (o, local_idx, offset) = read_param_i32_i32(codes, offset_param);
-                (
-                    o,
-                    format!("local:{:<2}  off:0x{:02x}", local_idx, offset),
-                )
+                (o, format!("local:{:<2}  off:0x{:02x}", local_idx, offset))
             }
             Opcode::block_alt => {
                 let (o, type_idx, local_idx, offset) = read_param_i32_i32_i32(codes, offset_param);
@@ -359,11 +356,11 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                     format!("rev:{:<2}  off:0x{:02x}", reversed_index, offset),
                 )
             }
-            Opcode::call | Opcode::envcall => {
+            Opcode::call | Opcode::envcall | Opcode::extcall => {
                 let (o, idx) = read_param_i32(codes, offset_param);
                 (o, format!("idx:{}", idx))
             }
-            Opcode::dyncall | Opcode::syscall | Opcode::extcall => (offset_param, String::new()),
+            Opcode::dyncall | Opcode::syscall => (offset_param, String::new()),
             // machine
             Opcode::nop | Opcode::panic => (offset_param, String::new()),
             Opcode::unreachable | Opcode::debug => {
@@ -374,10 +371,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 let (o, reversed_idx, offset, idx) = read_param_i16_i16_i16(codes, offset_param);
                 (
                     o,
-                    format!(
-                        "rev:{:<2}  off:0x{:02x}  idx:{}",
-                        reversed_idx, offset, idx
-                    ),
+                    format!("rev:{:<2}  off:0x{:02x}  idx:{}", reversed_idx, offset, idx),
                 )
             }
             Opcode::host_addr_local_long => {

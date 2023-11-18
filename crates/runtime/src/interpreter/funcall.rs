@@ -87,11 +87,11 @@ mod tests {
 
     #[test]
     fn test_interpreter_function_call() {
-        // function $main (i32) -> (i32)
+        // fn $main (i32) -> (i32)
         //     (call $sum_square)
         // end
         //
-        // function $sum_square (n/1:i32) -> (i32)
+        // fn $sum_square (n/1:i32) -> (i32)
         //     zero
         //     (local_load32 0 0)
         //     (block 3 3) (sum/0:i32, n/1:i32) -> (i32)
@@ -115,7 +115,7 @@ mod tests {
         //     end
         // end
         //
-        // function $square (i32) -> (i32)
+        // fn $square (i32) -> (i32)
         //     (local_load 32)
         //     (local_load 32)
         //     i32_mul
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_function_call_dyncall() {
-        // function $main () -> (i32, i32, i32, i32, i32)
+        // fn $main () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
         //     (dyncall)
         //     (i32_imm 4)
@@ -220,19 +220,19 @@ mod tests {
         //     (dyncall)
         // end
         //
-        // function $eleven (;1;) () -> (i32)
+        // fn $eleven (;1;) () -> (i32)
         //     (i32_imm 11)
         // end
         //
-        // function $thirteen (;2;) () -> (i32)
+        // fn $thirteen (;2;) () -> (i32)
         //     (i32_imm 13)
         // end
         //
-        // function $seventeen (;3;) () -> (i32)
+        // fn $seventeen (;3;) () -> (i32)
         //     (i32_imm 17)
         // end
         //
-        // function $nineteen (;4;) () -> (i32)
+        // fn $nineteen (;4;) () -> (i32)
         //     (i32_imm 19)
         // end
 

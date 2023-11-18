@@ -1289,7 +1289,7 @@ pub enum Opcode {
 
     envcall,                    // environment call                 (param env_func_num:i32) -> (...)
 
-    // `(operand syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
+    // `(operand args..., syscall_num:i32, params_count: i32)` -> (return_value:i64, error_no:i32)
     //
     // the syscall arguments should be pushed on the stack first, e.g.
     //
@@ -1310,7 +1310,7 @@ pub enum Opcode {
     syscall,
 
     // external function call
-    // `(operand external_func_index:i32) -> void/i32/i64/f32/f64`
+    // `(param external_func_index:i32) -> void/i32/i64/f32/f64`
     //
     // note that both 'syscall' and 'extcall' are optional, they may be
     // unavailable in some environment.
