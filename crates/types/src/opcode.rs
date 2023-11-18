@@ -830,6 +830,8 @@ pub enum Opcode {
     // 0d0030   end
     // 0d0032 end
     // ```
+    //
+    // 'start_inst_offset' is the address of the next instruction follows 'block'
     recur, // (param reversed_index:i16, start_inst_offset:i32)
 
     // create a block scope only if the operand on the top of stack is
@@ -1321,8 +1323,8 @@ pub enum Opcode {
     nop = 0xc00,                // instruction to do nothing,
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     panic,                      // terminate VM
-    unreachable,                // indicates unreachable code
-    debug,                      // for VM debug     (param code:u32) -> ()
+    unreachable,                // unreachable code     (param code:u32) -> ()
+    debug,                      // for VM debug         (param code:u32) -> ()
 
     // get the host address of memory
     //

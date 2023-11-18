@@ -47,10 +47,13 @@ pub struct InterpreterError {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InterpreterErrorType {
     ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
-    DataTypeMissmatch,   // data type does not match
+    DataTypeMissmatch,         // data type does not match
     InvalidOperation, // such as invoke 'popx' instructions when there is no operands on the stack
     IndexNotFound,    // the index of function (data, local variables) not found
     OutOfBoundary,    // out of boundary
+    Panic,
+    Debug(u32),
+    Unreachable(u32),
 }
 
 impl InterpreterError {
@@ -61,15 +64,35 @@ impl InterpreterError {
 
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let error_code = match self.error_type {
-            InterpreterErrorType::ParametersAmountMissmatch => "Parameters amount missmatch",
-            InterpreterErrorType::DataTypeMissmatch => "Data type missmatch",
-            InterpreterErrorType::InvalidOperation => "Invalid operation",
-            InterpreterErrorType::IndexNotFound => "Index not found",
-            InterpreterErrorType::OutOfBoundary => "Out of boundary",
-        };
-
-        f.write_fmt(format_args!("Interpreter error: {}", error_code))
+        match self.error_type {
+            InterpreterErrorType::ParametersAmountMissmatch => f.write_fmt(format_args!(
+                "Interpreter error: {}",
+                "Parameters amount missmatch"
+            )),
+            InterpreterErrorType::DataTypeMissmatch => {
+                f.write_fmt(format_args!("Interpreter error: {}", "Data type missmatch"))
+            }
+            InterpreterErrorType::InvalidOperation => {
+                f.write_fmt(format_args!("Interpreter error: {}", "Invalid operation"))
+            }
+            InterpreterErrorType::IndexNotFound => {
+                f.write_fmt(format_args!("Interpreter error: {}", "Index not found"))
+            }
+            InterpreterErrorType::OutOfBoundary => {
+                f.write_fmt(format_args!("Interpreter error: {}", "Out of boundary"))
+            }
+            InterpreterErrorType::Panic => {
+                f.write_fmt(format_args!("VM was terminated by instruction panic."))
+            }
+            InterpreterErrorType::Debug(code) => f.write_fmt(format_args!(
+                "VM was terminated by instruction \"unreachable\", code: {}.",
+                code
+            )),
+            InterpreterErrorType::Unreachable(code) => f.write_fmt(format_args!(
+                "VM was terminated by instruction \"debug\", code: {}",
+                code
+            )),
+        }
     }
 }
 

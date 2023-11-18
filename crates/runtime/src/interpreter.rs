@@ -54,7 +54,8 @@ pub enum InterpretResult {
 
     Panic,
 
-    Unreachable,
+    // param (code: u32)
+    Unreachable(u32),
 
     // pause the interpreter
     // for debug the program or the VM itself
@@ -396,7 +397,9 @@ pub fn process_next_instruction(thread_context: &mut ThreadContext) -> Interpret
     func(thread_context)
 }
 
-pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
+pub fn process_continuous_instructions(
+    thread_context: &mut ThreadContext,
+) -> Result<(), InterpreterError> {
     loop {
         let result = process_next_instruction(thread_context);
         match result {
@@ -416,16 +419,18 @@ pub fn process_continuous_instructions(thread_context: &mut ThreadContext) {
                 thread_context.pc.instruction_address = original_pc.instruction_address;
 
                 // break the instruction processing loop
-                break;
+                break Ok(());
             }
             InterpretResult::Panic => {
-                panic!("VM was terminated by panic.");
+                break Err(InterpreterError::new(InterpreterErrorType::Panic))
             }
-            InterpretResult::Unreachable => {
-                panic!("VM was terminated by unreachable code.");
+            InterpretResult::Unreachable(code) => {
+                break Err(InterpreterError::new(InterpreterErrorType::Unreachable(
+                    code,
+                )))
             }
             InterpretResult::Debug(code) => {
-                panic!("VM was terminated by debug with code: {}", code);
+                break Err(InterpreterError::new(InterpreterErrorType::Debug(code)))
             }
         }
     }
@@ -507,7 +512,7 @@ pub fn process_function(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    process_continuous_instructions(thread_context);
+    process_continuous_instructions(thread_context)?;
 
     // pop the results from the stack
     //
@@ -615,7 +620,10 @@ pub extern "C" fn process_bridge_function_call(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    process_continuous_instructions(thread_context);
+    match process_continuous_instructions(thread_context) {
+        Ok(_) => {}
+        Err(e) => panic!("{}", e),
+    }
 
     // pop the results from the stack
     // note:
@@ -627,6 +635,12 @@ pub extern "C" fn process_bridge_function_call(
     }
 }
 
+// it's similar to the function 'process_bridge_function_call' except
+// that 'process_callback_function_call' will not reset the calling stack.
+//
+// in the other word, the 'process_bridge_function_call' starts a new 'calling-thread',
+// and the 'process_callback_function_call' is 'insert' a 'sub-calling-thread' into
+// the current 'calling-thread'.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process_callback_function_call(
     thread_context_ptr: *mut u8,
@@ -713,7 +727,10 @@ pub extern "C" fn process_callback_function_call(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    process_continuous_instructions(thread_context);
+    match process_continuous_instructions(thread_context) {
+        Ok(_) => {}
+        Err(e) => panic!("{}", e),
+    }
 
     // pop the results from the stack
     // note:

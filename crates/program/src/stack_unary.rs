@@ -69,6 +69,8 @@ pub struct Stack {
 // start --> \=================/                 \=================/                  \=================/
 //
 //                info stack                     local variables stack                   operands stack
+//                -------------------------------------------------------------------------------------
+//                                                  ternary stack
 //
 //
 // dividing the stack into 3 separate parts has serveral advantages:

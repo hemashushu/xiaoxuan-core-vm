@@ -832,9 +832,6 @@ mod tests {
 
     #[test]
     fn test_interpreter_local_bounds_check0() {
-        let prev_hook = std::panic::take_hook(); // let panic silent
-        std::panic::set_hook(Box::new(|_| {}));
-
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 2, 0)
             .append_opcode(Opcode::end)
@@ -850,6 +847,9 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
 
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
@@ -862,9 +862,6 @@ mod tests {
 
     #[test]
     fn test_interpreter_local_bounds_check1() {
-        let prev_hook = std::panic::take_hook(); // let panic silent
-        std::panic::set_hook(Box::new(|_| {}));
-
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
@@ -880,6 +877,9 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
 
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
@@ -892,9 +892,6 @@ mod tests {
 
     #[test]
     fn test_interpreter_local_bounds_check2() {
-        let prev_hook = std::panic::take_hook(); // let panic silent
-        std::panic::set_hook(Box::new(|_| {}));
-
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 11)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 2, 0)
@@ -911,6 +908,9 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
 
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
+
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
@@ -923,9 +923,6 @@ mod tests {
 
     #[test]
     fn test_interpreter_local_bounds_check3() {
-        let prev_hook = std::panic::take_hook(); // let panic silent
-        std::panic::set_hook(Box::new(|_| {}));
-
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 2) // offset
             .append_opcode_i16_i32(Opcode::local_long_load32_i32, 0, 0)
@@ -941,6 +938,9 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
+
+        let prev_hook = std::panic::take_hook(); // let panic silent
+        std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
             let mut thread_context0 = program0.create_thread_context();

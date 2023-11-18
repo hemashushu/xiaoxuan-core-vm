@@ -53,8 +53,9 @@ pub fn panic(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Panic
 }
 
-pub fn unreachable(_thread: &mut ThreadContext) -> InterpretResult {
-    InterpretResult::Unreachable
+pub fn unreachable(thread: &mut ThreadContext) -> InterpretResult {
+    let code = thread.get_param_i32();
+    InterpretResult::Unreachable(code)
 }
 
 pub fn debug(thread: &mut ThreadContext) -> InterpretResult {
@@ -504,7 +505,10 @@ mod tests {
                 LocalVariableEntry::from_i32(),
             ], // local vars
             code0,
-            vec![InitedDataEntry::from_i32(0x11), InitedDataEntry::from_i32(0x13)],
+            vec![
+                InitedDataEntry::from_i32(0x11),
+                InitedDataEntry::from_i32(0x13),
+            ],
             vec![
                 InitedDataEntry::from_i64(0xee), // init data
                 InitedDataEntry::from_i32(0xff), // init data
