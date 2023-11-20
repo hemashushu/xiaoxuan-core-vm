@@ -8,6 +8,10 @@ use ancvm_program::thread_context::ThreadContext;
 
 use super::InterpretResult;
 
+pub fn nop(_thread: &mut ThreadContext) -> InterpretResult {
+    InterpretResult::Move(2)
+}
+
 pub fn zero(thread_context: &mut ThreadContext) -> InterpretResult {
     thread_context.stack.push_i64_u(0);
     InterpretResult::Move(2)
@@ -101,6 +105,30 @@ mod tests {
     };
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+
+    #[test]
+    fn test_interpreter_host_nop() {
+        // (i32) -> (i32)
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode(Opcode::nop)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![DataType::I32], // params
+            vec![DataType::I32], // results
+            vec![],              // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::UInt32(11)]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(11)]);
+    }
 
     #[test]
     fn test_interpreter_fundamental_zero() {

@@ -9,6 +9,7 @@ use crate::opcode::Opcode;
 impl Opcode {
     pub fn get_name(&self) -> &'static str {
         match self {
+            Opcode::nop => "nop",
             Opcode::zero => "zero",
             Opcode::drop => "drop",
             Opcode::duplicate => "duplicate",
@@ -263,7 +264,6 @@ impl Opcode {
             Opcode::syscall => "syscall",
             Opcode::extcall => "extcall",
             //
-            Opcode::nop => "nop",
             Opcode::panic => "panic",
             Opcode::unreachable => "unreachable",
             Opcode::debug => "debug",

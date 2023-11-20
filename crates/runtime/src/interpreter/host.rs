@@ -45,10 +45,6 @@ use ancvm_program::{
 
 use super::{process_callback_function_call, InterpretResult};
 
-pub fn nop(_thread: &mut ThreadContext) -> InterpretResult {
-    InterpretResult::Move(2)
-}
-
 pub fn panic(_thread: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Panic
 }
@@ -294,7 +290,10 @@ mod tests {
         },
     };
 
-    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+    use crate::{
+        in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
+        InterpreterError, InterpreterErrorType,
+    };
     use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
     use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
@@ -367,45 +366,103 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_nop() {
-        // bytecodes
-        //
-        // 0x0000 nop
-        // 0x0002 end
-        //
-        // (i32, i32) -> (i32, i32)
+    fn test_interpreter_host_panic() {
+        // () -> ()
 
         let code0 = BytecodeWriter::new()
             .append_opcode(Opcode::nop)
+            .append_opcode(Opcode::panic)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32, DataType::I32], // results
-            vec![],                             // local vars
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
             code0,
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
 
-        let result0 = process_function(
-            &mut thread_context0,
-            0,
-            0,
-            &[ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
-        );
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
-        );
+        let mut thread_context0 = program0.create_thread_context();
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+
+        assert!(matches!(
+            result0,
+            Err(InterpreterError {
+                error_type: InterpreterErrorType::Panic
+            })
+        ));
     }
 
     #[test]
-    fn test_interpreter_host_address() {
+    fn test_interpreter_host_debug() {
+        // () -> ()
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode(Opcode::nop)
+            .append_opcode_i32(Opcode::debug, 0x101)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let mut thread_context0 = program0.create_thread_context();
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+
+        assert!(matches!(
+            result0,
+            Err(InterpreterError {
+                error_type: InterpreterErrorType::Debug(0x101)
+            })
+        ));
+    }
+
+    #[test]
+    fn test_interpreter_host_unreachable() {
+        // () -> ()
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode(Opcode::nop)
+            .append_opcode_i32(Opcode::unreachable, 0x103)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+
+        let mut thread_context0 = program0.create_thread_context();
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+
+        assert!(matches!(
+            result0,
+            Err(InterpreterError {
+                error_type: InterpreterErrorType::Unreachable(0x103)
+            })
+        ));
+    }
+
+    #[test]
+    fn test_interpreter_host_address_of_data_and_local_vars() {
         //        read-only data section
+        //        ======================
+        //
         //       |low address    high addr|
         //       |                        |
         // index |0              1        |
@@ -414,6 +471,8 @@ mod tests {
         //  data 11 00 00 00    13 00 00 00
         //
         //        read write data section
+        //        =======================
+        //
         //       |low address             high address|
         //       |                                    |
         // index |2(0)                       3(1)     |
@@ -422,6 +481,8 @@ mod tests {
         //  data 17 00 00 00 00 00 00 00    19 00 00 00
         //
         //        uninitialized data section
+        //        ==========================
+        //
         //       |low address             high address|
         //       |                                    |
         // index |4(0)           5(1)                 |
@@ -430,6 +491,8 @@ mod tests {
         //  data 23 00 00 00    29 00 00 00 00 00 00 00
         //
         //        local variable area
+        //        ===================
+        //
         //       |low address                                       high addr|
         //       |                                                           |
         // index |0       1                           2                      |
@@ -437,10 +500,16 @@ mod tests {
         //
         //  data 0.....0 31 00 00 00   00 00 00 00   37 00 00 00   00 00 00 00
         //       ^
-        //       | 64 bytes
-        //       |because the results will overwrite the stack, so leave enough space for results
+        //       | 64 bytes, the space for storing function results.
+        //       | because the results will overwrite the stack, so it need to
+        //       | leave enough space for results, then the data of local variables
+        //       | can be still read after function is finish.
         //
-        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+        // () -> (i64,i64,i64,i64,i64,i64, i64,i64)
+        //        -----------------------  -------
+        //        | addr of data           | addr of local vars
+        //
+        // read the values of data and local vars through the host address.
 
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
@@ -542,8 +611,10 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_address_long() {
+    fn test_interpreter_host_address_long_of_data_and_local_vars() {
         //        read-only data section
+        //        ======================
+        //
         //       |low address  high addr|
         //       |                      |
         // index |0            1        |
@@ -554,6 +625,8 @@ mod tests {
         //       |0    |1           |2 |3
         //
         //        local variable area
+        //        ===================
+        //
         //       |low address         high addr|
         //       |                             |
         // index |0       1                    |
@@ -563,10 +636,16 @@ mod tests {
         //       ^       |        |        |  |
         //       |       |4       |5       |6 |7
         //       |
-        //       | 64 bytes
-        //       |because the results will overwrite the stack, so leave enough space for results
+        //       | 64 bytes, the space for storing function results.
+        //       | because the results will overwrite the stack, so it need to
+        //       | leave enough space for results, then the data of local variables
+        //       | can be still read after function is finish.
         //
-        // () -> (i64,i64,i64,i64,  i64,i64,i64,i64)
+        // () -> (i64,i64,i64,i64, i64,i64, i64,i64)
+        //        ---------------- ----------------
+        //        | addr of data   | addr of local vars
+        //
+        // read the values of data and local vars through the host address.
 
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
@@ -669,6 +748,7 @@ mod tests {
         //  data  02 03 05 07   11 13 17 19 23 29 31 37
         //        ^     ^       ^           ^        ^
         //        |0    |1      |2          |3       |4
+        //
         // () -> (i64,i64,i64,i64,i64)
 
         let code0 = BytecodeWriter::new()
@@ -744,6 +824,14 @@ mod tests {
 
         // copy src_ptr -> VM heap 0x100 with 8 bytes
         // copy VM heap 0x100 -> dst_ptr with 8 bytes
+        //
+        //               0x100                        dst_ptr
+        //            vm |01234567| --> copy --> host |01234567|
+        //                ^
+        //       /--copy--/
+        //       |
+        // host |01234567|
+        //      src_ptr
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 1)
@@ -780,7 +868,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let src_buf: &[u8; 8] = b"hello...";
+        let src_buf: &[u8; 8] = b"hello.vm";
         let dst_buf: [u8; 8] = [0; 8];
 
         let src_ptr = src_buf.as_ptr();
@@ -797,7 +885,7 @@ mod tests {
         );
         result0.unwrap();
 
-        assert_eq!(&dst_buf, b"hello...");
+        assert_eq!(&dst_buf, b"hello.vm");
     }
 
     #[test]
@@ -867,7 +955,7 @@ mod tests {
             vec![],
             vec![HelperExternalFunctionEntry {
                 external_library_type: ExternalLibraryType::User,
-                library_name: "lib-test-0.so.1.0.0".to_string(),
+                library_name: "lib-test-0.so.1".to_string(),
                 function_name: "do_something".to_string(),
                 type_index: 0,
             }],

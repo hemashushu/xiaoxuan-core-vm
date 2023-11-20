@@ -7,7 +7,7 @@
 // the purpose of these sections is to remove duplicated external functon items.
 // - "external function index section"
 // - "unified external library section"
-// - "unified external library section"
+// - "unified external function section"
 
 // "external function index section" binary layout
 //
@@ -140,10 +140,10 @@ impl<'a> ExternalFuncIndexSection<'a> {
     }
 
     pub fn convert_from_entries(
-        sorted_module_entries: &[ExternalFuncIndexModuleEntry],
+        sorted_external_func_index_module_entries: &[ExternalFuncIndexModuleEntry],
     ) -> (Vec<RangeItem>, Vec<ExternalFuncIndexItem>) {
         let mut range_start_offset: u32 = 0;
-        let range_items = sorted_module_entries
+        let range_items = sorted_external_func_index_module_entries
             .iter()
             .map(|index_module_entry| {
                 let count = index_module_entry.index_entries.len() as u32;
@@ -153,7 +153,7 @@ impl<'a> ExternalFuncIndexSection<'a> {
             })
             .collect::<Vec<_>>();
 
-        let external_func_index_items = sorted_module_entries
+        let external_func_index_items = sorted_external_func_index_module_entries
             .iter()
             .flat_map(|index_module_entry| {
                 index_module_entry.index_entries.iter().map(|entry| {

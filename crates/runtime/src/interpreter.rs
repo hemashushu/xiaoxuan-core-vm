@@ -112,6 +112,7 @@ fn init_interpreters_internal() {
     let interpreters = unsafe { &mut INTERPRETERS };
 
     // fundamental
+    interpreters[Opcode::nop as usize] = fundamental::nop;
     interpreters[Opcode::zero as usize] = fundamental::zero;
     interpreters[Opcode::drop as usize] = fundamental::drop_;
     interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
@@ -377,7 +378,6 @@ fn init_interpreters_internal() {
     interpreters[Opcode::extcall as usize] = extcall::extcall;
 
     // host
-    interpreters[Opcode::nop as usize] = host::nop;
     interpreters[Opcode::panic as usize] = host::panic;
     interpreters[Opcode::unreachable as usize] = host::unreachable;
     interpreters[Opcode::debug as usize] = host::debug;

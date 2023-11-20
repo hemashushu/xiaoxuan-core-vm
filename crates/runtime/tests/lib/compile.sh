@@ -7,3 +7,8 @@
 #!/bin/bash
 gcc -Wall -g -fpic -shared -Wl,-soname,lib-test-0.so.1 -o lib-test-0.so.1.0.0 lib-test-0.c
 gcc -Wall -g -o app.elf app.c
+
+if [ ! -f lib-test-0.so.1 ]
+then
+    ln -s lib-test-0.so.1.0.0 lib-test-0.so.1
+fi

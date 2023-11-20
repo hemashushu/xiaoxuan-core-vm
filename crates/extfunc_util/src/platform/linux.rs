@@ -97,7 +97,7 @@ mod tests {
         let mut pwd = env::current_dir().unwrap();
         pwd.push("tests");
         pwd.push("lib");
-        pwd.push("lib-test-0.so.1.0.0");
+        pwd.push("lib-test-0.so.1");
         let lib_test_path = pwd.to_str().unwrap();
 
         let library_ptr = load_library(lib_test_path).unwrap();

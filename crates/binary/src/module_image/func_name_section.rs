@@ -90,7 +90,7 @@ impl<'a> FuncNameSection<'a> {
 
         let expected_name_data = expected_name.as_bytes();
 
-        let opt_idx = self.items.iter().position(|item| {
+        let opt_idx = items.iter().position(|item| {
             let name_data = &names_data
                 [item.name_offset as usize..(item.name_offset + item.name_length) as usize];
             name_data == expected_name_data

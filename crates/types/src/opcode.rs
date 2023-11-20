@@ -171,7 +171,9 @@ pub enum Opcode {
     //
     // fundamental
     //
-    zero = 0x100,               // push 0 (i64) onto stack                          () -> i64
+    nop = 0x100,                // instruction to do nothing,
+                                // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
+    zero,                       // push 0 (i64) onto stack                          () -> i64
     drop,                       // drop one operand (the top most operand)          (operand op:any) -> ()
     duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
     swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
@@ -1320,9 +1322,7 @@ pub enum Opcode {
     //
     // host
     //
-    nop = 0xc00,                // instruction to do nothing,
-                                // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
-    panic,                      // terminate VM
+    panic = 0xc00,              // terminate VM
     unreachable,                // unreachable code     (param code:u32) -> ()
     debug,                      // for VM debug         (param code:u32) -> ()
 

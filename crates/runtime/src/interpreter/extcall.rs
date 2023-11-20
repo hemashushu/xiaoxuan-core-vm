@@ -236,6 +236,11 @@ mod tests {
 
     #[test]
     fn test_interpreter_extcall_with_user_lib() {
+        // (i32,i32) -> (i32)
+
+        // 'lib-test-0.so.1'
+        // 'int add(int, int)'
+
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 1
@@ -245,9 +250,6 @@ mod tests {
             //
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // `man 3 getenv`
-        // 'char *getenv(const char *name);'
 
         let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
@@ -270,7 +272,7 @@ mod tests {
             vec![],
             vec![HelperExternalFunctionEntry {
                 external_library_type: ExternalLibraryType::User,
-                library_name: "lib-test-0.so.1.0.0".to_string(),
+                library_name: "lib-test-0.so.1".to_string(),
                 function_name: "add".to_string(),
                 type_index: 0,
             }],
