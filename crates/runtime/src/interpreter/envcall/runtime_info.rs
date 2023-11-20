@@ -44,12 +44,8 @@ pub fn runtime_version(thread_context: &mut ThreadContext) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        bytecode_writer::BytecodeWriter,
-        module_image::data_section::UninitDataEntry,
-        utils::{
-            helper_build_module_binary_with_single_function,
-            helper_build_module_binary_with_single_function_and_data_sections,
-        },
+        bytecode_writer::BytecodeWriter, module_image::local_variable_section::LocalVariableEntry,
+        utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{
@@ -61,17 +57,19 @@ mod tests {
 
     #[test]
     fn test_envcall_runtime_version() {
-        // bytecodes
-        //
-        // 0x0000 envcall                257
-        // 0x0008 end
-        //
         // () -> (i64)
+
+        // bytecode:
+        //
+        // 0x0000  02 0b 00 00  01 01 00 00    envcall           idx:257
+        // 0x0008  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_version as u32)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
@@ -97,34 +95,33 @@ mod tests {
     }
 
     #[test]
-    fn test_envcall_runtime_name() {
-        // bytecodes
-        //
-        // 0x0000 host_addr_data       0 0
-        // 0x0008 envcall              256
-        // 0x0010 data_load            0 0
-        // 0x0018 end
-        //
+    fn test_envcall_runtime_code_name() {
         // () -> (i32, i64)
         //        ^    ^
         //        |    |name buffer (8 bytes)
         //        |name length
 
+        // bytecode:
+        //
+        // 0x0000  04 0c 00 00  00 00 00 00    host.addr_local   rev:0   off:0x00  idx:0
+        // 0x0008  02 0b 00 00  00 01 00 00    envcall           idx:256
+        // 0x0010  00 02 00 00  00 00 00 00    local.load64_i64  rev:0   off:0x00  idx:0
+        // 0x0018  00 0a                       end
+
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 0)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
-            .append_opcode_i16_i32(Opcode::data_load64_i64, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
-            vec![],                             // params
-            vec![DataType::I32, DataType::I64], // results
-            vec![],                             // local vars
+        // println!("{}", print_bytecode_as_text(&code0));
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![],                                     // params
+            vec![DataType::I32, DataType::I64],         // results
+            vec![LocalVariableEntry::from_bytes(8, 8)], // local vars
             code0,
-            vec![],
-            vec![],
-            vec![UninitDataEntry::from_i64()],
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);

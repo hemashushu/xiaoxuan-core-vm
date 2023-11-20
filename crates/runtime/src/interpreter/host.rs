@@ -210,9 +210,10 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
 }
 
 pub fn host_addr_func(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (operand func_pub_index:i32) -> i64/i32
+    // (param func_pub_index:i32) -> i64/i32
 
-    let function_public_index = thread_context.stack.pop_i32_u() as usize;
+    // let function_public_index = thread_context.stack.pop_i32_u() as usize;
+    let function_public_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
     // get the internal index of function
@@ -225,7 +226,7 @@ pub fn host_addr_func(thread_context: &mut ThreadContext) -> InterpretResult {
 
     store_pointer_to_operand_stack(thread_context, callback_function_ptr);
 
-    InterpretResult::Move(2)
+    InterpretResult::Move(8)
 }
 
 fn get_callback_function_ptr(
@@ -297,43 +298,6 @@ mod tests {
     use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
     use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
 
-    #[test]
-    fn test_interpreter_host_nop() {
-        // bytecodes
-        //
-        // 0x0000 nop
-        // 0x0002 end
-        //
-        // (i32, i32) -> (i32, i32)
-
-        let code0 = BytecodeWriter::new()
-            .append_opcode(Opcode::nop)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32, DataType::I32], // results
-            vec![],                             // local vars
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
-
-        let result0 = process_function(
-            &mut thread_context0,
-            0,
-            0,
-            &[ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
-        );
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
-        );
-    }
-
     fn read_memory_i64(fv: ForeignValue) -> u64 {
         #[cfg(target_pointer_width = "64")]
         if let ForeignValue::UInt64(addr) = fv {
@@ -400,6 +364,43 @@ mod tests {
         } else {
             0
         }
+    }
+
+    #[test]
+    fn test_interpreter_host_nop() {
+        // bytecodes
+        //
+        // 0x0000 nop
+        // 0x0002 end
+        //
+        // (i32, i32) -> (i32, i32)
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode(Opcode::nop)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![DataType::I32, DataType::I32], // params
+            vec![DataType::I32, DataType::I32], // results
+            vec![],                             // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &[ForeignValue::UInt32(7), ForeignValue::UInt32(11)],
+        );
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::UInt32(7), ForeignValue::UInt32(11)]
+        );
     }
 
     #[test]
@@ -814,8 +815,8 @@ mod tests {
         // }
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
-            .append_opcode(Opcode::host_addr_func) // get host address of the func1
+            // .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
+            .append_opcode_i32(Opcode::host_addr_func, 1) // get host address of the func1
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 2

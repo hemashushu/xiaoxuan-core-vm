@@ -1357,7 +1357,7 @@ pub enum Opcode {
     host_addr_func,             // create a new host function and map it to a VM function.
                                 // this host function named 'bridge funcion'
                                 //
-                                // `(operand func_pub_index:i32) -> i64/i32`
+                                // `(param func_pub_index:i32) -> i64/i32`
                                 //
                                 // return the existing bridge function if the bridge function corresponding
                                 // to the specified VM function has already been created.

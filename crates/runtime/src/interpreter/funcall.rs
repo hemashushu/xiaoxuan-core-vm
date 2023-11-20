@@ -91,7 +91,7 @@ mod tests {
         //     (call $sum_square)
         // end
         //
-        // fn $sum_square (n/1:i32) -> (i32)
+        // fn $sum_square (count/1:i32) -> (i32)
         //     zero
         //     (local_load32 0 0)
         //     (block 3 3) (sum/0:i32, n/1:i32) -> (i32)
