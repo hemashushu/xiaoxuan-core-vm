@@ -276,6 +276,7 @@ fn get_callback_function_ptr(
 mod tests {
 
     use ancvm_binary::{
+        bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
         module_image::{
             data_section::{InitedDataEntry, UninitDataEntry},
@@ -511,6 +512,32 @@ mod tests {
         //
         // read the values of data and local vars through the host address.
 
+        // bytecode:
+        //
+        // 0x0000  81 01 00 00  17 00 00 00    i64.imm           low:0x00000017  high:0x00000000
+        //         00 00 00 00
+        // 0x000c  08 03 00 00  02 00 00 00    data.store64      off:0x00  idx:2
+        // 0x0014  80 01 00 00  19 00 00 00    i32.imm           0x00000019
+        // 0x001c  09 03 00 00  03 00 00 00    data.store32      off:0x00  idx:3
+        // 0x0024  80 01 00 00  23 00 00 00    i32.imm           0x00000023
+        // 0x002c  09 03 00 00  04 00 00 00    data.store32      off:0x00  idx:4
+        // 0x0034  81 01 00 00  29 00 00 00    i64.imm           low:0x00000029  high:0x00000000
+        //         00 00 00 00
+        // 0x0040  08 03 00 00  05 00 00 00    data.store64      off:0x00  idx:5
+        // 0x0048  80 01 00 00  31 00 00 00    i32.imm           0x00000031
+        // 0x0050  09 02 00 00  00 00 01 00    local.store32     rev:0   off:0x00  idx:1
+        // 0x0058  80 01 00 00  37 00 00 00    i32.imm           0x00000037
+        // 0x0060  09 02 00 00  00 00 02 00    local.store32     rev:0   off:0x00  idx:2
+        // 0x0068  05 0c 00 00  00 00 00 00    host.addr_data    off:0x00  idx:0
+        // 0x0070  05 0c 00 00  01 00 00 00    host.addr_data    off:0x00  idx:1
+        // 0x0078  05 0c 00 00  02 00 00 00    host.addr_data    off:0x00  idx:2
+        // 0x0080  05 0c 00 00  03 00 00 00    host.addr_data    off:0x00  idx:3
+        // 0x0088  05 0c 00 00  04 00 00 00    host.addr_data    off:0x00  idx:4
+        // 0x0090  05 0c 00 00  05 00 00 00    host.addr_data    off:0x00  idx:5
+        // 0x0098  03 0c 00 00  00 00 01 00    host.addr_local   rev:0   off:0x00  idx:1
+        // 0x00a0  03 0c 00 00  00 00 02 00    host.addr_local   rev:0   off:0x00  idx:2
+        // 0x00a8  00 0a                       end
+
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x17)
             .append_opcode_i16_i32(Opcode::data_store64, 0, 2)
@@ -541,6 +568,8 @@ mod tests {
             //
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        println!("{}", print_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -647,6 +676,29 @@ mod tests {
         //
         // read the values of data and local vars through the host address.
 
+        // bytecode:
+        //
+        // 0x0000  81 01 00 00  23 29 31 37    i64.imm           low:0x37312923  high:0x53474341
+        //         41 43 47 53
+        // 0x000c  08 02 00 00  00 00 01 00    local.store64     rev:0   off:0x00  idx:1
+        // 0x0014  80 01 00 00  00 00 00 00    i32.imm           0x00000000
+        // 0x001c  06 0c 00 00  00 00 00 00    host.addr_data_long  idx:0
+        // 0x0024  80 01 00 00  02 00 00 00    i32.imm           0x00000002
+        // 0x002c  06 0c 00 00  00 00 00 00    host.addr_data_long  idx:0
+        // 0x0034  80 01 00 00  02 00 00 00    i32.imm           0x00000002
+        // 0x003c  06 0c 00 00  01 00 00 00    host.addr_data_long  idx:1
+        // 0x0044  80 01 00 00  03 00 00 00    i32.imm           0x00000003
+        // 0x004c  06 0c 00 00  01 00 00 00    host.addr_data_long  idx:1
+        // 0x0054  80 01 00 00  00 00 00 00    i32.imm           0x00000000
+        // 0x005c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x0064  80 01 00 00  03 00 00 00    i32.imm           0x00000003
+        // 0x006c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x0074  80 01 00 00  06 00 00 00    i32.imm           0x00000006
+        // 0x007c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x0084  80 01 00 00  07 00 00 00    i32.imm           0x00000007
+        // 0x008c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x0094  00 0a                       end
+
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x5347434137312923u64)
             .append_opcode_i16_i16_i16(Opcode::local_store64, 0, 0, 1)
@@ -661,9 +713,9 @@ mod tests {
             .append_opcode_i32(Opcode::host_addr_data_long, 1)
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::host_addr_local_long, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 3)
-            .append_opcode_i32(Opcode::host_addr_local_long, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 6)
             .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 7)
@@ -671,6 +723,8 @@ mod tests {
             //
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        // println!("{}", print_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -738,7 +792,6 @@ mod tests {
 
     #[test]
     fn test_interpreter_host_address_heap() {
-        //
         //        heap
         //       |low address                high addr|
         //       |                                    |
@@ -750,6 +803,37 @@ mod tests {
         //        |0    |1      |2          |3       |4
         //
         // () -> (i64,i64,i64,i64,i64)
+
+        // bytecode:
+        //
+        // 0x0000  80 01 00 00  01 00 00 00    i32.imm           0x00000001
+        // 0x0008  83 04                       heap.resize
+        // 0x000a  02 01                       drop
+        // 0x000c  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        //         00 00 00 00
+        // 0x0018  80 01 00 00  02 03 05 07    i32.imm           0x07050302
+        // 0x0020  09 04 00 00                 heap.store32      off:0x00
+        // 0x0024  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        //         00 00 00 00
+        // 0x0030  81 01 00 00  11 13 17 19    i64.imm           low:0x19171311  high:0x37312923
+        //         23 29 31 37
+        // 0x003c  08 04 00 00                 heap.store64      off:0x00
+        // 0x0040  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        //         00 00 00 00
+        // 0x004c  07 0c 00 00                 host.addr_heap    off:0x00
+        // 0x0050  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        //         00 00 00 00
+        // 0x005c  07 0c 02 00                 host.addr_heap    off:0x02
+        // 0x0060  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        //         00 00 00 00
+        // 0x006c  07 0c 00 00                 host.addr_heap    off:0x00
+        // 0x0070  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        //         00 00 00 00
+        // 0x007c  07 0c 04 00                 host.addr_heap    off:0x04
+        // 0x0080  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        //         00 00 00 00
+        // 0x008c  07 0c 07 00                 host.addr_heap    off:0x07
+        // 0x0090  00 0a                       end
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 1)
@@ -778,6 +862,8 @@ mod tests {
             //
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        println!("{}", print_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -890,17 +976,28 @@ mod tests {
 
     #[test]
     fn test_interpreter_host_addr_func_and_callback_function() {
-        // extern "C" do_something(callback_func, a:i32, b:i32) -> i32 {
-        //     callback_func(a) + b
+        // C function in "lib-test-0.so.1"
+        // ===============================
+        // int do_something(int (*callback_func)(int), int a, int b)
+        // {
+        //     int s = (callback_func)(a);
+        //     return s + b;
         // }
         //
-        // func0 (a:i32, b:i32)->i32 {
+        // VM functions
+        // ============
+        //
+        // fn func0 (a:i32, b:i32)->i32 {
         //     do_something(func1, a, b)
         // }
         //
-        // func1 (a:i32) -> i32 {   ;; this is the callback function for external function 'do_something'
+        // fn func1 (a:i32) -> i32 {
+        //     ;; this is the callback function for external function 'do_something'
         //     a*2
         // }
+        //
+        // calling path:
+        // (11,13) -> func0(VM) -> do_something(C) -> func1(VM) -> do_something(C) -> func0(VM) -> (11*2+13)
 
         let code0 = BytecodeWriter::new()
             // .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
@@ -963,7 +1060,10 @@ mod tests {
 
         let mut pwd = std::env::current_dir().unwrap();
         if !pwd.ends_with("runtime") {
-            // in the VSCode debug mode
+            // in the VSCode `Debug` environment, the `current_dir()`
+            // the project root folder.
+            // while in both `$ cargo test` and VSCode `Run Test` environment
+            // the `current_dir()` return the current crate path.
             pwd.push("crates");
             pwd.push("runtime");
         }

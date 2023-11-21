@@ -95,6 +95,16 @@ mod tests {
         // run 'test/lib/compile.sh' to build shared library 'lib-test-0' first.
 
         let mut pwd = env::current_dir().unwrap();
+
+        if !pwd.ends_with("extfunc_util") {
+            // in the VSCode `Debug` environment, the `current_dir()`
+            // the project root folder.
+            // while in both `$ cargo test` and VSCode `Run Test` environment
+            // the `current_dir()` return the current crate path.
+            pwd.push("crates");
+            pwd.push("extfunc_util");
+        }
+
         pwd.push("tests");
         pwd.push("lib");
         pwd.push("lib-test-0.so.1");
