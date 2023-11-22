@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_syscall_without_args() {
-        // fn $main () -> (result:i64 errno:i32)
+        // fn $test () -> (result:i64 errno:i32)
 
         // syscall:
         // `pid_t getpid(void);`
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_syscall_with_2_args() {
-        // fn $main (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
+        // fn $test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
 
         // syscall:
         // `char *getcwd(char buf[.size], size_t size);`
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_syscall_error_no() {
-        // fn $main (file_path_buf_addr:i64) -> (result:i64 errno:i32)
+        // fn $test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
 
         // syscall:
         // `int open(const char *pathname, int flags)`

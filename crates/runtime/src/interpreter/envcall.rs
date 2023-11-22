@@ -58,9 +58,11 @@ pub fn init_ecall_handlers() {
 
     // multiple thread
     handlers[EnvCallCode::thread_id as usize] = multithread::thread_id;
+    handlers[EnvCallCode::thread_start_data_length as usize] =
+        multithread::thread_start_data_length;
     handlers[EnvCallCode::thread_start_data_read as usize] = multithread::thread_start_data_read;
     handlers[EnvCallCode::thread_create as usize] = multithread::thread_create;
-    handlers[EnvCallCode::thread_wait_for_finish as usize] = multithread::thread_wait_for_finish;
+    handlers[EnvCallCode::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
 }
 
 pub fn envcall(thread_context: &mut ThreadContext) -> InterpretResult {

@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_function_call() {
-        // fn $main (i32) -> (i32)
+        // fn $test (i32) -> (i32)
         //     (call $sum_square)
         // end
         //
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_function_call_dyncall() {
-        // fn $main () -> (i32, i32, i32, i32, i32)
+        // fn $test () -> (i32, i32, i32, i32, i32)
         //     (i32_imm 2)
         //     (dyncall)
         //     (i32_imm 4)

@@ -95,66 +95,89 @@ pub enum EnvCallCode {
     thread_id,                  // get the current thread id
                                 // 'fn () -> thread_id:u32'
 
-    thread_create,              // craete a new thread and run the specified function (named 'thread start function').
+    thread_create,              // craete a new thread and run the specified function (named 'thread start function')
+                                // in the current module.
                                 //
                                 // ```
-                                // fn (module_index:u32, func_public_index:u32,
-                                //    thread_start_data_address:u32, thread_start_data_length:u32) -> child_thread_id:u32
+                                // fn (func_public_index:u32,
+                                //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
                                 // ```
                                 //
                                 // the value of 'thread_start_data_address' is the address of a data block in the heap, these
                                 // data will be copied to the new thread (temporary on the VM host thread-local memory).
                                 // the new thread can read the data through the function 'thread_start_data_read'.
                                 //
-                                // the signature of the 'thread start function' MUST be:
-                                // 'fn (thread_start_data_length:u32) -> exit_code:u32'
+                                // the signature of the 'thread start function' MUST exactly be:
+                                // 'fn () -> exit_code:u32'
                                 //
                                 // it's similar to the 'int main(int argc, char* argv[])'
-
-    thread_start_data_read,     // read/copy the 'thread start data' to heap
-                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
                                 //
-                                // result: 0=success, 1=failed.
+                                // the meaning of the 'exit_code' is defined by user,
+                                // but in general convention, 0=thread exit with success, 1=thread exit with failure
 
-    thread_wait_for_finish,     // wait for the specified (child) thread to finish, return the results of the starting function.
+    thread_start_data_length,   // get the length of the thread start data
+                                // 'fn () -> length:u32'
+
+    thread_start_data_read,     // read/copy the 'thread start data' from the host temporary memory to VM heap
+                                // 'fn (offset:u32, length:u32, dst_address:u64) -> (actual_read_length: u32, thread_result:u32)'
                                 //
-                                // 'fn (child_thread_id:u32) -> (wait_status:u32, thread_exit_code:u32)'
-                                // - wait_status: 0=success, 1=not_found
-                                // - thread_exit_code: 0=thread exit with success, 1=thread exit with failure
+                                // results:
+                                // - actual_read_length
+                                // - thread_result: 0=success, 1=failed.
+
+    thread_wait_and_collect,    // wait for the specified (child) thread to finish and collect resources of child thread,
+                                // return the exit code of the 'thread start function'.
+                                //
+                                // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
+                                //
+                                // returns:
+                                // - thread_exit_code: the meaning of the 'exit_code' is defined by user,
+                                //   but in general convention, 0=thread exit with success, 1=thread exit with failure
+                                // - thread_result: 0=success, 1=failed (or not_found)
                                 //
                                 // the caller will be blocked if the child thread is running, when the child thread finish,
-                                // the 'thread_wait_for_finish' gets the (wait_status, thread_exit_code), and the child thread
+                                // the 'thread_wait_and_collect' gets the (thread_exit_code, thread_result), and the child thread
                                 // will be removed from the 'child thread collection'.
                                 //
-                                // note that if the child thread is finish before the parent thread call 'thread_wait_for_finish',
-                                // the resource of child thread will NOT be released, and it is store in the 'child thread collection'
-                                // until the parent thread call 'thread_wait_for_finish'.
-                                // in the other word, 'thread_wait_for_finish' is equivaent to the function 'thread.join()'
-                                // in the other programming language.
+                                // note that if the child thread is finish before the parent thread calls the
+                                // function 'thread_wait_and_collect', in which case the resource of child thread
+                                // will NOT be released, and it is store in the 'child thread collection' until
+                                // the parent thread call 'thread_wait_and_collect'.
+                                //
+                                // in the other word, 'thread_wait_and_collect' is equivaent to the function 'thread.join()'
+                                // in the other programming language, it is used to wait for child thread to stop or
+                                // to collect the resources of the child thread.
 
     thread_running_status,      // check whether the specified (child) thread is finish
-                                // 'fn (child_thread_id:u32) -> running_status:u32'
-                                // - running_status:  0=running, 1=finish, 2=not_found
+                                // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
+                                //
+                                // returns:
+                                // - running_status:  0=running, 1=finish
+                                // - thread_result: 0=success, 1=faailed (means not_found)
 
     thread_drop,                // drop the specified (child) thread
                                 // 'fn (child_thread_id:u32)'
 
-    thread_msg_recive,          // receive message from the upstream (parent) thread
-                                // 'fn ()->u64'
-                                //
-                                // receiving new message from the upstream (parent) thread, the current thread
-                                // will block until a new message arrives or the pipe is closed.
-                                //
-                                // the length (in bytes) of new message is return.
-                                //
-                                // when the pipe is closed, the child thread will be terminated as well,
-                                // the child thread will be removed from the parent's 'child thread collection'
-                                // automatically.
 
-    thread_msg_send,            // send message (from heap) to the upstream (parent) thread
-                                // 'fn (src_address:u64, length:u32) -> result:u32'
-                                //
-                                // result: 0=success, 1=failed.
+    // receive message from the upstream (parent) thread
+    // 'fn () -> length:u64'
+    //
+    // receiving new message from the upstream (parent) thread, the current thread
+    // will block until a new message arrives or the pipe is closed.
+    //
+    // the length (in bytes) of new message is return.
+    //
+    // when the pipe is closed, the child thread will be terminated as well,
+    // the child thread will be removed from the parent's 'child thread collection'
+    // automatically.
+    thread_receive_msg_from_parent,
+
+    // send message (from heap) to the upstream (parent) thread
+    // 'fn (src_address_in_heap:u64, length:u32) -> thread_result:u32'
+    //
+    // returns:
+    // - thread_result: 0=success, 1=failed.
+    thread_send_msg_to_parent,
 
     // the first start thread called the 'main thread', a thread
     // can create one or more new threads, these threads called 'child thread's,
@@ -179,13 +202,24 @@ pub enum EnvCallCode {
     //   |-- child thread 1
     //   |
 
-    thread_msg_receive_from,    // receive message from the specified (child) thread
-    thread_msg_send_to,         // send message to the specified (child) thread
+    thread_receive_msg,         // receive message from the specified (child) thread
+                                // 'fn (child_thread_id:u32) -> (length:u64, thread_result:u32)'
 
-    thread_msg_read,            // read/copy the last received message to heap
-                                // 'fn (offset:u32, length:u32, dst_address:u64) -> result:u32'
+    thread_send_msg,            // send message to the specified (child) thread
+                                // 'fn (child_thread_id:u32, src_address_in_heap:u64, length:u32) -> thread_result:u32'
                                 //
-                                // result: 0=success, 1=failed.
+                                // returns:
+                                // - thread_result: 0=success, 1=failed (means not_found).
+
+    thread_msg_length,          // get the length of the last received message
+                                // 'fn () -> length:u32'
+                                //
+    thread_msg_read,            // read/copy the last received message from the host temporary to VM heap
+                                // 'fn (offset:u32, length:u32, dst_address:u64) -> (read_length:u32, thread_result:u32)'
+                                //
+                                // returns:
+                                // - read_length: the actual length of the read data
+                                // - thread_result: 0=success, 1=failed.
 
     // ref:
     // - https://doc.rust-lang.org/std/sync/mpsc/index.html

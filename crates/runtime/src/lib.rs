@@ -29,12 +29,24 @@ pub mod multithread_program;
 // - (the address of) a function
 // - (the address of) a closure function
 thread_local! {
+    // the collection of child threads
     pub static CHILD_THREADS:RefCell<BTreeMap<u32, ChildThread>> = RefCell::new(BTreeMap::new());
-    pub static CHILD_THREAD_MAX_ID:RefCell<u32> = RefCell::new(0);
+
+    // an incremented only integer that is used to generate the child thread id.
+    pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = RefCell::new(0);
+
     pub static CURRENT_THREAD_ID:RefCell<u32> = RefCell::new(0);
     pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = RefCell::new(None);
     pub static TX:RefCell<Option<Sender<Vec<u8>>>> = RefCell::new(None);
+
+    // the data (an u8 array) that comes from the parent thread (i.e. the creator of the current thread)
     pub static THREAD_START_DATA:RefCell<Vec<u8>> = RefCell::new(vec![]);
+
+    // the message that comes from the parent thread (i.e. the creator of the current thread)
+    //
+    // the data comes from other thread (includes the parent thread and child thread) is
+    // temporary stored in LAST_MESSAGE each time the function 'thread_receive_msg' or
+    // 'thread_receive_msg_from_parent' is called.
     pub static LAST_MESSAGE:RefCell<Vec<u8>> = RefCell::new(vec![]);
 }
 
@@ -47,6 +59,7 @@ pub struct InterpreterError {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InterpreterErrorType {
     ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
+    ResultsAmountMissmatch,
     DataTypeMissmatch,         // data type does not match
     InvalidOperation, // such as invoke 'popx' instructions when there is no operands on the stack
     IndexNotFound,    // the index of function (data, local variables) not found
@@ -67,7 +80,11 @@ impl Display for InterpreterError {
         match self.error_type {
             InterpreterErrorType::ParametersAmountMissmatch => f.write_fmt(format_args!(
                 "Interpreter error: {}",
-                "Parameters amount missmatch"
+                "The number of parameters doesn't match"
+            )),
+            InterpreterErrorType::ResultsAmountMissmatch => f.write_fmt(format_args!(
+                "Interpreter error: {}",
+                "The number of results doesn't match"
             )),
             InterpreterErrorType::DataTypeMissmatch => {
                 f.write_fmt(format_args!("Interpreter error: {}", "Data type missmatch"))
@@ -107,7 +124,9 @@ impl VMError for InterpreterError {
 }
 
 pub struct ChildThread {
-    pub join_handle: JoinHandle<Result<Vec<ForeignValue>, Box<dyn VMError + Send>>>,
+    // the child thread on host will return the thread exit_code
+    pub join_handle: JoinHandle<Result<u32, Box<dyn VMError + Send>>>,
+
     pub rx: RefCell<Option<Receiver<Vec<u8>>>>,
     pub tx: RefCell<Option<Sender<Vec<u8>>>>,
 }

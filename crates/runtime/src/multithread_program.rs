@@ -10,8 +10,8 @@ use ancvm_program::{program_source::ProgramSource, ProgramSourceType};
 use ancvm_types::{ForeignValue, VMError};
 
 use crate::{
-    interpreter::process_function, ChildThread, CHILD_THREADS, CHILD_THREAD_MAX_ID,
-    CURRENT_THREAD_ID, RX, THREAD_START_DATA, TX,
+    interpreter::process_function, ChildThread, InterpreterError, InterpreterErrorType,
+    CHILD_THREADS, CHILD_THREAD_NEXT_ID, CURRENT_THREAD_ID, RX, THREAD_START_DATA, TX,
 };
 
 // these values should be 'process-global', but the unit test
@@ -54,9 +54,9 @@ where
 
     let mut next_thread_id: u32 = 0;
 
-    CHILD_THREAD_MAX_ID.with(|max_id_cell| {
-        let max_id = *max_id_cell.borrow();
-        next_thread_id = max_id + 1;
+    CHILD_THREAD_NEXT_ID.with(|max_id_cell| {
+        let last_thread_id = *max_id_cell.borrow();
+        next_thread_id = last_thread_id + 1;
         *max_id_cell.borrow_mut() = next_thread_id;
     });
 
@@ -97,7 +97,7 @@ where
             });
 
             // store the thread additional data
-            let thread_start_data_length = thread_start_data.len();
+            // let thread_start_data_length = thread_start_data.len();
 
             THREAD_START_DATA.with(|data| {
                 data.replace(thread_start_data);
@@ -111,15 +111,32 @@ where
                         &mut thread_context,
                         module_index,
                         func_public_index,
-                        // the specified function should only has one parameter (or has no parameters),
-                        // the value of argument is the length of 'thread_start_data'.
-                        &[ForeignValue::UInt32(thread_start_data_length as u32)],
+                        // the specified function should only has no parameters
+                        &[],
                     );
 
                     // returns Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>.
-                    // the return value of the 'thread start function' is the user custom thread exit code.
+                    //
+                    // the 'thread start function' should only return one value,
+                    // it is the user-defined thread exit code.
                     match rst_foreign_values {
-                        Ok(foreign_values) => Ok(foreign_values),
+                        Ok(foreign_values) => {
+                            if foreign_values.len() != 1 {
+                                return Err(Box::new(InterpreterError::new(
+                                    InterpreterErrorType::ResultsAmountMissmatch,
+                                ))
+                                    as Box<dyn VMError + Send>);
+                            }
+
+                            if let ForeignValue::UInt32(exit_code) = foreign_values[0] {
+                                Ok(exit_code)
+                            } else {
+                                Err(Box::new(InterpreterError::new(
+                                    InterpreterErrorType::DataTypeMissmatch,
+                                ))
+                                    as Box<dyn VMError + Send>)
+                            }
+                        }
                         Err(e) => Err(Box::new(e) as Box<dyn VMError + Send>),
                     }
                 }
@@ -144,4 +161,22 @@ where
     });
 
     next_thread_id
+}
+
+pub fn process_function_in_multithread<T>(
+    program_source: T,
+    thread_start_data: Vec<u8>,
+) -> Result<u32, Box<dyn VMError + Send>>
+where
+    T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+{
+    let multithread_program = MultithreadProgram::new(program_source);
+    let main_thread_id = create_thread(&multithread_program, 0, 0, thread_start_data);
+
+    CHILD_THREADS.with(|child_threads_cell| {
+        let mut child_threads = child_threads_cell.borrow_mut();
+        let opt_child_thread = child_threads.remove(&main_thread_id);
+        let child_thread = opt_child_thread.unwrap();
+        child_thread.join_handle.join().unwrap()
+    })
 }
