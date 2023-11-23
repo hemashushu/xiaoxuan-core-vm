@@ -47,10 +47,7 @@ mod tests {
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
-        multithread_program::process_function_in_multithread,
-    };
+    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 
     #[test]
     fn test_envcall_time_now() {
@@ -75,16 +72,9 @@ mod tests {
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
 
-        let secs = if let ForeignValue::UInt64(v) = results0[0] {
-            v
-        } else {
-            0
-        };
-        let nanos = if let ForeignValue::UInt32(v) = results0[1] {
-            v
-        } else {
-            0
-        };
+        let secs = results0[0].as_u64();
+        let nanos = results0[1].as_u32();
+        let dur_before = Duration::new(secs, nanos);
 
         let mut t: timespec = timespec {
             tv_sec: 0,
@@ -93,40 +83,36 @@ mod tests {
         unsafe {
             clock_gettime(CLOCK_MONOTONIC, &mut t);
         }
-
-        let dur_before = Duration::new(secs, nanos);
         let dur_after = Duration::new(t.tv_sec as u64, t.tv_nsec as u32);
 
-        let dur = dur_after - dur_before;
-        assert!(dur.as_millis() < 1000);
+        let duration = dur_after - dur_before;
+        assert!(duration.as_millis() < 1000);
     }
 
     #[test]
     fn test_envcall_time_sleep() {
+        // () -> ()
+
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 1000)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::time_sleep as u32)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // the signature of 'thread start function' must be
-        // () -> (i64)
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![DataType::I64], // results
-            vec![],              // local vars
+            vec![], // params
+            vec![], // results
+            vec![], // local vars
             code0,
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
 
         let before = Instant::now();
-        let result0 = process_function_in_multithread(program_source0, vec![]);
+        let _ = process_function(&mut thread_context0, 0, 0, &[]);
         let after = Instant::now();
-
-        const EXPECT_THREAD_EXIT_CODE: u64 = 0;
-        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
 
         let duration = after.duration_since(before);
         let ms = duration.as_millis() as u64;

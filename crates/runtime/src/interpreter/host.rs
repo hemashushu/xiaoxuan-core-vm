@@ -304,14 +304,14 @@ mod tests {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
     }
 
@@ -321,14 +321,14 @@ mod tests {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
     }
 
@@ -338,14 +338,14 @@ mod tests {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
     }
 
@@ -355,14 +355,14 @@ mod tests {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
         if let ForeignValue::UInt32(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
-            0
+            panic!("The data type of the foreign value does not match.")
         }
     }
 

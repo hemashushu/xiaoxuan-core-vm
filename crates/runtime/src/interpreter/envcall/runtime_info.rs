@@ -130,16 +130,8 @@ mod tests {
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs1 = result0.unwrap();
-        let name_len = if let ForeignValue::UInt32(i) = fvs1[0] {
-            i
-        } else {
-            0
-        };
-        let name_u64 = if let ForeignValue::UInt64(i) = fvs1[1] {
-            i
-        } else {
-            0
-        };
+        let name_len = fvs1[0].as_u32();
+        let name_u64 = fvs1[1].as_u64();
 
         let name_data = name_u64.to_le_bytes();
         assert_eq!(&RUNTIME_CODE_NAME[..], &name_data[0..name_len as usize]);

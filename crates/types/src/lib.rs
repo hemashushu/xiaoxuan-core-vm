@@ -157,6 +157,36 @@ pub enum ForeignValue {
     Float64(f64),
 }
 
+impl ForeignValue {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            ForeignValue::UInt32(v) => *v,
+            _ => panic!("The data type of the foreign value does not match."),
+        }
+    }
+
+    pub fn as_u64(&self) -> u64 {
+        match self {
+            ForeignValue::UInt64(v) => *v,
+            _ => panic!("The data type of the foreign value does not match."),
+        }
+    }
+
+    pub fn as_f32(&self) -> f32 {
+        match self {
+            ForeignValue::Float32(v) => *v,
+            _ => panic!("The data type of the foreign value does not match."),
+        }
+    }
+
+    pub fn as_f64(&self) -> f64 {
+        match self {
+            ForeignValue::Float64(v) => *v,
+            _ => panic!("The data type of the foreign value does not match."),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleShareType {
