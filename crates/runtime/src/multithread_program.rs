@@ -163,7 +163,7 @@ where
     next_thread_id
 }
 
-pub fn process_function_in_multithread<T>(
+pub fn run_program_in_multithread<T>(
     program_source: T,
     thread_start_data: Vec<u8>,
 ) -> Result<u64, Box<dyn VMError + Send>>
@@ -171,7 +171,19 @@ where
     T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
 {
     let multithread_program = MultithreadProgram::new(program_source);
-    let main_thread_id = create_thread(&multithread_program, 0, 0, thread_start_data);
+
+    const MAIN_MODULE_INDEX: usize = 0;
+
+    // todo::
+    // find the function which named 'entry' and get the public index
+    let entry_function_pub_index = 0;
+
+    let main_thread_id = create_thread(
+        &multithread_program,
+        MAIN_MODULE_INDEX,
+        entry_function_pub_index,
+        thread_start_data,
+    );
 
     CHILD_THREADS.with(|child_threads_cell| {
         let mut child_threads = child_threads_cell.borrow_mut();

@@ -44,7 +44,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};

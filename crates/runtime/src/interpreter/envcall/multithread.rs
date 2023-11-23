@@ -64,9 +64,9 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     let mt_program = unsafe { &*mt_program_object_ptr };
 
     // get arguments
-    let thread_start_data_length = thread_context.stack.pop_i32_u();
-    let thread_start_data_address = thread_context.stack.pop_i32_u();
-    let func_public_index = thread_context.stack.pop_i32_u();
+    let thread_start_data_length = thread_context.stack.pop_i32_u() as usize;
+    let thread_start_data_address = thread_context.stack.pop_i32_u() as usize;
+    let func_public_index = thread_context.stack.pop_i32_u() as usize;
 
     // get the current module index
     let module_index = thread_context.pc.module_index;
@@ -74,16 +74,13 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     // get thread start data
     let thread_start_data = thread_context
         .heap
-        .load_data(
-            thread_start_data_address as usize,
-            thread_start_data_length as usize,
-        )
+        .load_data(thread_start_data_address, thread_start_data_length)
         .to_vec();
 
     let child_thread_id = create_thread(
         mt_program,
-        module_index as usize,
-        func_public_index as usize,
+        module_index,
+        func_public_index,
         thread_start_data,
     );
 
@@ -119,7 +116,7 @@ pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
 
         let src_ptr = data[offset..].as_ptr();
         let dst_ptr = thread_context.heap.get_mut_ptr(dst_address);
-        unsafe { std::ptr::copy(src_ptr, dst_ptr, length as usize) };
+        unsafe { std::ptr::copy(src_ptr, dst_ptr, read_length) };
 
         read_length
     });
@@ -157,8 +154,6 @@ pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
         module_image::local_variable_section::LocalVariableEntry,
@@ -172,18 +167,19 @@ mod tests {
 
     use crate::{
         in_memory_program_source::InMemoryProgramSource,
-        multithread_program::process_function_in_multithread,
+        multithread_program::run_program_in_multithread,
     };
 
     #[test]
-    fn test_envcall_multithread_thread_process_function_in_multithread() {
+    fn test_envcall_multithread_run_program_in_multithread() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // the signature of 'thread start function' must be
-        // () -> (i64)
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![DataType::I64], // results
@@ -192,7 +188,7 @@ mod tests {
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = process_function_in_multithread(program_source0, vec![]);
+        let result0 = run_program_in_multithread(program_source0, vec![]);
 
         const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
         assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
@@ -200,14 +196,15 @@ mod tests {
 
     #[test]
     fn test_envcall_multithread_thread_id() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
             .append_opcode(Opcode::i64_extend_i32_u)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // the signature of 'thread start function' must be
-        // () -> (i64)
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![DataType::I64], // results
@@ -216,7 +213,7 @@ mod tests {
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = process_function_in_multithread(program_source0, vec![]);
+        let result0 = run_program_in_multithread(program_source0, vec![]);
 
         const FIRST_CHILD_THREAD_ID: u64 = 1;
         assert_eq!(result0.unwrap(), FIRST_CHILD_THREAD_ID);
@@ -224,6 +221,9 @@ mod tests {
 
     #[test]
     fn test_envcall_multithread_thread_create() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
             .append_opcode_i32(Opcode::i32_imm, 1) // func_public_index
@@ -252,8 +252,6 @@ mod tests {
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code0,
                 },
-                // the signature of 'thread start function' must be
-                // () -> (i64)
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
@@ -265,13 +263,15 @@ mod tests {
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = process_function_in_multithread(program_source0, vec![]);
-
+        let result0 = run_program_in_multithread(program_source0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
     }
 
     #[test]
     fn test_envcall_multithread_thread_start_data() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
         //                            0        8   (offset in byte)
         // start data:               |=========|
         //                                | copy 8 bytes
@@ -286,8 +286,9 @@ mod tests {
         //                   -------------------
         //                   low     |      high
         //                           \---> exit code 0x37_31_13_11_00_00_00_08
+
         let code0 = BytecodeWriter::new()
-            // resize heap to 1 page
+            // resize heap to 1 page, because the heap is required to read the thread_start_data.
             .append_opcode_i32(Opcode::i32_imm, 1)
             .append_opcode(Opcode::heap_resize)
             .append_opcode(Opcode::drop)
@@ -329,7 +330,7 @@ mod tests {
         );
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = process_function_in_multithread(
+        let result0 = run_program_in_multithread(
             program_source0,
             vec![0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37],
         );

@@ -13,7 +13,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use ancvm_types::{ForeignValue, VMError};
+use ancvm_types::VMError;
 
 pub mod bridge;
 pub mod in_memory_program_source;
@@ -60,10 +60,10 @@ pub struct InterpreterError {
 pub enum InterpreterErrorType {
     ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
     ResultsAmountMissmatch,
-    DataTypeMissmatch,         // data type does not match
-    InvalidOperation, // such as invoke 'popx' instructions when there is no operands on the stack
-    IndexNotFound,    // the index of function (data, local variables) not found
-    OutOfBoundary,    // out of boundary
+    DataTypeMissmatch, // data type does not match
+    InvalidOperation,  // such as invoke 'popx' instructions when there is no operands on the stack
+    IndexNotFound,     // the index of function (data, local variables) not found
+    OutOfBoundary,     // out of boundary
     Panic,
     Debug(u32),
     Unreachable(u32),

@@ -315,6 +315,11 @@ pub enum Opcode {
     data_long_store16,          //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
     data_long_store8,           //                                  (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
 
+    // note
+    // both local variables and data have NO data type, they both are
+    // bytes in the memory. so you can call 'local_store8' and 'local_load32_i8_u'
+    // even if the local variable is defined as i64.
+
     //
     // heap (thread-local memory) loading and storing
     //
