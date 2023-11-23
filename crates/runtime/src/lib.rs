@@ -124,8 +124,8 @@ impl VMError for InterpreterError {
 }
 
 pub struct ChildThread {
-    // the child thread on host will return the thread exit_code
-    pub join_handle: JoinHandle<Result<u32, Box<dyn VMError + Send>>>,
+    // the child thread on host will return the 'thread_exit_code'
+    pub join_handle: JoinHandle<Result<u64, Box<dyn VMError + Send>>>,
 
     pub rx: RefCell<Option<Receiver<Vec<u8>>>>,
     pub tx: RefCell<Option<Sender<Vec<u8>>>>,

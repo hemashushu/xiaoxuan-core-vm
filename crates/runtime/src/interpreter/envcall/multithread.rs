@@ -129,12 +129,7 @@ pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
-    //
-    // returns:
-    // - thread_exit_code: the meaning of the 'exit_code' is defined by user,
-    //   but in general convention, 0=thread exit with success, 1=thread exit with failure
-    // - thread_result: 0=success, 1=failed (or not_found)
+    // 'fn (child_thread_id:u32) -> (thread_exit_code:u64, thread_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
@@ -156,7 +151,7 @@ pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
         }
     });
 
-    thread_context.stack.push_i32_u(exit_code);
+    thread_context.stack.push_i64_u(exit_code);
     thread_context.stack.push_i32_u(thread_result);
 }
 
@@ -181,7 +176,7 @@ mod tests {
     #[test]
     fn test_multithread_thread_process_function_in_multithread() {
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 0x11)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -189,7 +184,7 @@ mod tests {
         // () -> (i32)
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![DataType::I64], // results
             vec![],              // local vars
             code0,
         );
@@ -197,21 +192,23 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let result0 = process_function_in_multithread(program_source0, vec![]);
 
-        assert_eq!(result0.unwrap(), 0x11);
+        const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
+        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
     }
 
     #[test]
     fn test_multithread_thread_id() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
+            .append_opcode(Opcode::i64_extend_i32_u)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         // the signature of 'thread start function' must be
-        // () -> (i32)
+        // () -> (i64)
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![DataType::I64], // results
             vec![],              // local vars
             code0,
         );
@@ -219,7 +216,7 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let result0 = process_function_in_multithread(program_source0, vec![]);
 
-        const FIRST_CHILD_THREAD_ID: u32 = 1;
+        const FIRST_CHILD_THREAD_ID: u64 = 1;
         assert_eq!(result0.unwrap(), FIRST_CHILD_THREAD_ID);
     }
 
@@ -228,8 +225,8 @@ mod tests {
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
             .append_opcode_i32(Opcode::i32_imm, 1) // func_public_index
-            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address
-            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length
+            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address, no start data
+            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length, no start data
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
             // now the operand on the top of stack is the child thread id
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_and_collect as u32)
@@ -241,7 +238,7 @@ mod tests {
 
         let code1 = BytecodeWriter::new()
             // set the thread exit code
-            .append_opcode_i32(Opcode::i32_imm, 0x13)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -249,7 +246,7 @@ mod tests {
             vec![
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
-                    results: vec![DataType::I32],                     // results
+                    results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code0,
                 },
@@ -257,7 +254,7 @@ mod tests {
                 // () -> (i32)
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
-                    results: vec![DataType::I32],                     // results
+                    results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code1,
                 },
@@ -273,19 +270,20 @@ mod tests {
 
     #[test]
     fn test_multithread_thread_start_data() {
-        //                           0          8   (offset in byte)
-        // start data:              |============|
-        //                                |
-        //                                v copy
-        // heap:              0x100 |============|
-        //                           |          |
-        // start data length --\     |    /-----/
-        //                     |     |    |
-        //                     V     V    V
-        // local var u32:    | u16 | u8 | u8 |
-        //                   -----------------
+        //                            0        8   (offset in byte)
+        // start data:               |=========|
+        //                                | copy 8 bytes
+        //                                v
+        //                         0 1 2 3 4 5 6 7  (offset in byte)
+        // heap:            0x100 |===|===|===|===|
+        //                         |           |
+        // start data length --\   \-\     /---/
+        //                     |     |     |
+        //                     V     V     V
+        // local var u64:    | u32 | u16 | u16 |
+        //                   -------------------
         //                   low     |      high
-        //                           \---> exit code 0x37_11_00_08
+        //                           \---> exit code 0x37_31_13_11_00_00_00_08
         let code0 = BytecodeWriter::new()
             // resize heap to 1 page
             .append_opcode_i32(Opcode::i32_imm, 1)
@@ -306,25 +304,25 @@ mod tests {
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100) // dst address
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
             //
-            // copy heap data byte 0 to local var offset 2
+            // copy heap data byte 0,1 to local var offset 4
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load32_i8_u, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_store8, 0, 2, 0)
+            .append_opcode_i16(Opcode::heap_load32_i16_u, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 4, 0)
             //
-            // copy heap data byte 8 to local var offset 3
+            // copy heap data byte 6,7 to local var offset 6
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load32_i8_u, 7)
-            .append_opcode_i16_i16_i16(Opcode::local_store8, 0, 3, 0)
+            .append_opcode_i16(Opcode::heap_load32_i16_u, 6)
+            .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 6, 0)
             //
-            // read local var
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            // read local var as thread exit code
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                               // params
-            vec![DataType::I32],                  // results
-            vec![LocalVariableEntry::from_i32()], // local vars
+            vec![DataType::I64],                  // results
+            vec![LocalVariableEntry::from_i64()], // local vars
             code0,
         );
 
@@ -333,6 +331,6 @@ mod tests {
             program_source0,
             vec![0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37],
         );
-        assert_eq!(result0.unwrap(), 0x37_11_00_08);
+        assert_eq!(result0.unwrap(), 0x37_31_13_11_00_00_00_08);
     }
 }

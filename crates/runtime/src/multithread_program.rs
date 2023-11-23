@@ -128,7 +128,7 @@ where
                                     as Box<dyn VMError + Send>);
                             }
 
-                            if let ForeignValue::UInt32(exit_code) = foreign_values[0] {
+                            if let ForeignValue::UInt64(exit_code) = foreign_values[0] {
                                 Ok(exit_code)
                             } else {
                                 Err(Box::new(InterpreterError::new(
@@ -166,7 +166,7 @@ where
 pub fn process_function_in_multithread<T>(
     program_source: T,
     thread_start_data: Vec<u8>,
-) -> Result<u32, Box<dyn VMError + Send>>
+) -> Result<u64, Box<dyn VMError + Send>>
 where
     T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
 {

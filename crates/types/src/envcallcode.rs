@@ -100,7 +100,8 @@ pub enum EnvCallCode {
                                 //
                                 // ```
                                 // fn (func_public_index:u32,
-                                //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
+                                //    thread_start_data_address_in_heap:u32,
+                                //    thread_start_data_length:u32) -> child_thread_id:u32
                                 // ```
                                 //
                                 // the value of 'thread_start_data_address' is the address of a data block in the heap, these
@@ -108,12 +109,13 @@ pub enum EnvCallCode {
                                 // the new thread can read the data through the function 'thread_start_data_read'.
                                 //
                                 // the signature of the 'thread start function' MUST exactly be:
-                                // 'fn () -> exit_code:u32'
+                                // 'fn () -> exit_code:u64'
                                 //
                                 // it's similar to the 'int main(int argc, char* argv[])'
                                 //
                                 // the meaning of the 'exit_code' is defined by user,
-                                // but in general convention, 0=thread exit with success, 1=thread exit with failure
+                                // but in general convention, the 'exit_code' of the 'entry' function is defined as
+                                // 0=thread exit with success, 1=thread exit with failure
 
     thread_start_data_length,   // get the length of the thread start data
                                 // 'fn () -> length:u32'
@@ -122,17 +124,18 @@ pub enum EnvCallCode {
                                 // 'fn (offset:u32, length:u32, dst_address:u64) -> (actual_read_length: u32, thread_result:u32)'
                                 //
                                 // results:
-                                // - actual_read_length
+                                // - actual_read_length: the length of data that actually read
                                 // - thread_result: 0=success, 1=failed.
 
     thread_wait_and_collect,    // wait for the specified (child) thread to finish and collect resources of child thread,
                                 // return the exit code of the 'thread start function'.
                                 //
-                                // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
+                                // 'fn (child_thread_id:u32) -> (thread_exit_code:u64/u32, thread_result:u32)'
                                 //
                                 // returns:
-                                // - thread_exit_code: the meaning of the 'exit_code' is defined by user,
-                                //   but in general convention, 0=thread exit with success, 1=thread exit with failure
+                                // - thread_exit_code: the meaning of the 'exit_code' is defined by user, the data type
+                                //   of 'thread_exit_code' is platform dependent, e.g. u32 on 32-bit platforms,
+                                //   u64 on 64-bit platforms.
                                 // - thread_result: 0=success, 1=failed (or not_found)
                                 //
                                 // the caller will be blocked if the child thread is running, when the child thread finish,
@@ -159,20 +162,19 @@ pub enum EnvCallCode {
                                 // 'fn (child_thread_id:u32)'
 
 
-    // receive message from the upstream (parent) thread
+    // receive message from the upstream (parent) thread,
+    // the length (in bytes) of new message is return.
     // 'fn () -> length:u64'
     //
-    // receiving new message from the upstream (parent) thread, the current thread
-    // will block until a new message arrives or the pipe is closed.
-    //
-    // the length (in bytes) of new message is return.
+    // this function will always block the current thread if there is no data available.
     //
     // when the pipe is closed, the child thread will be terminated as well,
     // the child thread will be removed from the parent's 'child thread collection'
     // automatically.
     thread_receive_msg_from_parent,
 
-    // send message (from heap) to the upstream (parent) thread
+    // send message (from heap) to the upstream (parent) thread.
+    // this method will never block the current thread.
     // 'fn (src_address_in_heap:u64, length:u32) -> thread_result:u32'
     //
     // returns:
@@ -202,10 +204,14 @@ pub enum EnvCallCode {
     //   |-- child thread 1
     //   |
 
-    thread_receive_msg,         // receive message from the specified (child) thread
+    thread_receive_msg,         // receive message from the specified (child) thread.
+                                // this function will always block the current thread if there is no data available.
+                                // the 'thread_result' will be '1=failed' when the PIPE (or the child thread) is close or
+                                // the id does not exist.
                                 // 'fn (child_thread_id:u32) -> (length:u64, thread_result:u32)'
 
-    thread_send_msg,            // send message to the specified (child) thread
+    thread_send_msg,            // send message to the specified (child) thread.
+                                // this function will never block the current thread.
                                 // 'fn (child_thread_id:u32, src_address_in_heap:u64, length:u32) -> thread_result:u32'
                                 //
                                 // returns:
