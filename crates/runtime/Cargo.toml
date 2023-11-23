@@ -11,3 +11,4 @@ ancvm_binary = { path = "../binary" }
 ancvm_syscall_util = { path = "../syscall_util" }
 ancvm_extfunc_util = { path = "../extfunc_util" }
 ancvm_program = { path = "../program" }
+libc = "0.2"

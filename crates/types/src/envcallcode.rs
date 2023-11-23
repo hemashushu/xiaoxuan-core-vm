@@ -161,7 +161,6 @@ pub enum EnvCallCode {
     thread_drop,                // drop the specified (child) thread
                                 // 'fn (child_thread_id:u32)'
 
-
     // receive message from the upstream (parent) thread,
     // the length (in bytes) of new message is return.
     // 'fn () -> length:u64'
@@ -231,6 +230,14 @@ pub enum EnvCallCode {
     // - https://doc.rust-lang.org/std/sync/mpsc/index.html
     // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
     // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
+
+    // time
+    time_now,                   // get the current time
+                                // `fn () -> (seconds:u64, nano_seconds:u32)`
+                                // valid values of 'nano_seconds' are [0, 999_999_999]
+
+    time_sleep,                 // block the current for the specified milliseconds.
+                                // 'fn (milliseconds:u64)
 
     // regex
     regex_create,               // ref: https://github.com/rust-lang/regex

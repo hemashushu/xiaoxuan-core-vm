@@ -10,8 +10,9 @@ use ancvm_types::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
-pub mod multithread;
-pub mod runtime_info;
+mod multithread;
+mod runtime_info;
+mod time;
 
 type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
@@ -63,6 +64,9 @@ pub fn init_ecall_handlers() {
     handlers[EnvCallCode::thread_start_data_read as usize] = multithread::thread_start_data_read;
     handlers[EnvCallCode::thread_create as usize] = multithread::thread_create;
     handlers[EnvCallCode::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
+
+    handlers[EnvCallCode::time_now as usize] = time::time_now;
+    handlers[EnvCallCode::time_sleep as usize] = time::time_sleep;
 }
 
 pub fn envcall(thread_context: &mut ThreadContext) -> InterpretResult {

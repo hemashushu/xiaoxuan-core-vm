@@ -4,6 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use std::{thread, time::Duration};
+
 use ancvm_program::{memory::Memory, thread_context::ThreadContext, ProgramSourceType};
 
 use crate::{
@@ -157,6 +159,8 @@ pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
         module_image::local_variable_section::LocalVariableEntry,
@@ -174,14 +178,14 @@ mod tests {
     };
 
     #[test]
-    fn test_multithread_thread_process_function_in_multithread() {
+    fn test_envcall_multithread_thread_process_function_in_multithread() {
         let code0 = BytecodeWriter::new()
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         // the signature of 'thread start function' must be
-        // () -> (i32)
+        // () -> (i64)
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![DataType::I64], // results
@@ -197,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multithread_thread_id() {
+    fn test_envcall_multithread_thread_id() {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
             .append_opcode(Opcode::i64_extend_i32_u)
@@ -221,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multithread_thread_create() {
+    fn test_envcall_multithread_thread_create() {
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
             .append_opcode_i32(Opcode::i32_imm, 1) // func_public_index
@@ -251,7 +255,7 @@ mod tests {
                     code: code0,
                 },
                 // the signature of 'thread start function' must be
-                // () -> (i32)
+                // () -> (i64)
                 HelperFuncEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
@@ -269,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multithread_thread_start_data() {
+    fn test_envcall_multithread_thread_start_data() {
         //                            0        8   (offset in byte)
         // start data:               |=========|
         //                                | copy 8 bytes
