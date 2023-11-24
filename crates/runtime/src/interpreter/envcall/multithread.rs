@@ -487,81 +487,13 @@ mod tests {
         assert_eq!(result0.unwrap(), 0x13);
     }
 
-    #[test]
-    fn test_envcall_multithread_thread_start_data() {
-        // the signature of 'thread start function' must be
-        // () -> (i64)
-
-        //                            0        8   (offset in byte)
-        // start data:               |=========|
-        //                                | copy 8 bytes
-        //                                v
-        //                         0 1 2 3 4 5 6 7  (offset in byte)
-        // heap:            0x100 |===|===|===|===|
-        //                         |           |
-        // start data length --\   \-\     /---/
-        //                     |     |     |
-        //                     V     V     V
-        // local var u64:    | u32 | u16 | u16 |
-        //                   -------------------
-        //                   low     |      high
-        //                           \---> exit code 0x37_31_13_11_00_00_00_08
-
-        let code0 = BytecodeWriter::new()
-            // resize heap to 1 page, because the heap is required to read the thread_start_data.
-            .append_opcode_i32(Opcode::i32_imm, 1)
-            .append_opcode(Opcode::heap_resize)
-            .append_opcode(Opcode::drop)
-            //
-            // get the length of the 'thread start data'
-            .append_opcode_i32(
-                Opcode::envcall,
-                EnvCallCode::thread_start_data_length as u32,
-            )
-            // copy to local var offset 0 as i16
-            .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 0, 0)
-            //
-            // read the thread start data and copy to heap 0x100
-            .append_opcode_i32(Opcode::i32_imm, 0) // offset
-            .append_opcode_i32(Opcode::i32_imm, 8) // length
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100) // dst address
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_start_data_read as u32)
-            //
-            // copy heap data byte 0,1 to local var offset 4
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load32_i16_u, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 4, 0)
-            //
-            // copy heap data byte 6,7 to local var offset 6
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load32_i16_u, 6)
-            .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 6, 0)
-            //
-            // read local var as thread exit code
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                               // params
-            vec![DataType::I64],                  // results
-            vec![LocalVariableEntry::from_i64()], // local vars
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = run_program_in_multithread(
-            program_source0,
-            vec![0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31, 0x37],
-        );
-        assert_eq!(result0.unwrap(), 0x37_31_13_11_00_00_00_08);
-    }
-
     // note::
     // the unit tests for following functions would be too complicated to
     // write directly in bytecode, so leave these unit tests to
     // the project 'xiaoxuan-core-assembly'.
     //
+    // - thread_start_data_length
+    // - thread_start_data_read
     // - thread_running_status
     // - thread_drop
     // - thread_receive_msg_from_parent
