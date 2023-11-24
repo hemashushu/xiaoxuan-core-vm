@@ -36,7 +36,11 @@ thread_local! {
     pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = RefCell::new(0);
 
     pub static CURRENT_THREAD_ID:RefCell<u32> = RefCell::new(0);
+
+    // the receiver to the parent thread
     pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = RefCell::new(None);
+
+    // the sender to the parent thread
     pub static TX:RefCell<Option<Sender<Vec<u8>>>> = RefCell::new(None);
 
     // the data (an u8 array) that comes from the parent thread (i.e. the creator of the current thread)
@@ -127,6 +131,9 @@ pub struct ChildThread {
     // the child thread on host will return the 'thread_exit_code'
     pub join_handle: JoinHandle<Result<u64, Box<dyn VMError + Send>>>,
 
-    pub rx: RefCell<Option<Receiver<Vec<u8>>>>,
-    pub tx: RefCell<Option<Sender<Vec<u8>>>>,
+    // the receiver to the child thread
+    pub rx: Receiver<Vec<u8>>,
+
+    // the sender to the child thread
+    pub tx: Sender<Vec<u8>>,
 }

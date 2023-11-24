@@ -150,8 +150,8 @@ where
 
     let child_thread = ChildThread {
         join_handle,
-        rx: RefCell::new(Some(parent_rx)),
-        tx: RefCell::new(Some(parent_tx)),
+        rx: parent_rx, // RefCell::new(Some(parent_rx)),
+        tx: parent_tx, // RefCell::new(Some(parent_tx)),
     };
 
     CHILD_THREADS.with(|child_threads| {

@@ -64,7 +64,18 @@ pub fn init_ecall_handlers() {
     handlers[EnvCallCode::thread_start_data_read as usize] = multithread::thread_start_data_read;
     handlers[EnvCallCode::thread_create as usize] = multithread::thread_create;
     handlers[EnvCallCode::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
+    handlers[EnvCallCode::thread_running_status as usize] = multithread::thread_running_status;
+    handlers[EnvCallCode::thread_terminate as usize] = multithread::thread_terminate;
+    handlers[EnvCallCode::thread_receive_msg_from_parent as usize] =
+        multithread::thread_receive_msg_from_parent;
+    handlers[EnvCallCode::thread_send_msg_to_parent as usize] =
+        multithread::thread_send_msg_to_parent;
+    handlers[EnvCallCode::thread_receive_msg as usize] = multithread::thread_receive_msg;
+    handlers[EnvCallCode::thread_send_msg as usize] = multithread::thread_send_msg;
+    handlers[EnvCallCode::thread_msg_length as usize] = multithread::thread_msg_length;
+    handlers[EnvCallCode::thread_msg_read as usize] = multithread::thread_msg_read;
 
+    // time
     handlers[EnvCallCode::time_now as usize] = time::time_now;
     handlers[EnvCallCode::time_sleep as usize] = time::time_sleep;
 }
