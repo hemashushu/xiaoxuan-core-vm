@@ -107,7 +107,7 @@ where
             match rst_program {
                 Ok(program) => {
                     let mut thread_context = program.create_thread_context();
-                    let rst_foreign_values = process_function(
+                    let result_foreign_values = process_function(
                         &mut thread_context,
                         module_index,
                         func_public_index,
@@ -119,7 +119,7 @@ where
                     //
                     // the 'thread start function' should only return one value,
                     // it is the user-defined thread exit code.
-                    match rst_foreign_values {
+                    match result_foreign_values {
                         Ok(foreign_values) => {
                             if foreign_values.len() != 1 {
                                 return Err(Box::new(InterpreterError::new(

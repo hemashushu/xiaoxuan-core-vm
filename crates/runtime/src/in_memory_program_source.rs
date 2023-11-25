@@ -12,8 +12,6 @@ use ancvm_program::{
     program_source::ProgramSource, ProgramSourceType,
 };
 
-use crate::interpreter::init_interpreters;
-
 pub struct InMemoryProgramSource {
     program_settings: ProgramSettings,
     module_binaries: Vec<Vec<u8>>,
@@ -29,7 +27,10 @@ impl InMemoryProgramSource {
         }
     }
 
-    pub fn with_settings(module_binaries: Vec<Vec<u8>>, program_settings: &ProgramSettings) -> Self {
+    pub fn with_settings(
+        module_binaries: Vec<Vec<u8>>,
+        program_settings: &ProgramSettings,
+    ) -> Self {
         Self {
             module_binaries,
             program_settings: program_settings.clone(),
@@ -40,8 +41,6 @@ impl InMemoryProgramSource {
 
 impl ProgramSource for InMemoryProgramSource {
     fn build_program(&self) -> Result<Program, ancvm_binary::BinaryError> {
-        init_interpreters(); // initialize interpreters
-
         let binaries_ref = self
             .module_binaries
             .iter()
@@ -86,7 +85,10 @@ mod tests {
             vec![DataType::I64],
             vec![LocalVariableEntry::from_i32()],
             vec![0u8],
-            vec![InitedDataEntry::from_i32(0x11), InitedDataEntry::from_i64(0x13)],
+            vec![
+                InitedDataEntry::from_i32(0x11),
+                InitedDataEntry::from_i64(0x13),
+            ],
             vec![InitedDataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,

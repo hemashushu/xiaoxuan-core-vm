@@ -376,7 +376,6 @@ pub fn thread_msg_read(thread_context: &mut ThreadContext) {
 mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
-        module_image::local_variable_section::LocalVariableEntry,
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_single_function,

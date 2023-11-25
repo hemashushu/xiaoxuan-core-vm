@@ -95,9 +95,10 @@ static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_
 // initilize the instruction interpreters
 //
 // note:
-// ensure this initialization is only called once, to do that, the 3rd party crates
-// such as 'lazy_static', 'once_cell' and 'rust-ctor' can be used.
-// the same can be done with ''
+// ensure this initialization is only called once,
+// to do that, the 3rd party crates such as 'lazy_static', 'once_cell' and 'rust-ctor' can be used.
+// the same can be done with 'std::sync::Once'.
+#[inline]
 pub fn init_interpreters() {
     INIT.call_once(|| {
         init_interpreters_internal();
@@ -445,6 +446,10 @@ pub fn process_function(
     func_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
+
+    // initialize interpreters
+    init_interpreters();
+
     // reset the statck
     thread_context.stack.reset();
 
@@ -569,6 +574,9 @@ pub extern "C" fn process_bridge_function_call(
     //
     // results:
     // | 8 bytes |
+
+    // initialize interpreters
+    init_interpreters();
 
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
