@@ -5,7 +5,7 @@ members = [
     "crates/syscall_util",
     "crates/extfunc_util",
     "crates/program",
-    "crates/runtime",
+    "crates/process",
 ]
 
 resolver = "2"

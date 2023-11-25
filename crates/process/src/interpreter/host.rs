@@ -1059,13 +1059,13 @@ mod tests {
         );
 
         let mut pwd = std::env::current_dir().unwrap();
-        if !pwd.ends_with("runtime") {
+        if !pwd.ends_with("process") {
             // in the VSCode `Debug` environment, the `current_dir()`
             // the project root folder.
             // while in both `$ cargo test` and VSCode `Run Test` environment
             // the `current_dir()` return the current crate path.
             pwd.push("crates");
-            pwd.push("runtime");
+            pwd.push("process");
         }
         pwd.push("tests");
         let program_source_path = pwd.to_str().unwrap();

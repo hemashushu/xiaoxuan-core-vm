@@ -1,5 +1,5 @@
 [package]
-name = "ancvm_runtime"
+name = "ancvm_process"
 version = "0.1.0"
 edition = "2021"
 
