@@ -74,10 +74,10 @@ pub fn init_ecall_handlers() {
     handlers[EnvCallCode::thread_send_msg as usize] = multithread::thread_send_msg;
     handlers[EnvCallCode::thread_msg_length as usize] = multithread::thread_msg_length;
     handlers[EnvCallCode::thread_msg_read as usize] = multithread::thread_msg_read;
+    handlers[EnvCallCode::thread_sleep as usize] = multithread::time_sleep;
 
     // time
     handlers[EnvCallCode::time_now as usize] = time::time_now;
-    handlers[EnvCallCode::time_sleep as usize] = time::time_sleep;
 }
 
 pub fn envcall(thread_context: &mut ThreadContext) -> InterpretResult {

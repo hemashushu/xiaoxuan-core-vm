@@ -229,6 +229,9 @@ pub enum EnvCallCode {
                                 // returns:
                                 // - actual_read_length: the actual length of the read data
 
+    thread_sleep,               // block the current for the specified milliseconds.
+                                // 'fn (milliseconds:u64)
+
     // ref:
     // - https://doc.rust-lang.org/std/sync/mpsc/index.html
     // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
@@ -238,9 +241,6 @@ pub enum EnvCallCode {
     time_now,                   // get the current time
                                 // `fn () -> (seconds:u64, nano_seconds:u32)`
                                 // valid values of 'nano_seconds' are [0, 999_999_999]
-
-    time_sleep,                 // block the current for the specified milliseconds.
-                                // 'fn (milliseconds:u64)
 
     // regex
     regex_create,               // ref: https://github.com/rust-lang/regex

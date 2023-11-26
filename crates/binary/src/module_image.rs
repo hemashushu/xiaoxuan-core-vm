@@ -90,7 +90,6 @@ pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
 pub mod external_func_index_section;
-pub mod external_func_name_section;
 pub mod external_func_section;
 pub mod external_library_section;
 pub mod func_index_section;
@@ -116,6 +115,7 @@ use crate::{
 };
 
 use self::{
+    data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
     external_func_index_section::ExternalFuncIndexSection,
     external_func_section::ExternalFuncSection,
@@ -182,11 +182,13 @@ pub enum ModuleSectionId {
     Type = 0x10,   // 0x10
     LocalVariable, // 0x11
     Func,          // 0x12
+
     // optional
     ReadOnlyData = 0x20, // 0x20
     ReadWriteData,       // 0x21
     UninitData,          // 0x22
     AutoFunc,            // 0x23
+
     // optional, for debuging and linking
     ImportFunc = 0x30, // 0x30
     FuncName,          // 0x31
@@ -194,10 +196,10 @@ pub enum ModuleSectionId {
     DataName,          // 0x33
     ExternalLibrary,   // 0x34
     ExternalFunc,      // 0x35
-    ExternalFuncName,  // 0x36
 
     // essential indices
     FuncIndex = 0x40, // 0x40
+
     // optional indeces
     DataIndex = 0x50,       // 0x50
     UnifiedExternalLibrary, // 0x51
@@ -467,7 +469,11 @@ impl<'a> ModuleImage<'a> {
 
     // todo get_optional_import_data_section
 
-    // todo get_optional_data_name_section
+    // optional section
+    pub fn get_optional_data_name_section(&'a self) -> Option<DataNameSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::DataName)
+            .map(DataNameSection::load)
+    }
 
     // optional
     pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
@@ -510,7 +516,6 @@ impl<'a> ModuleImage<'a> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex)
             .map(ExternalFuncIndexSection::load)
     }
-
 }
 
 #[cfg(test)]

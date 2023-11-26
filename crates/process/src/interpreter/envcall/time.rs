@@ -4,8 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use std::{thread, time::Duration};
-
 use ancvm_program::thread_context::ThreadContext;
 use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
@@ -27,18 +25,9 @@ pub fn time_now(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(t.tv_nsec as u32);
 }
 
-// ref:
-// https://linux.die.net/man/2/nanosleep
-pub fn time_sleep(thread_context: &mut ThreadContext) {
-    // `fn (milliseconds:u64) -> ()`
-
-    let milliseconds = thread_context.stack.pop_i64_u();
-    thread::sleep(Duration::from_millis(milliseconds));
-}
-
 #[cfg(test)]
 mod tests {
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
 
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
@@ -87,35 +76,5 @@ mod tests {
 
         let duration = dur_after - dur_before;
         assert!(duration.as_millis() < 1000);
-    }
-
-    #[test]
-    fn test_envcall_time_sleep() {
-        // () -> ()
-
-        let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 1000)
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::time_sleep as u32)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![], // results
-            vec![], // local vars
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
-
-        let before = Instant::now();
-        let _ = process_function(&mut thread_context0, 0, 0, &[]);
-        let after = Instant::now();
-
-        let duration = after.duration_since(before);
-        let ms = duration.as_millis() as u64;
-        assert!(ms > 500);
     }
 }

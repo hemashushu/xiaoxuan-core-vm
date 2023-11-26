@@ -4,6 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use std::{thread, time::Duration};
+
 use ancvm_program::{memory::Memory, thread_context::ThreadContext, ProgramSourceType};
 
 use crate::{
@@ -372,8 +374,19 @@ pub fn thread_msg_read(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(actual_read_length as u32);
 }
 
+// ref:
+// https://linux.die.net/man/2/nanosleep
+pub fn time_sleep(thread_context: &mut ThreadContext) {
+    // `fn (milliseconds:u64) -> ()`
+
+    let milliseconds = thread_context.stack.pop_i64_u();
+    thread::sleep(Duration::from_millis(milliseconds));
+}
+
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
         utils::{
@@ -484,6 +497,38 @@ mod tests {
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let result0 = run_program_in_multithread(program_source0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
+    }
+
+    #[test]
+    fn test_envcall_time_sleep() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
+        let code0 = BytecodeWriter::new()
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 1000)
+            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_sleep as u32)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x13)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![],              // params
+            vec![DataType::I64], // results
+            vec![],              // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let before = Instant::now();
+
+        let result0 = run_program_in_multithread(program_source0, vec![]);
+        assert_eq!(result0.unwrap(), 0x13);
+
+        let after = Instant::now();
+
+        let duration = after.duration_since(before);
+        let ms = duration.as_millis() as u64;
+        assert!(ms > 500);
     }
 
     // note::
