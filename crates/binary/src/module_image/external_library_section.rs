@@ -174,7 +174,7 @@ mod tests {
         );
         assert_eq!(
             section.items[1],
-            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Shared,)
+            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Share,)
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
@@ -183,7 +183,7 @@ mod tests {
     fn test_save_section() {
         let items = vec![
             ExternalLibraryItem::new(0, 3, ExternalLibraryType::User),
-            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Shared),
+            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Share),
         ];
 
         let section = ExternalLibrarySection {
@@ -219,7 +219,7 @@ mod tests {
     fn test_convert() {
         let entries = vec![
             ExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryType::User),
-            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Shared),
+            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Share),
         ];
 
         let (items, names_data) = ExternalLibrarySection::convert_from_entries(&entries);
@@ -235,7 +235,7 @@ mod tests {
 
         assert_eq!(
             section.get_item_name_and_external_library_type(1),
-            ("helloworld", ExternalLibraryType::Shared,)
+            ("helloworld", ExternalLibraryType::Share,)
         );
     }
 }

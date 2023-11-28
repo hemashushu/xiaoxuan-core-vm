@@ -994,7 +994,7 @@ mod tests {
                     type_index: 2,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::Shared,
+                    external_library_type: ExternalLibraryType::Share,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_open".to_string(), // magic_load
                     type_index: 2,
@@ -1012,7 +1012,7 @@ mod tests {
                     type_index: 0,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::Shared,
+                    external_library_type: ExternalLibraryType::Share,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_file".to_string(), // magic_close
                     type_index: 2,
@@ -1036,7 +1036,7 @@ mod tests {
         );
         assert_eq!(
             unified_external_library_section.get_item_name_and_external_library_type(1),
-            ("libmagic.so", ExternalLibraryType::Shared)
+            ("libmagic.so", ExternalLibraryType::Share)
         );
         assert_eq!(
             unified_external_library_section.get_item_name_and_external_library_type(2),
@@ -1106,7 +1106,7 @@ mod tests {
         );
         assert_eq!(
             external_library_section.get_item_name_and_external_library_type(1),
-            ("libmagic.so", ExternalLibraryType::Shared)
+            ("libmagic.so", ExternalLibraryType::Share)
         );
         assert_eq!(
             external_library_section.get_item_name_and_external_library_type(2),

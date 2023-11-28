@@ -191,15 +191,25 @@ impl ForeignValue {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleShareType {
     User = 0x0,
-    Shared,
+    Share,
 }
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ExternalLibraryType {
     User = 0x0,
-    Shared,
+    Share,
     System,
+}
+
+impl Display for ExternalLibraryType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExternalLibraryType::User => f.write_str("user"),
+            ExternalLibraryType::Share => f.write_str("share"),
+            ExternalLibraryType::System => f.write_str("system"),
+        }
+    }
 }
 
 /// sometimes you may want to get a specified type from 'dyn RuntimeError',

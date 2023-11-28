@@ -62,7 +62,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
                 path_buf.push(external_library_name);
                 path_buf.as_os_str().to_string_lossy().to_string()
             }
-            ExternalLibraryType::Shared => {
+            ExternalLibraryType::Share => {
                 let mut path_buf = PathBuf::from(&thread_context.program_settings.runtime_path);
                 path_buf.push("lib");
                 path_buf.push(external_library_name);

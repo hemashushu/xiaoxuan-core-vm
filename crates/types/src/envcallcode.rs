@@ -33,7 +33,7 @@ pub enum EnvCallCode {
     runtime_feature_check,      // `fn (name_ptr:i64, name_len:i32) -> bool`
 
     // host info
-    host_arch,                  // x86_64/aarch64/riscv64 ...
+    host_arch = 0x110,          // x86_64/aarch64/riscv64 ...
     host_os,                    // linux/macos/windows/freebsd/android/ios ...
     host_family,                // unix/windows ...
     host_endian,                // little/big
@@ -92,7 +92,7 @@ pub enum EnvCallCode {
     // - an array
     // - (the address of) a function
     // - (the address of) a closure function
-    thread_id,                  // get the current thread id
+    thread_id = 0x120,          // get the current thread id
                                 // 'fn () -> thread_id:u32'
 
     thread_create,              // craete a new thread and run the specified function (named 'thread start function')
@@ -238,12 +238,12 @@ pub enum EnvCallCode {
     // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
     // time
-    time_now,                   // get the current time
+    time_now = 0x130,           // get the current time
                                 // `fn () -> (seconds:u64, nano_seconds:u32)`
                                 // valid values of 'nano_seconds' are [0, 999_999_999]
 
     // regex
-    regex_create,               // ref: https://github.com/rust-lang/regex
+    regex_create = 0x140,       // ref: https://github.com/rust-lang/regex
     regex_match,
     regex_test,
     regex_remove,

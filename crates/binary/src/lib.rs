@@ -11,7 +11,6 @@ use module_image::ModuleImage;
 
 pub mod bytecode_reader;
 pub mod bytecode_writer;
-pub mod cache_info;
 pub mod module_image;
 pub mod utils;
 

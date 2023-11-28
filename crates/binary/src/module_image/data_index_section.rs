@@ -37,11 +37,14 @@ pub struct DataIndexSection<'a> {
 pub struct DataIndexItem {
     // the index of data item
     //
-    // this index includes:
+    // this index includes (and in the following order):
+    //
     // - imported read-only data items
     // - internal read-only data items
+    //
     // - imported read-write data items
     // - internal read-write data items
+    //
     // - imported uninitilized data items
     // - internal uninitilized data items
     //
@@ -52,7 +55,7 @@ pub struct DataIndexItem {
     // target module index
     pub target_module_index: u32,
 
-    // the index of the internal data item in a specified data section (in a specified module)
+    // the index of the internal data item in a specified data section
     //
     // this index is the actual index of the internal data item in a specified data section
     // i.e., it excludes the imported data items, and it is section relevant.
