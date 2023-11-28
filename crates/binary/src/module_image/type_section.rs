@@ -22,7 +22,7 @@
 
 use std::ptr::slice_from_raw_parts;
 
-use ancvm_types::DataType;
+use ancvm_types::{entry::TypeEntry, DataType};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -49,12 +49,6 @@ pub struct TypeItem {
 
     // the offset of the "results type list" in data area
     pub results_offset: u32,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct TypeEntry {
-    pub params: Vec<DataType>,
-    pub results: Vec<DataType>,
 }
 
 impl<'a> SectionEntry<'a> for TypeSection<'a> {
@@ -154,8 +148,10 @@ impl<'a> TypeSection<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ancvm_types::entry::TypeEntry;
+
     use crate::module_image::{
-        type_section::{DataType, TypeEntry, TypeItem, TypeSection},
+        type_section::{DataType, TypeItem, TypeSection},
         SectionEntry,
     };
 

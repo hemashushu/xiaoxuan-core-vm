@@ -42,7 +42,7 @@
 // when storing "struct" data, the data type "byte" should be used, as well as
 // the alignment should be speicified.
 
-use ancvm_types::MemoryDataType;
+use ancvm_types::{MemoryDataType, entry::{InitedDataEntry, UninitDataEntry}};
 
 use crate::utils::{
     load_section_with_one_table, load_section_with_table_and_data_area,
@@ -86,127 +86,6 @@ pub struct DataItem {
     //
     // the value of this field should not be '0'
     pub data_align: u16,
-}
-
-#[derive(Debug)]
-pub struct InitedDataEntry {
-    pub memory_data_type: MemoryDataType,
-    pub data: Vec<u8>,
-    pub length: u32,
-    pub align: u16, // should not be '0'
-}
-
-#[derive(Debug)]
-pub struct UninitDataEntry {
-    pub memory_data_type: MemoryDataType,
-    pub length: u32,
-    pub align: u16, // should not be '0'
-}
-
-impl InitedDataEntry {
-    /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
-    /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
-    /// the same applies to the i8, i16 and i64.
-    pub fn from_i32(value: u32) -> Self {
-        let mut data: Vec<u8> = Vec::with_capacity(8);
-        data.extend(value.to_le_bytes().iter());
-
-        Self {
-            memory_data_type: MemoryDataType::I32,
-            data,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_i64(value: u64) -> Self {
-        let mut data: Vec<u8> = Vec::with_capacity(8);
-        data.extend(value.to_le_bytes().iter());
-
-        Self {
-            memory_data_type: MemoryDataType::I64,
-            data,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_f32(value: f32) -> Self {
-        let mut data: Vec<u8> = Vec::with_capacity(8);
-        data.extend(value.to_le_bytes().iter());
-
-        Self {
-            memory_data_type: MemoryDataType::F32,
-            data,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_f64(value: f64) -> Self {
-        let mut data: Vec<u8> = Vec::with_capacity(8);
-        data.extend(value.to_le_bytes().iter());
-
-        Self {
-            memory_data_type: MemoryDataType::F64,
-            data,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_bytes(data: Vec<u8>, align: u16) -> Self {
-        let length = data.len() as u32;
-
-        Self {
-            memory_data_type: MemoryDataType::BYTES,
-            data,
-            length,
-            align,
-        }
-    }
-}
-
-impl UninitDataEntry {
-    pub fn from_i32() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::I32,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_i64() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::I64,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_f32() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::F32,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_f64() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::F64,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_bytes(length: u32, align: u16) -> Self {
-        Self {
-            memory_data_type: MemoryDataType::BYTES,
-            length,
-            align,
-        }
-    }
 }
 
 impl DataItem {

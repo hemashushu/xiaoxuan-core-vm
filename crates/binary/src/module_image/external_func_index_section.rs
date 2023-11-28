@@ -25,6 +25,8 @@
 //         | ...                                                                                |
 //         |------------------------------------------------------------------------------------|
 
+use ancvm_types::entry::ExternalFuncIndexModuleEntry;
+
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{ModuleSectionId, RangeItem, SectionEntry};
@@ -60,38 +62,6 @@ impl ExternalFuncIndexItem {
             unified_external_func_index,
             type_index,
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct ExternalFuncIndexEntry {
-    pub external_func_index: usize,
-    pub unified_external_func_index: usize,
-    pub type_index: usize,
-}
-
-impl ExternalFuncIndexEntry {
-    pub fn new(
-        external_func_index: usize,
-        unified_external_func_index: usize,
-        type_index: usize,
-    ) -> Self {
-        Self {
-            external_func_index,
-            unified_external_func_index,
-            type_index,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ExternalFuncIndexModuleEntry {
-    pub index_entries: Vec<ExternalFuncIndexEntry>,
-}
-
-impl ExternalFuncIndexModuleEntry {
-    pub fn new(index_entries: Vec<ExternalFuncIndexEntry>) -> Self {
-        Self { index_entries }
     }
 }
 

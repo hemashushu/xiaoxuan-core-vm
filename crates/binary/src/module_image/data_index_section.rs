@@ -20,7 +20,7 @@
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_types::DataSectionType;
+use ancvm_types::{entry::DataIndexModuleEntry, DataSectionType};
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -80,41 +80,6 @@ impl DataIndexItem {
             target_data_section_type,
             _padding0: [0, 0, 0],
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct DataIndexEntry {
-    pub data_public_index: usize,
-    pub target_module_index: usize,
-    pub data_internal_index: usize,
-    pub target_data_section_type: DataSectionType,
-}
-
-impl DataIndexEntry {
-    pub fn new(
-        data_public_index: usize,
-        target_module_index: usize,
-        data_internal_index: usize,
-        target_data_section_type: DataSectionType,
-    ) -> Self {
-        Self {
-            data_public_index,
-            target_module_index,
-            data_internal_index,
-            target_data_section_type,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct DataIndexModuleEntry {
-    pub index_entries: Vec<DataIndexEntry>,
-}
-
-impl DataIndexModuleEntry {
-    pub fn new(index_entries: Vec<DataIndexEntry>) -> Self {
-        Self { index_entries }
     }
 }
 
@@ -197,14 +162,14 @@ impl<'a> DataIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::DataSectionType;
+    use ancvm_types::{entry::DataIndexEntry, DataSectionType};
 
     use crate::module_image::{
         data_index_section::{DataIndexItem, DataIndexSection, RangeItem},
         SectionEntry,
     };
 
-    use super::{DataIndexEntry, DataIndexModuleEntry};
+    use super::DataIndexModuleEntry;
 
     #[test]
     fn test_load_section() {

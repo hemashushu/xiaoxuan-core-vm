@@ -18,6 +18,8 @@
 //              | ...                                                                                       |
 //              |-------------------------------------------------------------------------------------------|
 
+use ancvm_types::entry::FuncEntry;
+
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
@@ -35,13 +37,6 @@ pub struct FuncItem {
     pub code_length: u32,      // the length (in bytes) of the code in data area
     pub type_index: u32,       // the index of the type (of function)
     pub local_list_index: u32, // the index of the 'local variable list'
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FuncEntry {
-    pub type_index: usize,
-    pub local_list_index: usize,
-    pub code: Vec<u8>,
 }
 
 impl<'a> SectionEntry<'a> for FuncSection<'a> {

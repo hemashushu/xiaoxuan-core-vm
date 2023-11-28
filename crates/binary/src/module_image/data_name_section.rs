@@ -18,6 +18,8 @@
 //              | ...                                                                                                |
 //              |----------------------------------------------------------------------------------------------------|
 
+use ancvm_types::entry::DataNameEntry;
+
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
@@ -46,23 +48,6 @@ impl DataNameItem {
             data_pub_index,
             exported,
             _padding0: [0, 0, 0],
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DataNameEntry {
-    pub name: String,
-    pub data_pub_index: usize,
-    pub exported: bool,
-}
-
-impl DataNameEntry {
-    pub fn new(name: String, data_pub_index: usize, exported: bool) -> Self {
-        Self {
-            name,
-            data_pub_index,
-            exported,
         }
     }
 }

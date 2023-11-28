@@ -579,13 +579,12 @@ fn do_local_store8(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, module_image::local_variable_section::LocalVariableEntry,
-        utils::helper_build_module_binary_with_single_function,
+        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{entry::LocalVariableEntry, opcode::Opcode, DataType, ForeignValue};
 
     #[test]
     fn test_interpreter_local_load_and_store() {

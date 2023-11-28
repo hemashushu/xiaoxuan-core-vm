@@ -20,6 +20,8 @@
 //         | ...                                                                          |
 //         |------------------------------------------------------------------------------|
 
+use ancvm_types::entry::FuncIndexModuleEntry;
+
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{ModuleSectionId, RangeItem, SectionEntry};
@@ -62,38 +64,6 @@ impl FuncIndexItem {
             target_module_index,
             function_internal_index,
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct FuncIndexEntry {
-    pub func_public_index: usize,
-    pub target_module_index: usize,
-    pub function_internal_index: usize,
-}
-
-impl FuncIndexEntry {
-    pub fn new(
-        func_public_index: usize,
-        target_module_index: usize,
-        function_internal_index: usize,
-    ) -> Self {
-        Self {
-            func_public_index,
-            target_module_index,
-            function_internal_index,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct FuncIndexModuleEntry {
-    pub index_entries: Vec<FuncIndexEntry>,
-}
-
-impl FuncIndexModuleEntry {
-    pub fn new(index_entries: Vec<FuncIndexEntry>) -> Self {
-        Self { index_entries }
     }
 }
 
@@ -175,12 +145,14 @@ impl<'a> FuncIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ancvm_types::entry::FuncIndexEntry;
+
     use crate::module_image::{
         func_index_section::{FuncIndexItem, FuncIndexSection},
         RangeItem, SectionEntry,
     };
 
-    use super::{FuncIndexEntry, FuncIndexModuleEntry};
+    use super::FuncIndexModuleEntry;
 
     #[test]
     fn test_load_section() {

@@ -44,13 +44,13 @@ pub fn runtime_version(thread_context: &mut ThreadContext) {
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, module_image::local_variable_section::LocalVariableEntry,
-        utils::helper_build_module_binary_with_single_function,
+        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_program::program_source::ProgramSource;
     use ancvm_types::{
-        envcallcode::EnvCallCode, opcode::Opcode, DataType, ForeignValue, RUNTIME_CODE_NAME,
-        RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
+        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, DataType,
+        ForeignValue, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
+        RUNTIME_PATCH_VERSION,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};

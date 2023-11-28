@@ -18,7 +18,7 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_types::ExternalLibraryType;
+use ancvm_types::{entry::ExternalLibraryEntry, ExternalLibraryType};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -50,21 +50,6 @@ impl ExternalLibraryItem {
             name_length,
             external_library_type,
             _padding0: [0; 3],
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ExternalLibraryEntry {
-    pub name: String,
-    pub external_library_type: ExternalLibraryType,
-}
-
-impl ExternalLibraryEntry {
-    pub fn new(name: String, external_library_type: ExternalLibraryType) -> Self {
-        Self {
-            name,
-            external_library_type,
         }
     }
 }

@@ -18,6 +18,8 @@
 //              | ...                                                                            |
 //              |--------------------------------------------------------------------------------|
 
+use ancvm_types::entry::UnifiedExternalFuncEntry;
+
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
@@ -41,21 +43,6 @@ impl UnifiedExternalFuncItem {
         Self {
             name_offset,
             name_length,
-            unified_external_library_index,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct UnifiedExternalFuncEntry {
-    pub name: String,
-    pub unified_external_library_index: usize,
-}
-
-impl UnifiedExternalFuncEntry {
-    pub fn new(name: String, unified_external_library_index: usize) -> Self {
-        Self {
-            name,
             unified_external_library_index,
         }
     }

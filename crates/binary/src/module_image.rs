@@ -520,17 +520,19 @@ impl<'a> ModuleImage<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{DataType, MemoryDataType};
+    use ancvm_types::{
+        entry::{
+            FuncEntry, FuncIndexEntry, FuncIndexModuleEntry, LocalListEntry, LocalVariableEntry,
+            TypeEntry,
+        },
+        DataType, MemoryDataType,
+    };
 
     use crate::module_image::{
-        func_index_section::{
-            FuncIndexEntry, FuncIndexItem, FuncIndexModuleEntry, FuncIndexSection,
-        },
-        func_section::{FuncEntry, FuncSection},
-        local_variable_section::{
-            LocalListEntry, LocalVariableEntry, LocalVariableItem, LocalVariableSection,
-        },
-        type_section::{TypeEntry, TypeSection},
+        func_index_section::{FuncIndexItem, FuncIndexSection},
+        func_section::FuncSection,
+        local_variable_section::{LocalVariableItem, LocalVariableSection},
+        type_section::TypeSection,
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
     };
 

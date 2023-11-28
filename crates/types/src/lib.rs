@@ -62,6 +62,7 @@ pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan
 pub mod envcallcode;
 pub mod opcode;
 pub mod utils;
+pub mod entry;
 
 /// the raw data type of operands
 pub type Operand = [u8; 8];
@@ -243,27 +244,4 @@ pub trait VMError: Debug + Display {
     fn as_any(&self) -> &dyn Any;
 }
 
-// #[derive(Debug)]
-// pub struct CompileError {
-//     pub message: String,
-// }
-//
-// impl CompileError {
-//     pub fn new(message: &str) -> Self {
-//         Self {
-//             message: message.to_owned(),
-//         }
-//     }
-// }
-//
-// impl Display for CompileError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Compile error: {}", self.message)
-//     }
-// }
-//
-// impl VMError for CompileError {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-// }
+

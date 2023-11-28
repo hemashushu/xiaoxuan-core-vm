@@ -119,7 +119,6 @@ mod tests {
 
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
-        module_image::{data_section::InitedDataEntry, type_section::TypeEntry},
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
@@ -127,7 +126,11 @@ mod tests {
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
     use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
-    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
+    use ancvm_types::{
+        entry::{InitedDataEntry, TypeEntry},
+        opcode::Opcode,
+        DataType, ExternalLibraryType, ForeignValue,
+    };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
 

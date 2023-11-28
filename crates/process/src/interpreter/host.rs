@@ -278,11 +278,6 @@ mod tests {
     use ancvm_binary::{
         bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
-        module_image::{
-            data_section::{InitedDataEntry, UninitDataEntry},
-            local_variable_section::LocalVariableEntry,
-            type_section::TypeEntry,
-        },
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
@@ -296,7 +291,11 @@ mod tests {
         InterpreterError, InterpreterErrorType,
     };
     use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
-    use ancvm_types::{opcode::Opcode, DataType, ExternalLibraryType, ForeignValue};
+    use ancvm_types::{
+        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
+        opcode::Opcode,
+        DataType, ExternalLibraryType, ForeignValue,
+    };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
         #[cfg(target_pointer_width = "64")]

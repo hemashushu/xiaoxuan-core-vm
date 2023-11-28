@@ -18,6 +18,8 @@
 //              | ...                                                                                             |
 //              |-------------------------------------------------------------------------------------------------|
 
+use ancvm_types::entry::ExternalFuncEntry;
+
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
@@ -47,23 +49,6 @@ impl ExternalFuncItem {
         Self {
             name_offset,
             name_length,
-            external_library_index,
-            type_index,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ExternalFuncEntry {
-    pub name: String,
-    pub external_library_index: usize,
-    pub type_index: usize,
-}
-
-impl ExternalFuncEntry {
-    pub fn new(name: String, external_library_index: usize, type_index: usize) -> Self {
-        Self {
-            name,
             external_library_index,
             type_index,
         }

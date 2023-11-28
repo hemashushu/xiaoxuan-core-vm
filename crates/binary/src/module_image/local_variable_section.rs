@@ -40,7 +40,10 @@
 
 use std::mem::size_of;
 
-use ancvm_types::{DataType, MemoryDataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_types::{
+    entry::{LocalListEntry, LocalVariableEntry},
+    MemoryDataType, OPERAND_SIZE_IN_BYTES,
+};
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
@@ -99,79 +102,6 @@ pub struct LocalVariableItem {
     // if the data is a struct, the value should be the max one of the length of its fields.
     // currently the MAX value of align is 8, MIN value is 1.
     pub var_align: u16,
-}
-
-// both function and block can contains a 'local variables list'
-#[derive(Debug, PartialEq, Clone)]
-pub struct LocalListEntry {
-    pub variable_entries: Vec<LocalVariableEntry>,
-}
-
-impl LocalListEntry {
-    pub fn new(variable_entries: Vec<LocalVariableEntry>) -> Self {
-        Self { variable_entries }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct LocalVariableEntry {
-    pub memory_data_type: MemoryDataType,
-
-    // actual length of the variable/data
-    pub length: u32,
-
-    pub align: u16,
-}
-
-impl LocalVariableEntry {
-    pub fn from_i32() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::I32,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_i64() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::I64,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_f32() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::F32,
-            length: 4,
-            align: 4,
-        }
-    }
-
-    pub fn from_f64() -> Self {
-        Self {
-            memory_data_type: MemoryDataType::F64,
-            length: 8,
-            align: 8,
-        }
-    }
-
-    pub fn from_bytes(length: u32, align: u16) -> Self {
-        Self {
-            memory_data_type: MemoryDataType::BYTES,
-            length,
-            align,
-        }
-    }
-
-    pub fn from_datatype(datatype: DataType) -> Self {
-        match datatype {
-            DataType::I32 => Self::from_i32(),
-            DataType::I64 => Self::from_i64(),
-            DataType::F32 => Self::from_f32(),
-            DataType::F64 => Self::from_f64(),
-        }
-    }
 }
 
 impl LocalVariableItem {

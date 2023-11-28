@@ -220,7 +220,6 @@ mod tests {
     use ancvm_binary::{
         bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
-        module_image::local_variable_section::LocalVariableEntry,
         utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockEntry},
     };
 
@@ -229,7 +228,7 @@ mod tests {
         InterpreterError, InterpreterErrorType,
     };
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{entry::LocalVariableEntry, opcode::Opcode, DataType, ForeignValue};
 
     #[test]
     fn test_interpreter_control_flow_block() {

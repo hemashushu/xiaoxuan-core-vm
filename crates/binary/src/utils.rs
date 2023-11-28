@@ -4,6 +4,11 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use ancvm_types::entry::{
+    ExternalFuncEntry, ExternalLibraryEntry, FuncEntry, InitedDataEntry, LocalListEntry,
+    LocalVariableEntry, TypeEntry, UnifiedExternalFuncEntry, UnifiedExternalLibraryEntry,
+    UninitDataEntry,
+};
 use ancvm_types::{DataSectionType, DataType, ExternalLibraryType};
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
@@ -11,25 +16,18 @@ use std::{mem::size_of, ptr::slice_from_raw_parts};
 use crate::module_image::external_func_index_section::{
     ExternalFuncIndexItem, ExternalFuncIndexSection,
 };
-use crate::module_image::external_func_section::{ExternalFuncEntry, ExternalFuncSection};
-use crate::module_image::external_library_section::{ExternalLibraryEntry, ExternalLibrarySection};
-use crate::module_image::local_variable_section::LocalListEntry;
-use crate::module_image::unified_external_func_section::{
-    UnifiedExternalFuncEntry, UnifiedExternalFuncSection,
-};
-use crate::module_image::unified_external_library_section::{
-    UnifiedExternalLibraryEntry, UnifiedExternalLibrarySection,
-};
+use crate::module_image::external_func_section::ExternalFuncSection;
+use crate::module_image::external_library_section::ExternalLibrarySection;
+
+use crate::module_image::unified_external_func_section::UnifiedExternalFuncSection;
+use crate::module_image::unified_external_library_section::UnifiedExternalLibrarySection;
 use crate::module_image::{
     data_index_section::{DataIndexItem, DataIndexSection},
-    data_section::{
-        InitedDataEntry, ReadOnlyDataSection, ReadWriteDataSection, UninitDataEntry,
-        UninitDataSection,
-    },
+    data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
     func_index_section::{FuncIndexItem, FuncIndexSection},
-    func_section::{FuncEntry, FuncSection},
-    local_variable_section::{LocalVariableEntry, LocalVariableSection},
-    type_section::{TypeEntry, TypeSection},
+    func_section::FuncSection,
+    local_variable_section::LocalVariableSection,
+    type_section::TypeSection,
     ModuleImage, RangeItem, SectionEntry,
 };
 
@@ -792,18 +790,17 @@ pub fn helper_build_module_binary(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{DataSectionType, DataType, ExternalLibraryType, MemoryDataType};
+    use ancvm_types::{
+        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
+        DataSectionType, DataType, ExternalLibraryType, MemoryDataType,
+    };
 
     use crate::{
         load_modules_from_binaries,
         module_image::{
-            data_index_section::DataIndexItem,
-            data_section::{DataItem, InitedDataEntry, UninitDataEntry},
-            external_func_index_section::ExternalFuncIndexItem,
-            func_index_section::FuncIndexItem,
-            local_variable_section::{LocalVariableEntry, LocalVariableItem},
-            type_section::TypeEntry,
-            RangeItem,
+            data_index_section::DataIndexItem, data_section::DataItem,
+            external_func_index_section::ExternalFuncIndexItem, func_index_section::FuncIndexItem,
+            local_variable_section::LocalVariableItem, RangeItem,
         },
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,

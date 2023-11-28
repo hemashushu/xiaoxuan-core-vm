@@ -490,13 +490,16 @@ mod tests {
 
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
-        module_image::data_section::{InitedDataEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
 
     use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
     use ancvm_program::program_source::ProgramSource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_types::{
+        entry::{InitedDataEntry, UninitDataEntry},
+        opcode::Opcode,
+        DataType, ForeignValue,
+    };
 
     #[test]
     fn test_interpreter_data_load_and_store_initialized() {

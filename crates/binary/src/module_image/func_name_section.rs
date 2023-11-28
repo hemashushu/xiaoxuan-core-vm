@@ -18,6 +18,8 @@
 //              | ...                                                                                                |
 //              |----------------------------------------------------------------------------------------------------|
 
+use ancvm_types::entry::FuncNameEntry;
+
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
@@ -46,23 +48,6 @@ impl FuncNameItem {
             func_pub_index,
             exported,
             _padding0: [0, 0, 0],
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FuncNameEntry {
-    pub name: String,
-    pub func_pub_index: usize,
-    pub exported: bool,
-}
-
-impl FuncNameEntry {
-    pub fn new(name: String, func_pub_index: usize, exported: bool) -> Self {
-        Self {
-            name,
-            func_pub_index,
-            exported,
         }
     }
 }
