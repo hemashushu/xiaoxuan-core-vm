@@ -43,16 +43,27 @@ pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter
 // - shared module minor == any
 // - shared module patch == any
 //
-// for dependencies:
+// dependencies
+// ------------
 //
-// a program may depend on one or more shared modules, when the program references a
-// shared module, it is also necessary to declare the major and minor version.
-// unlike many other language, 'XiaoXuan Core' requires the version of the dependencies
+// a program (or shared module) may depend on one or more shared modules,
+// when a program references a shared module, it is necessary to declare the major and minor version.
+// unlike many other language, 'XiaoXuan Core' program requires the version of the dependencies
 // (shared modules) must be strictly consistent with the declaration, that is to say:
 //
 // - dependency declare major == shared module major
 // - dependency declare minor == shared module minor
 // - dependency declare patch, shared module patch == any
+//
+// version conflicts
+// -----------------
+//
+// if a shared module is duplicate in the dependency tree with different version, the version
+// of the program require is selected, or the max minor version is selected.
+//
+// for the author of a shared module, it is important to note that the
+// public interface (i.e., functions and data) of a module MUST BE KEPT UNCHANGED
+// throughout the major version.
 
 // the max version number the current runtime supported
 pub const IMAGE_MAJOR_VERSION: u16 = 1;

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use crate::{DataSectionType, DataType, ExternalLibraryType, MemoryDataType};
+use crate::{DataSectionType, DataType, ExternalLibraryType, MemoryDataType, ModuleShareType};
 
 pub struct ModuleEntry {
     pub name: String,
@@ -271,6 +271,71 @@ impl ExternalFuncEntry {
             name,
             external_library_index,
             type_index,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ImportModuleEntry {
+    pub name: String,
+    pub module_share_type: ModuleShareType,
+    pub version_major: u16,
+    pub version_minor: u16,
+}
+
+impl ImportModuleEntry {
+    pub fn new(
+        name: String,
+        module_share_type: ModuleShareType,
+        version_major: u16,
+        version_minor: u16,
+    ) -> Self {
+        Self {
+            name,
+            module_share_type,
+            version_major,
+            version_minor,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ImportFuncEntry {
+    pub name: String,
+    pub import_module_index: usize,
+    pub type_index: usize, // used for validation when linking
+}
+
+impl ImportFuncEntry {
+    pub fn new(name: String, import_module_index: usize, type_index: usize) -> Self {
+        Self {
+            name,
+            import_module_index,
+            type_index,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ImportDataEntry {
+    pub name: String,
+    pub import_module_index: usize,
+    pub data_section_type: DataSectionType, // for validation when linking
+    pub memory_data_type: MemoryDataType,   // for validation when linking
+}
+
+impl ImportDataEntry {
+    pub fn new(
+        name: String,
+        import_module_index: usize,
+        data_section_type: DataSectionType,
+        memory_data_type: MemoryDataType,
+    ) -> Self {
+        Self {
+            name,
+            import_module_index,
+            data_section_type,
+            memory_data_type,
         }
     }
 }

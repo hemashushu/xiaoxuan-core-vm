@@ -1434,8 +1434,10 @@ pub enum Opcode {
                                 // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64) -> ()
 
     //
-    // SIMD
+    // SIMD/Vectorization
     //
+
+    // TODO
 
     // ref:
     // - https://github.com/rust-lang/portable-simd

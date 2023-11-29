@@ -21,6 +21,7 @@
 //   - which executes before application start (constructor function, one per module)
 //   - which executes before application exit (destructor function, one per module)
 //   - the entry function (main function)
+// - import module section
 // - import function section
 // - function name section
 // - import data section
@@ -95,6 +96,9 @@ pub mod external_library_section;
 pub mod func_index_section;
 pub mod func_name_section;
 pub mod func_section;
+pub mod import_data_section;
+pub mod import_func_section;
+pub mod import_module_section;
 pub mod local_variable_section;
 pub mod type_section;
 pub mod unified_external_func_section;
@@ -121,6 +125,9 @@ use self::{
     external_func_section::ExternalFuncSection,
     external_library_section::ExternalLibrarySection,
     func_name_section::FuncNameSection,
+    import_data_section::ImportDataSection,
+    import_func_section::ImportFuncSection,
+    import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
     unified_external_func_section::UnifiedExternalFuncSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
@@ -130,16 +137,18 @@ use self::{
 //
 //                 header
 //              |---------------------------------------------------|
-//              | magic number (u64)                                | 8 bytes
+//              | magic number (u64)                                | 8 bytes, off=0
 //              |---------------------------------------------------|
-//              | image minor ver (u16)   | image major ver (u16)   | 4 bytes
-//              | runtime minor ver (u16) | runtime major ver (u16) | 4 bytes
-//              | name length (u16)       | padding 2 bytes         | 4 bytes
+//              | image minor ver (u16)   | image major ver (u16)   | 4 bytes, off=8
+//              | runtime minor ver (u16) | runtime major ver (u16) | 4 bytes, off=12
+//              | constructor func public index (u32)               | 4 bytes, off=16
+//              | destructor func public index (u32)                | 4 bytes, off=20
+//              | name length (u16)       | padding 2 bytes         | 4 bytes, off=24
 //              |---------------------------------------------------|
-//              | module name (UTF-8) 256 bytes                     | 256 bytes
+//              | module name (UTF-8) 256 bytes                     | 256 bytes, off=28
 //              |---------------------------------------------------|
 //
-//                 header length = 276 bytes
+//                 header length = 284ar bytes
 //
 //                 body
 //              |------------------------------------------------------|
@@ -157,6 +166,8 @@ use self::{
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
     pub name: &'a str,
+    pub constructor_func_public_index: u32, // u32::max = none
+    pub destructor_func_public_index: u32,  // u32::max = none
     pub items: &'a [ModuleSection],
     pub sections_data: &'a [u8],
 }
@@ -187,15 +198,15 @@ pub enum ModuleSectionId {
     ReadOnlyData = 0x20, // 0x20
     ReadWriteData,       // 0x21
     UninitData,          // 0x22
-    AutoFunc,            // 0x23
 
     // optional, for debuging and linking
-    ImportFunc = 0x30, // 0x30
-    FuncName,          // 0x31
-    ImportData,        // 0x32
-    DataName,          // 0x33
-    ExternalLibrary,   // 0x34
-    ExternalFunc,      // 0x35
+    ImportModule = 0x30, // 0x30
+    ImportFunc,          // 0x31
+    FuncName,            // 0x32
+    ImportData,          // 0x33
+    DataName,            // 0x34
+    ExternalLibrary,     // 0x35
+    ExternalFunc,        // 0x36
 
     // essential indices
     FuncIndex = 0x40, // 0x40
@@ -204,7 +215,7 @@ pub enum ModuleSectionId {
     DataIndex = 0x50,       // 0x50
     UnifiedExternalLibrary, // 0x51
     UnifiedExternalFunc,    // 0x52
-    ExternalFuncIndex,      // 0x53 (mapping ext-func to uni-ext-func)
+    ExternalFuncIndex,      // 0x53 (mapping 'external function' to 'unified external function')
 }
 
 // use for data index section and function index section
@@ -301,12 +312,16 @@ impl<'a> ModuleImage<'a> {
             ));
         }
 
-        let ptr_name_length = unsafe { ptr.offset(16) };
-        let name_length = unsafe { std::ptr::read(ptr_name_length as *const u16) };
-        let name_data = &image_data[20..(20 + (name_length as usize))];
-        let name = std::str::from_utf8(name_data).unwrap();
+        let constructor_func_public_index = unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
+        let destructor_func_public_index = unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
 
-        let image_body = &image_data[(20 + 256)..];
+        let name_length = unsafe { std::ptr::read(ptr.offset(24) as *const u16) };
+        let name_bytes = &image_data[28..(28 + (name_length as usize))];
+        let name = std::str::from_utf8(name_bytes).unwrap();
+
+        const NAME_DATA_LENGTH: usize = 256;
+
+        let image_body = &image_data[(28 + NAME_DATA_LENGTH)..];
 
         // since the structure of module image and a section are the same,
         // that is, the module image itself can be thought of
@@ -318,6 +333,8 @@ impl<'a> ModuleImage<'a> {
 
         Ok(Self {
             name,
+            constructor_func_public_index,
+            destructor_func_public_index,
             items,
             sections_data,
         })
@@ -330,6 +347,10 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
         writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
+        //
+        writer.write_all(&self.constructor_func_public_index.to_le_bytes())?;
+        writer.write_all(&self.destructor_func_public_index.to_le_bytes())?;
+        //
         writer.write_all(&(self.name.len() as u16).to_le_bytes())?;
         writer.write_all(&[0u8, 0])?; // padding, 2 bytes
 
@@ -457,17 +478,29 @@ impl<'a> ModuleImage<'a> {
             .map(UninitDataSection::load)
     }
 
-    // todo get_optional_auto_func_section
+    // optional section
+    pub fn get_optional_import_module_section(&'a self) -> Option<ImportModuleSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportModule)
+            .map(ImportModuleSection::load)
+    }
 
-    // todo get_optional_import_func_section
+    // optional section
+    pub fn get_optional_import_func_section(&'a self) -> Option<ImportFuncSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportFunc)
+            .map(ImportFuncSection::load)
+    }
+
+    // optional section
+    pub fn get_optional_import_data_section(&'a self) -> Option<ImportDataSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportData)
+            .map(ImportDataSection::load)
+    }
 
     // optional section
     pub fn get_optional_func_name_section(&'a self) -> Option<FuncNameSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::FuncName)
             .map(FuncNameSection::load)
     }
-
-    // todo get_optional_import_data_section
 
     // optional section
     pub fn get_optional_data_name_section(&'a self) -> Option<DataNameSection<'a>> {
@@ -623,6 +656,8 @@ mod tests {
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
             name: "main",
+            constructor_func_public_index: 11,
+            destructor_func_public_index: 13,
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -637,18 +672,22 @@ mod tests {
         assert_eq!(&image_data[12..14], &[0, 0]); // runtime minor version number, little endian
         assert_eq!(&image_data[14..16], &[1, 0]); // runtime major version number, little endian
 
-        // name
-        assert_eq!(&image_data[16..18], &[4, 0]); // name length
-        assert_eq!(&image_data[18..20], &[0, 0]); // padding
-        assert_eq!(&image_data[20..24], &b"main".to_vec()); // name
+        // constructor and destructor
+        assert_eq!(&image_data[16..20], &[11, 0, 0, 0]); // constructor
+        assert_eq!(&image_data[20..24], &[13, 0, 0, 0]); // destructor
 
-        // header length = 276 bytes
+        // name
+        assert_eq!(&image_data[24..26], &[4, 0]); // name length, 2 bytes
+        assert_eq!(&image_data[26..28], &[0, 0]); // padding, 2 bytes
+        assert_eq!(&image_data[28..32], &b"main".to_vec()); // name
+
+        // header length = 284 bytes
 
         // section count
-        assert_eq!(&image_data[276..280], &[4, 0, 0, 0]); // item count
-        assert_eq!(&image_data[280..284], &[0, 0, 0, 0]); // padding
+        assert_eq!(&image_data[284..288], &[4, 0, 0, 0]); // item count
+        assert_eq!(&image_data[288..292], &[0, 0, 0, 0]); // padding
 
-        let remains = &image_data[284..];
+        let remains = &image_data[292..];
 
         // section table length = 12 (the record length) * 4
         let (section_table_data, remains) = remains.split_at(48);

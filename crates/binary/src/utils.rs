@@ -777,6 +777,8 @@ pub fn helper_build_module_binary(
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
     let module_image = ModuleImage {
         name,
+        constructor_func_public_index: u32::MAX,
+        destructor_func_public_index: u32::MAX,
         items: &section_items,
         sections_data: &sections_data,
     };
