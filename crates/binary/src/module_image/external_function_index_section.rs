@@ -25,52 +25,52 @@
 //         | ...                                                                                |
 //         |------------------------------------------------------------------------------------|
 
-use ancvm_types::entry::ExternalFuncIndexModuleEntry;
+use ancvm_types::entry::ExternalFunctionIndexModuleEntry;
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{ModuleSectionId, RangeItem, SectionEntry};
 
 #[derive(Debug, PartialEq, Default)]
-pub struct ExternalFuncIndexSection<'a> {
+pub struct ExternalFunctionIndexSection<'a> {
     pub ranges: &'a [RangeItem],
-    pub items: &'a [ExternalFuncIndexItem],
+    pub items: &'a [ExternalFunctionIndexItem],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct ExternalFuncIndexItem {
+pub struct ExternalFunctionIndexItem {
     // this field is REDUNDANT because its value always starts
     // from 0 to the total number of items (within a certain range)/(within a module).
-    pub external_func_index: u32,
+    pub external_function_index: u32,
 
-    pub unified_external_func_index: u32,
+    pub unified_external_function_index: u32,
 
     // copy the type_index from ExternalFuncSection of the specific module,
     // so that the ExternalFuncSection can be omitted at runtime.
     pub type_index: u32,
 }
 
-impl ExternalFuncIndexItem {
+impl ExternalFunctionIndexItem {
     pub fn new(
-        external_func_index: u32,
-        unified_external_func_index: u32,
+        external_function_index: u32,
+        unified_external_function_index: u32,
         type_index: u32,
     ) -> Self {
         Self {
-            external_func_index,
-            unified_external_func_index,
+            external_function_index,
+            unified_external_function_index,
             type_index,
         }
     }
 }
 
-impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
+impl<'a> SectionEntry<'a> for ExternalFunctionIndexSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (ranges, items) =
-            load_section_with_two_tables::<RangeItem, ExternalFuncIndexItem>(section_data);
+            load_section_with_two_tables::<RangeItem, ExternalFunctionIndexItem>(section_data);
 
-        ExternalFuncIndexSection { ranges, items }
+        ExternalFunctionIndexSection { ranges, items }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -78,12 +78,12 @@ impl<'a> SectionEntry<'a> for ExternalFuncIndexSection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::ExternalFuncIndex
+        ModuleSectionId::ExternalFunctionIndex
     }
 }
 
-impl<'a> ExternalFuncIndexSection<'a> {
-    pub fn get_item_unified_external_func_index_and_type_index(
+impl<'a> ExternalFunctionIndexSection<'a> {
+    pub fn get_item_unified_external_function_index_and_type_index(
         &self,
         module_index: usize,
         external_function_index: usize,
@@ -104,16 +104,16 @@ impl<'a> ExternalFuncIndexSection<'a> {
         let item_index = range.offset as usize + external_function_index;
         let item = &self.items[item_index];
         (
-            item.unified_external_func_index as usize,
+            item.unified_external_function_index as usize,
             item.type_index as usize,
         )
     }
 
     pub fn convert_from_entries(
-        sorted_external_func_index_module_entries: &[ExternalFuncIndexModuleEntry],
-    ) -> (Vec<RangeItem>, Vec<ExternalFuncIndexItem>) {
+        sorted_external_function_index_module_entries: &[ExternalFunctionIndexModuleEntry],
+    ) -> (Vec<RangeItem>, Vec<ExternalFunctionIndexItem>) {
         let mut range_start_offset: u32 = 0;
-        let range_items = sorted_external_func_index_module_entries
+        let range_items = sorted_external_function_index_module_entries
             .iter()
             .map(|index_module_entry| {
                 let count = index_module_entry.index_entries.len() as u32;
@@ -123,27 +123,27 @@ impl<'a> ExternalFuncIndexSection<'a> {
             })
             .collect::<Vec<_>>();
 
-        let external_func_index_items = sorted_external_func_index_module_entries
+        let external_function_index_items = sorted_external_function_index_module_entries
             .iter()
             .flat_map(|index_module_entry| {
                 index_module_entry.index_entries.iter().map(|entry| {
-                    ExternalFuncIndexItem::new(
-                        entry.external_func_index as u32,
-                        entry.unified_external_func_index as u32,
+                    ExternalFunctionIndexItem::new(
+                        entry.external_function_index as u32,
+                        entry.unified_external_function_index as u32,
                         entry.type_index as u32,
                     )
                 })
             })
             .collect::<Vec<_>>();
 
-        (range_items, external_func_index_items)
+        (range_items, external_function_index_items)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        external_func_index_section::{ExternalFuncIndexItem, ExternalFuncIndexSection},
+        external_function_index_section::{ExternalFunctionIndexItem, ExternalFunctionIndexSection},
         RangeItem, SectionEntry,
     };
 
@@ -171,7 +171,7 @@ mod tests {
             23, 0, 0, 0, // type index 2
         ];
 
-        let section = ExternalFuncIndexSection::load(&section_data);
+        let section = ExternalFunctionIndexSection::load(&section_data);
 
         let ranges = section.ranges;
 
@@ -182,23 +182,23 @@ mod tests {
         let items = section.items;
 
         assert_eq!(items.len(), 3);
-        assert_eq!(items[0], ExternalFuncIndexItem::new(2, 3, 5));
-        assert_eq!(items[1], ExternalFuncIndexItem::new(7, 11, 13));
-        assert_eq!(items[2], ExternalFuncIndexItem::new(17, 19, 23));
+        assert_eq!(items[0], ExternalFunctionIndexItem::new(2, 3, 5));
+        assert_eq!(items[1], ExternalFunctionIndexItem::new(7, 11, 13));
+        assert_eq!(items[2], ExternalFunctionIndexItem::new(17, 19, 23));
 
         // test get index item
         assert_eq!(
-            section.get_item_unified_external_func_index_and_type_index(0, 0),
+            section.get_item_unified_external_function_index_and_type_index(0, 0),
             (3, 5)
         );
 
         assert_eq!(
-            section.get_item_unified_external_func_index_and_type_index(0, 1),
+            section.get_item_unified_external_function_index_and_type_index(0, 1),
             (11, 13)
         );
 
         assert_eq!(
-            section.get_item_unified_external_func_index_and_type_index(1, 0),
+            section.get_item_unified_external_function_index_and_type_index(1, 0),
             (19, 23)
         );
     }
@@ -208,12 +208,12 @@ mod tests {
         let ranges = vec![RangeItem::new(0, 2), RangeItem::new(2, 1)];
 
         let items = vec![
-            ExternalFuncIndexItem::new(2, 3, 5),
-            ExternalFuncIndexItem::new(7, 11, 13),
-            ExternalFuncIndexItem::new(17, 19, 23),
+            ExternalFunctionIndexItem::new(2, 3, 5),
+            ExternalFunctionIndexItem::new(7, 11, 13),
+            ExternalFunctionIndexItem::new(17, 19, 23),
         ];
 
-        let section = ExternalFuncIndexSection {
+        let section = ExternalFunctionIndexSection {
             ranges: &ranges,
             items: &items,
         };

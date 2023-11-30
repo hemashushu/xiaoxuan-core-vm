@@ -99,7 +99,7 @@ pub enum EnvCallCode {
                                 // in the current module.
                                 //
                                 // ```
-                                // fn (func_public_index:u32,
+                                // fn (function_public_index:u32,
                                 //    thread_start_data_address_in_heap:u32,
                                 //    thread_start_data_length:u32) -> child_thread_id:u32
                                 // ```

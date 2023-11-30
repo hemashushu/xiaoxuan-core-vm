@@ -6,57 +6,57 @@
 
 // "func name section" binary layout
 //
-//              |----------------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                               |
-//              |----------------------------------------------------------------------------------------------------|
-//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | func_pub_index 0 (u32) | exported 0 (u8) | pad 3 bytes | <-- table
-//  item 1 -->  | name offset 1       | name length 1       | func_pub_index 1       | exported 1      | pad 3 bytes |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
-// offset 0 --> | name string 0 (UTF-8)                                                                              | <-- data area
-// offset 1 --> | name string 1                                                                                      |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
+//              |--------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                             |
+//              |--------------------------------------------------------------------------------------------------|
+//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | fn_pub_index 0 (u32) | exported 0 (u8) | pad 3 bytes | <-- table
+//  item 1 -->  | name offset 1       | name length 1       | fn_pub_index 1       | exported 1      | pad 3 bytes |
+//              | ...                                                                                              |
+//              |--------------------------------------------------------------------------------------------------|
+// offset 0 --> | name string 0 (UTF-8)                                                                            | <-- data area
+// offset 1 --> | name string 1                                                                                    |
+//              | ...                                                                                              |
+//              |--------------------------------------------------------------------------------------------------|
 
-use ancvm_types::entry::FuncNameEntry;
+use ancvm_types::entry::FunctionNameEntry;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
-pub struct FuncNameSection<'a> {
-    pub items: &'a [FuncNameItem],
+pub struct FunctionNameSection<'a> {
+    pub items: &'a [FunctionNameItem],
     pub names_data: &'a [u8],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct FuncNameItem {
+pub struct FunctionNameItem {
     pub name_offset: u32,
     pub name_length: u32,
-    pub func_pub_index: u32,
+    pub function_public_index: u32,
     pub exported: u8, // 0=false, 1=true
     _padding0: [u8; 3],
 }
 
-impl FuncNameItem {
-    pub fn new(name_offset: u32, name_length: u32, func_pub_index: u32, exported: u8) -> Self {
+impl FunctionNameItem {
+    pub fn new(name_offset: u32, name_length: u32, function_public_index: u32, exported: u8) -> Self {
         Self {
             name_offset,
             name_length,
-            func_pub_index,
+            function_public_index,
             exported,
             _padding0: [0, 0, 0],
         }
     }
 }
 
-impl<'a> SectionEntry<'a> for FuncNameSection<'a> {
+impl<'a> SectionEntry<'a> for FunctionNameSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (items, names_data) =
-            load_section_with_table_and_data_area::<FuncNameItem>(section_data);
-        FuncNameSection { items, names_data }
+            load_section_with_table_and_data_area::<FunctionNameItem>(section_data);
+        FunctionNameSection { items, names_data }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -64,11 +64,11 @@ impl<'a> SectionEntry<'a> for FuncNameSection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::FuncName
+        ModuleSectionId::FunctionName
     }
 }
 
-impl<'a> FuncNameSection<'a> {
+impl<'a> FunctionNameSection<'a> {
     pub fn get_item_index_and_exported(&'a self, expected_name: &str) -> Option<(usize, bool)> {
         let items = self.items;
         let names_data = self.names_data;
@@ -87,7 +87,7 @@ impl<'a> FuncNameSection<'a> {
         })
     }
 
-    pub fn convert_from_entries(entries: &[FuncNameEntry]) -> (Vec<FuncNameItem>, Vec<u8>) {
+    pub fn convert_from_entries(entries: &[FunctionNameEntry]) -> (Vec<FunctionNameItem>, Vec<u8>) {
         let name_bytes = entries
             .iter()
             .map(|entry| entry.name.as_bytes())
@@ -103,14 +103,14 @@ impl<'a> FuncNameSection<'a> {
                 let name_length = name_bytes[idx].len() as u32;
                 next_offset += name_length; // for next offset
 
-                FuncNameItem::new(
+                FunctionNameItem::new(
                     name_offset,
                     name_length,
-                    entry.func_pub_index as u32,
+                    entry.function_public_index as u32,
                     if entry.exported { 1 } else { 0 },
                 )
             })
-            .collect::<Vec<FuncNameItem>>();
+            .collect::<Vec<FunctionNameItem>>();
 
         let names_data = name_bytes
             .iter()
@@ -124,18 +124,18 @@ impl<'a> FuncNameSection<'a> {
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        func_name_section::{FuncNameEntry, FuncNameItem, FuncNameSection},
+        function_name_section::{FunctionNameEntry, FunctionNameItem, FunctionNameSection},
         SectionEntry,
     };
 
     #[test]
     fn test_save_section() {
-        let items: Vec<FuncNameItem> = vec![
-            FuncNameItem::new(0, 3, 11, 0),
-            FuncNameItem::new(3, 5, 13, 1),
+        let items: Vec<FunctionNameItem> = vec![
+            FunctionNameItem::new(0, 3, 11, 0),
+            FunctionNameItem::new(3, 5, 13, 1),
         ];
 
-        let section = FuncNameSection {
+        let section = FunctionNameSection {
             items: &items,
             names_data: "foohello".as_bytes(),
         };
@@ -188,23 +188,23 @@ mod tests {
         section_data.extend_from_slice("foo".as_bytes());
         section_data.extend_from_slice("hello".as_bytes());
 
-        let section = FuncNameSection::load(&section_data);
+        let section = FunctionNameSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
-        assert_eq!(section.items[0], FuncNameItem::new(0, 3, 11, 0));
-        assert_eq!(section.items[1], FuncNameItem::new(3, 5, 13, 1));
+        assert_eq!(section.items[0], FunctionNameItem::new(0, 3, 11, 0));
+        assert_eq!(section.items[1], FunctionNameItem::new(3, 5, 13, 1));
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
 
     #[test]
     fn test_convert() {
-        let entries: Vec<FuncNameEntry> = vec![
-            FuncNameEntry::new("foo".to_string(), 11, false),
-            FuncNameEntry::new("hello".to_string(), 13, true),
+        let entries: Vec<FunctionNameEntry> = vec![
+            FunctionNameEntry::new("foo".to_string(), 11, false),
+            FunctionNameEntry::new("hello".to_string(), 13, true),
         ];
 
-        let (items, names_data) = FuncNameSection::convert_from_entries(&entries);
-        let section = FuncNameSection {
+        let (items, names_data) = FunctionNameSection::convert_from_entries(&entries);
+        let section = FunctionNameSection {
             items: &items,
             names_data: &names_data,
         };

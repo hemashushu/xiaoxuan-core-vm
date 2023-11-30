@@ -65,13 +65,13 @@ pub enum InterpretResult {
 
 fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
     let pc = &thread_context.pc;
-    let func_item = &thread_context.program_context.program_modules[pc.module_index]
-        .func_section
+    let function_item = &thread_context.program_context.program_modules[pc.module_index]
+        .function_section
         .items[pc.function_internal_index];
     let codes = &thread_context.program_context.program_modules[pc.module_index]
-        .func_section
+        .function_section
         .codes_data
-        [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
+        [function_item.code_offset as usize..(function_item.code_offset + function_item.code_length) as usize];
     let code_text = print_bytecode_as_text(codes);
 
     unreachable!(
@@ -387,7 +387,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::host_addr_data as usize] = host::host_addr_data;
     interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
-    interpreters[Opcode::host_addr_func as usize] = host::host_addr_func;
+    interpreters[Opcode::host_addr_function as usize] = host::host_addr_function;
     interpreters[Opcode::host_copy_from_heap as usize] = host::host_copy_from_heap;
     interpreters[Opcode::host_copy_to_heap as usize] = host::host_copy_to_heap;
 }
@@ -443,7 +443,7 @@ pub fn process_continuous_instructions(
 pub fn process_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    func_public_index: usize,
+    function_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
 
@@ -455,7 +455,7 @@ pub fn process_function(
 
     // find the code start address
     let (target_module_index, function_internal_index) = thread_context
-        .get_function_target_module_index_and_internal_index(module_index, func_public_index);
+        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
     let (type_index, local_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
             .get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(

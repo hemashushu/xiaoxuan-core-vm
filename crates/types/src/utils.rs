@@ -274,7 +274,7 @@ impl Opcode {
             Opcode::host_addr_heap => "host.addr_heap",
             Opcode::host_copy_from_heap => "host.copy_from_heap",
             Opcode::host_copy_to_heap => "host.copy_to_heap",
-            Opcode::host_addr_func => "host.addr_func",
+            Opcode::host_addr_function => "host.addr_function",
         }
     }
 }

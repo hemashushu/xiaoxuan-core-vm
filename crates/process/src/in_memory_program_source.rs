@@ -106,8 +106,8 @@ mod tests {
         // check index sections
         assert_eq!(program_ref.data_index_section.ranges.len(), 1);
         assert_eq!(program_ref.data_index_section.items.len(), 6);
-        assert_eq!(program_ref.func_index_section.ranges.len(), 1);
-        assert_eq!(program_ref.func_index_section.items.len(), 1);
+        assert_eq!(program_ref.function_index_section.ranges.len(), 1);
+        assert_eq!(program_ref.function_index_section.items.len(), 1);
 
         assert_eq!(program_ref.program_modules.len(), 1);
         let module = &program_ref.program_modules[0];
@@ -142,7 +142,7 @@ mod tests {
         assert_eq!(module.type_section.items.len(), 1);
 
         // check func section
-        assert_eq!(module.func_section.items.len(), 1);
+        assert_eq!(module.function_section.items.len(), 1);
 
         // check local variable section
         assert_eq!(module.local_variable_section.lists.len(), 1);

@@ -1176,7 +1176,7 @@ pub enum Opcode {
     //
     // | structure         | assembly          | instructions(s)    |
     // |-------------------|-------------------|--------------------|
-    // | func foo {        | (func             | -- func begin --   |
+    // | func foo {        | (function         | -- func begin --   |
     // |    ...            |   (code ...       |   ...   <-------\  |
     // |    if ..a.. {     |     (when (a)     |   ..a..         |  |
     // |      foo()        |       (tcall ...) |   block_nez --\ |  |
@@ -1193,7 +1193,7 @@ pub enum Opcode {
     // |                   |                   | end                |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
-    // | func foo {        | (func (code       | -- func begin --   |
+    // | func foo {        | (function (code   | -- func begin --   |
     // |    if ..a.. {     |   (if (a)         |   ..a.. <------\   |
     // |       ..b..       |     (b)           |   block_alt -\ |   |
     // |    } else {       |     (code         |     ..b..    | |   |
@@ -1223,7 +1223,7 @@ pub enum Opcode {
     // |                   |                   | ...      <-----/   |
     // |                   |                   |                    |
     // |-------------------|-------------------|--------------------|
-    // | func foo {        | (func (code       | -- func begin --   |
+    // | func foo {        | (function (code   | -- func begin --   |
     // |    ...            |   ...             |   ...              |
     // |    if ..a.. {     |   (when (a)       |   ..a..            |
     // |      return ...;  |                   |   block_nez        |
@@ -1238,8 +1238,8 @@ pub enum Opcode {
     //
     // function call
     //
-    call = 0xb00,               // general function call            (param func_pub_index:i32) -> (...)
-    dyncall,                    // dynamic function call            (operand func_pub_index:i32) -> (...)
+    call = 0xb00,               // general function call            (param function_public_index:i32) -> (...)
+    dyncall,                    // dynamic function call            (operand function_public_index:i32) -> (...)
 
     // call a function which is specified at runtime.
     //
@@ -1248,7 +1248,7 @@ pub enum Opcode {
     //
     // closure_function_item {
     //     [ref_count],
-    //     func_pub_index:i32,
+    //     function_public_index:i32,
     //     captured_data:i64_ref
     // }
     //
@@ -1272,7 +1272,7 @@ pub enum Opcode {
     // `let a = fn (i32 a, i32 b, addr captured_data) {...}`
     //
     // ```text
-    //                              /--> func_pub_index --> fn (a, b, captured_data) {...}
+    //                              /--> function_public_index --> fn (a, b, captured_data) {...}
     //                         /--->|
     //                         |    \--> captured_data
     //                         |
@@ -1283,7 +1283,7 @@ pub enum Opcode {
     // for wrapping the general function, e.g.
     //
     // ```text
-    //                              /--> func_pub_index --> fn wrapper (a, b, captured_data) --> fn regular (a, b)
+    //                              /--> function_public_index --> fn wrapper (a, b, captured_data) --> fn regular (a, b)
     //                         /--->|
     //                         |    \--> captured_data = 0
     //                         |
@@ -1317,7 +1317,7 @@ pub enum Opcode {
     syscall,
 
     // external function call
-    // `(param external_func_index:i32) -> void/i32/i64/f32/f64`
+    // `(param external_function_index:i32) -> void/i32/i64/f32/f64`
     //
     // note that both 'syscall' and 'extcall' are optional, they may be
     // unavailable in some environment.
@@ -1359,10 +1359,10 @@ pub enum Opcode {
     host_addr_data_long,        // (param data_public_index:i32)                            (operand offset_bytes:i32) -> i64/i32
     host_addr_heap,             // (param offset_bytes:i16)                                 (operand heap_addr:i64) -> i64/i32
 
-    host_addr_func,             // create a new host function and map it to a VM function.
+    host_addr_function,         // create a new host function and map it to a VM function.
                                 // this host function named 'bridge funcion'
                                 //
-                                // `(param func_pub_index:i32) -> i64/i32`
+                                // `(param function_public_index:i32) -> i64/i32`
                                 //
                                 // return the existing bridge function if the bridge function corresponding
                                 // to the specified VM function has already been created.

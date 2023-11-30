@@ -5,9 +5,8 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_binary::module_image::{
-    external_func_section::ExternalFuncSection, external_library_section::ExternalLibrarySection,
-    func_name_section::FuncNameSection, func_section::FuncSection,
-    local_variable_section::LocalVariableSection, type_section::TypeSection, ModuleImage,
+    function_section::FunctionSection, local_variable_section::LocalVariableSection,
+    type_section::TypeSection, ModuleImage,
 };
 
 use crate::{
@@ -19,18 +18,18 @@ pub struct ProgramModule<'a> {
     pub name: &'a str,
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
-    pub func_section: FuncSection<'a>,
+    pub function_section: FunctionSection<'a>,
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
-    pub external_library_section: ExternalLibrarySection<'a>,
-    pub external_func_section: ExternalFuncSection<'a>,
-    pub func_name_section: FuncNameSection<'a>,
+    // pub external_library_section: ExternalLibrarySection<'a>,
+    // pub external_function_section: ExternalFunctionSection<'a>,
+    // pub function_name_section: FunctionNameSection<'a>,
 }
 
 impl<'a> ProgramModule<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
         let type_section = module_image.get_type_section();
         let local_variable_section = module_image.get_local_variable_section();
-        let func_section = module_image.get_func_section();
+        let function_section = module_image.get_function_section();
 
         let read_only_data = module_image
             .get_optional_read_only_data_section()
@@ -59,42 +58,41 @@ impl<'a> ProgramModule<'a> {
             },
         );
 
-        let external_library_section = module_image
-            .get_optional_external_library_section()
-            .unwrap_or(ExternalLibrarySection {
-                items: &[],
-                names_data: &[],
-            });
-
-        let external_func_section =
-            module_image
-                .get_optional_external_func_section()
-                .unwrap_or(ExternalFuncSection {
-                    items: &[],
-                    names_data: &[],
-                });
-
-        let func_name_section =
-            module_image
-                .get_optional_func_name_section()
-                .unwrap_or(FuncNameSection {
-                    items: &[],
-                    names_data: &[],
-                });
+        //         let external_library_section = module_image
+        //             .get_optional_external_library_section()
+        //             .unwrap_or(ExternalLibrarySection {
+        //                 items: &[],
+        //                 names_data: &[],
+        //             });
+        //
+        //         let external_function_section = module_image
+        //             .get_optional_external_function_section()
+        //             .unwrap_or(ExternalFunctionSection {
+        //                 items: &[],
+        //                 names_data: &[],
+        //             });
+        //
+        //         let function_name_section =
+        //             module_image
+        //                 .get_optional_function_name_section()
+        //                 .unwrap_or(FunctionNameSection {
+        //                     items: &[],
+        //                     names_data: &[],
+        //                 });
 
         Self {
             name: module_image.name,
             type_section,
-            func_section,
+            function_section,
             local_variable_section,
             datas: [
                 Box::new(read_only_data),
                 Box::new(read_write_data),
                 Box::new(uninit_data),
             ],
-            external_library_section,
-            external_func_section,
-            func_name_section,
+            // external_library_section,
+            // external_function_section,
+            // function_name_section,
         }
     }
 }

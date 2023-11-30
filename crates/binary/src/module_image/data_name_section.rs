@@ -35,17 +35,17 @@ pub struct DataNameSection<'a> {
 pub struct DataNameItem {
     pub name_offset: u32,
     pub name_length: u32,
-    pub data_pub_index: u32,
+    pub data_public_index: u32,
     pub exported: u8, // 0=false, 1=true
     _padding0: [u8; 3],
 }
 
 impl DataNameItem {
-    pub fn new(name_offset: u32, name_length: u32, data_pub_index: u32, exported: u8) -> Self {
+    pub fn new(name_offset: u32, name_length: u32, data_public_index: u32, exported: u8) -> Self {
         Self {
             name_offset,
             name_length,
-            data_pub_index,
+            data_public_index,
             exported,
             _padding0: [0, 0, 0],
         }
@@ -106,7 +106,7 @@ impl<'a> DataNameSection<'a> {
                 DataNameItem::new(
                     name_offset,
                     name_length,
-                    entry.data_pub_index as u32,
+                    entry.data_public_index as u32,
                     if entry.exported { 1 } else { 0 },
                 )
             })

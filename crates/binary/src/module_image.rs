@@ -90,18 +90,18 @@
 pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
-pub mod external_func_index_section;
-pub mod external_func_section;
+pub mod external_function_index_section;
+pub mod external_function_section;
 pub mod external_library_section;
-pub mod func_index_section;
-pub mod func_name_section;
-pub mod func_section;
+pub mod function_index_section;
+pub mod function_name_section;
+pub mod function_section;
 pub mod import_data_section;
-pub mod import_func_section;
+pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
 pub mod type_section;
-pub mod unified_external_func_section;
+pub mod unified_external_function_section;
 pub mod unified_external_library_section;
 
 use ancvm_types::{
@@ -111,8 +111,8 @@ use ancvm_types::{
 
 use crate::{
     module_image::data_index_section::DataIndexSection,
-    module_image::func_index_section::FuncIndexSection,
-    module_image::func_section::FuncSection,
+    module_image::function_index_section::FunctionIndexSection,
+    module_image::function_section::FunctionSection,
     module_image::type_section::TypeSection,
     utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
     BinaryError,
@@ -121,15 +121,15 @@ use crate::{
 use self::{
     data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
-    external_func_index_section::ExternalFuncIndexSection,
-    external_func_section::ExternalFuncSection,
+    external_function_index_section::ExternalFunctionIndexSection,
+    external_function_section::ExternalFunctionSection,
     external_library_section::ExternalLibrarySection,
-    func_name_section::FuncNameSection,
+    function_name_section::FunctionNameSection,
     import_data_section::ImportDataSection,
-    import_func_section::ImportFuncSection,
+    import_function_section::ImportFunctionSection,
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
-    unified_external_func_section::UnifiedExternalFuncSection,
+    unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
 };
 
@@ -166,8 +166,8 @@ use self::{
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
     pub name: &'a str,
-    pub constructor_func_public_index: u32, // u32::max = none
-    pub destructor_func_public_index: u32,  // u32::max = none
+    pub constructor_function_public_index: u32, // u32::max = none
+    pub destructor_function_public_index: u32,  // u32::max = none
     pub items: &'a [ModuleSection],
     pub sections_data: &'a [u8],
 }
@@ -192,7 +192,7 @@ pub enum ModuleSectionId {
     // essential
     Type = 0x10,   // 0x10
     LocalVariable, // 0x11
-    Func,          // 0x12
+    Function,      // 0x12
 
     // optional
     ReadOnlyData = 0x20, // 0x20
@@ -201,21 +201,21 @@ pub enum ModuleSectionId {
 
     // optional, for debuging and linking
     ImportModule = 0x30, // 0x30
-    ImportFunc,          // 0x31
-    FuncName,            // 0x32
+    ImportFunction,      // 0x31
+    FunctionName,        // 0x32
     ImportData,          // 0x33
     DataName,            // 0x34
     ExternalLibrary,     // 0x35
-    ExternalFunc,        // 0x36
+    ExternalFunction,    // 0x36
 
     // essential indices
-    FuncIndex = 0x40, // 0x40
+    FunctionIndex = 0x40, // 0x40
 
     // optional indeces
-    DataIndex = 0x50,       // 0x50
-    UnifiedExternalLibrary, // 0x51
-    UnifiedExternalFunc,    // 0x52
-    ExternalFuncIndex,      // 0x53 (mapping 'external function' to 'unified external function')
+    DataIndex = 0x50,        // 0x50
+    UnifiedExternalLibrary,  // 0x51
+    UnifiedExternalFunction, // 0x52
+    ExternalFunctionIndex,   // 0x53 (mapping 'external function' to 'unified external function')
 }
 
 // use for data index section and function index section
@@ -312,8 +312,8 @@ impl<'a> ModuleImage<'a> {
             ));
         }
 
-        let constructor_func_public_index = unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
-        let destructor_func_public_index = unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
+        let constructor_function_public_index = unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
+        let destructor_function_public_index = unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
 
         let name_length = unsafe { std::ptr::read(ptr.offset(24) as *const u16) };
         let name_bytes = &image_data[28..(28 + (name_length as usize))];
@@ -333,8 +333,8 @@ impl<'a> ModuleImage<'a> {
 
         Ok(Self {
             name,
-            constructor_func_public_index,
-            destructor_func_public_index,
+            constructor_function_public_index,
+            destructor_function_public_index,
             items,
             sections_data,
         })
@@ -348,8 +348,8 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
         //
-        writer.write_all(&self.constructor_func_public_index.to_le_bytes())?;
-        writer.write_all(&self.destructor_func_public_index.to_le_bytes())?;
+        writer.write_all(&self.constructor_function_public_index.to_le_bytes())?;
+        writer.write_all(&self.destructor_function_public_index.to_le_bytes())?;
         //
         writer.write_all(&(self.name.len() as u16).to_le_bytes())?;
         writer.write_all(&[0u8, 0])?; // padding, 2 bytes
@@ -443,20 +443,20 @@ impl<'a> ModuleImage<'a> {
     }
 
     // essential section
-    pub fn get_func_section(&'a self) -> FuncSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::Func)
+    pub fn get_function_section(&'a self) -> FunctionSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::Function)
             .map_or_else(
                 || panic!("Can not find the function section."),
-                FuncSection::load,
+                FunctionSection::load,
             )
     }
 
     // essential section
-    pub fn get_func_index_section(&'a self) -> FuncIndexSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::FuncIndex)
+    pub fn get_function_index_section(&'a self) -> FunctionIndexSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::FunctionIndex)
             .map_or_else(
                 || panic!("Can not find the function index section."),
-                FuncIndexSection::load,
+                FunctionIndexSection::load,
             )
     }
 
@@ -485,9 +485,9 @@ impl<'a> ModuleImage<'a> {
     }
 
     // optional section
-    pub fn get_optional_import_func_section(&'a self) -> Option<ImportFuncSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ImportFunc)
-            .map(ImportFuncSection::load)
+    pub fn get_optional_import_function_section(&'a self) -> Option<ImportFunctionSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportFunction)
+            .map(ImportFunctionSection::load)
     }
 
     // optional section
@@ -497,9 +497,9 @@ impl<'a> ModuleImage<'a> {
     }
 
     // optional section
-    pub fn get_optional_func_name_section(&'a self) -> Option<FuncNameSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::FuncName)
-            .map(FuncNameSection::load)
+    pub fn get_optional_function_name_section(&'a self) -> Option<FunctionNameSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::FunctionName)
+            .map(FunctionNameSection::load)
     }
 
     // optional section
@@ -515,9 +515,9 @@ impl<'a> ModuleImage<'a> {
     }
 
     // optional
-    pub fn get_optional_external_func_section(&'a self) -> Option<ExternalFuncSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ExternalFunc)
-            .map(ExternalFuncSection::load)
+    pub fn get_optional_external_function_section(&'a self) -> Option<ExternalFunctionSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalFunction)
+            .map(ExternalFunctionSection::load)
     }
 
     // optional
@@ -535,19 +535,19 @@ impl<'a> ModuleImage<'a> {
     }
 
     // optional
-    pub fn get_optional_unified_external_func_section(
+    pub fn get_optional_unified_external_function_section(
         &'a self,
-    ) -> Option<UnifiedExternalFuncSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunc)
-            .map(UnifiedExternalFuncSection::load)
+    ) -> Option<UnifiedExternalFunctionSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::UnifiedExternalFunction)
+            .map(UnifiedExternalFunctionSection::load)
     }
 
     // optional
-    pub fn get_optional_external_func_index_section(
+    pub fn get_optional_external_function_index_section(
         &'a self,
-    ) -> Option<ExternalFuncIndexSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ExternalFuncIndex)
-            .map(ExternalFuncIndexSection::load)
+    ) -> Option<ExternalFunctionIndexSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalFunctionIndex)
+            .map(ExternalFunctionIndexSection::load)
     }
 }
 
@@ -555,15 +555,15 @@ impl<'a> ModuleImage<'a> {
 mod tests {
     use ancvm_types::{
         entry::{
-            FuncEntry, FuncIndexEntry, FuncIndexModuleEntry, LocalListEntry, LocalVariableEntry,
+            FunctionEntry, FunctionIndexEntry, FunctionIndexModuleEntry, LocalListEntry, LocalVariableEntry,
             TypeEntry,
         },
         DataType, MemoryDataType,
     };
 
     use crate::module_image::{
-        func_index_section::{FuncIndexItem, FuncIndexSection},
-        func_section::FuncSection,
+        function_index_section::{FunctionIndexItem, FunctionIndexSection},
+        function_section::FunctionSection,
         local_variable_section::{LocalVariableItem, LocalVariableSection},
         type_section::TypeSection,
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
@@ -592,22 +592,22 @@ mod tests {
 
         // build FuncSection instance
         // arbitrary function entry and function code
-        let func_entries = vec![
-            FuncEntry {
+        let function_entries = vec![
+            FunctionEntry {
                 type_index: 2,
                 local_list_index: 3,
                 code: vec![1u8, 2, 3, 5, 7],
             },
-            FuncEntry {
+            FunctionEntry {
                 type_index: 5,
                 local_list_index: 7,
                 code: vec![11u8, 13, 17, 19, 23, 29],
             },
         ];
 
-        let (func_items, codes_data) = FuncSection::convert_from_entries(&func_entries);
-        let func_section = FuncSection {
-            items: &func_items,
+        let (function_items, codes_data) = FunctionSection::convert_from_entries(&function_entries);
+        let function_section = FunctionSection {
+            items: &function_items,
             codes_data: &codes_data,
         };
 
@@ -630,34 +630,34 @@ mod tests {
 
         // build FuncIndexSection instance
         // arbitrary data
-        let func_index_module_entries = vec![
-            FuncIndexModuleEntry::new(vec![
-                FuncIndexEntry::new(0, 1, 3),
-                FuncIndexEntry::new(1, 5, 7),
+        let function_index_module_entries = vec![
+            FunctionIndexModuleEntry::new(vec![
+                FunctionIndexEntry::new(0, 1, 3),
+                FunctionIndexEntry::new(1, 5, 7),
             ]),
-            FuncIndexModuleEntry::new(vec![FuncIndexEntry::new(0, 11, 13)]),
+            FunctionIndexModuleEntry::new(vec![FunctionIndexEntry::new(0, 11, 13)]),
         ];
 
-        let (func_index_ranges, func_index_items) =
-            FuncIndexSection::convert_from_entries(&func_index_module_entries);
+        let (function_index_ranges, function_index_items) =
+            FunctionIndexSection::convert_from_entries(&function_index_module_entries);
 
-        let func_index_section = FuncIndexSection {
-            ranges: &func_index_ranges,
-            items: &func_index_items,
+        let function_index_section = FunctionIndexSection {
+            ranges: &function_index_ranges,
+            items: &function_index_items,
         };
 
         // build ModuleImage instance
         let section_entries: Vec<&dyn SectionEntry> = vec![
             &type_section,
-            &func_section,
+            &function_section,
             &local_var_section,
-            &func_index_section,
+            &function_index_section,
         ];
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
             name: "main",
-            constructor_func_public_index: 11,
-            destructor_func_public_index: 13,
+            constructor_function_public_index: 11,
+            destructor_function_public_index: 13,
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -737,9 +737,9 @@ mod tests {
             ]
         );
 
-        let (func_section_data, remains) = remains.split_at(52);
+        let (function_section_data, remains) = remains.split_at(52);
         assert_eq!(
-            func_section_data,
+            function_section_data,
             &[
                 2, 0, 0, 0, // item count
                 0, 0, 0, 0, // padding
@@ -850,16 +850,16 @@ mod tests {
 
         // check func
 
-        let func_section_restore = module_image_restore.get_func_section();
-        assert_eq!(func_section_restore.items.len(), 2);
+        let function_section_restore = module_image_restore.get_function_section();
+        assert_eq!(function_section_restore.items.len(), 2);
 
         assert_eq!(
-            func_section_restore.get_item_type_index_and_local_variable_index_and_code(0),
+            function_section_restore.get_item_type_index_and_local_variable_index_and_code(0),
             (2, 3, vec![1u8, 2, 3, 5, 7].as_ref(),)
         );
 
         assert_eq!(
-            func_section_restore.get_item_type_index_and_local_variable_index_and_code(1),
+            function_section_restore.get_item_type_index_and_local_variable_index_and_code(1),
             (5, 7, vec![11u8, 13, 17, 19, 23, 29].as_ref(),)
         );
 
@@ -881,31 +881,31 @@ mod tests {
             &[LocalVariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
         );
 
-        let func_index_section_restore = module_image_restore.get_func_index_section();
+        let function_index_section_restore = module_image_restore.get_function_index_section();
 
-        assert_eq!(func_index_section_restore.ranges.len(), 2);
-        assert_eq!(func_index_section_restore.items.len(), 3);
+        assert_eq!(function_index_section_restore.ranges.len(), 2);
+        assert_eq!(function_index_section_restore.items.len(), 3);
 
         assert_eq!(
-            &func_index_section_restore.ranges[0],
+            &function_index_section_restore.ranges[0],
             &RangeItem::new(0, 2,)
         );
         assert_eq!(
-            &func_index_section_restore.ranges[1],
+            &function_index_section_restore.ranges[1],
             &RangeItem::new(2, 1,)
         );
 
         assert_eq!(
-            &func_index_section_restore.items[0],
-            &FuncIndexItem::new(0, 1, 3)
+            &function_index_section_restore.items[0],
+            &FunctionIndexItem::new(0, 1, 3)
         );
         assert_eq!(
-            &func_index_section_restore.items[1],
-            &FuncIndexItem::new(1, 5, 7)
+            &function_index_section_restore.items[1],
+            &FunctionIndexItem::new(1, 5, 7)
         );
         assert_eq!(
-            &func_index_section_restore.items[2],
-            &FuncIndexItem::new(0, 11, 13)
+            &function_index_section_restore.items[2],
+            &FunctionIndexItem::new(0, 11, 13)
         );
     }
 }

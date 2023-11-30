@@ -42,7 +42,7 @@ where
 pub fn create_thread<T>(
     mt_program: &MultithreadProgram<T>, // dyn ProgramSource + std::marker::Send + std::marker::Sync + 'static,
     module_index: usize,
-    func_public_index: usize,
+    function_public_index: usize,
     thread_start_data: Vec<u8>,
 ) -> u32
 where
@@ -110,7 +110,7 @@ where
                     let result_foreign_values = process_function(
                         &mut thread_context,
                         module_index,
-                        func_public_index,
+                        function_public_index,
                         // the specified function should only has no parameters
                         &[],
                     );
@@ -176,12 +176,12 @@ where
 
     // todo::
     // find the function which named 'entry' and get the public index
-    let entry_function_pub_index = 0;
+    let entry_function_public_index = 0;
 
     let main_thread_id = create_thread(
         &multithread_program,
         MAIN_MODULE_INDEX,
-        entry_function_pub_index,
+        entry_function_public_index,
         thread_start_data,
     );
 

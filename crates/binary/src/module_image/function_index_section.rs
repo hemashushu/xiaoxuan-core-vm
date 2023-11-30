@@ -20,28 +20,28 @@
 //         | ...                                                                          |
 //         |------------------------------------------------------------------------------|
 
-use ancvm_types::entry::FuncIndexModuleEntry;
+use ancvm_types::entry::FunctionIndexModuleEntry;
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
 use super::{ModuleSectionId, RangeItem, SectionEntry};
 
 #[derive(Debug, PartialEq)]
-pub struct FuncIndexSection<'a> {
+pub struct FunctionIndexSection<'a> {
     pub ranges: &'a [RangeItem],
-    pub items: &'a [FuncIndexItem],
+    pub items: &'a [FunctionIndexItem],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct FuncIndexItem {
+pub struct FunctionIndexItem {
     // the index of function item, includes the imported functions and internal functions.
     // 'function public index' equals to
     // 'amount of imported functions' + 'function internal index'
     //
     // this field is REDUNDANT because its value always starts
     // from 0 to the total number of items within [a certain range | a module].
-    pub func_public_index: u32,
+    pub function_public_index: u32,
 
     // target module index
     pub target_module_index: u32,
@@ -53,26 +53,26 @@ pub struct FuncIndexItem {
     pub function_internal_index: u32,
 }
 
-impl FuncIndexItem {
+impl FunctionIndexItem {
     pub fn new(
-        func_public_index: u32,
+        function_public_index: u32,
         target_module_index: u32,
         function_internal_index: u32,
     ) -> Self {
         Self {
-            func_public_index,
+            function_public_index,
             target_module_index,
             function_internal_index,
         }
     }
 }
 
-impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
+impl<'a> SectionEntry<'a> for FunctionIndexSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (ranges, items) =
-            load_section_with_two_tables::<RangeItem, FuncIndexItem>(section_data);
+            load_section_with_two_tables::<RangeItem, FunctionIndexItem>(section_data);
 
-        FuncIndexSection { ranges, items }
+        FunctionIndexSection { ranges, items }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -80,11 +80,11 @@ impl<'a> SectionEntry<'a> for FuncIndexSection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::FuncIndex
+        ModuleSectionId::FunctionIndex
     }
 }
 
-impl<'a> FuncIndexSection<'a> {
+impl<'a> FunctionIndexSection<'a> {
     pub fn get_item_target_module_index_and_function_internal_index(
         &self,
         module_index: usize,
@@ -113,8 +113,8 @@ impl<'a> FuncIndexSection<'a> {
     }
 
     pub fn convert_from_entries(
-        sorted_entries: &[FuncIndexModuleEntry],
-    ) -> (Vec<RangeItem>, Vec<FuncIndexItem>) {
+        sorted_entries: &[FunctionIndexModuleEntry],
+    ) -> (Vec<RangeItem>, Vec<FunctionIndexItem>) {
         let mut range_start_offset: u32 = 0;
         let range_items = sorted_entries
             .iter()
@@ -126,12 +126,12 @@ impl<'a> FuncIndexSection<'a> {
             })
             .collect::<Vec<_>>();
 
-        let func_index_items = sorted_entries
+        let function_index_items = sorted_entries
             .iter()
             .flat_map(|index_module_entry| {
                 index_module_entry.index_entries.iter().map(|entry| {
-                    FuncIndexItem::new(
-                        entry.func_public_index as u32,
+                    FunctionIndexItem::new(
+                        entry.function_public_index as u32,
                         entry.target_module_index as u32,
                         entry.function_internal_index as u32,
                     )
@@ -139,20 +139,20 @@ impl<'a> FuncIndexSection<'a> {
             })
             .collect::<Vec<_>>();
 
-        (range_items, func_index_items)
+        (range_items, function_index_items)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::entry::FuncIndexEntry;
+    use ancvm_types::entry::FunctionIndexEntry;
 
     use crate::module_image::{
-        func_index_section::{FuncIndexItem, FuncIndexSection},
+        function_index_section::{FunctionIndexItem, FunctionIndexSection},
         RangeItem, SectionEntry,
     };
 
-    use super::FuncIndexModuleEntry;
+    use super::FunctionIndexModuleEntry;
 
     #[test]
     fn test_load_section() {
@@ -178,7 +178,7 @@ mod tests {
             19, 0, 0, 0, // func internal idx 2
         ];
 
-        let section = FuncIndexSection::load(&section_data);
+        let section = FunctionIndexSection::load(&section_data);
 
         let ranges = section.ranges;
 
@@ -189,9 +189,9 @@ mod tests {
         let items = section.items;
 
         assert_eq!(items.len(), 3);
-        assert_eq!(items[0], FuncIndexItem::new(1, 2, 3,));
-        assert_eq!(items[1], FuncIndexItem::new(5, 7, 11,));
-        assert_eq!(items[2], FuncIndexItem::new(13, 17, 19,));
+        assert_eq!(items[0], FunctionIndexItem::new(1, 2, 3,));
+        assert_eq!(items[1], FunctionIndexItem::new(5, 7, 11,));
+        assert_eq!(items[2], FunctionIndexItem::new(13, 17, 19,));
 
         // test get index item
         assert_eq!(
@@ -215,12 +215,12 @@ mod tests {
         let ranges = vec![RangeItem::new(0, 2), RangeItem::new(2, 1)];
 
         let items = vec![
-            FuncIndexItem::new(1, 2, 3),
-            FuncIndexItem::new(5, 7, 11),
-            FuncIndexItem::new(13, 17, 19),
+            FunctionIndexItem::new(1, 2, 3),
+            FunctionIndexItem::new(5, 7, 11),
+            FunctionIndexItem::new(13, 17, 19),
         ];
 
-        let section = FuncIndexSection {
+        let section = FunctionIndexSection {
             ranges: &ranges,
             items: &items,
         };
@@ -257,20 +257,20 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            FuncIndexModuleEntry::new(vec![
-                FuncIndexEntry::new(0, 1, 3),
-                FuncIndexEntry::new(1, 5, 7),
+            FunctionIndexModuleEntry::new(vec![
+                FunctionIndexEntry::new(0, 1, 3),
+                FunctionIndexEntry::new(1, 5, 7),
             ]),
-            FuncIndexModuleEntry::new(vec![
-                FuncIndexEntry::new(0, 11, 13),
-                FuncIndexEntry::new(1, 17, 19),
-                FuncIndexEntry::new(2, 23, 29),
+            FunctionIndexModuleEntry::new(vec![
+                FunctionIndexEntry::new(0, 11, 13),
+                FunctionIndexEntry::new(1, 17, 19),
+                FunctionIndexEntry::new(2, 23, 29),
             ]),
         ];
 
-        let (ranges, items) = FuncIndexSection::convert_from_entries(&entries);
+        let (ranges, items) = FunctionIndexSection::convert_from_entries(&entries);
 
-        let section = FuncIndexSection {
+        let section = FunctionIndexSection {
             ranges: &ranges,
             items: &items,
         };

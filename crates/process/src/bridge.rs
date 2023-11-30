@@ -142,7 +142,7 @@ pub fn get_function<T>(
     }
 
     let type_index = thread_context.program_context.program_modules[target_module_index]
-        .func_section
+        .function_section
         .items[function_internal_index]
         .type_index;
     let (params, results) = thread_context.program_context.program_modules[target_module_index]

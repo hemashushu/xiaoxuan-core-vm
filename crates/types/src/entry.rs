@@ -11,29 +11,32 @@ pub struct ModuleEntry {
     pub runtime_version_major: u16,
     pub runtime_version_minor: u16,
 
+    pub constructor_function_public_index: Option<u32>,
+    pub destructor_function_public_index:Option<u32>,
+
     pub type_entries: Vec<TypeEntry>,
     pub local_list_entries: Vec<LocalListEntry>,
-    pub func_entries: Vec<FuncEntry>,
+    pub function_entries: Vec<FunctionEntry>,
 
     pub read_only_data_entries: Vec<InitedDataEntry>,
     pub read_write_data_entries: Vec<InitedDataEntry>,
     pub uninit_data_entries: Vec<UninitDataEntry>,
 
     pub external_library_entries: Vec<ExternalLibraryEntry>,
-    pub external_func_entries: Vec<ExternalFuncEntry>,
+    pub external_function_entries: Vec<ExternalFunctionEntry>,
 
-    pub func_name_entries: Vec<FuncNameEntry>,
+    pub function_name_entries: Vec<FunctionNameEntry>,
     pub data_name_entries: Vec<DataNameEntry>,
 }
 
 pub struct IndexEntry {
     // essential
-    pub func_index_module_entries: Vec<FuncIndexModuleEntry>,
+    pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
     // optional
     pub data_index_module_entries: Vec<DataIndexModuleEntry>,
     pub unified_external_library_entries: Vec<UnifiedExternalLibraryEntry>,
-    pub unified_external_func_entries: Vec<UnifiedExternalFuncEntry>,
-    pub external_func_index_module_entries: Vec<ExternalFuncIndexModuleEntry>,
+    pub unified_external_function_entries: Vec<UnifiedExternalFunctionEntry>,
+    pub external_function_index_module_entries: Vec<ExternalFunctionIndexModuleEntry>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -116,7 +119,7 @@ impl LocalVariableEntry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FuncEntry {
+pub struct FunctionEntry {
     pub type_index: usize,
     pub local_list_index: usize,
     pub code: Vec<u8>,
@@ -259,13 +262,13 @@ impl ExternalLibraryEntry {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ExternalFuncEntry {
+pub struct ExternalFunctionEntry {
     pub name: String,
     pub external_library_index: usize,
     pub type_index: usize,
 }
 
-impl ExternalFuncEntry {
+impl ExternalFunctionEntry {
     pub fn new(name: String, external_library_index: usize, type_index: usize) -> Self {
         Self {
             name,
@@ -300,13 +303,13 @@ impl ImportModuleEntry {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ImportFuncEntry {
+pub struct ImportFunctionEntry {
     pub name: String,
     pub import_module_index: usize,
     pub type_index: usize, // used for validation when linking
 }
 
-impl ImportFuncEntry {
+impl ImportFunctionEntry {
     pub fn new(name: String, import_module_index: usize, type_index: usize) -> Self {
         Self {
             name,
@@ -341,17 +344,17 @@ impl ImportDataEntry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FuncNameEntry {
+pub struct FunctionNameEntry {
     pub name: String,
-    pub func_pub_index: usize,
+    pub function_public_index: usize,
     pub exported: bool,
 }
 
-impl FuncNameEntry {
-    pub fn new(name: String, func_pub_index: usize, exported: bool) -> Self {
+impl FunctionNameEntry {
+    pub fn new(name: String, function_public_index: usize, exported: bool) -> Self {
         Self {
             name,
-            func_pub_index,
+            function_public_index,
             exported,
         }
     }
@@ -360,35 +363,35 @@ impl FuncNameEntry {
 #[derive(Debug, PartialEq)]
 pub struct DataNameEntry {
     pub name: String,
-    pub data_pub_index: usize,
+    pub data_public_index: usize,
     pub exported: bool,
 }
 
 impl DataNameEntry {
-    pub fn new(name: String, data_pub_index: usize, exported: bool) -> Self {
+    pub fn new(name: String, data_public_index: usize, exported: bool) -> Self {
         Self {
             name,
-            data_pub_index,
+            data_public_index,
             exported,
         }
     }
 }
 
 #[derive(Debug)]
-pub struct FuncIndexEntry {
-    pub func_public_index: usize,
+pub struct FunctionIndexEntry {
+    pub function_public_index: usize,
     pub target_module_index: usize,
     pub function_internal_index: usize,
 }
 
-impl FuncIndexEntry {
+impl FunctionIndexEntry {
     pub fn new(
-        func_public_index: usize,
+        function_public_index: usize,
         target_module_index: usize,
         function_internal_index: usize,
     ) -> Self {
         Self {
-            func_public_index,
+            function_public_index,
             target_module_index,
             function_internal_index,
         }
@@ -396,12 +399,12 @@ impl FuncIndexEntry {
 }
 
 #[derive(Debug)]
-pub struct FuncIndexModuleEntry {
-    pub index_entries: Vec<FuncIndexEntry>,
+pub struct FunctionIndexModuleEntry {
+    pub index_entries: Vec<FunctionIndexEntry>,
 }
 
-impl FuncIndexModuleEntry {
-    pub fn new(index_entries: Vec<FuncIndexEntry>) -> Self {
+impl FunctionIndexModuleEntry {
+    pub fn new(index_entries: Vec<FunctionIndexEntry>) -> Self {
         Self { index_entries }
     }
 }
@@ -457,12 +460,12 @@ impl UnifiedExternalLibraryEntry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct UnifiedExternalFuncEntry {
+pub struct UnifiedExternalFunctionEntry {
     pub name: String,
     pub unified_external_library_index: usize,
 }
 
-impl UnifiedExternalFuncEntry {
+impl UnifiedExternalFunctionEntry {
     pub fn new(name: String, unified_external_library_index: usize) -> Self {
         Self {
             name,
@@ -472,33 +475,33 @@ impl UnifiedExternalFuncEntry {
 }
 
 #[derive(Debug)]
-pub struct ExternalFuncIndexEntry {
-    pub external_func_index: usize,
-    pub unified_external_func_index: usize,
+pub struct ExternalFunctionIndexEntry {
+    pub external_function_index: usize,
+    pub unified_external_function_index: usize,
     pub type_index: usize,
 }
 
-impl ExternalFuncIndexEntry {
+impl ExternalFunctionIndexEntry {
     pub fn new(
-        external_func_index: usize,
-        unified_external_func_index: usize,
+        external_function_index: usize,
+        unified_external_function_index: usize,
         type_index: usize,
     ) -> Self {
         Self {
-            external_func_index,
-            unified_external_func_index,
+            external_function_index,
+            unified_external_function_index,
             type_index,
         }
     }
 }
 
 #[derive(Debug)]
-pub struct ExternalFuncIndexModuleEntry {
-    pub index_entries: Vec<ExternalFuncIndexEntry>,
+pub struct ExternalFunctionIndexModuleEntry {
+    pub index_entries: Vec<ExternalFunctionIndexEntry>,
 }
 
-impl ExternalFuncIndexModuleEntry {
-    pub fn new(index_entries: Vec<ExternalFuncIndexEntry>) -> Self {
+impl ExternalFunctionIndexModuleEntry {
+    pub fn new(index_entries: Vec<ExternalFunctionIndexEntry>) -> Self {
         Self { index_entries }
     }
 }

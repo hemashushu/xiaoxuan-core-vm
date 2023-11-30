@@ -32,7 +32,7 @@ impl<'a> Program<'a> {
             .get_optional_unified_external_library_section()
             .map_or(0, |section| section.items.len());
         let unified_external_function_count = module_images[0]
-            .get_optional_unified_external_func_section()
+            .get_optional_unified_external_function_section()
             .map_or(0, |section| section.items.len());
 
         external_function_table.lock().unwrap().init(

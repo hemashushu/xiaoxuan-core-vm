@@ -555,9 +555,9 @@ SP: {}, expect popping length in bytes: {}",
             FramePack::new(self.fp, frame_info)
         } else {
             // the current frame is block frame
-            let func_fp = frame_info.function_frame_address as usize;
-            let func_frame_info = self.read_frame_info(func_fp);
-            FramePack::new(func_fp, func_frame_info)
+            let function_fp = frame_info.function_frame_address as usize;
+            let function_frame_info = self.read_frame_info(function_fp);
+            FramePack::new(function_fp, function_frame_info)
         }
     }
 
@@ -578,7 +578,7 @@ SP: {}, expect popping length in bytes: {}",
         // \------------/
 
         // let frame_info = self.read_frame_info(self.fp);
-        // let func_fp = frame_info.function_frame_address;
+        // let function_fp = frame_info.function_frame_address;
         let FramePack {
             address: fp,
             frame_info: _,
@@ -680,7 +680,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
         let previous_fp = self.fp;
         let new_fp = self.sp;
 
-        let func_fp = if opt_return_pc.is_some() {
+        let function_fp = if opt_return_pc.is_some() {
             // ensure the free space
             self.ensure_stack_free_space();
 
@@ -697,7 +697,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
 
         // write values
         frame_info.previous_frame_address = previous_fp as u32;
-        frame_info.function_frame_address = func_fp;
+        frame_info.function_frame_address = function_fp;
         frame_info.params_count = params_count;
         frame_info.results_count = results_count;
         frame_info.local_list_index = local_list_index;

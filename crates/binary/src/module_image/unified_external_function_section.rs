@@ -18,27 +18,27 @@
 //              | ...                                                                            |
 //              |--------------------------------------------------------------------------------|
 
-use ancvm_types::entry::UnifiedExternalFuncEntry;
+use ancvm_types::entry::UnifiedExternalFunctionEntry;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq, Default)]
-pub struct UnifiedExternalFuncSection<'a> {
-    pub items: &'a [UnifiedExternalFuncItem],
+pub struct UnifiedExternalFunctionSection<'a> {
+    pub items: &'a [UnifiedExternalFunctionItem],
     pub names_data: &'a [u8],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct UnifiedExternalFuncItem {
+pub struct UnifiedExternalFunctionItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
     pub unified_external_library_index: u32,
 }
 
-impl UnifiedExternalFuncItem {
+impl UnifiedExternalFunctionItem {
     pub fn new(name_offset: u32, name_length: u32, unified_external_library_index: u32) -> Self {
         Self {
             name_offset,
@@ -48,11 +48,11 @@ impl UnifiedExternalFuncItem {
     }
 }
 
-impl<'a> SectionEntry<'a> for UnifiedExternalFuncSection<'a> {
+impl<'a> SectionEntry<'a> for UnifiedExternalFunctionSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (items, names_data) =
-            load_section_with_table_and_data_area::<UnifiedExternalFuncItem>(section_data);
-        UnifiedExternalFuncSection { items, names_data }
+            load_section_with_table_and_data_area::<UnifiedExternalFunctionItem>(section_data);
+        UnifiedExternalFunctionSection { items, names_data }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -60,11 +60,11 @@ impl<'a> SectionEntry<'a> for UnifiedExternalFuncSection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::UnifiedExternalFunc
+        ModuleSectionId::UnifiedExternalFunction
     }
 }
 
-impl<'a> UnifiedExternalFuncSection<'a> {
+impl<'a> UnifiedExternalFunctionSection<'a> {
     pub fn get_item_name_and_unified_external_library_index(
         &'a self,
         idx: usize,
@@ -83,8 +83,8 @@ impl<'a> UnifiedExternalFuncSection<'a> {
     }
 
     pub fn convert_from_entries(
-        entries: &[UnifiedExternalFuncEntry],
-    ) -> (Vec<UnifiedExternalFuncItem>, Vec<u8>) {
+        entries: &[UnifiedExternalFunctionEntry],
+    ) -> (Vec<UnifiedExternalFunctionItem>, Vec<u8>) {
         let name_bytes = entries
             .iter()
             .map(|entry| entry.name.as_bytes())
@@ -100,13 +100,13 @@ impl<'a> UnifiedExternalFuncSection<'a> {
                 let name_length = name_bytes[idx].len() as u32;
                 next_offset += name_length; // for next offset
 
-                UnifiedExternalFuncItem::new(
+                UnifiedExternalFunctionItem::new(
                     name_offset,
                     name_length,
                     entry.unified_external_library_index as u32,
                 )
             })
-            .collect::<Vec<UnifiedExternalFuncItem>>();
+            .collect::<Vec<UnifiedExternalFunctionItem>>();
 
         let names_data = name_bytes
             .iter()
@@ -120,8 +120,8 @@ impl<'a> UnifiedExternalFuncSection<'a> {
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        unified_external_func_section::{
-            UnifiedExternalFuncEntry, UnifiedExternalFuncItem, UnifiedExternalFuncSection,
+        unified_external_function_section::{
+            UnifiedExternalFunctionEntry, UnifiedExternalFunctionItem, UnifiedExternalFunctionSection,
         },
         SectionEntry,
     };
@@ -144,22 +144,22 @@ mod tests {
         section_data.extend_from_slice(b"foo");
         section_data.extend_from_slice(b"hello");
 
-        let section = UnifiedExternalFuncSection::load(&section_data);
+        let section = UnifiedExternalFunctionSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
-        assert_eq!(section.items[0], UnifiedExternalFuncItem::new(0, 3, 11,));
-        assert_eq!(section.items[1], UnifiedExternalFuncItem::new(3, 5, 13,));
+        assert_eq!(section.items[0], UnifiedExternalFunctionItem::new(0, 3, 11,));
+        assert_eq!(section.items[1], UnifiedExternalFunctionItem::new(3, 5, 13,));
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
 
     #[test]
     fn test_save_section() {
         let items = vec![
-            UnifiedExternalFuncItem::new(0, 3, 11),
-            UnifiedExternalFuncItem::new(3, 5, 13),
+            UnifiedExternalFunctionItem::new(0, 3, 11),
+            UnifiedExternalFunctionItem::new(3, 5, 13),
         ];
 
-        let section = UnifiedExternalFuncSection {
+        let section = UnifiedExternalFunctionSection {
             items: &items,
             names_data: b"foohello",
         };
@@ -189,12 +189,12 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            UnifiedExternalFuncEntry::new("foobar".to_string(), 17),
-            UnifiedExternalFuncEntry::new("helloworld".to_string(), 19),
+            UnifiedExternalFunctionEntry::new("foobar".to_string(), 17),
+            UnifiedExternalFunctionEntry::new("helloworld".to_string(), 19),
         ];
 
-        let (items, names_data) = UnifiedExternalFuncSection::convert_from_entries(&entries);
-        let section = UnifiedExternalFuncSection {
+        let (items, names_data) = UnifiedExternalFunctionSection::convert_from_entries(&entries);
+        let section = UnifiedExternalFunctionSection {
             items: &items,
             names_data: &names_data,
         };

@@ -42,7 +42,7 @@ pub fn thread_id(thread_context: &mut ThreadContext) {
 
 pub fn thread_create(thread_context: &mut ThreadContext) {
     // ```
-    // fn (func_public_index:u32,
+    // fn (function_public_index:u32,
     //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
     // ```
 
@@ -68,7 +68,7 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     // get arguments
     let thread_start_data_length = thread_context.stack.pop_i32_u() as usize;
     let thread_start_data_address = thread_context.stack.pop_i32_u() as usize;
-    let func_public_index = thread_context.stack.pop_i32_u() as usize;
+    let function_public_index = thread_context.stack.pop_i32_u() as usize;
 
     // get the current module index
     let module_index = thread_context.pc.module_index;
@@ -82,7 +82,7 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     let child_thread_id = create_thread(
         mt_program,
         module_index,
-        func_public_index,
+        function_public_index,
         thread_start_data,
     );
 
@@ -392,7 +392,7 @@ mod tests {
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_single_function,
-            HelperFuncEntryWithSignatureAndLocalVars,
+            HelperFunctionEntryWithSignatureAndLocalVars,
         },
     };
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType};
@@ -458,7 +458,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
-            .append_opcode_i32(Opcode::i32_imm, 1) // func_public_index
+            .append_opcode_i32(Opcode::i32_imm, 1) // function_public_index
             .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address, no start data
             .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length, no start data
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
@@ -478,13 +478,13 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFuncEntryWithSignatureAndLocalVars {
+                HelperFunctionEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code0,
                 },
-                HelperFuncEntryWithSignatureAndLocalVars {
+                HelperFunctionEntryWithSignatureAndLocalVars {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars

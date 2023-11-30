@@ -195,8 +195,8 @@ fn do_recur(
     reversed_index: u16,
     start_inst_offset: u32,
 ) -> InterpretResult {
-    let is_func = thread_context.stack.reset_frames(reversed_index);
-    if is_func {
+    let is_function = thread_context.stack.reset_frames(reversed_index);
+    if is_function {
         // the target frame is a function frame
         // the value of 'start_inst_offset' is ignored.
         let ProgramCounter {
@@ -204,10 +204,10 @@ fn do_recur(
             function_internal_index,
             module_index,
         } = thread_context.pc;
-        let func_item = &thread_context.program_context.program_modules[module_index]
-            .func_section
+        let function_item = &thread_context.program_context.program_modules[module_index]
+            .function_section
             .items[function_internal_index];
-        let relate_offset = func_item.code_offset as isize - instruction_address as isize;
+        let relate_offset = function_item.code_offset as isize - instruction_address as isize;
         InterpretResult::Move(relate_offset)
     } else {
         // the target frame is a block frame

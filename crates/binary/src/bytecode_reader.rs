@@ -396,7 +396,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             Opcode::host_copy_from_heap | Opcode::host_copy_to_heap => {
                 (offset_param, String::new())
             }
-            Opcode::host_addr_func => {
+            Opcode::host_addr_function => {
                 let (o, idx) = read_param_i32(codes, offset_param);
                 (o, format!("idx:{}", idx))
             }

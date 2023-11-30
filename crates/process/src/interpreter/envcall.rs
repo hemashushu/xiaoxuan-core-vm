@@ -19,10 +19,10 @@ type EnvCallHandlerFunc = fn(&mut ThreadContext);
 fn unreachable(thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
     let func_item = &thread_context.program_context.program_modules[pc.module_index]
-        .func_section
+        .function_section
         .items[pc.function_internal_index];
     let codes = &thread_context.program_context.program_modules[pc.module_index]
-        .func_section
+        .function_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
     let code_text = print_bytecode_as_text(codes);

@@ -205,10 +205,9 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
     }
 }
 
-pub fn host_addr_func(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (param func_pub_index:i32) -> i64/i32
+pub fn host_addr_function(thread_context: &mut ThreadContext) -> InterpretResult {
+    // (param function_public_index:i32) -> i64/i32
 
-    // let function_public_index = thread_context.stack.pop_i32_u() as usize;
     let function_public_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
@@ -240,7 +239,7 @@ fn get_callback_function_ptr(
     }
 
     let type_index = thread_context.program_context.program_modules[target_module_index]
-        .func_section
+        .function_section
         .items[function_internal_index]
         .type_index;
     let (params, results) = thread_context.program_context.program_modules[target_module_index]
@@ -282,7 +281,7 @@ mod tests {
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
             helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
+            HelperExternalFunctionEntry, HelperFunctionEntryWithLocalVars,
         },
     };
 
@@ -974,7 +973,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_addr_func_and_callback_function() {
+    fn test_interpreter_host_addr_function_and_callback_function() {
         // C function in "lib-test-0.so.1"
         // ===============================
         // int do_something(int (*callback_func)(int), int a, int b)
@@ -1000,7 +999,7 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // .append_opcode_i32(Opcode::i32_imm, 1) // func1 index
-            .append_opcode_i32(Opcode::host_addr_func, 1) // get host address of the func1
+            .append_opcode_i32(Opcode::host_addr_function, 1) // get host address of the func1
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 2
@@ -1035,12 +1034,12 @@ mod tests {
                 }, // func1
             ], // types
             vec![
-                HelperFuncEntryWithLocalVars {
+                HelperFunctionEntryWithLocalVars {
                     type_index: 1,
                     local_variable_item_entries_without_args: vec![],
                     code: code0,
                 },
-                HelperFuncEntryWithLocalVars {
+                HelperFunctionEntryWithLocalVars {
                     type_index: 2,
                     local_variable_item_entries_without_args: vec![],
                     code: code1,

@@ -12,20 +12,19 @@ use ancvm_types::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 use super::InterpretResult;
 
 pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (operand external_func_index:i32) -> void/i32/i64/f32/f64
+    // (operand external_function_index:i32) -> void/i32/i64/f32/f64
     //
-    // the 'external_func_index' is the index within a specific module, it is not
-    // the 'unified_external_func_index'.
+    // the 'external_function_index' is the index within a specific module, it is not
+    // the 'unified_external_function_index'.
 
-    // let external_function_index = thread_context.stack.pop_i32_u() as usize;
     let external_function_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
     // get the unified external function index
     let (unified_external_function_index, type_index) = thread_context
         .program_context
-        .external_func_index_section
-        .get_item_unified_external_func_index_and_type_index(module_index, external_function_index);
+        .external_function_index_section
+        .get_item_unified_external_function_index_and_type_index(module_index, external_function_index);
 
     // get the data types of params and results of the external function
     let (param_datatypes, result_datatypes) = thread_context.program_context.program_modules
@@ -43,7 +42,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
         // the index of the unified external library
         let (external_function_name, unified_external_library_index) = thread_context
             .program_context
-            .unified_external_func_section
+            .unified_external_function_section
             .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
         // get the file path or name of the external library
@@ -121,7 +120,7 @@ mod tests {
         bytecode_writer::BytecodeWriter,
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
-            HelperExternalFunctionEntry, HelperFuncEntryWithLocalVars,
+            HelperExternalFunctionEntry, HelperFunctionEntryWithLocalVars,
         },
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
@@ -157,7 +156,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperFuncEntryWithLocalVars {
+            vec![HelperFunctionEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -208,7 +207,7 @@ mod tests {
                     results: vec![DataType::I64], // pointer
                 }, // main
             ], // types
-            vec![HelperFuncEntryWithLocalVars {
+            vec![HelperFunctionEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -265,7 +264,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperFuncEntryWithLocalVars {
+            vec![HelperFunctionEntryWithLocalVars {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,

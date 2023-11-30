@@ -254,7 +254,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
     ) -> (usize, usize) {
         let (target_module_index, function_internal_index) = self
             .program_context
-            .func_index_section
+            .function_index_section
             .get_item_target_module_index_and_function_internal_index(
                 module_index,
                 function_public_index,
@@ -269,13 +269,13 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         module_index: usize,
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
-        let func_item = &self.program_context.program_modules[module_index]
-            .func_section
+        let function_item = &self.program_context.program_modules[module_index]
+            .function_section
             .items[function_internal_index];
 
-        let type_index = func_item.type_index as usize;
-        let local_list_index = func_item.local_list_index as usize;
-        let code_offset = func_item.code_offset as usize;
+        let type_index = function_item.type_index as usize;
+        let local_list_index = function_item.local_list_index as usize;
+        let code_offset = function_item.code_offset as usize;
 
         let local_variables_allocate_bytes = self.program_context.program_modules[module_index]
             .local_variable_section
@@ -487,7 +487,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         } = self.pc;
 
         let codes_data = self.program_context.program_modules[module_index]
-            .func_section
+            .function_section
             .codes_data;
         let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]

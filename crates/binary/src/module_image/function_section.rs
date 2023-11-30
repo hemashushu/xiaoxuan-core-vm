@@ -18,31 +18,31 @@
 //              | ...                                                                                       |
 //              |-------------------------------------------------------------------------------------------|
 
-use ancvm_types::entry::FuncEntry;
+use ancvm_types::entry::FunctionEntry;
 
 use crate::utils::{load_section_with_table_and_data_area, save_section_with_table_and_data_area};
 
 use super::{ModuleSectionId, SectionEntry};
 
 #[derive(Debug, PartialEq)]
-pub struct FuncSection<'a> {
-    pub items: &'a [FuncItem],
+pub struct FunctionSection<'a> {
+    pub items: &'a [FunctionItem],
     pub codes_data: &'a [u8],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct FuncItem {
+pub struct FunctionItem {
     pub code_offset: u32,      // the offset of the code in data area
     pub code_length: u32,      // the length (in bytes) of the code in data area
     pub type_index: u32,       // the index of the type (of function)
     pub local_list_index: u32, // the index of the 'local variable list'
 }
 
-impl<'a> SectionEntry<'a> for FuncSection<'a> {
+impl<'a> SectionEntry<'a> for FunctionSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
-        let (items, codes_data) = load_section_with_table_and_data_area::<FuncItem>(section_data);
-        FuncSection { items, codes_data }
+        let (items, codes_data) = load_section_with_table_and_data_area::<FunctionItem>(section_data);
+        FunctionSection { items, codes_data }
     }
 
     fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -50,11 +50,11 @@ impl<'a> SectionEntry<'a> for FuncSection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::Func
+        ModuleSectionId::Function
     }
 }
 
-impl<'a> FuncSection<'a> {
+impl<'a> FunctionSection<'a> {
     pub fn get_item_type_index_and_local_variable_index_and_code(
         &'a self,
         idx: usize,
@@ -74,20 +74,20 @@ impl<'a> FuncSection<'a> {
     }
 
     // for inspect
-    pub fn get_func_entry(&self, idx: usize) -> FuncEntry {
-        let func_item = &self.items[idx];
-        let code = self.codes_data[func_item.code_offset as usize
-            ..(func_item.code_offset + func_item.code_length) as usize]
+    pub fn get_function_entry(&self, idx: usize) -> FunctionEntry {
+        let function_item = &self.items[idx];
+        let code = self.codes_data[function_item.code_offset as usize
+            ..(function_item.code_offset + function_item.code_length) as usize]
             .to_vec();
 
-        FuncEntry {
-            type_index: func_item.type_index as usize,
-            local_list_index: func_item.local_list_index as usize,
+        FunctionEntry {
+            type_index: function_item.type_index as usize,
+            local_list_index: function_item.local_list_index as usize,
             code,
         }
     }
 
-    pub fn convert_from_entries(entries: &[FuncEntry]) -> (Vec<FuncItem>, Vec<u8>) {
+    pub fn convert_from_entries(entries: &[FunctionEntry]) -> (Vec<FunctionItem>, Vec<u8>) {
         let mut next_offset: u32 = 0;
 
         let items = entries
@@ -96,14 +96,14 @@ impl<'a> FuncSection<'a> {
                 let code_offset = next_offset;
                 let code_length = entry.code.len() as u32;
                 next_offset += code_length; // for next offset
-                FuncItem::new(
+                FunctionItem::new(
                     code_offset,
                     code_length,
                     entry.type_index as u32,
                     entry.local_list_index as u32,
                 )
             })
-            .collect::<Vec<FuncItem>>();
+            .collect::<Vec<FunctionItem>>();
 
         let codes_data = entries
             .iter()
@@ -114,7 +114,7 @@ impl<'a> FuncSection<'a> {
     }
 }
 
-impl FuncItem {
+impl FunctionItem {
     pub fn new(code_offset: u32, code_length: u32, type_index: u32, local_list_index: u32) -> Self {
         Self {
             code_offset,
@@ -128,7 +128,7 @@ impl FuncItem {
 #[cfg(test)]
 mod tests {
     use crate::module_image::{
-        func_section::{FuncEntry, FuncItem, FuncSection},
+        function_section::{FunctionEntry, FunctionItem, FunctionSection},
         SectionEntry,
     };
 
@@ -151,19 +151,19 @@ mod tests {
 
         section_data.extend_from_slice(b"hello0123456789a");
 
-        let section = FuncSection::load(&section_data);
+        let section = FunctionSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
-        assert_eq!(section.items[0], FuncItem::new(3, 5, 7, 11));
-        assert_eq!(section.items[1], FuncItem::new(13, 17, 19, 23));
+        assert_eq!(section.items[0], FunctionItem::new(3, 5, 7, 11));
+        assert_eq!(section.items[1], FunctionItem::new(13, 17, 19, 23));
         assert_eq!(section.codes_data, b"hello0123456789a")
     }
 
     #[test]
     fn test_save_section() {
-        let items = vec![FuncItem::new(3, 5, 7, 11), FuncItem::new(13, 17, 19, 23)];
+        let items = vec![FunctionItem::new(3, 5, 7, 11), FunctionItem::new(13, 17, 19, 23)];
 
-        let section = FuncSection {
+        let section = FunctionSection {
             items: &items,
             codes_data: b"hello0123456789a",
         };
@@ -194,20 +194,20 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            FuncEntry {
+            FunctionEntry {
                 type_index: 7,
                 local_list_index: 9,
                 code: b"bar".to_vec(),
             },
-            FuncEntry {
+            FunctionEntry {
                 type_index: 11,
                 local_list_index: 13,
                 code: b"world".to_vec(),
             },
         ];
 
-        let (items, codes_data) = FuncSection::convert_from_entries(&entries);
-        let section = FuncSection {
+        let (items, codes_data) = FunctionSection::convert_from_entries(&entries);
+        let section = FunctionSection {
             items: &items,
             codes_data: &codes_data,
         };
