@@ -185,16 +185,16 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::UInt64(0x19171311_07050302u64),
-                ForeignValue::UInt32(0x80706050u32),
+                ForeignValue::U64(0x19171311_07050302u64),
+                ForeignValue::U32(0x80706050u32),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::UInt64(0xffffffff_80706050u64),
-                ForeignValue::UInt64(0x00000000_80706050u64),
-                ForeignValue::UInt32(0x07050302u32),
+                ForeignValue::U64(0xffffffff_80706050u64),
+                ForeignValue::U64(0x00000000_80706050u64),
+                ForeignValue::U32(0x07050302u32),
             ]
         );
     }
@@ -231,16 +231,16 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float64(std::f64::consts::PI),
-                ForeignValue::Float32(std::f32::consts::E),
+                ForeignValue::F64(std::f64::consts::PI),
+                ForeignValue::F32(std::f32::consts::E),
             ],
         );
 
         assert_eq!(
             result0.unwrap(),
             vec![
-                ForeignValue::Float64(std::f32::consts::E as f64),
-                ForeignValue::Float32(std::f64::consts::PI as f32),
+                ForeignValue::F64(std::f32::consts::E as f64),
+                ForeignValue::F32(std::f64::consts::PI as f32),
             ]
         );
     }
@@ -336,35 +336,35 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::Float32(2.236),
-                ForeignValue::Float64(3.162),
-                ForeignValue::Float32(-5.099),
-                ForeignValue::Float64(-7.071),
+                ForeignValue::F32(2.236),
+                ForeignValue::F64(3.162),
+                ForeignValue::F32(-5.099),
+                ForeignValue::F64(-7.071),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
                 // group 0
-                ForeignValue::UInt32(2),
-                ForeignValue::UInt32(2),
-                ForeignValue::UInt64(2),
-                ForeignValue::UInt64(2),
+                ForeignValue::U32(2),
+                ForeignValue::U32(2),
+                ForeignValue::U64(2),
+                ForeignValue::U64(2),
                 // group 1
-                ForeignValue::UInt32(3),
-                ForeignValue::UInt32(3),
-                ForeignValue::UInt64(3),
-                ForeignValue::UInt64(3),
+                ForeignValue::U32(3),
+                ForeignValue::U32(3),
+                ForeignValue::U64(3),
+                ForeignValue::U64(3),
                 // group 2
-                ForeignValue::UInt32(-5i32 as u32),
-                ForeignValue::UInt32(0),
-                ForeignValue::UInt64(-5i64 as u64),
-                ForeignValue::UInt64(0),
+                ForeignValue::U32(-5i32 as u32),
+                ForeignValue::U32(0),
+                ForeignValue::U64(-5i64 as u64),
+                ForeignValue::U64(0),
                 // group 3
-                ForeignValue::UInt32(-7i32 as u32),
-                ForeignValue::UInt32(0),
-                ForeignValue::UInt64(-7i64 as u64),
-                ForeignValue::UInt64(0),
+                ForeignValue::U32(-7i32 as u32),
+                ForeignValue::U32(0),
+                ForeignValue::U64(-7i64 as u64),
+                ForeignValue::U64(0),
             ]
         );
     }
@@ -457,10 +457,10 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::UInt32(11),
-                ForeignValue::UInt64(13),
-                ForeignValue::UInt32(-17i32 as u32),
-                ForeignValue::UInt64(-19i64 as u64),
+                ForeignValue::U32(11),
+                ForeignValue::U64(13),
+                ForeignValue::U32(-17i32 as u32),
+                ForeignValue::U64(-19i64 as u64),
             ],
         );
 
@@ -471,25 +471,25 @@ mod tests {
             result0.unwrap(),
             vec![
                 // group 0
-                ForeignValue::Float32(11.0),
-                ForeignValue::Float32(11.0),
-                ForeignValue::Float64(11.0),
-                ForeignValue::Float64(11.0),
+                ForeignValue::F32(11.0),
+                ForeignValue::F32(11.0),
+                ForeignValue::F64(11.0),
+                ForeignValue::F64(11.0),
                 // group 1
-                ForeignValue::Float32(13.0),
-                ForeignValue::Float32(13.0),
-                ForeignValue::Float64(13.0),
-                ForeignValue::Float64(13.0),
+                ForeignValue::F32(13.0),
+                ForeignValue::F32(13.0),
+                ForeignValue::F64(13.0),
+                ForeignValue::F64(13.0),
                 // group 2
-                ForeignValue::Float32(-17.0),
-                ForeignValue::Float32(-17i32 as u32 as f32),
-                ForeignValue::Float64(-17.0),
-                ForeignValue::Float64(-17i32 as u32 as f64),
+                ForeignValue::F32(-17.0),
+                ForeignValue::F32(-17i32 as u32 as f32),
+                ForeignValue::F64(-17.0),
+                ForeignValue::F64(-17i32 as u32 as f64),
                 // group 3
-                ForeignValue::Float32(-19.0),
-                ForeignValue::Float32(-19i64 as u64 as f32),
-                ForeignValue::Float64(-19.0),
-                ForeignValue::Float64(-19i64 as u64 as f64),
+                ForeignValue::F32(-19.0),
+                ForeignValue::F32(-19i64 as u64 as f32),
+                ForeignValue::F64(-19.0),
+                ForeignValue::F64(-19i64 as u64 as f64),
             ]
         );
     }

@@ -128,7 +128,7 @@ where
                                     as Box<dyn VMError + Send>);
                             }
 
-                            if let ForeignValue::UInt64(exit_code) = foreign_values[0] {
+                            if let ForeignValue::U64(exit_code) = foreign_values[0] {
                                 Ok(exit_code)
                             } else {
                                 Err(Box::new(InterpreterError::new(

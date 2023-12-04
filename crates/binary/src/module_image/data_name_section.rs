@@ -6,17 +6,17 @@
 
 // "data name section" binary layout
 //
-//              |----------------------------------------------------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                                                               |
-//              |----------------------------------------------------------------------------------------------------|
-//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | data_pub_index 0 (u32) | exported 0 (u8) | pad 3 bytes | <-- table
-//  item 1 -->  | name offset 1       | name length 1       | data_pub_index 1       | exported 1      | pad 3 bytes |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
-// offset 0 --> | name string 0 (UTF-8)                                                                              | <-- data area
-// offset 1 --> | name string 1                                                                                      |
-//              | ...                                                                                                |
-//              |----------------------------------------------------------------------------------------------------|
+//              |--------------------------------------------------------------------------------------------------|
+//              | item count (u32) | (4 bytes padding)                                                             |
+//              |--------------------------------------------------------------------------------------------------|
+//  item 0 -->  | name offset 0 (u32) | name length 0 (u32) | data_pub_index 0 (u32) | export 0 (u8) | pad 3 bytes | <-- table
+//  item 1 -->  | name offset 1       | name length 1       | data_pub_index 1       | export 1      | pad 3 bytes |
+//              | ...                                                                                              |
+//              |--------------------------------------------------------------------------------------------------|
+// offset 0 --> | name string 0 (UTF-8)                                                                            | <-- data area
+// offset 1 --> | name string 1                                                                                    |
+//              | ...                                                                                              |
+//              |--------------------------------------------------------------------------------------------------|
 
 use ancvm_types::entry::DataNameEntry;
 
@@ -36,17 +36,17 @@ pub struct DataNameItem {
     pub name_offset: u32,
     pub name_length: u32,
     pub data_public_index: u32,
-    pub exported: u8, // 0=false, 1=true
+    pub export: u8, // 0=false, 1=true
     _padding0: [u8; 3],
 }
 
 impl DataNameItem {
-    pub fn new(name_offset: u32, name_length: u32, data_public_index: u32, exported: u8) -> Self {
+    pub fn new(name_offset: u32, name_length: u32, data_public_index: u32, export: u8) -> Self {
         Self {
             name_offset,
             name_length,
             data_public_index,
-            exported,
+            export,
             _padding0: [0, 0, 0],
         }
     }
@@ -69,7 +69,7 @@ impl<'a> SectionEntry<'a> for DataNameSection<'a> {
 }
 
 impl<'a> DataNameSection<'a> {
-    pub fn get_item_index_and_exported(&'a self, expected_name: &str) -> Option<(usize, bool)> {
+    pub fn get_item_index_and_export(&'a self, expected_name: &str) -> Option<(usize, bool)> {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -83,14 +83,14 @@ impl<'a> DataNameSection<'a> {
 
         opt_idx.map(|idx| {
             let item = &items[idx];
-            (idx, item.exported != 0)
+            (idx, item.export != 0)
         })
     }
 
     pub fn convert_from_entries(entries: &[DataNameEntry]) -> (Vec<DataNameItem>, Vec<u8>) {
         let name_bytes = entries
             .iter()
-            .map(|entry| entry.name.as_bytes())
+            .map(|entry| entry.name_path.as_bytes())
             .collect::<Vec<&[u8]>>();
 
         let mut next_offset: u32 = 0;
@@ -107,7 +107,7 @@ impl<'a> DataNameSection<'a> {
                     name_offset,
                     name_length,
                     entry.data_public_index as u32,
-                    if entry.exported { 1 } else { 0 },
+                    if entry.export { 1 } else { 0 },
                 )
             })
             .collect::<Vec<DataNameItem>>();
@@ -150,13 +150,13 @@ mod tests {
             0, 0, 0, 0, // name offset (item 0)
             3, 0, 0, 0, // name length
             11, 0, 0, 0, // data pub index
-            0, // exported
+            0, // export
             0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
             5, 0, 0, 0, // name length
             13, 0, 0, 0, // data pub index
-            1, // exported
+            1, // export
             0, 0, 0, // padding
         ];
 
@@ -175,13 +175,13 @@ mod tests {
             0, 0, 0, 0, // name offset (item 0)
             3, 0, 0, 0, // name length
             11, 0, 0, 0, // data pub index
-            0, // exported
+            0, // export
             0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
             5, 0, 0, 0, // name length
             13, 0, 0, 0, // data pub index
-            1, // exported
+            1, // export
             0, 0, 0, // padding
         ];
 
@@ -209,13 +209,13 @@ mod tests {
             names_data: &names_data,
         };
 
-        assert_eq!(section.get_item_index_and_exported("foo"), Some((0, false)));
+        assert_eq!(section.get_item_index_and_export("foo"), Some((0, false)));
 
         assert_eq!(
-            section.get_item_index_and_exported("hello"),
+            section.get_item_index_and_export("hello"),
             Some((1, true))
         );
 
-        assert_eq!(section.get_item_index_and_exported("bar"), None);
+        assert_eq!(section.get_item_index_and_export("bar"), None);
     }
 }

@@ -70,10 +70,10 @@ pub const IMAGE_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_MINOR_VERSION: u16 = 0;
 pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
 
+pub mod entry;
 pub mod envcallcode;
 pub mod opcode;
 pub mod utils;
-pub mod entry;
 
 /// the raw data type of operands
 pub type Operand = [u8; 8];
@@ -136,7 +136,7 @@ pub enum MemoryDataType {
     I64,
     F32,
     F64,
-    BYTES,
+    Bytes,
 }
 
 #[repr(u8)]
@@ -150,9 +150,9 @@ pub enum DataSectionType {
 impl Display for DataSectionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            DataSectionType::ReadOnly => "read-only",
-            DataSectionType::ReadWrite => "read-write",
-            DataSectionType::Uninit => "unitialized",
+            DataSectionType::ReadOnly => "read_only",
+            DataSectionType::ReadWrite => "read_write",
+            DataSectionType::Uninit => "uninit",
         };
         f.write_str(name)
     }
@@ -163,37 +163,37 @@ impl Display for DataSectionType {
 // or returning values to the outside.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ForeignValue {
-    UInt32(u32),
-    UInt64(u64),
-    Float32(f32),
-    Float64(f64),
+    U32(u32),
+    U64(u64),
+    F32(f32),
+    F64(f64),
 }
 
 impl ForeignValue {
     pub fn as_u32(&self) -> u32 {
         match self {
-            ForeignValue::UInt32(v) => *v,
+            ForeignValue::U32(v) => *v,
             _ => panic!("The data type of the foreign value does not match."),
         }
     }
 
     pub fn as_u64(&self) -> u64 {
         match self {
-            ForeignValue::UInt64(v) => *v,
+            ForeignValue::U64(v) => *v,
             _ => panic!("The data type of the foreign value does not match."),
         }
     }
 
     pub fn as_f32(&self) -> f32 {
         match self {
-            ForeignValue::Float32(v) => *v,
+            ForeignValue::F32(v) => *v,
             _ => panic!("The data type of the foreign value does not match."),
         }
     }
 
     pub fn as_f64(&self) -> f64 {
         match self {
-            ForeignValue::Float64(v) => *v,
+            ForeignValue::F64(v) => *v,
             _ => panic!("The data type of the foreign value does not match."),
         }
     }
@@ -254,5 +254,3 @@ impl Display for ExternalLibraryType {
 pub trait VMError: Debug + Display {
     fn as_any(&self) -> &dyn Any;
 }
-
-

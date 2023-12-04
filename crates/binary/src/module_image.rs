@@ -878,7 +878,7 @@ mod tests {
 
         assert_eq!(
             local_var_section_restore.get_local_list(1),
-            &[LocalVariableItem::new(0, 12, MemoryDataType::BYTES, 4),]
+            &[LocalVariableItem::new(0, 12, MemoryDataType::Bytes, 4),]
         );
 
         let function_index_section_restore = module_image_restore.get_function_index_section();

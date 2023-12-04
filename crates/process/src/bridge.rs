@@ -121,12 +121,7 @@ pub fn get_function<T>(
     _exported_function_name: &str,
 ) -> Result<T, &'static str> {
     //
-    //
-    //
     // todo find the specified module and the exported function by name
-    //
-    //
-    //
     //
 
     let (target_module_index, function_internal_index) =
@@ -177,7 +172,7 @@ pub fn get_function<T>(
 pub fn get_data<T>(
     _thread_context: &mut ThreadContext,
     _module_name: &str,
-    _exported_function_name: &str,
+    _exported_data_name: &str,
 ) -> Result<T, &'static str> {
     // todo find the specified module and the exported function
     todo!()

@@ -6,13 +6,19 @@
 
 use crate::{DataSectionType, DataType, ExternalLibraryType, MemoryDataType, ModuleShareType};
 
+#[derive(Debug)]
 pub struct ModuleEntry {
     pub name: String,
     pub runtime_version_major: u16,
     pub runtime_version_minor: u16,
 
+    pub import_function_count: usize,
+    pub import_read_only_data_count: usize,
+    pub import_read_write_data_count: usize,
+    pub import_uninit_data_count: usize,
+
     pub constructor_function_public_index: Option<u32>,
-    pub destructor_function_public_index:Option<u32>,
+    pub destructor_function_public_index: Option<u32>,
 
     pub type_entries: Vec<TypeEntry>,
     pub local_list_entries: Vec<LocalListEntry>,
@@ -24,6 +30,16 @@ pub struct ModuleEntry {
 
     pub external_library_entries: Vec<ExternalLibraryEntry>,
     pub external_function_entries: Vec<ExternalFunctionEntry>,
+
+    // the dependencies
+    pub import_module_entries: Vec<ImportModuleEntry>,
+
+    // the import_function_entries, import_data_entries,
+    // function_name_entries, data_name_entries are
+    // used for linking.
+
+    pub import_function_entries: Vec<ImportFunctionEntry>,
+    pub import_data_entries: Vec<ImportDataEntry>,
 
     pub function_name_entries: Vec<FunctionNameEntry>,
     pub data_name_entries: Vec<DataNameEntry>,
@@ -48,12 +64,14 @@ pub struct TypeEntry {
 // both function and block can contains a 'local variables list'
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalListEntry {
-    pub variable_entries: Vec<LocalVariableEntry>,
+    pub local_variable_entries: Vec<LocalVariableEntry>,
 }
 
 impl LocalListEntry {
-    pub fn new(variable_entries: Vec<LocalVariableEntry>) -> Self {
-        Self { variable_entries }
+    pub fn new(local_variable_entries: Vec<LocalVariableEntry>) -> Self {
+        Self {
+            local_variable_entries,
+        }
     }
 }
 
@@ -102,7 +120,7 @@ impl LocalVariableEntry {
 
     pub fn from_bytes(length: u32, align: u16) -> Self {
         Self {
-            memory_data_type: MemoryDataType::BYTES,
+            memory_data_type: MemoryDataType::Bytes,
             length,
             align,
         }
@@ -125,7 +143,7 @@ pub struct FunctionEntry {
     pub code: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct InitedDataEntry {
     pub memory_data_type: MemoryDataType,
     pub data: Vec<u8>,
@@ -189,7 +207,7 @@ impl InitedDataEntry {
         let length = data.len() as u32;
 
         Self {
-            memory_data_type: MemoryDataType::BYTES,
+            memory_data_type: MemoryDataType::Bytes,
             data,
             length,
             align,
@@ -239,7 +257,7 @@ impl UninitDataEntry {
 
     pub fn from_bytes(length: u32, align: u16) -> Self {
         Self {
-            memory_data_type: MemoryDataType::BYTES,
+            memory_data_type: MemoryDataType::Bytes,
             length,
             align,
         }
@@ -304,15 +322,21 @@ impl ImportModuleEntry {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportFunctionEntry {
-    pub name: String,
+    // the original exported name path,
+    // includes the submodule name path, but excludes the module name.
+    //
+    // e.g.
+    // the name path of functon 'add' in module 'myapp' is 'add',
+    // the name path of function 'add' in submodule 'myapp:utils' is 'utils::add'.
+    pub name_path: String,
     pub import_module_index: usize,
     pub type_index: usize, // used for validation when linking
 }
 
 impl ImportFunctionEntry {
-    pub fn new(name: String, import_module_index: usize, type_index: usize) -> Self {
+    pub fn new(name_path: String, import_module_index: usize, type_index: usize) -> Self {
         Self {
-            name,
+            name_path,
             import_module_index,
             type_index,
         }
@@ -321,7 +345,13 @@ impl ImportFunctionEntry {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportDataEntry {
-    pub name: String,
+    // the original exported name path,
+    // includes the submodule name path, but excludes the module name.
+    //
+    // e.g.
+    // the name path of data 'buf' in module 'myapp' is 'buf',
+    // the name path of data 'buf' in submodule 'myapp:utils' is 'utils::buf'.
+    pub name_path: String,
     pub import_module_index: usize,
     pub data_section_type: DataSectionType, // for validation when linking
     pub memory_data_type: MemoryDataType,   // for validation when linking
@@ -329,13 +359,13 @@ pub struct ImportDataEntry {
 
 impl ImportDataEntry {
     pub fn new(
-        name: String,
+        name_path: String,
         import_module_index: usize,
         data_section_type: DataSectionType,
         memory_data_type: MemoryDataType,
     ) -> Self {
         Self {
-            name,
+            name_path,
             import_module_index,
             data_section_type,
             memory_data_type,
@@ -345,34 +375,46 @@ impl ImportDataEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionNameEntry {
-    pub name: String,
+    // the exported name path,
+    // includes the submodule name path, but excludes the module name.
+    //
+    // e.g.
+    // the name path of functon 'add' in module 'myapp' is 'add',
+    // the name path of function 'add' in submodule 'myapp:utils' is 'utils::add'.
+    pub name_path: String,
     pub function_public_index: usize,
-    pub exported: bool,
+    pub export: bool,
 }
 
 impl FunctionNameEntry {
-    pub fn new(name: String, function_public_index: usize, exported: bool) -> Self {
+    pub fn new(name_path: String, function_public_index: usize, export: bool) -> Self {
         Self {
-            name,
+            name_path,
             function_public_index,
-            exported,
+            export,
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct DataNameEntry {
-    pub name: String,
+    // the exported name path,
+    // includes the submodule name path, but excludes the module name.
+    //
+    // e.g.
+    // the name path of data 'buf' in module 'myapp' is 'buf',
+    // the name path of data 'buf' in submodule 'myapp:utils' is 'utils::buf'.
+    pub name_path: String,
     pub data_public_index: usize,
-    pub exported: bool,
+    pub export: bool,
 }
 
 impl DataNameEntry {
-    pub fn new(name: String, data_public_index: usize, exported: bool) -> Self {
+    pub fn new(name_path: String, data_public_index: usize, export: bool) -> Self {
         Self {
-            name,
+            name_path,
             data_public_index,
-            exported,
+            export,
         }
     }
 }

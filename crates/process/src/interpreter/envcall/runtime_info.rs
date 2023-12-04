@@ -90,7 +90,7 @@ mod tests {
 
         assert_eq!(
             result0.unwrap(),
-            vec![ForeignValue::UInt64(expect_version_number)]
+            vec![ForeignValue::U64(expect_version_number)]
         );
     }
 

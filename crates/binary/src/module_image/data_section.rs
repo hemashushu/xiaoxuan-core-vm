@@ -504,10 +504,10 @@ mod tests {
             &[
                 DataItem::new(0, 4, MemoryDataType::I32, 4),
                 DataItem::new(8, 8, MemoryDataType::I64, 8),
-                DataItem::new(16, 5, MemoryDataType::BYTES, 1),
+                DataItem::new(16, 5, MemoryDataType::Bytes, 1),
                 DataItem::new(24, 4, MemoryDataType::F32, 4),
                 DataItem::new(32, 8, MemoryDataType::F64, 8),
-                DataItem::new(40, 3, MemoryDataType::BYTES, 8),
+                DataItem::new(40, 3, MemoryDataType::Bytes, 8),
                 DataItem::new(48, 8, MemoryDataType::I64, 8),
                 DataItem::new(56, 4, MemoryDataType::I32, 4),
             ]
@@ -668,10 +668,10 @@ mod tests {
             &[
                 DataItem::new(0, 4, MemoryDataType::I32, 4),
                 DataItem::new(8, 8, MemoryDataType::I64, 8),
-                DataItem::new(16, 5, MemoryDataType::BYTES, 1),
+                DataItem::new(16, 5, MemoryDataType::Bytes, 1),
                 DataItem::new(24, 4, MemoryDataType::F32, 4),
                 DataItem::new(32, 8, MemoryDataType::F64, 8),
-                DataItem::new(40, 3, MemoryDataType::BYTES, 8),
+                DataItem::new(40, 3, MemoryDataType::Bytes, 8),
                 DataItem::new(48, 8, MemoryDataType::I64, 8),
                 DataItem::new(56, 4, MemoryDataType::I32, 4),
             ]

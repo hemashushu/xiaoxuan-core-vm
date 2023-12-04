@@ -99,7 +99,7 @@ impl<'a> ImportDataSection<'a> {
     pub fn convert_from_entries(entries: &[ImportDataEntry]) -> (Vec<ImportDataItem>, Vec<u8>) {
         let name_bytes = entries
             .iter()
-            .map(|entry| entry.name.as_bytes())
+            .map(|entry| entry.name_path.as_bytes())
             .collect::<Vec<&[u8]>>();
 
         let mut next_offset: u32 = 0;

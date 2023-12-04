@@ -201,8 +201,8 @@ mod tests {
 
         let pid = std::process::id();
 
-        assert!(matches!(result_values0[0], ForeignValue::UInt64(value) if value == pid as u64));
-        assert_eq!(result_values0[1], ForeignValue::UInt32(0));
+        assert!(matches!(result_values0[0], ForeignValue::U64(value) if value == pid as u64));
+        assert_eq!(result_values0[1], ForeignValue::U32(0));
     }
 
     #[test]
@@ -256,8 +256,8 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::UInt64(buf_addr),
-                ForeignValue::UInt32(BUF_LENGTH),
+                ForeignValue::U64(buf_addr),
+                ForeignValue::U32(BUF_LENGTH),
             ],
         );
 
@@ -271,9 +271,9 @@ mod tests {
         let null_pos = buf.iter().position(|u| *u == 0).unwrap();
 
         assert!(
-            matches!(results0[0], ForeignValue::UInt64(value) if value == (null_pos + 1) as u64)
+            matches!(results0[0], ForeignValue::U64(value) if value == (null_pos + 1) as u64)
         );
-        assert_eq!(results0[1], ForeignValue::UInt32(0));
+        assert_eq!(results0[1], ForeignValue::U32(0));
 
         let path0 = String::from_utf8_lossy(&buf[0..null_pos]);
         let cwd = std::env::current_dir().unwrap();
@@ -333,15 +333,15 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &[ForeignValue::UInt64(file_path_addr0 as u64)],
+            &[ForeignValue::U64(file_path_addr0 as u64)],
         );
         let results0 = result0.unwrap();
 
         assert_eq!(
             results0,
             vec![
-                ForeignValue::UInt64(0),
-                ForeignValue::UInt32(Errno::ENOENT as u32)
+                ForeignValue::U64(0),
+                ForeignValue::U32(Errno::ENOENT as u32)
             ]
         );
 
@@ -349,11 +349,11 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &[ForeignValue::UInt64(file_path_addr1 as u64)],
+            &[ForeignValue::U64(file_path_addr1 as u64)],
         );
         let results1 = result1.unwrap();
 
-        assert!(matches!(results1[0], ForeignValue::UInt64(value) if value > 0));
-        assert_eq!(results1[1], ForeignValue::UInt32(0));
+        assert!(matches!(results1[0], ForeignValue::U64(value) if value > 0));
+        assert_eq!(results1[1], ForeignValue::U32(0));
     }
 }

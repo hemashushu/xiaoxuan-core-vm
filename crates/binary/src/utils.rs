@@ -351,8 +351,8 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
     local_variables.extend_from_slice(&params_as_local_variables);
     local_variables.extend_from_slice(&local_variable_item_entries_without_args);
 
-    let local_var_list_entry = LocalListEntry {
-        variable_entries: local_variables,
+    let local_list_entry = LocalListEntry {
+        local_variable_entries: local_variables,
     };
 
     let function_entry = FunctionEntry {
@@ -367,7 +367,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
         read_write_data_entries,
         uninit_uninit_data_entries,
         vec![type_entry],
-        vec![local_var_list_entry],
+        vec![local_list_entry],
         vec![function_entry],
         vec![],
     )
@@ -432,7 +432,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let function_local_var_list_entries = helper_function_entries
+    let local_list_entries_of_functions = helper_function_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -446,12 +446,12 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
-                variable_entries: local_variables,
+                local_variable_entries: local_variables,
             }
         })
         .collect::<Vec<_>>();
 
-    let block_local_var_list_entries = helper_block_entries
+    let local_list_entries_of_blocks = helper_block_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -465,14 +465,14 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
             LocalListEntry {
-                variable_entries: local_variables,
+                local_variable_entries: local_variables,
             }
         })
         .collect::<Vec<_>>();
 
-    let mut local_var_list_entries = Vec::new();
-    local_var_list_entries.extend_from_slice(&function_local_var_list_entries);
-    local_var_list_entries.extend_from_slice(&block_local_var_list_entries);
+    let mut local_list_entries = Vec::new();
+    local_list_entries.extend_from_slice(&local_list_entries_of_functions);
+    local_list_entries.extend_from_slice(&local_list_entries_of_blocks);
 
     // build func entries
     let function_entries = helper_function_entries
@@ -491,7 +491,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
         vec![],
         vec![],
         type_entries,
-        local_var_list_entries,
+        local_list_entries,
         function_entries,
         vec![],
     )
@@ -501,16 +501,16 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
 #[allow(clippy::too_many_arguments)]
 pub fn helper_build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
-    helper_function_entries: Vec<HelperFunctionEntryWithLocalVars>,
+    helper_function_entries_with_local_vars: Vec<HelperFunctionEntryWithLocalVars>,
     read_only_data_entries: Vec<InitedDataEntry>,
     read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
     let mut function_entries = vec![];
-    let mut local_var_list_entries = vec![];
+    let mut local_list_entries = vec![];
 
-    helper_function_entries
+    helper_function_entries_with_local_vars
         .iter()
         .enumerate()
         .for_each(|(idx, entry)| {
@@ -524,8 +524,8 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
             local_variables.extend_from_slice(&params_as_local_variables);
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
-            let local_var_list_entry = LocalListEntry {
-                variable_entries: local_variables,
+            let local_list_entry = LocalListEntry {
+                local_variable_entries: local_variables,
             };
 
             let function_entry = FunctionEntry {
@@ -535,7 +535,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
             };
 
             function_entries.push(function_entry);
-            local_var_list_entries.push(local_var_list_entry);
+            local_list_entries.push(local_list_entry);
         });
 
     helper_build_module_binary(
@@ -544,7 +544,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
         read_write_data_entries,
         uninit_uninit_data_entries,
         type_entries,
-        local_var_list_entries,
+        local_list_entries,
         function_entries,
         helper_external_function_entries,
     )
@@ -558,7 +558,7 @@ pub fn helper_build_module_binary(
     read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
-    local_var_list_entries: Vec<LocalListEntry>, // this local list includes args
+    local_list_entries: Vec<LocalListEntry>, // this local list includes args
     function_entries: Vec<FunctionEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
@@ -597,11 +597,11 @@ pub fn helper_build_module_binary(
     };
 
     // build local variable section
-    let (local_var_lists, local_var_list_data) =
-        LocalVariableSection::convert_from_entries(&local_var_list_entries);
-    let local_var_section = LocalVariableSection {
-        lists: &local_var_lists,
-        list_data: &local_var_list_data,
+    let (local_lists, local_list_data) =
+        LocalVariableSection::convert_from_entries(&local_list_entries);
+    let local_variable_section = LocalVariableSection {
+        lists: &local_lists,
+        list_data: &local_list_data,
     };
 
     // build external library section
@@ -769,7 +769,7 @@ pub fn helper_build_module_binary(
         &uninit_data_section,
         &type_section,
         &function_section,
-        &local_var_section,
+        &local_variable_section,
         &external_library_section,
         &external_function_section,
     ];
@@ -895,7 +895,7 @@ mod tests {
         let rw_section = module_image.get_optional_read_write_data_section().unwrap();
         assert_eq!(
             &rw_section.items[0],
-            &DataItem::new(0, 6, MemoryDataType::BYTES, 8)
+            &DataItem::new(0, 6, MemoryDataType::Bytes, 8)
         );
         assert_eq!(
             &rw_section.datas_data[rw_section.items[0].data_offset as usize..][0..6],

@@ -298,14 +298,14 @@ mod tests {
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
         #[cfg(target_pointer_width = "64")]
-        if let ForeignValue::UInt64(addr) = fv {
+        if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::UInt32(addr) = fv {
+        if let ForeignValue::U32(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
@@ -315,14 +315,14 @@ mod tests {
 
     fn read_memory_i32(fv: ForeignValue) -> u32 {
         #[cfg(target_pointer_width = "64")]
-        if let ForeignValue::UInt64(addr) = fv {
+        if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::UInt32(addr) = fv {
+        if let ForeignValue::U32(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
@@ -332,14 +332,14 @@ mod tests {
 
     fn read_memory_i16(fv: ForeignValue) -> u16 {
         #[cfg(target_pointer_width = "64")]
-        if let ForeignValue::UInt64(addr) = fv {
+        if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::UInt32(addr) = fv {
+        if let ForeignValue::U32(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
@@ -349,14 +349,14 @@ mod tests {
 
     fn read_memory_i8(fv: ForeignValue) -> u8 {
         #[cfg(target_pointer_width = "64")]
-        if let ForeignValue::UInt64(addr) = fv {
+        if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
         #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::UInt32(addr) = fv {
+        if let ForeignValue::U32(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
@@ -963,8 +963,8 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::UInt64(src_ptr as usize as u64),
-                ForeignValue::UInt64(dst_ptr as usize as u64),
+                ForeignValue::U64(src_ptr as usize as u64),
+                ForeignValue::U64(dst_ptr as usize as u64),
             ],
         );
         result0.unwrap();
@@ -1080,16 +1080,16 @@ mod tests {
             &mut thread_context0,
             0,
             0,
-            &[ForeignValue::UInt32(11), ForeignValue::UInt32(13)],
+            &[ForeignValue::U32(11), ForeignValue::U32(13)],
         );
-        assert_eq!(result0.unwrap(), vec![ForeignValue::UInt32(11 * 2 + 13)]);
+        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11 * 2 + 13)]);
 
         let result1 = process_function(
             &mut thread_context0,
             0,
             0,
-            &[ForeignValue::UInt32(211), ForeignValue::UInt32(223)],
+            &[ForeignValue::U32(211), ForeignValue::U32(223)],
         );
-        assert_eq!(result1.unwrap(), vec![ForeignValue::UInt32(211 * 2 + 223)]);
+        assert_eq!(result1.unwrap(), vec![ForeignValue::U32(211 * 2 + 223)]);
     }
 }

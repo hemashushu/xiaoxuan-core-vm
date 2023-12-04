@@ -167,7 +167,7 @@ impl<'a> LocalVariableSection<'a> {
                 align: item.var_align,
             })
             .collect::<Vec<_>>();
-        LocalListEntry { variable_entries }
+        LocalListEntry { local_variable_entries: variable_entries }
     }
 
     pub fn convert_from_entries(entiress: &[LocalListEntry]) -> (Vec<LocalList>, Vec<u8>) {
@@ -184,7 +184,7 @@ impl<'a> LocalVariableSection<'a> {
                 let mut next_offset: u32 = 0;
 
                 let items = list_entry
-                    .variable_entries
+                    .local_variable_entries
                     .iter()
                     .map(|var_entry| {
                         let item = LocalVariableItem::new(
@@ -627,10 +627,10 @@ mod tests {
             list1,
             &[
                 LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
-                LocalVariableItem::new(8, 1, MemoryDataType::BYTES, 2),
+                LocalVariableItem::new(8, 1, MemoryDataType::Bytes, 2),
                 LocalVariableItem::new(16, 4, MemoryDataType::I32, 4),
-                LocalVariableItem::new(24, 6, MemoryDataType::BYTES, 12),
-                LocalVariableItem::new(32, 12, MemoryDataType::BYTES, 16),
+                LocalVariableItem::new(24, 6, MemoryDataType::Bytes, 12),
+                LocalVariableItem::new(32, 12, MemoryDataType::Bytes, 16),
                 LocalVariableItem::new(48, 4, MemoryDataType::I32, 4),
             ]
         );
@@ -641,7 +641,7 @@ mod tests {
         let list3 = section.get_local_list(3);
         assert_eq!(
             list3,
-            &[LocalVariableItem::new(0, 1, MemoryDataType::BYTES, 4),]
+            &[LocalVariableItem::new(0, 1, MemoryDataType::Bytes, 4),]
         );
 
         let list4 = section.get_local_list(4);

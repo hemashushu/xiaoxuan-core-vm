@@ -488,10 +488,10 @@ pub fn process_function(
     //                    \-----/
     for value in arguments {
         match value {
-            ForeignValue::UInt32(value) => thread_context.stack.push_i32_u(*value),
-            ForeignValue::UInt64(value) => thread_context.stack.push_i64_u(*value),
-            ForeignValue::Float32(value) => thread_context.stack.push_f32(*value),
-            ForeignValue::Float64(value) => thread_context.stack.push_f64(*value),
+            ForeignValue::U32(value) => thread_context.stack.push_i32_u(*value),
+            ForeignValue::U64(value) => thread_context.stack.push_i64_u(*value),
+            ForeignValue::F32(value) => thread_context.stack.push_f32(*value),
+            ForeignValue::F64(value) => thread_context.stack.push_f64(*value),
         }
     }
 
@@ -535,22 +535,22 @@ pub fn process_function(
         .iter()
         .enumerate()
         .map(|(idx, dt)| match dt {
-            DataType::I32 => ForeignValue::UInt32(u32::from_le_bytes(
+            DataType::I32 => ForeignValue::U32(u32::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::I64 => ForeignValue::UInt64(u64::from_le_bytes(
+            DataType::I64 => ForeignValue::U64(u64::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::F32 => ForeignValue::Float32(f32::from_le_bytes(
+            DataType::F32 => ForeignValue::F32(f32::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::F64 => ForeignValue::Float64(f64::from_le_bytes(
+            DataType::F64 => ForeignValue::F64(f64::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
                     .try_into()
                     .unwrap(),
