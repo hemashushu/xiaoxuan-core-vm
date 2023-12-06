@@ -123,6 +123,7 @@ use crate::{
 use self::{
     data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
+    exit_function_list_section::ExitFunctionListSection,
     external_function_index_section::ExternalFunctionIndexSection,
     external_function_section::ExternalFunctionSection,
     external_library_section::ExternalLibrarySection,
@@ -131,6 +132,7 @@ use self::{
     import_function_section::ImportFunctionSection,
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
+    start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
 };
@@ -201,25 +203,25 @@ pub enum ModuleSectionId {
     ReadWriteData,       // 0x21
     UninitData,          // 0x22
 
-    // optional, for debuging and linking
+    // optional (for debug and link only)
     ImportModule = 0x30, // 0x30
     ImportFunction,      // 0x31
-    FunctionName,        // 0x32
-    ImportData,          // 0x33
+    ImportData,          // 0x32
+    FunctionName,        // 0x33
     DataName,            // 0x34
     ExternalLibrary,     // 0x35
     ExternalFunction,    // 0x36
 
-    // essential indices
+    // essential (application only)
     FunctionIndex = 0x40, // 0x40
+    StartFunctionList,    // 0x41
+    ExitFunctionList,     // 0x42
 
-    // optional indeces
+    // optional (application only)
     DataIndex = 0x50,        // 0x50
     UnifiedExternalLibrary,  // 0x51
     UnifiedExternalFunction, // 0x52
     ExternalFunctionIndex,   // 0x53 (mapping 'external function' to 'unified external function')
-    StartFunctionList,       // 0x54
-    ExitFunctionList,        // 0x55
 }
 
 // use for data index section and function index section
@@ -482,6 +484,24 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
+    // essential section
+    pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
+            .map_or_else(
+                || panic!("Can not find the start function list section."),
+                StartFunctionListSection::load,
+            )
+    }
+
+    // essential section
+    pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
+            .map_or_else(
+                || panic!("Can not find the exit function list section."),
+                ExitFunctionListSection::load,
+            )
+    }
+
     // optional section
     pub fn get_optional_read_only_data_section(&'a self) -> Option<ReadOnlyDataSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ReadOnlyData)
@@ -500,55 +520,13 @@ impl<'a> ModuleImage<'a> {
             .map(UninitDataSection::load)
     }
 
-    // optional section
-    pub fn get_optional_import_module_section(&'a self) -> Option<ImportModuleSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ImportModule)
-            .map(ImportModuleSection::load)
-    }
-
-    // optional section
-    pub fn get_optional_import_function_section(&'a self) -> Option<ImportFunctionSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ImportFunction)
-            .map(ImportFunctionSection::load)
-    }
-
-    // optional section
-    pub fn get_optional_import_data_section(&'a self) -> Option<ImportDataSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ImportData)
-            .map(ImportDataSection::load)
-    }
-
-    // optional section
-    pub fn get_optional_function_name_section(&'a self) -> Option<FunctionNameSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::FunctionName)
-            .map(FunctionNameSection::load)
-    }
-
-    // optional section
-    pub fn get_optional_data_name_section(&'a self) -> Option<DataNameSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::DataName)
-            .map(DataNameSection::load)
-    }
-
-    // optional
-    pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ExternalLibrary)
-            .map(ExternalLibrarySection::load)
-    }
-
-    // optional
-    pub fn get_optional_external_function_section(&'a self) -> Option<ExternalFunctionSection<'a>> {
-        self.get_section_data_by_id(ModuleSectionId::ExternalFunction)
-            .map(ExternalFunctionSection::load)
-    }
-
-    // optional
+    // optional section (application only)
     pub fn get_optional_data_index_section(&'a self) -> Option<DataIndexSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::DataIndex)
             .map(DataIndexSection::load)
     }
 
-    // optional
+    // optional section (application only)
     pub fn get_optional_unified_external_library_section(
         &'a self,
     ) -> Option<UnifiedExternalLibrarySection<'a>> {
@@ -556,7 +534,7 @@ impl<'a> ModuleImage<'a> {
             .map(UnifiedExternalLibrarySection::load)
     }
 
-    // optional
+    // optional section (application only)
     pub fn get_optional_unified_external_function_section(
         &'a self,
     ) -> Option<UnifiedExternalFunctionSection<'a>> {
@@ -564,12 +542,54 @@ impl<'a> ModuleImage<'a> {
             .map(UnifiedExternalFunctionSection::load)
     }
 
-    // optional
+    // optional section (application only)
     pub fn get_optional_external_function_index_section(
         &'a self,
     ) -> Option<ExternalFunctionIndexSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFunctionIndex)
             .map(ExternalFunctionIndexSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_import_module_section(&'a self) -> Option<ImportModuleSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportModule)
+            .map(ImportModuleSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_import_function_section(&'a self) -> Option<ImportFunctionSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportFunction)
+            .map(ImportFunctionSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_import_data_section(&'a self) -> Option<ImportDataSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ImportData)
+            .map(ImportDataSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_function_name_section(&'a self) -> Option<FunctionNameSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::FunctionName)
+            .map(FunctionNameSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_data_name_section(&'a self) -> Option<DataNameSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::DataName)
+            .map(DataNameSection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_external_library_section(&'a self) -> Option<ExternalLibrarySection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalLibrary)
+            .map(ExternalLibrarySection::load)
+    }
+
+    // optional section (for debug and link only)
+    pub fn get_optional_external_function_section(&'a self) -> Option<ExternalFunctionSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ExternalFunction)
+            .map(ExternalFunctionSection::load)
     }
 }
 

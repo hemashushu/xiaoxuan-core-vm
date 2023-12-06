@@ -562,6 +562,28 @@ pub fn helper_build_module_binary(
     function_entries: Vec<FunctionEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
 ) -> Vec<u8> {
+    // build type section
+    let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
+    let type_section = TypeSection {
+        items: &type_items,
+        types_data: &types_data,
+    };
+
+    // build local variable section
+    let (local_lists, local_list_data) =
+        LocalVariableSection::convert_from_entries(&local_list_entries);
+    let local_variable_section = LocalVariableSection {
+        lists: &local_lists,
+        list_data: &local_list_data,
+    };
+
+    // build function section
+    let (function_items, codes_data) = FunctionSection::convert_from_entries(&function_entries);
+    let function_section = FunctionSection {
+        items: &function_items,
+        codes_data: &codes_data,
+    };
+
     // build read-only data section
     let (ro_items, ro_data) = ReadOnlyDataSection::convert_from_entries(&read_only_data_entries);
     let ro_data_section = ReadOnlyDataSection {
@@ -580,28 +602,6 @@ pub fn helper_build_module_binary(
     let uninit_items = UninitDataSection::convert_from_entries(&uninit_uninit_data_entries);
     let uninit_data_section = UninitDataSection {
         items: &uninit_items,
-    };
-
-    // build type section
-    let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
-    let type_section = TypeSection {
-        items: &type_items,
-        types_data: &types_data,
-    };
-
-    // build function section
-    let (function_items, codes_data) = FunctionSection::convert_from_entries(&function_entries);
-    let function_section = FunctionSection {
-        items: &function_items,
-        codes_data: &codes_data,
-    };
-
-    // build local variable section
-    let (local_lists, local_list_data) =
-        LocalVariableSection::convert_from_entries(&local_list_entries);
-    let local_variable_section = LocalVariableSection {
-        lists: &local_lists,
-        list_data: &local_list_data,
     };
 
     // build external library section
@@ -624,7 +624,9 @@ pub fn helper_build_module_binary(
         .map(|library_and_function_entry| {
             let library_index = external_library_entries
                 .iter()
-                .position(|library_entry| library_entry.name == library_and_function_entry.library_name)
+                .position(|library_entry| {
+                    library_entry.name == library_and_function_entry.library_name
+                })
                 .unwrap();
             ExternalFunctionEntry::new(
                 library_and_function_entry.function_name.clone(),
@@ -638,6 +640,24 @@ pub fn helper_build_module_binary(
     let external_function_section = ExternalFunctionSection {
         items: &external_function_items,
         names_data: &external_function_data,
+    };
+
+    // build function index
+    let function_ranges: Vec<RangeItem> = vec![RangeItem {
+        offset: 0,
+        count: function_entries.len() as u32,
+    }];
+
+    let function_index_items: Vec<FunctionIndexItem> = (0..function_entries.len())
+        .map(|idx| {
+            let idx_u32 = idx as u32;
+            FunctionIndexItem::new(idx_u32, 0, idx_u32)
+        })
+        .collect::<Vec<_>>();
+
+    let function_index_section = FunctionIndexSection {
+        ranges: &function_ranges,
+        items: &function_index_items,
     };
 
     // build data index
@@ -682,24 +702,6 @@ pub fn helper_build_module_binary(
     let data_index_section = DataIndexSection {
         ranges: &data_ranges,
         items: &data_index_items,
-    };
-
-    // build function index
-    let function_ranges: Vec<RangeItem> = vec![RangeItem {
-        offset: 0,
-        count: function_entries.len() as u32,
-    }];
-
-    let function_index_items: Vec<FunctionIndexItem> = (0..function_entries.len())
-        .map(|idx| {
-            let idx_u32 = idx as u32;
-            FunctionIndexItem::new(idx_u32, 0, idx_u32)
-        })
-        .collect::<Vec<_>>();
-
-    let function_index_section = FunctionIndexSection {
-        ranges: &function_ranges,
-        items: &function_index_items,
     };
 
     // build unified external library section
@@ -758,18 +760,18 @@ pub fn helper_build_module_binary(
     // build module image
     let section_entries: Vec<&dyn SectionEntry> = vec![
         // index sections
-        &data_index_section,
         &function_index_section,
         &unified_external_library_section,
         &unified_external_function_section,
         &external_function_index_section,
+        &data_index_section,
         // common sections
+        &type_section,
+        &local_variable_section,
+        &function_section,
         &ro_data_section,
         &rw_data_section,
         &uninit_data_section,
-        &type_section,
-        &function_section,
-        &local_variable_section,
         &external_library_section,
         &external_function_section,
     ];
@@ -801,8 +803,9 @@ mod tests {
         load_modules_from_binaries,
         module_image::{
             data_index_section::DataIndexItem, data_section::DataItem,
-            external_function_index_section::ExternalFunctionIndexItem, function_index_section::FunctionIndexItem,
-            local_variable_section::LocalVariableItem, RangeItem,
+            external_function_index_section::ExternalFunctionIndexItem,
+            function_index_section::FunctionIndexItem, local_variable_section::LocalVariableItem,
+            RangeItem,
         },
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
@@ -871,7 +874,10 @@ mod tests {
 
         assert_eq!(&function_index_section.ranges[0], &RangeItem::new(0, 1));
 
-        assert_eq!(function_index_section.items, &[FunctionIndexItem::new(0, 0, 0)]);
+        assert_eq!(
+            function_index_section.items,
+            &[FunctionIndexItem::new(0, 0, 0)]
+        );
 
         // check data sections
         let ro_section = module_image.get_optional_read_only_data_section().unwrap();
@@ -1113,7 +1119,9 @@ mod tests {
         );
 
         // check external function section
-        let external_function_section = module_image.get_optional_external_function_section().unwrap();
+        let external_function_section = module_image
+            .get_optional_external_function_section()
+            .unwrap();
         assert_eq!(
             external_function_section.get_item_name_and_external_library_index_and_type_index(0),
             ("getuid", 0, 1)

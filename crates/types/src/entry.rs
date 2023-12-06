@@ -53,6 +53,8 @@ pub struct IndexEntry {
     pub unified_external_library_entries: Vec<UnifiedExternalLibraryEntry>,
     pub unified_external_function_entries: Vec<UnifiedExternalFunctionEntry>,
     pub external_function_index_module_entries: Vec<ExternalFunctionIndexModuleEntry>,
+    pub start_function_index_entries: Vec<ModuleFunctionIndexEntry>,
+    pub exit_function_index_entries: Vec<ModuleFunctionIndexEntry>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -451,7 +453,7 @@ impl FunctionIndexModuleEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DataIndexEntry {
     pub data_public_index: usize,
     pub target_module_index: usize,
@@ -516,10 +518,13 @@ impl UnifiedExternalFunctionEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ExternalFunctionIndexEntry {
     pub external_function_index: usize,
     pub unified_external_function_index: usize,
+
+    // copy the type_index from ExternalFuncSection of the specific module,
+    // so that the ExternalFuncSection can be omitted at runtime.
     pub type_index: usize,
 }
 
@@ -548,7 +553,7 @@ impl ExternalFunctionIndexModuleEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ModuleFunctionIndexEntry {
     pub module_index: usize,
     pub function_public_index: usize,
