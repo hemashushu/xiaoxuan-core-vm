@@ -90,7 +90,7 @@
 pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
-pub mod exit_function_list_section;
+// pub mod exit_function_list_section;
 pub mod external_function_index_section;
 pub mod external_function_section;
 pub mod external_library_section;
@@ -101,7 +101,7 @@ pub mod import_data_section;
 pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
-pub mod start_function_list_section;
+// pub mod start_function_list_section;
 pub mod type_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
@@ -123,7 +123,7 @@ use crate::{
 use self::{
     data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
-    exit_function_list_section::ExitFunctionListSection,
+    // exit_function_list_section::ExitFunctionListSection,
     external_function_index_section::ExternalFunctionIndexSection,
     external_function_section::ExternalFunctionSection,
     external_library_section::ExternalLibrarySection,
@@ -132,7 +132,7 @@ use self::{
     import_function_section::ImportFunctionSection,
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
-    start_function_list_section::StartFunctionListSection,
+    // start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
 };
@@ -214,8 +214,8 @@ pub enum ModuleSectionId {
 
     // essential (application only)
     FunctionIndex = 0x40, // 0x40
-    StartFunctionList,    // 0x41
-    ExitFunctionList,     // 0x42
+    // StartFunctionList,    // 0x41
+    // ExitFunctionList,     // 0x42
 
     // optional (application only)
     DataIndex = 0x50,        // 0x50
@@ -475,7 +475,7 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
-    // essential section
+    // essential section (application only)
     pub fn get_function_index_section(&'a self) -> FunctionIndexSection<'a> {
         self.get_section_data_by_id(ModuleSectionId::FunctionIndex)
             .map_or_else(
@@ -484,23 +484,23 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
-    // essential section
-    pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
-            .map_or_else(
-                || panic!("Can not find the start function list section."),
-                StartFunctionListSection::load,
-            )
-    }
-
-    // essential section
-    pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
-            .map_or_else(
-                || panic!("Can not find the exit function list section."),
-                ExitFunctionListSection::load,
-            )
-    }
+    //     // essential section
+    //     pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
+    //         self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
+    //             .map_or_else(
+    //                 || panic!("Can not find the start function list section."),
+    //                 StartFunctionListSection::load,
+    //             )
+    //     }
+    //
+    //     // essential section
+    //     pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
+    //         self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
+    //             .map_or_else(
+    //                 || panic!("Can not find the exit function list section."),
+    //                 ExitFunctionListSection::load,
+    //             )
+    //     }
 
     // optional section
     pub fn get_optional_read_only_data_section(&'a self) -> Option<ReadOnlyDataSection<'a>> {
