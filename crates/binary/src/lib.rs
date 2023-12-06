@@ -37,11 +37,10 @@ impl VMError for BinaryError {
     fn as_any(&self) -> &dyn Any {
         self
     }
-
-    // fn get_message(&self) -> &str {
-    //     &self.message
-    // }
 }
+
+// impl std::error::Error for BinaryError {
+// }
 
 pub fn load_modules_from_binaries(
     module_binaries: Vec<&[u8]>,

@@ -710,6 +710,7 @@ mod tests {
             0,
             &[ForeignValue::F64(1.414), ForeignValue::F64(4.123)],
         );
+
         assert_eq!(
             result0.unwrap(),
             vec![

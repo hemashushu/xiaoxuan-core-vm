@@ -35,21 +35,19 @@ pub struct DataIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct DataIndexItem {
-    // the index of data item
+    // the index of data item in public
     //
-    // this index includes (and in the following order):
+    // the data public index includes (and are sorted by the following order):
     //
     // - imported read-only data items
     // - internal read-only data items
-    //
     // - imported read-write data items
     // - internal read-write data items
-    //
     // - imported uninitilized data items
     // - internal uninitilized data items
     //
     // this field is REDUNDANT because its value always starts
-    // from 0 to the total number of items within [a certain range | a module].
+    // from 0 to the total number of items within a certain range/module.
     pub data_public_index: u32,
 
     // target module index
@@ -59,10 +57,16 @@ pub struct DataIndexItem {
     //
     // this index is the actual index of the internal data item in a specified data section
     // i.e., it excludes the imported data items, and it is section relevant.
+    //
+    // e.g.
+    // there are indices 0,1,2,3... in read-only section, and
+    // there are also indices 0,1,2,3... in read-write section, and
+    // there are also indices 0,1,2,3... in uninitialized section.
     pub data_internal_index: u32,
 
     // u8, target data section, i.e. 0=READ_ONLY, 1=READ_WRITE, 2=UNINIT
     pub target_data_section_type: DataSectionType,
+
     _padding0: [u8; 3],
 }
 

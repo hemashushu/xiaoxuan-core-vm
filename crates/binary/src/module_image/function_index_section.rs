@@ -35,12 +35,17 @@ pub struct FunctionIndexSection<'a> {
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FunctionIndexItem {
-    // the index of function item, includes the imported functions and internal functions.
-    // 'function public index' equals to
-    // 'amount of imported functions' + 'function internal index'
+    // the index of function item in public
+    //
+    // the function public index includes (and are sorted by the following order):
+    // - the imported functions
+    // - the internal functions
+    //
+    // the value of 'function public index' is equal to:
+    // 'the amount of imported functions' + 'function internal index'
     //
     // this field is REDUNDANT because its value always starts
-    // from 0 to the total number of items within [a certain range | a module].
+    // from 0 to the total number of items within a certain range/module.
     pub function_public_index: u32,
 
     // target module index

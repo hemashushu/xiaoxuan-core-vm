@@ -124,8 +124,7 @@ where
                             if foreign_values.len() != 1 {
                                 return Err(Box::new(InterpreterError::new(
                                     InterpreterErrorType::ResultsAmountMissmatch,
-                                ))
-                                    as Box<dyn VMError + Send>);
+                                )) as Box<dyn VMError>);
                             }
 
                             if let ForeignValue::U64(exit_code) = foreign_values[0] {
@@ -133,16 +132,15 @@ where
                             } else {
                                 Err(Box::new(InterpreterError::new(
                                     InterpreterErrorType::DataTypeMissmatch,
-                                ))
-                                    as Box<dyn VMError + Send>)
+                                )) as Box<dyn VMError>)
                             }
                         }
-                        Err(e) => Err(Box::new(e) as Box<dyn VMError + Send>),
+                        Err(e) => Err(Box::new(e) as Box<dyn VMError>),
                     }
                 }
                 Err(e) => {
                     // Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>
-                    Err(Box::new(e) as Box<dyn VMError + Send>)
+                    Err(Box::new(e) as Box<dyn VMError>)
                 }
             }
         })
@@ -166,7 +164,7 @@ where
 pub fn run_program_in_multithread<T>(
     program_source: T,
     thread_start_data: Vec<u8>,
-) -> Result<u64, Box<dyn VMError + Send>>
+) -> Result<u64, Box<dyn VMError>>
 where
     T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
 {

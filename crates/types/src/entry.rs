@@ -37,7 +37,6 @@ pub struct ModuleEntry {
     // the import_function_entries, import_data_entries,
     // function_name_entries, data_name_entries are
     // used for linking.
-
     pub import_function_entries: Vec<ImportFunctionEntry>,
     pub import_data_entries: Vec<ImportDataEntry>,
 
@@ -45,6 +44,7 @@ pub struct ModuleEntry {
     pub data_name_entries: Vec<DataNameEntry>,
 }
 
+#[derive(Debug)]
 pub struct IndexEntry {
     // essential
     pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
@@ -419,7 +419,7 @@ impl DataNameEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FunctionIndexEntry {
     pub function_public_index: usize,
     pub target_module_index: usize,
@@ -440,7 +440,7 @@ impl FunctionIndexEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FunctionIndexModuleEntry {
     pub index_entries: Vec<FunctionIndexEntry>,
 }
@@ -545,5 +545,20 @@ pub struct ExternalFunctionIndexModuleEntry {
 impl ExternalFunctionIndexModuleEntry {
     pub fn new(index_entries: Vec<ExternalFunctionIndexEntry>) -> Self {
         Self { index_entries }
+    }
+}
+
+#[derive(Debug)]
+pub struct ModuleFunctionIndexEntry {
+    pub module_index: usize,
+    pub function_public_index: usize,
+}
+
+impl ModuleFunctionIndexEntry {
+    pub fn new(module_index: usize, function_public_index: usize) -> Self {
+        Self {
+            module_index,
+            function_public_index,
+        }
     }
 }

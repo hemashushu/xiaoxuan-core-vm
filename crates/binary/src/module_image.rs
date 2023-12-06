@@ -90,6 +90,7 @@
 pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
+pub mod exit_function_list_section;
 pub mod external_function_index_section;
 pub mod external_function_section;
 pub mod external_library_section;
@@ -100,6 +101,7 @@ pub mod import_data_section;
 pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
+pub mod start_function_list_section;
 pub mod type_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
@@ -216,6 +218,8 @@ pub enum ModuleSectionId {
     UnifiedExternalLibrary,  // 0x51
     UnifiedExternalFunction, // 0x52
     ExternalFunctionIndex,   // 0x53 (mapping 'external function' to 'unified external function')
+    StartFunctionList,       // 0x54
+    ExitFunctionList,        // 0x55
 }
 
 // use for data index section and function index section
@@ -249,6 +253,22 @@ pub struct RangeItem {
 impl RangeItem {
     pub fn new(offset: u32, count: u32) -> Self {
         Self { offset, count }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct ModuleFunctionIndexItem {
+    pub module_index: u32,
+    pub function_public_index: u32,
+}
+
+impl ModuleFunctionIndexItem {
+    pub fn new(module_index: u32, function_public_index: u32) -> Self {
+        Self {
+            module_index,
+            function_public_index,
+        }
     }
 }
 
@@ -312,8 +332,10 @@ impl<'a> ModuleImage<'a> {
             ));
         }
 
-        let constructor_function_public_index = unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
-        let destructor_function_public_index = unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
+        let constructor_function_public_index =
+            unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
+        let destructor_function_public_index =
+            unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
 
         let name_length = unsafe { std::ptr::read(ptr.offset(24) as *const u16) };
         let name_bytes = &image_data[28..(28 + (name_length as usize))];
@@ -555,8 +577,8 @@ impl<'a> ModuleImage<'a> {
 mod tests {
     use ancvm_types::{
         entry::{
-            FunctionEntry, FunctionIndexEntry, FunctionIndexModuleEntry, LocalListEntry, LocalVariableEntry,
-            TypeEntry,
+            FunctionEntry, FunctionIndexEntry, FunctionIndexModuleEntry, LocalListEntry,
+            LocalVariableEntry, TypeEntry,
         },
         DataType, MemoryDataType,
     };

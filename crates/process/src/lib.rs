@@ -121,15 +121,14 @@ impl VMError for InterpreterError {
     fn as_any(&self) -> &dyn Any {
         self
     }
-
-    // fn get_message(&self) -> &str {
-    //     &self.message
-    // }
 }
+
+// impl std::error::Error for InterpreterError {
+// }
 
 pub struct ChildThread {
     // the child thread on host will return the 'thread_exit_code'
-    pub join_handle: JoinHandle<Result<u64, Box<dyn VMError + Send>>>,
+    pub join_handle: JoinHandle<Result<u64, Box<dyn VMError>>>,
 
     // the receiver to the child thread
     pub rx: Receiver<Vec<u8>>,

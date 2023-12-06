@@ -63,7 +63,7 @@ impl ProgramSource for InMemoryProgramSource {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{utils::helper_build_module_binary_with_single_function_and_data_sections,};
+    use ancvm_binary::utils::helper_build_module_binary_with_single_function_and_data_sections;
     use ancvm_program::{
         program_source::ProgramSource, resizeable_memory::ResizeableMemory,
         thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES,

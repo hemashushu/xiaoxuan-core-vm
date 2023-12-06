@@ -251,6 +251,6 @@ impl Display for ExternalLibraryType {
 /// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
 /// - https://doc.rust-lang.org/std/any/
 /// - https://bennett.dev/rust/downcast-trait-object/
-pub trait VMError: Debug + Display {
+pub trait VMError: Debug + Display + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 }
