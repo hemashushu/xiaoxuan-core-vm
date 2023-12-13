@@ -70,8 +70,8 @@ fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
         .items[pc.function_internal_index];
     let codes = &thread_context.program_context.program_modules[pc.module_index]
         .function_section
-        .codes_data
-        [function_item.code_offset as usize..(function_item.code_offset + function_item.code_length) as usize];
+        .codes_data[function_item.code_offset as usize
+        ..(function_item.code_offset + function_item.code_length) as usize];
     let code_text = print_bytecode_as_text(codes);
 
     unreachable!(
@@ -293,6 +293,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::i32_xor as usize] = bitwise::i32_xor;
     interpreters[Opcode::i32_not as usize] = bitwise::i32_not;
     interpreters[Opcode::i32_leading_zeros as usize] = bitwise::i32_leading_zeros;
+    interpreters[Opcode::i32_leading_ones as usize] = bitwise::i32_leading_ones;
     interpreters[Opcode::i32_trailing_zeros as usize] = bitwise::i32_trailing_zeros;
     interpreters[Opcode::i32_count_ones as usize] = bitwise::i32_count_ones;
     interpreters[Opcode::i32_shift_left as usize] = bitwise::i32_shift_left;
@@ -305,6 +306,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::i64_xor as usize] = bitwise::i64_xor;
     interpreters[Opcode::i64_not as usize] = bitwise::i64_not;
     interpreters[Opcode::i64_leading_zeros as usize] = bitwise::i64_leading_zeros;
+    interpreters[Opcode::i64_leading_ones as usize] = bitwise::i64_leading_ones;
     interpreters[Opcode::i64_trailing_zeros as usize] = bitwise::i64_trailing_zeros;
     interpreters[Opcode::i64_count_ones as usize] = bitwise::i64_count_ones;
     interpreters[Opcode::i64_shift_left as usize] = bitwise::i64_shift_left;
@@ -314,21 +316,25 @@ fn init_interpreters_internal() {
     interpreters[Opcode::i64_rotate_right as usize] = bitwise::i64_rotate_right;
 
     // math
+    interpreters[Opcode::i32_abs as usize] = math::i32_abs;
+    interpreters[Opcode::i32_neg as usize] = math::i32_neg;
+    interpreters[Opcode::i64_abs as usize] = math::i64_abs;
+    interpreters[Opcode::i64_neg as usize] = math::i64_neg;
+    //
     interpreters[Opcode::f32_abs as usize] = math::f32_abs;
     interpreters[Opcode::f32_neg as usize] = math::f32_neg;
     interpreters[Opcode::f32_ceil as usize] = math::f32_ceil;
     interpreters[Opcode::f32_floor as usize] = math::f32_floor;
     interpreters[Opcode::f32_round_half_away_from_zero as usize] =
         math::f32_round_half_away_from_zero;
+    interpreters[Opcode::f32_round_half_to_even as usize] = math::f32_round_half_to_even;
     interpreters[Opcode::f32_trunc as usize] = math::f32_trunc;
     interpreters[Opcode::f32_fract as usize] = math::f32_fract;
     interpreters[Opcode::f32_sqrt as usize] = math::f32_sqrt;
     interpreters[Opcode::f32_cbrt as usize] = math::f32_cbrt;
-    interpreters[Opcode::f32_pow as usize] = math::f32_pow;
     interpreters[Opcode::f32_exp as usize] = math::f32_exp;
     interpreters[Opcode::f32_exp2 as usize] = math::f32_exp2;
     interpreters[Opcode::f32_ln as usize] = math::f32_ln;
-    interpreters[Opcode::f32_log as usize] = math::f32_log;
     interpreters[Opcode::f32_log2 as usize] = math::f32_log2;
     interpreters[Opcode::f32_log10 as usize] = math::f32_log10;
     interpreters[Opcode::f32_sin as usize] = math::f32_sin;
@@ -337,21 +343,26 @@ fn init_interpreters_internal() {
     interpreters[Opcode::f32_asin as usize] = math::f32_asin;
     interpreters[Opcode::f32_acos as usize] = math::f32_acos;
     interpreters[Opcode::f32_atan as usize] = math::f32_atan;
+    interpreters[Opcode::f32_copysign as usize] = math::f32_copysign;
+    interpreters[Opcode::f32_pow as usize] = math::f32_pow;
+    interpreters[Opcode::f32_log as usize] = math::f32_log;
+    interpreters[Opcode::f32_min as usize] = math::f32_min;
+    interpreters[Opcode::f32_max as usize] = math::f32_max;
+
     interpreters[Opcode::f64_abs as usize] = math::f64_abs;
     interpreters[Opcode::f64_neg as usize] = math::f64_neg;
     interpreters[Opcode::f64_ceil as usize] = math::f64_ceil;
     interpreters[Opcode::f64_floor as usize] = math::f64_floor;
     interpreters[Opcode::f64_round_half_away_from_zero as usize] =
         math::f64_round_half_away_from_zero;
+    interpreters[Opcode::f64_round_half_to_even as usize] = math::f64_round_half_to_even;
     interpreters[Opcode::f64_trunc as usize] = math::f64_trunc;
     interpreters[Opcode::f64_fract as usize] = math::f64_fract;
     interpreters[Opcode::f64_sqrt as usize] = math::f64_sqrt;
     interpreters[Opcode::f64_cbrt as usize] = math::f64_cbrt;
-    interpreters[Opcode::f64_pow as usize] = math::f64_pow;
     interpreters[Opcode::f64_exp as usize] = math::f64_exp;
     interpreters[Opcode::f64_exp2 as usize] = math::f64_exp2;
     interpreters[Opcode::f64_ln as usize] = math::f64_ln;
-    interpreters[Opcode::f64_log as usize] = math::f64_log;
     interpreters[Opcode::f64_log2 as usize] = math::f64_log2;
     interpreters[Opcode::f64_log10 as usize] = math::f64_log10;
     interpreters[Opcode::f64_sin as usize] = math::f64_sin;
@@ -360,6 +371,11 @@ fn init_interpreters_internal() {
     interpreters[Opcode::f64_asin as usize] = math::f64_asin;
     interpreters[Opcode::f64_acos as usize] = math::f64_acos;
     interpreters[Opcode::f64_atan as usize] = math::f64_atan;
+    interpreters[Opcode::f64_copysign as usize] = math::f64_copysign;
+    interpreters[Opcode::f64_pow as usize] = math::f64_pow;
+    interpreters[Opcode::f64_log as usize] = math::f64_log;
+    interpreters[Opcode::f64_min as usize] = math::f64_min;
+    interpreters[Opcode::f64_max as usize] = math::f64_max;
 
     // control flow
     interpreters[Opcode::end as usize] = control_flow::end;
@@ -446,7 +462,6 @@ pub fn process_function(
     function_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
-
     // initialize interpreters
     init_interpreters();
 

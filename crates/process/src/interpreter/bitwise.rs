@@ -38,6 +38,12 @@ pub fn i32_leading_zeros(thread_context: &mut ThreadContext) -> InterpretResult 
     InterpretResult::Move(2)
 }
 
+pub fn i32_leading_ones(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_i32_u(thread_context);
+    store_i32_u(thread_context, v.leading_ones());
+    InterpretResult::Move(2)
+}
+
 pub fn i32_trailing_zeros(thread_context: &mut ThreadContext) -> InterpretResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.trailing_zeros());
@@ -112,6 +118,12 @@ pub fn i64_not(thread_context: &mut ThreadContext) -> InterpretResult {
 pub fn i64_leading_zeros(thread_context: &mut ThreadContext) -> InterpretResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.leading_zeros()); // the result of 'clz' is u32
+    InterpretResult::Move(2)
+}
+
+pub fn i64_leading_ones(thread_context: &mut ThreadContext) -> InterpretResult {
+    let v = load_operand_i64_u(thread_context);
+    store_i32_u(thread_context, v.leading_ones()); // the result of 'cls' is u32
     InterpretResult::Move(2)
 }
 
@@ -252,11 +264,13 @@ mod tests {
         //
         //   group 3:
         //   - not       0        -> 0x00ffff00
-        //   - lz        2        -> 8
-        //   - tz        2        -> 20
+        //   - cls       0        -> 8
+        //   - cls       1        -> 4
+        //   - clz       2        -> 8
+        //   - ctz       2        -> 20
         //   - ones      2        -> 4
         //
-        // (i32 i32 i32 i32) -> (i32 i32 i32  i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32)
+        // (i32 i32 i32 i32) -> (i32 i32 i32  i32 i32 i32  i32 i32 i32 i32  i32 i32 i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
             // group 0
@@ -295,6 +309,10 @@ mod tests {
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode(Opcode::i32_not)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode(Opcode::i32_leading_ones)
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode(Opcode::i32_leading_ones)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
             .append_opcode(Opcode::i32_leading_zeros)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
@@ -321,6 +339,8 @@ mod tests {
                 DataType::I32,
                 DataType::I32,
                 //
+                DataType::I32,
+                DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -365,6 +385,8 @@ mod tests {
                 // group 3
                 ForeignValue::U32(0x00ffff00),
                 ForeignValue::U32(8),
+                ForeignValue::U32(4),
+                ForeignValue::U32(8),
                 ForeignValue::U32(20),
                 ForeignValue::U32(4),
             ]
@@ -398,11 +420,13 @@ mod tests {
         //
         //   group 3:
         //   - not       0        -> 0x00ff00ff_ff00ff00
-        //   - lz        2        -> 16
-        //   - tz        2        -> 40
+        //   - cls       0        -> 8
+        //   - cls       1        -> 4
+        //   - clz       2        -> 16
+        //   - ctz       2        -> 40
         //   - ones      2        -> 8
         //
-        // (i64 i64 i64 i64) -> (i64 i64 i64  i64 i64 i64  i64 i64 i64 i64  i64 i32 i32 i32)
+        // (i64 i64 i64 i64) -> (i64 i64 i64  i64 i64 i64  i64 i64 i64 i64  i64 i32 i32 i32 i32 i32)
 
         let code0 = BytecodeWriter::new()
             // group 0
@@ -441,6 +465,10 @@ mod tests {
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_not)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode(Opcode::i64_leading_ones)
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode(Opcode::i64_leading_ones)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_leading_zeros)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
@@ -468,6 +496,8 @@ mod tests {
                 DataType::I64,
                 //
                 DataType::I64,
+                DataType::I32,
+                DataType::I32,
                 DataType::I32,
                 DataType::I32,
                 DataType::I32,
@@ -510,6 +540,8 @@ mod tests {
                 ForeignValue::U64(0x00ff0000_00000000),
                 // group 3
                 ForeignValue::U64(0x00ff00ff_ff00ff00),
+                ForeignValue::U32(8),
+                ForeignValue::U32(4),
                 ForeignValue::U32(16),
                 ForeignValue::U32(40),
                 ForeignValue::U32(8),

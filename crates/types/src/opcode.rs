@@ -501,7 +501,6 @@ pub enum Opcode {
                                 // wrapping inc, e.g. 0xffff_ffff inc 2 = 1
     i32_dec,                    // (param amount:i16) (operand number:i32) -> i32
                                 // wrapping dec, e.g. 0x1 dec 2 = 0xffff_ffff
-
     // remainder vs modulus
     // --------------------
     // The remainder (%) operator returns the remainder left over when one operand is
@@ -598,6 +597,7 @@ pub enum Opcode {
     i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
     i32_not,                    // bitwise NOT                  (operand number:i32) -> i32
     i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
+    i32_leading_ones,           // count leading zeros          (operand number:i32) -> i32
     i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
     i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
 
@@ -643,18 +643,26 @@ pub enum Opcode {
     i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
     i64_not,                    // (operand number:i64) -> i64
     i64_leading_zeros,          // (operand number:i64) -> i32
+    i64_leading_ones,           // (operand number:i64) -> i32
     i64_trailing_zeros,         // (operand number:i64) -> i32
     i64_count_ones,             // (operand number:i64) -> i32
 
     //
     // math
     //
+
+    i32_abs,
+    i32_neg,
+
+    i64_abs,
+    i64_neg,
+
     f32_abs = 0x900,                // (operand number:f32) -> f32
     f32_neg,                        // (operand number:f32) -> f32
     f32_ceil,                       // (operand number:f32) -> f32
     f32_floor,                      // (operand number:f32) -> f32
     f32_round_half_away_from_zero,  // (operand number:f32) -> f32
-    // f32_round_half_to_even,      // (operand number:f32) -> f32
+    f32_round_half_to_even,         // (operand number:f32) -> f32
     f32_trunc,                  // the integer part of x            (operand number:f32) -> f32
     f32_fract,                  // the fractional part of  x        (operand number:f32) -> f32
     f32_sqrt,                   // sqrt(x)                          (operand number:f32) -> f32
@@ -670,8 +678,11 @@ pub enum Opcode {
     f32_asin,                   // (operand number:f32) -> f32
     f32_acos,                   // (operand number:f32) -> f32
     f32_atan,                   // (operand number:f32) -> f32
+    f32_copysign,               // (operand num:f32 sign:f32) -> f32
     f32_pow,                    // left^right                       (operand left:f32 right:f32) -> f32
     f32_log,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
+    f32_min,                    // (operand left:f32 right:f32) -> f32
+    f32_max,                    // (operand left:f32 right:f32) -> f32
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -686,7 +697,7 @@ pub enum Opcode {
     f64_ceil,                       // (operand number:f64) -> f64
     f64_floor,                      // (operand number:f64) -> f64
     f64_round_half_away_from_zero,  // (operand number:f64) -> f64
-    // f64_round_half_to_even,      // (operand number:f64) -> f64
+    f64_round_half_to_even,         // (operand number:f64) -> f64
     f64_trunc,                  // (operand number:f64) -> f64
     f64_fract,                  // (operand number:f64) -> f64
     f64_sqrt,                   // (operand number:f64) -> f64
@@ -702,8 +713,11 @@ pub enum Opcode {
     f64_asin,                   // (operand number:f64) -> f64
     f64_acos,                   // (operand number:f64) -> f64
     f64_atan,                   // (operand number:f64) -> f64
+    f64_copysign,               // (operand num:f32 sign:f32) -> f32
     f64_pow,                    // (operand left:f32 right:f32) -> f64
     f64_log,                    // (operand left:f32 right:f32) -> f64
+    f64_min,                    // (operand left:f32 right:f32) -> f64
+    f64_max,                    // (operand left:f32 right:f32) -> f64
 
     //
     // control flow
