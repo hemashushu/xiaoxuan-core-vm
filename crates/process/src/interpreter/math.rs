@@ -1006,13 +1006,13 @@ mod tests {
         //
         //   - ceil     2   -> 3.0
         //   - ceil     4   -> 3.0
-        //   - ceil     5   -> -2.0
-        //   - ceil     7   -> -2.0
+        //   - ceil     6   -> -2.0
+        //   - ceil     8   -> -2.0
         //
         //   - floor    2   -> 2.0
         //   - floor    4   -> 2.0
-        //   - floor    5   -> -3.0
-        //   - floor    7   -> -3.0
+        //   - floor    6   -> -3.0
+        //   - floor    8   -> -3.0
         //
         //   - round_half_away_from_zero    2   -> 2.0
         //   - round_half_away_from_zero    3   -> 3.0
@@ -1225,9 +1225,9 @@ mod tests {
         //   - 4: 9.0
         //   - 5: -3.0
         //   - 6: -9.0
-        //   - 5: 100.0
-        //   - 6: 2.718281828               // std::f64::consts::E
-        //   - 7: 0.523598776   (deg 30)    // std::f64::consts::FRAC_PI_6
+        //   - 7: 100.0
+        //   - 8: 2.718281828               // std::f64::consts::E
+        //   - 9: 0.523598776   (deg 30)    // std::f64::consts::FRAC_PI_6
         //
         // functions:
         //   group 0:

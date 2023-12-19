@@ -170,31 +170,35 @@ pub enum ForeignValue {
 }
 
 impl ForeignValue {
-    pub fn as_u32(&self) -> u32 {
-        match self {
-            ForeignValue::U32(v) => *v,
-            _ => panic!("The data type of the foreign value does not match."),
+    pub fn as_u32(&self) -> Option<u32> {
+        if let ForeignValue::U32(v) = self {
+            Some(*v)
+        } else {
+            None
         }
     }
 
-    pub fn as_u64(&self) -> u64 {
-        match self {
-            ForeignValue::U64(v) => *v,
-            _ => panic!("The data type of the foreign value does not match."),
+    pub fn as_u64(&self) -> Option<u64> {
+        if let ForeignValue::U64(v) = self {
+            Some(*v)
+        } else {
+            None
         }
     }
 
-    pub fn as_f32(&self) -> f32 {
-        match self {
-            ForeignValue::F32(v) => *v,
-            _ => panic!("The data type of the foreign value does not match."),
+    pub fn as_f32(&self) -> Option<f32> {
+        if let ForeignValue::F32(v) = self {
+            Some(*v)
+        } else {
+            None
         }
     }
 
-    pub fn as_f64(&self) -> f64 {
-        match self {
-            ForeignValue::F64(v) => *v,
-            _ => panic!("The data type of the foreign value does not match."),
+    pub fn as_f64(&self) -> Option<f64> {
+        if let ForeignValue::F64(v) = self {
+            Some(*v)
+        } else {
+            None
         }
     }
 }
