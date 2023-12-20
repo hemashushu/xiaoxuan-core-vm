@@ -404,8 +404,9 @@ fn init_interpreters_internal() {
     interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
     interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
     interpreters[Opcode::host_addr_function as usize] = host::host_addr_function;
-    interpreters[Opcode::host_copy_from_heap as usize] = host::host_copy_from_heap;
-    interpreters[Opcode::host_copy_to_heap as usize] = host::host_copy_to_heap;
+    interpreters[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;
+    interpreters[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
+    interpreters[Opcode::host_memory_copy as usize] = host::host_memory_copy;
 }
 
 pub fn process_next_instruction(thread_context: &mut ThreadContext) -> InterpretResult {

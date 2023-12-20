@@ -151,7 +151,7 @@ pub fn host_addr_heap(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
-pub fn host_copy_from_heap(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn host_copy_heap_to_memory(thread_context: &mut ThreadContext) -> InterpretResult {
     // copy data from VM heap to host memory
     // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
 
@@ -171,7 +171,7 @@ pub fn host_copy_from_heap(thread_context: &mut ThreadContext) -> InterpretResul
     InterpretResult::Move(2)
 }
 
-pub fn host_copy_to_heap(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn host_copy_memory_to_heap(thread_context: &mut ThreadContext) -> InterpretResult {
     // copy data from host memory to VM heap
     // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
 
@@ -184,6 +184,25 @@ pub fn host_copy_to_heap(thread_context: &mut ThreadContext) -> InterpretResult 
         std::ptr::copy(
             src_host_ptr as *const u8,
             dst_heap_ptr,
+            length_in_bytes as usize,
+        )
+    };
+
+    InterpretResult::Move(2)
+}
+
+pub fn host_memory_copy(thread_context: &mut ThreadContext) -> InterpretResult {
+    // copy data between host memory
+    // (operand dst_pointer:i64 src_pointer:i64 length_in_bytes:i64)
+
+    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let src_host_ptr = thread_context.stack.pop_i64_u();
+    let dst_host_ptr = thread_context.stack.pop_i64_u();
+
+    unsafe {
+        std::ptr::copy(
+            src_host_ptr as *const u8,
+            dst_host_ptr as *mut u8,
             length_in_bytes as usize,
         )
     };
@@ -925,12 +944,70 @@ mod tests {
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
-            .append_opcode(Opcode::host_copy_to_heap)
+            .append_opcode(Opcode::host_copy_memory_to_heap)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
-            .append_opcode(Opcode::host_copy_from_heap)
+            .append_opcode(Opcode::host_copy_heap_to_memory)
+            //
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        #[cfg(target_pointer_width = "64")]
+        let param_datatypes = vec![DataType::I64, DataType::I64];
+
+        #[cfg(target_pointer_width = "32")]
+        let param_datatypes = vec![DataType::I32, DataType::I32];
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            param_datatypes, // params
+            vec![],          // results
+            vec![],          // local vars
+            code0,
+        );
+
+        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program0 = program_source0.build_program().unwrap();
+        let mut thread_context0 = program0.create_thread_context();
+
+        let src_buf: &[u8; 8] = b"hello.vm";
+        let dst_buf: [u8; 8] = [0; 8];
+
+        let src_ptr = src_buf.as_ptr();
+        let dst_ptr = dst_buf.as_ptr();
+
+        let result0 = process_function(
+            &mut thread_context0,
+            0,
+            0,
+            &[
+                ForeignValue::U64(src_ptr as usize as u64),
+                ForeignValue::U64(dst_ptr as usize as u64),
+            ],
+        );
+        result0.unwrap();
+
+        assert_eq!(&dst_buf, b"hello.vm");
+    }
+
+    #[test]
+    fn test_interpreter_host_memory_copy() {
+        // fn(src_ptr, dst_ptr) -> ()
+
+        // copy src_ptr -> dst_ptr
+        //
+        // src_ptr                  dst_ptr
+        // host |01234567|      --> host |01234567|
+
+        let code0 = BytecodeWriter::new()
+            // dst ptr
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            // src ptr
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            // length
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .append_opcode(Opcode::host_memory_copy)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

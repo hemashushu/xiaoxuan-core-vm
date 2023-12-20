@@ -288,8 +288,9 @@ impl Opcode {
             Opcode::host_addr_data => "host.addr_data",
             Opcode::host_addr_data_long => "host.addr_data_long",
             Opcode::host_addr_heap => "host.addr_heap",
-            Opcode::host_copy_from_heap => "host.copy_from_heap",
-            Opcode::host_copy_to_heap => "host.copy_to_heap",
+            Opcode::host_copy_heap_to_memory => "host.copy_heap_to_memory",
+            Opcode::host_copy_memory_to_heap => "host.copy_memory_to_heap",
+            Opcode::host_memory_copy => "host.memory_copy",
             Opcode::host_addr_function => "host.addr_function",
         }
     }

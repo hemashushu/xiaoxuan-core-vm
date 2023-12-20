@@ -1441,11 +1441,14 @@ pub enum Opcode {
     // }
     // ```
 
-    host_copy_from_heap,        // copy data from VM heap to host memory
+    host_copy_heap_to_memory,   // copy data from VM heap to host memory
                                 // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
                                 //
-    host_copy_to_heap,          // copy data from host memory to VM heap
+    host_copy_memory_to_heap,   // copy data from host memory to VM heap
                                 // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64) -> ()
+
+    host_memory_copy,           // copy data between host memory
+                                // (operand dst_pointer:i64 src_pointer:i64 length_in_bytes:i64) -> ()
 
     //
     // SIMD/Vectorization
