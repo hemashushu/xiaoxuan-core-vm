@@ -9,7 +9,8 @@
 // when a syscall complete, the return value is stored in the 'rax' register,
 // if the operation failed, the value is a negative value (rax < 0).
 // in the C std lib, this negative value will be transmuted to a positive number (-rax)
-// and stores in the thread-local symbol:
+// and stores in a private thread-local variable 'errno' in the section '.tbss',
+// the address of the variable can be obtained by the `libc` function:
 //
 // - '__errno_location' on linux (redox, fuchsia)
 // - '__error' on freebas (ios, macos)

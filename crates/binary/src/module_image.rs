@@ -9,28 +9,27 @@
 //
 // - function type section
 //   the signature of a function, the types are also applied to the code blocks and external functions.
-// - function section
 // - local variable section
 //   a function is consists of a type, a local variable list, and instructions
+// - function section
 // - data sections
 //   there are 3 kinds of data sections: read-only, read-write, uninit(ialized)
 //   all data are thread-local, so the read-write section will be cloned and the
 //   uninitialized section will be allocated when a new thread is created.
-// - auto function index list section
-//   presists the index of these functions:
-//   - which executes before application start (constructor function, one per module)
-//   - which executes before application exit (destructor function, one per module)
-//   - the entry function (main function)
+// - start function index list section
+//   aka constructor functions (one constructor per module), which are executed before the 'main' function
+// - exit function index list section
+//   aka destructor functions (one destructor per module), which are executed after the 'main' function
 // - import module section
 // - import function section
-// - function name section
 // - import data section
+// - function name section
 // - data name section
 // - external library section
 // - external function section
 // - external function name section
 
-// a minimal module only requires 3 sections:
+// a base module only requires 3 sections:
 //
 // - function type section
 // - local variable section
@@ -39,29 +38,32 @@
 // and there are optional sections:
 // - read-only data section
 // - read-write data section
-// - uninitial data section
+// - uninitialized data section
 //
 // the following sections are not required during the runtime, they are generally used for debuging
 // and linking.
 //
+// - import module section
 // - import function section
-// - function name section
 // - import data section
+// - function name section
 // - data name section
 // - external library section
 // - external function section
 // - external function name section
 
 // in the stage of linking modules (which follows the stage compiling), all imports and exports
-// are resolved and stored the indices in the following sections,
-// this help speeding up the program loading:
+// are resolved and stored the indices in the following sections:
 //
 // - func index section
+// - start func list section
+// - exit func list section
 // - data index section (optional)
 // - unified external library section (optional)
 // - unified external functon section (optional)
 // - external function index section (optional)
 //
+// these sections help speeding up the program loading,
 // note that only the application main module contains these sections.
 
 // about the design of module:
@@ -90,7 +92,7 @@
 pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
-// pub mod exit_function_list_section;
+pub mod exit_function_list_section;
 pub mod external_function_index_section;
 pub mod external_function_section;
 pub mod external_library_section;
@@ -101,7 +103,7 @@ pub mod import_data_section;
 pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
-// pub mod start_function_list_section;
+pub mod start_function_list_section;
 pub mod type_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
@@ -123,7 +125,7 @@ use crate::{
 use self::{
     data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
-    // exit_function_list_section::ExitFunctionListSection,
+    exit_function_list_section::ExitFunctionListSection,
     external_function_index_section::ExternalFunctionIndexSection,
     external_function_section::ExternalFunctionSection,
     external_library_section::ExternalLibrarySection,
@@ -132,7 +134,7 @@ use self::{
     import_function_section::ImportFunctionSection,
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
-    // start_function_list_section::StartFunctionListSection,
+    start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
 };
@@ -214,8 +216,8 @@ pub enum ModuleSectionId {
 
     // essential (application only)
     FunctionIndex = 0x40, // 0x40
-    // StartFunctionList,    // 0x41
-    // ExitFunctionList,     // 0x42
+    StartFunctionList,    // 0x41
+    ExitFunctionList,     // 0x42
 
     // optional (application only)
     DataIndex = 0x50,        // 0x50
@@ -255,22 +257,6 @@ pub struct RangeItem {
 impl RangeItem {
     pub fn new(offset: u32, count: u32) -> Self {
         Self { offset, count }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq)]
-pub struct ModuleFunctionIndexItem {
-    pub module_index: u32,
-    pub function_public_index: u32,
-}
-
-impl ModuleFunctionIndexItem {
-    pub fn new(module_index: u32, function_public_index: u32) -> Self {
-        Self {
-            module_index,
-            function_public_index,
-        }
     }
 }
 
@@ -484,23 +470,23 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
-    //     // essential section
-    //     pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
-    //         self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
-    //             .map_or_else(
-    //                 || panic!("Can not find the start function list section."),
-    //                 StartFunctionListSection::load,
-    //             )
-    //     }
-    //
-    //     // essential section
-    //     pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
-    //         self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
-    //             .map_or_else(
-    //                 || panic!("Can not find the exit function list section."),
-    //                 ExitFunctionListSection::load,
-    //             )
-    //     }
+    // essential section (application only)
+    pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
+            .map_or_else(
+                || panic!("Can not find the start function list section."),
+                StartFunctionListSection::load,
+            )
+    }
+
+    // essential section (application only)
+    pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
+        self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
+            .map_or_else(
+                || panic!("Can not find the exit function list section."),
+                ExitFunctionListSection::load,
+            )
+    }
 
     // optional section
     pub fn get_optional_read_only_data_section(&'a self) -> Option<ReadOnlyDataSection<'a>> {
@@ -604,9 +590,11 @@ mod tests {
     };
 
     use crate::module_image::{
+        exit_function_list_section::ExitFunctionListSection,
         function_index_section::{FunctionIndexItem, FunctionIndexSection},
         function_section::FunctionSection,
         local_variable_section::{LocalVariableItem, LocalVariableSection},
+        start_function_list_section::StartFunctionListSection,
         type_section::TypeSection,
         ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
     };
@@ -614,7 +602,7 @@ mod tests {
     #[test]
     fn test_save_module_image_and_load_module_image() {
         // build TypeSection instance
-        // arbitrary data
+        // note: arbitrary types
         let type_entries = vec![
             TypeEntry {
                 params: vec![DataType::I32, DataType::I64],
@@ -633,7 +621,7 @@ mod tests {
         };
 
         // build FuncSection instance
-        // arbitrary function entry and function code
+        // note: arbitrary functions
         let function_entries = vec![
             FunctionEntry {
                 type_index: 2,
@@ -654,7 +642,7 @@ mod tests {
         };
 
         // build LocalVariableSection instance
-        // arbitrary data
+        // note: arbitrary local variables
         let local_list_entries = vec![
             LocalListEntry::new(vec![
                 LocalVariableEntry::from_i32(),
@@ -671,7 +659,7 @@ mod tests {
         };
 
         // build FuncIndexSection instance
-        // arbitrary data
+        // note: arbitrary indices
         let function_index_module_entries = vec![
             FunctionIndexModuleEntry::new(vec![
                 FunctionIndexEntry::new(0, 1, 3),
@@ -688,13 +676,28 @@ mod tests {
             items: &function_index_items,
         };
 
+        // build start function list
+        let start_indices = vec![31u32, 37, 41, 43];
+        let start_function_list_section = StartFunctionListSection {
+            items: &start_indices,
+        };
+
+        // build exit function list
+        let exit_indices = vec![47u32, 53];
+        let exit_function_list_section = ExitFunctionListSection {
+            items: &exit_indices,
+        };
+
         // build ModuleImage instance
         let section_entries: Vec<&dyn SectionEntry> = vec![
             &type_section,
             &function_section,
             &local_var_section,
             &function_index_section,
+            &start_function_list_section,
+            &exit_function_list_section,
         ];
+
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
             name: "main",
@@ -726,13 +729,13 @@ mod tests {
         // header length = 284 bytes
 
         // section count
-        assert_eq!(&image_data[284..288], &[4, 0, 0, 0]); // item count
+        assert_eq!(&image_data[284..288], &[6, 0, 0, 0]); // item count
         assert_eq!(&image_data[288..292], &[0, 0, 0, 0]); // padding
 
         let remains = &image_data[292..];
 
-        // section table length = 12 (the record length) * 4
-        let (section_table_data, remains) = remains.split_at(48);
+        // section table length = 12 (the record length) * 6
+        let (section_table_data, remains) = remains.split_at(72);
 
         assert_eq!(
             section_table_data,
@@ -741,17 +744,25 @@ mod tests {
                 0, 0, 0, 0, // offset 0
                 36, 0, 0, 0, // length 0
                 //
-                0x12u8, 0, 0, 0, // section id, func section
+                0x12, 0, 0, 0, // section id, func section
                 36, 0, 0, 0, // offset 1
                 52, 0, 0, 0, // length 1
                 //
-                0x11u8, 0, 0, 0, // section id, local variable section
+                0x11, 0, 0, 0, // section id, local variable section
                 88, 0, 0, 0, // offset 2
                 68, 0, 0, 0, // length 2
                 //
-                0x40u8, 0, 0, 0, // section id, func index section
+                0x40, 0, 0, 0, // section id, func index section
                 156, 0, 0, 0, // offset 3
                 60, 0, 0, 0, // length 3
+                //
+                0x41, 0, 0, 0, // section id, start func list
+                216, 0, 0, 0, // offset 4
+                24, 0, 0, 0, // length 4 (table header 8 bytes + 4 * 4)
+                //
+                0x42, 0, 0, 0, // section id, exit func list
+                240, 0, 0, 0, // offset 5
+                16, 0, 0, 0 // length 5 (table header 8 bytes + 2 * 4)
             ]
         );
 
@@ -804,7 +815,6 @@ mod tests {
         );
 
         let (local_var_section_data, remains) = remains.split_at(68);
-
         assert_eq!(
             local_var_section_data,
             &[
@@ -844,8 +854,9 @@ mod tests {
             ]
         );
 
+        let (function_index_section_data, remains) = remains.split_at(60);
         assert_eq!(
-            remains,
+            function_index_section_data,
             &[
                 /* table 0 */
                 2, 0, 0, 0, // item count
@@ -868,9 +879,35 @@ mod tests {
             ]
         );
 
+        let (start_function_list_section_data, remains) = remains.split_at(24);
+        assert_eq!(
+            start_function_list_section_data,
+            &[
+                4u8, 0, 0, 0, // item count
+                0, 0, 0, 0, // padding
+                //
+                31, 0, 0, 0, //
+                37, 0, 0, 0, //
+                41, 0, 0, 0, //
+                43, 0, 0, 0, //
+            ]
+        );
+
+        let (exit_function_list_section_data, _) = remains.split_at(16);
+        assert_eq!(
+            exit_function_list_section_data,
+            &[
+                2u8, 0, 0, 0, // item count
+                0, 0, 0, 0, // padding
+                //
+                47, 0, 0, 0, //
+                53, 0, 0, 0, //
+            ]
+        );
+
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
-        assert_eq!(module_image_restore.items.len(), 4);
+        assert_eq!(module_image_restore.items.len(), 6);
 
         // check type
 
@@ -949,5 +986,16 @@ mod tests {
             &function_index_section_restore.items[2],
             &FunctionIndexItem::new(0, 11, 13)
         );
+
+        let start_function_list_section_restore =
+            module_image_restore.get_start_function_list_section();
+        assert_eq!(
+            start_function_list_section_restore.items,
+            &[31, 37, 41, 43,]
+        );
+
+        let exit_function_list_section_restore =
+            module_image_restore.get_exit_function_list_section();
+        assert_eq!(exit_function_list_section_restore.items, &[47, 53]);
     }
 }

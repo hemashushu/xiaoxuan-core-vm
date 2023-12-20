@@ -48,13 +48,14 @@ pub struct ModuleEntry {
 pub struct IndexEntry {
     // essential
     pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
+    pub start_function_indices: Vec<u32>,
+    pub exit_function_indices: Vec<u32>,
+
     // optional
     pub data_index_module_entries: Vec<DataIndexModuleEntry>,
     pub unified_external_library_entries: Vec<UnifiedExternalLibraryEntry>,
     pub unified_external_function_entries: Vec<UnifiedExternalFunctionEntry>,
     pub external_function_index_module_entries: Vec<ExternalFunctionIndexModuleEntry>,
-    // pub start_function_index_entries: Vec<ModuleFunctionIndexEntry>,
-    // pub exit_function_index_entries: Vec<ModuleFunctionIndexEntry>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -552,18 +553,3 @@ impl ExternalFunctionIndexModuleEntry {
         Self { index_entries }
     }
 }
-
-// #[derive(Debug, PartialEq)]
-// pub struct ModuleFunctionIndexEntry {
-//     pub module_index: usize,
-//     pub function_public_index: usize,
-// }
-//
-// impl ModuleFunctionIndexEntry {
-//     pub fn new(module_index: usize, function_public_index: usize) -> Self {
-//         Self {
-//             module_index,
-//             function_public_index,
-//         }
-//     }
-// }

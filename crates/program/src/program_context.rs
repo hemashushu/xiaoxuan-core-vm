@@ -5,23 +5,21 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_binary::module_image::{
-    data_index_section::DataIndexSection, external_function_index_section::ExternalFunctionIndexSection,
+    data_index_section::DataIndexSection, exit_function_list_section::ExitFunctionListSection,
+    external_function_index_section::ExternalFunctionIndexSection,
     function_index_section::FunctionIndexSection,
+    start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection, ModuleImage,
 };
 
 use crate::program_module::ProgramModule;
 
-// const EMPTY_RANGE_ITEMS: &[RangeItem] = &[];
-// const EMPTY_DATA_INDEX_ITEMS: &[DataIndexItem] = &[];
-// const EMPTY_UNIFIED_EXTERNAL_LIBRARY_ITEM: &[UnifiedExternalLibraryItem] = &[];
-// const EMPTY_UNIFIED_EXTERNAL_FUNC_ITEM: &[UnifiedExternalFuncItem] = &[];
-// const EMPTY_EXTERNAL_FUNC_INDEX_ITEM: &[ExternalFuncIndexItem] = &[];
-
 pub struct ProgramContext<'a> {
     // the indices
     pub function_index_section: FunctionIndexSection<'a>,
+    pub start_function_list_section: StartFunctionListSection<'a>,
+    pub exit_function_list_section: ExitFunctionListSection<'a>,
     pub data_index_section: DataIndexSection<'a>,
     pub unified_external_library_section: UnifiedExternalLibrarySection<'a>,
     pub unified_external_function_section: UnifiedExternalFunctionSection<'a>,
@@ -41,6 +39,9 @@ impl<'a> ProgramContext<'a> {
         let main_module = &module_images[0];
 
         let function_index_section = main_module.get_function_index_section();
+        let start_function_list_section = main_module.get_start_function_list_section();
+        let exit_function_list_section = main_module.get_exit_function_list_section();
+
         let data_index_section = main_module
             .get_optional_data_index_section()
             .unwrap_or_default();
@@ -58,8 +59,10 @@ impl<'a> ProgramContext<'a> {
             .unwrap_or_default();
 
         Self {
-            data_index_section,
             function_index_section,
+            start_function_list_section,
+            exit_function_list_section,
+            data_index_section,
             unified_external_library_section,
             unified_external_function_section,
             external_function_index_section,
