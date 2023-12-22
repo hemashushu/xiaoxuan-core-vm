@@ -12,8 +12,8 @@ impl Opcode {
             Opcode::nop => "nop",
             Opcode::zero => "zero",
             Opcode::drop => "drop",
-            Opcode::duplicate => "duplicate",
-            Opcode::swap => "swap",
+            // Opcode::duplicate => "duplicate",
+            // Opcode::swap => "swap",
             Opcode::select_nez => "select_nez",
             //
             Opcode::i32_imm => "i32.imm",

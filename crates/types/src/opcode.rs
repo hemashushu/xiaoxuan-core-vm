@@ -175,8 +175,8 @@ pub enum Opcode {
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
     zero,                       // push 0 (i64) onto stack                          () -> i64
     drop,                       // drop one operand (the top most operand)          (operand op:any) -> ()
-    duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
-    swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
+    // duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
+    // swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
     select_nez,                 // (operand when_true:any when_false:any test:i32) -> any
                                 //
                                 // | test    | a

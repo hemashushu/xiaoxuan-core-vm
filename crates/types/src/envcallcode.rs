@@ -25,19 +25,28 @@ pub enum EnvCallCode {
                                 //        |    |minor
                                 //        |major
 
-    runtime_features,           // get name list of the runtime features, separated by commas, e.g.
+    // todo
+    // runtime_features,           // get name list of the runtime features, separated by commas, e.g.
                                 // "syscall,extcall"
                                 //
                                 // `fn (buf_ptr: i64) -> feature_list_len:i32`
 
-    runtime_feature_check,      // `fn (name_ptr:i64, name_len:i32) -> bool`
+    // runtime_feature_check,      // `fn (name_ptr:i64, name_len:i32) -> bool`
+
+    // init and fini
+    start_function_count = 0x110,   // get the amount of the constructor functions
+    get_start_function_index,       // get the value of the 'constructor function index' by index
+    exit_function_count,            // get the amount of the destructor functions
+    get_exit_function_index,        // get the value of the 'destructor function index' by index
 
     // host info
-    host_arch = 0x110,          // x86_64/aarch64/riscv64 ...
-    host_os,                    // linux/macos/windows/freebsd/android/ios ...
-    host_family,                // unix/windows ...
-    host_endian,                // little/big
-    host_pointer_width,         // 32/64 ...
+    // todo
+
+    // host_info_arch = 0x110,      // x86_64/aarch64/riscv64 ...
+    // host_info_os,                // linux/macos/windows/freebsd/android/ios ...
+    // host_info_family,            // unix/windows ...
+    // host_info_endian,            // little/big
+    // host_info_pointer_width,     // 32/64 ...
 
     // ref:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
@@ -120,8 +129,8 @@ pub enum EnvCallCode {
     thread_start_data_length,   // get the length of the thread start data
                                 // 'fn () -> length:u32'
 
-    thread_start_data_read,     // read/copy the 'thread start data' from the host temporary memory to VM heap
-                                // 'fn (offset:u32, length:u32, dst_address_in_heap:u64) -> (actual_read_length: u32)'
+    thread_start_data_read,     // read/copy the 'thread start data' from the host temporary memory to 'local variable'/data/'VM heap'
+                                // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
                                 //
                                 // results:
                                 // - actual_read_length: the length of data that actually read
@@ -178,7 +187,7 @@ pub enum EnvCallCode {
 
     // send message (from heap) to the upstream (parent) thread.
     // this method will never block the current thread.
-    // 'fn (src_address_in_heap:u64, length:u32) -> thread_result:u32'
+    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
     //
     // returns:
     // - thread_result: 0=success, 1=failed.
@@ -215,7 +224,7 @@ pub enum EnvCallCode {
 
     thread_send_msg,            // send message to the specified (child) thread.
                                 // this function will never block the current thread.
-                                // 'fn (child_thread_id:u32, src_address_in_heap:u64, length:u32) -> thread_result:u32'
+                                // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> thread_result:u32'
                                 //
                                 // returns:
                                 // - thread_result: 0=success, 1=failure (thread_not_found).
@@ -223,8 +232,8 @@ pub enum EnvCallCode {
     thread_msg_length,          // get the length of the last received message
                                 // 'fn () -> length:u32'
                                 //
-    thread_msg_read,            // read/copy the last received message from the host temporary to VM heap
-                                // 'fn (offset:u32, length:u32, dst_address_in_heap:u64) -> (actual_read_length:u32)'
+    thread_msg_read,            // read/copy the last received message from the host temporary to 'local variable'/data/'VM heap'
+                                // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length:u32)'
                                 //
                                 // returns:
                                 // - actual_read_length: the actual length of the read data

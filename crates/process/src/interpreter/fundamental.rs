@@ -22,6 +22,7 @@ pub fn drop_(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
+/*
 pub fn duplicate(thread_context: &mut ThreadContext) -> InterpretResult {
     thread_context.stack.duplicate();
     InterpretResult::Move(2)
@@ -34,6 +35,7 @@ pub fn swap(thread_context: &mut ThreadContext) -> InterpretResult {
     thread_context.stack.push_i64_u(b);
     InterpretResult::Move(2)
 }
+*/
 
 pub fn select_nez(thread_context: &mut ThreadContext) -> InterpretResult {
     // (operand when_true:any when_false:any test:i32) -> any
@@ -178,6 +180,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
     }
 
+    /*
     #[test]
     fn test_interpreter_fundamental_duplicate() {
         // () -> (i32, i32)
@@ -232,6 +235,7 @@ mod tests {
             vec![ForeignValue::U32(223), ForeignValue::U32(211)]
         );
     }
+    */
 
     #[test]
     fn test_interpreter_fundamental_select_nez_false() {

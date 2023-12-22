@@ -67,8 +67,8 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             Opcode::nop
             | Opcode::zero
             | Opcode::drop
-            | Opcode::duplicate
-            | Opcode::swap
+            // | Opcode::duplicate
+            // | Opcode::swap
             | Opcode::select_nez => (offset_param, String::new()),
             Opcode::i32_imm | Opcode::f32_imm => {
                 let (offset_next, v) = read_param_i32(codes, offset_param);

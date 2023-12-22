@@ -2173,7 +2173,9 @@ mod tests {
         //     (local_load32 1)
         //     (i32_dec 1)
         //                          ;; recur if n>0
-        //     duplicate
+        //                          ;; n - 1
+        //     (local_load32 1)
+        //     (i32_dec 1)
         //     zero
         //     i32_gt
         //     (recur_nez 0)
@@ -2192,8 +2194,10 @@ mod tests {
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
+            // n - 1
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16(Opcode::i32_dec, 1)
             //
-            .append_opcode(Opcode::duplicate)
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i16_i32(Opcode::recur_nez, 0, 0)

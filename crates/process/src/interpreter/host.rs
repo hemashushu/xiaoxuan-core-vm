@@ -60,8 +60,8 @@ pub fn debug(thread: &mut ThreadContext) -> InterpretResult {
 }
 
 pub fn host_addr_local(thread_context: &mut ThreadContext) -> InterpretResult {
-    // (param offset_bytes:i16 reversed_index:i16 local_variable_index:i16)
-    let (offset_bytes, reversed_index, local_variable_index) =
+    // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
     do_host_addr_local(
         thread_context,
@@ -997,16 +997,24 @@ mod tests {
 
         // copy src_ptr -> dst_ptr
         //
-        // src_ptr                  dst_ptr
-        // host |01234567|      --> host |01234567|
+        // host src_ptr  local var     host dst_ptr
+        // |01234567| -> |45670123| -> |45670123|
 
         let code0 = BytecodeWriter::new()
-            // dst ptr
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
-            // src ptr
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            // length
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 8)
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 4, 2) // dst ptr
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0) // src ptr
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 4) // length
+            .append_opcode(Opcode::host_memory_copy)
+            //
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // dst ptr
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0) // src ptr
+            .append_opcode_i16(Opcode::i64_inc, 4)
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 4) // length
+            .append_opcode(Opcode::host_memory_copy)
+            //
+            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1) // dst ptr
+            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // src ptr
+            .append_opcode_pesudo_i64(Opcode::i64_imm, 8) // length
             .append_opcode(Opcode::host_memory_copy)
             //
             .append_opcode(Opcode::end)
@@ -1019,9 +1027,9 @@ mod tests {
         let param_datatypes = vec![DataType::I32, DataType::I32];
 
         let binary0 = helper_build_module_binary_with_single_function(
-            param_datatypes, // params
-            vec![],          // results
-            vec![],          // local vars
+            param_datatypes,                      // params
+            vec![],                               // results
+            vec![LocalVariableEntry::from_i64()], // local vars
             code0,
         );
 
@@ -1029,7 +1037,7 @@ mod tests {
         let program0 = program_source0.build_program().unwrap();
         let mut thread_context0 = program0.create_thread_context();
 
-        let src_buf: &[u8; 8] = b"hello.vm";
+        let src_buf: &[u8; 8] = b"whatever";
         let dst_buf: [u8; 8] = [0; 8];
 
         let src_ptr = src_buf.as_ptr();
@@ -1046,7 +1054,7 @@ mod tests {
         );
         result0.unwrap();
 
-        assert_eq!(&dst_buf, b"hello.vm");
+        assert_eq!(&dst_buf, b"everwhat");
     }
 
     #[test]

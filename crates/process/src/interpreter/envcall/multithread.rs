@@ -6,7 +6,7 @@
 
 use std::{thread, time::Duration};
 
-use ancvm_program::{memory::Memory, thread_context::ThreadContext, ProgramSourceType};
+use ancvm_program::{thread_context::ThreadContext, ProgramSourceType};
 
 use crate::{
     in_memory_program_source::InMemoryProgramSource,
@@ -101,9 +101,9 @@ pub fn thread_start_data_length(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
-    // 'fn (offset:u32, length:u32, dst_address_in_heap:u64) -> (actual_read_length: u32)'
+    // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
 
-    let dst_address_in_heap = thread_context.stack.pop_i64_u() as usize;
+    let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
     let length = thread_context.stack.pop_i32_u() as usize;
     let offset = thread_context.stack.pop_i32_u() as usize;
 
@@ -117,9 +117,9 @@ pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
         };
 
         let src_ptr = data[offset..].as_ptr();
-        thread_context
-            .heap
-            .store_from(src_ptr, dst_address_in_heap, actual_read_length);
+        let dst_ptr = dst_memory_ptr as *mut u8;
+
+        unsafe { std::ptr::copy(src_ptr, dst_ptr, actual_read_length) };
 
         actual_read_length
     });
@@ -241,20 +241,19 @@ pub fn thread_receive_msg_from_parent(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_send_msg_to_parent(thread_context: &mut ThreadContext) {
-    // 'fn (src_address_in_heap:u64, length:u32) -> thread_result:u32'
+    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
-    let src_address_in_heap = thread_context.stack.pop_i64_u();
+    let src_memory_ptr = thread_context.stack.pop_i64_u();
 
     TX.with(|tx_refcell| {
         let tx_ref = tx_refcell.borrow();
         let tx_opt = tx_ref.as_ref();
         let thread_result = match tx_opt {
             Some(tx) => {
-                let data = thread_context
-                    .heap
-                    .load_data(src_address_in_heap as usize, length as usize);
-                let data_vec = data.to_vec();
+                let src_ptr = src_memory_ptr as *const u8;
+                let data_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
+                let data_vec = data_slice.to_vec();
 
                 match tx.send(data_vec) {
                     Ok(_) => THREAD_RESULT_SUCCESS,
@@ -303,10 +302,10 @@ pub fn thread_receive_msg(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_send_msg(thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32, src_address_in_heap:u64, length:u32) -> thread_result:u32'
+    // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> thread_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
-    let src_address_in_heap = thread_context.stack.pop_i64_u();
+    let src_memory_ptr = thread_context.stack.pop_i64_u();
     let child_thread_id = thread_context.stack.pop_i32_u();
 
     CHILD_THREADS.with(|child_threads_cell| {
@@ -315,10 +314,9 @@ pub fn thread_send_msg(thread_context: &mut ThreadContext) {
 
         let thread_result = match child_thread_opt {
             Some(child_thread) => {
-                let data = thread_context
-                    .heap
-                    .load_data(src_address_in_heap as usize, length as usize);
-                let data_vec = data.to_vec();
+                let src_ptr = src_memory_ptr as *const u8;
+                let data_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
+                let data_vec = data_slice.to_vec();
 
                 match child_thread.tx.send(data_vec) {
                     Ok(_) => THREAD_RESULT_SUCCESS,
@@ -346,9 +344,9 @@ pub fn thread_msg_length(thread_context: &mut ThreadContext) {
 }
 
 pub fn thread_msg_read(thread_context: &mut ThreadContext) {
-    // 'fn (offset:u32, length:u32, dst_address_in_heap:u64) -> actual_read_length:u32'
+    // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> actual_read_length:u32'
 
-    let dst_address_in_heap = thread_context.stack.pop_i64_u() as usize;
+    let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
     let length = thread_context.stack.pop_i32_u() as usize;
     let offset = thread_context.stack.pop_i32_u() as usize;
 
@@ -361,11 +359,10 @@ pub fn thread_msg_read(thread_context: &mut ThreadContext) {
             length
         };
 
-        let msg_ptr = msg_ref[offset..].as_ptr();
+        let src_ptr = msg_ref[offset..].as_ptr();
+        let dst_ptr = dst_memory_ptr as *mut u8;
 
-        thread_context
-            .heap
-            .store_from(msg_ptr, dst_address_in_heap, actual_read_length);
+        unsafe { std::ptr::copy(src_ptr, dst_ptr, actual_read_length) };
 
         actual_read_length
     });
@@ -500,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    fn test_envcall_time_sleep() {
+    fn test_envcall_multithread_thread_sleep() {
         // the signature of 'thread start function' must be
         // () -> (i64)
 
