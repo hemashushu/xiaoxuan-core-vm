@@ -240,7 +240,7 @@ mod tests {
     fn test_interpreter_extcall_with_user_lib() {
         // (i32,i32) -> (i32)
 
-        // 'lib-test-0.so.1'
+        // 'libtest0.so.1'
         // 'int add(int, int)'
 
         let code0 = BytecodeWriter::new()
@@ -274,7 +274,7 @@ mod tests {
             vec![],
             vec![HelperExternalFunctionEntry {
                 external_library_type: ExternalLibraryType::User,
-                library_name: "lib-test-0.so.1".to_string(),
+                library_name: "libtest0.so.1".to_string(),
                 function_name: "add".to_string(),
                 type_index: 0,
             }],

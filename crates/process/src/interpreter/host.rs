@@ -1059,7 +1059,7 @@ mod tests {
 
     #[test]
     fn test_interpreter_host_addr_function_and_callback_function() {
-        // C function in "lib-test-0.so.1"
+        // C function in "libtest0.so.1"
         // ===============================
         // int do_something(int (*callback_func)(int), int a, int b)
         // {
@@ -1135,7 +1135,7 @@ mod tests {
             vec![],
             vec![HelperExternalFunctionEntry {
                 external_library_type: ExternalLibraryType::User,
-                library_name: "lib-test-0.so.1".to_string(),
+                library_name: "libtest0.so.1".to_string(),
                 function_name: "do_something".to_string(),
                 type_index: 0,
             }],
