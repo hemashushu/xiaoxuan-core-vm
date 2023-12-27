@@ -105,18 +105,18 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 )
             }
             //
-            Opcode::local_long_load64_i64
-            | Opcode::local_long_load32_i32
-            | Opcode::local_long_load32_i16_s
-            | Opcode::local_long_load32_i16_u
-            | Opcode::local_long_load32_i8_s
-            | Opcode::local_long_load32_i8_u
-            | Opcode::local_long_load64_f64
-            | Opcode::local_long_load32_f32
-            | Opcode::local_long_store64
-            | Opcode::local_long_store32
-            | Opcode::local_long_store16
-            | Opcode::local_long_store8 => {
+            Opcode::local_offset_load64_i64
+            | Opcode::local_offset_load32_i32
+            | Opcode::local_offset_load32_i16_s
+            | Opcode::local_offset_load32_i16_u
+            | Opcode::local_offset_load32_i8_s
+            | Opcode::local_offset_load32_i8_u
+            | Opcode::local_offset_load64_f64
+            | Opcode::local_offset_load32_f32
+            | Opcode::local_offset_store64
+            | Opcode::local_offset_store32
+            | Opcode::local_offset_store16
+            | Opcode::local_offset_store8 => {
                 let (offset_next, reversed_index, index) = read_param_i16_i32(codes, offset_param);
                 (
                     offset_next,
@@ -140,18 +140,18 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 (offset_next, format!("off:0x{:02x}  idx:{}", offset, index))
             }
             //
-            Opcode::data_long_load64_i64
-            | Opcode::data_long_load32_i32
-            | Opcode::data_long_load32_i16_s
-            | Opcode::data_long_load32_i16_u
-            | Opcode::data_long_load32_i8_s
-            | Opcode::data_long_load32_i8_u
-            | Opcode::data_long_load64_f64
-            | Opcode::data_long_load32_f32
-            | Opcode::data_long_store64
-            | Opcode::data_long_store32
-            | Opcode::data_long_store16
-            | Opcode::data_long_store8 => {
+            Opcode::data_offset_load64_i64
+            | Opcode::data_offset_load32_i32
+            | Opcode::data_offset_load32_i16_s
+            | Opcode::data_offset_load32_i16_u
+            | Opcode::data_offset_load32_i8_s
+            | Opcode::data_offset_load32_i8_u
+            | Opcode::data_offset_load64_f64
+            | Opcode::data_offset_load32_f32
+            | Opcode::data_offset_store64
+            | Opcode::data_offset_store32
+            | Opcode::data_offset_store16
+            | Opcode::data_offset_store8 => {
                 let (offset_next, index) = read_param_i32(codes, offset_param);
                 (offset_next, format!("idx:{}", index))
             }
@@ -403,7 +403,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                     format!("rev:{:<2}  off:0x{:02x}  idx:{}", reversed_idx, offset, idx),
                 )
             }
-            Opcode::host_addr_local_long => {
+            Opcode::host_addr_local_offset => {
                 let (offset_next, reversed_idx, idx) = read_param_i16_i32(codes, offset_param);
                 (offset_next, format!("rev:{:<2}  idx:{}", reversed_idx, idx))
             }
@@ -411,7 +411,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
                 let (offset_next, offset, idx) = read_param_i16_i32(codes, offset_param);
                 (offset_next, format!("off:0x{:02x}  idx:{}", offset, idx))
             }
-            Opcode::host_addr_data_long => {
+            Opcode::host_addr_data_offset => {
                 let (offset_next, idx) = read_param_i32(codes, offset_param);
                 (offset_next, format!("idx:{}", idx))
             }

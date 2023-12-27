@@ -138,18 +138,18 @@ fn init_interpreters_internal() {
     interpreters[Opcode::local_store16 as usize] = local::local_store16;
     interpreters[Opcode::local_store8 as usize] = local::local_store8;
 
-    interpreters[Opcode::local_long_load64_i64 as usize] = local::local_long_load64_i64;
-    interpreters[Opcode::local_long_load64_f64 as usize] = local::local_long_load64_f64;
-    interpreters[Opcode::local_long_load32_i32 as usize] = local::local_long_load32_i32;
-    interpreters[Opcode::local_long_load32_i16_s as usize] = local::local_long_load32_i16_s;
-    interpreters[Opcode::local_long_load32_i16_u as usize] = local::local_long_load32_i16_u;
-    interpreters[Opcode::local_long_load32_i8_s as usize] = local::local_long_load32_i8_s;
-    interpreters[Opcode::local_long_load32_i8_u as usize] = local::local_long_load32_i8_u;
-    interpreters[Opcode::local_long_load32_f32 as usize] = local::local_long_load32_f32;
-    interpreters[Opcode::local_long_store64 as usize] = local::local_long_store64;
-    interpreters[Opcode::local_long_store32 as usize] = local::local_long_store32;
-    interpreters[Opcode::local_long_store16 as usize] = local::local_long_store16;
-    interpreters[Opcode::local_long_store8 as usize] = local::local_long_store8;
+    interpreters[Opcode::local_offset_load64_i64 as usize] = local::local_offset_load64_i64;
+    interpreters[Opcode::local_offset_load64_f64 as usize] = local::local_offset_load64_f64;
+    interpreters[Opcode::local_offset_load32_i32 as usize] = local::local_offset_load32_i32;
+    interpreters[Opcode::local_offset_load32_i16_s as usize] = local::local_offset_load32_i16_s;
+    interpreters[Opcode::local_offset_load32_i16_u as usize] = local::local_offset_load32_i16_u;
+    interpreters[Opcode::local_offset_load32_i8_s as usize] = local::local_offset_load32_i8_s;
+    interpreters[Opcode::local_offset_load32_i8_u as usize] = local::local_offset_load32_i8_u;
+    interpreters[Opcode::local_offset_load32_f32 as usize] = local::local_offset_load32_f32;
+    interpreters[Opcode::local_offset_store64 as usize] = local::local_offset_store64;
+    interpreters[Opcode::local_offset_store32 as usize] = local::local_offset_store32;
+    interpreters[Opcode::local_offset_store16 as usize] = local::local_offset_store16;
+    interpreters[Opcode::local_offset_store8 as usize] = local::local_offset_store8;
 
     // data sections
     interpreters[Opcode::data_load64_i64 as usize] = data::data_load64_i64;
@@ -165,18 +165,18 @@ fn init_interpreters_internal() {
     interpreters[Opcode::data_store16 as usize] = data::data_store16;
     interpreters[Opcode::data_store8 as usize] = data::data_store8;
 
-    interpreters[Opcode::data_long_load64_i64 as usize] = data::data_long_load64_i64;
-    interpreters[Opcode::data_long_load64_f64 as usize] = data::data_long_load64_f64;
-    interpreters[Opcode::data_long_load32_i32 as usize] = data::data_long_load32_i32;
-    interpreters[Opcode::data_long_load32_i16_s as usize] = data::data_long_load32_i16_s;
-    interpreters[Opcode::data_long_load32_i16_u as usize] = data::data_long_load32_i16_u;
-    interpreters[Opcode::data_long_load32_i8_s as usize] = data::data_long_load32_i8_s;
-    interpreters[Opcode::data_long_load32_i8_u as usize] = data::data_long_load32_i8_u;
-    interpreters[Opcode::data_long_load32_f32 as usize] = data::data_long_load32_f32;
-    interpreters[Opcode::data_long_store64 as usize] = data::data_long_store64;
-    interpreters[Opcode::data_long_store32 as usize] = data::data_long_store32;
-    interpreters[Opcode::data_long_store16 as usize] = data::data_long_store16;
-    interpreters[Opcode::data_long_store8 as usize] = data::data_long_store8;
+    interpreters[Opcode::data_offset_load64_i64 as usize] = data::data_offset_load64_i64;
+    interpreters[Opcode::data_offset_load64_f64 as usize] = data::data_offset_load64_f64;
+    interpreters[Opcode::data_offset_load32_i32 as usize] = data::data_offset_load32_i32;
+    interpreters[Opcode::data_offset_load32_i16_s as usize] = data::data_offset_load32_i16_s;
+    interpreters[Opcode::data_offset_load32_i16_u as usize] = data::data_offset_load32_i16_u;
+    interpreters[Opcode::data_offset_load32_i8_s as usize] = data::data_offset_load32_i8_s;
+    interpreters[Opcode::data_offset_load32_i8_u as usize] = data::data_offset_load32_i8_u;
+    interpreters[Opcode::data_offset_load32_f32 as usize] = data::data_offset_load32_f32;
+    interpreters[Opcode::data_offset_store64 as usize] = data::data_offset_store64;
+    interpreters[Opcode::data_offset_store32 as usize] = data::data_offset_store32;
+    interpreters[Opcode::data_offset_store16 as usize] = data::data_offset_store16;
+    interpreters[Opcode::data_offset_store8 as usize] = data::data_offset_store8;
 
     // heap
     interpreters[Opcode::heap_load64_i64 as usize] = heap::heap_load64_i64;
@@ -399,9 +399,9 @@ fn init_interpreters_internal() {
     interpreters[Opcode::unreachable as usize] = host::unreachable;
     interpreters[Opcode::debug as usize] = host::debug;
     interpreters[Opcode::host_addr_local as usize] = host::host_addr_local;
-    interpreters[Opcode::host_addr_local_long as usize] = host::host_addr_local_long;
+    interpreters[Opcode::host_addr_local_offset as usize] = host::host_addr_local_offset;
     interpreters[Opcode::host_addr_data as usize] = host::host_addr_data;
-    interpreters[Opcode::host_addr_data_long as usize] = host::host_addr_data_long;
+    interpreters[Opcode::host_addr_data_offset as usize] = host::host_addr_data_offset;
     interpreters[Opcode::host_addr_heap as usize] = host::host_addr_heap;
     interpreters[Opcode::host_addr_function as usize] = host::host_addr_function;
     interpreters[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;

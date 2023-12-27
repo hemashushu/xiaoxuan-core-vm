@@ -71,7 +71,7 @@ pub fn host_addr_local(thread_context: &mut ThreadContext) -> InterpretResult {
     )
 }
 
-pub fn host_addr_local_long(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn host_addr_local_offset(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
@@ -111,7 +111,7 @@ pub fn host_addr_data(thread_context: &mut ThreadContext) -> InterpretResult {
     )
 }
 
-pub fn host_addr_data_long(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn host_addr_data_offset(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
@@ -657,7 +657,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_address_long_of_data_and_local_vars() {
+    fn test_interpreter_host_address_offset_of_data_and_local_vars() {
         //        read-only data section
         //        ======================
         //
@@ -699,21 +699,21 @@ mod tests {
         //         41 43 47 53
         // 0x000c  08 02 00 00  00 00 01 00    local.store64     rev:0   off:0x00  idx:1
         // 0x0014  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x001c  06 0c 00 00  00 00 00 00    host.addr_data_long  idx:0
+        // 0x001c  06 0c 00 00  00 00 00 00    host.addr_data_offset  idx:0
         // 0x0024  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x002c  06 0c 00 00  00 00 00 00    host.addr_data_long  idx:0
+        // 0x002c  06 0c 00 00  00 00 00 00    host.addr_data_offset  idx:0
         // 0x0034  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x003c  06 0c 00 00  01 00 00 00    host.addr_data_long  idx:1
+        // 0x003c  06 0c 00 00  01 00 00 00    host.addr_data_offset  idx:1
         // 0x0044  80 01 00 00  03 00 00 00    i32.imm           0x00000003
-        // 0x004c  06 0c 00 00  01 00 00 00    host.addr_data_long  idx:1
+        // 0x004c  06 0c 00 00  01 00 00 00    host.addr_data_offset  idx:1
         // 0x0054  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x005c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x005c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
         // 0x0064  80 01 00 00  03 00 00 00    i32.imm           0x00000003
-        // 0x006c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x006c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
         // 0x0074  80 01 00 00  06 00 00 00    i32.imm           0x00000006
-        // 0x007c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x007c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
         // 0x0084  80 01 00 00  07 00 00 00    i32.imm           0x00000007
-        // 0x008c  04 0c 00 00  01 00 00 00    host.addr_local_long  rev:0   idx:1
+        // 0x008c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
         // 0x0094  00 0a                       end
 
         let code0 = BytecodeWriter::new()
@@ -721,22 +721,22 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_store64, 0, 0, 1)
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::host_addr_data_long, 0)
+            .append_opcode_i32(Opcode::host_addr_data_offset, 0)
             .append_opcode_i32(Opcode::i32_imm, 2)
-            .append_opcode_i32(Opcode::host_addr_data_long, 0)
+            .append_opcode_i32(Opcode::host_addr_data_offset, 0)
             .append_opcode_i32(Opcode::i32_imm, 2)
-            .append_opcode_i32(Opcode::host_addr_data_long, 1)
+            .append_opcode_i32(Opcode::host_addr_data_offset, 1)
             .append_opcode_i32(Opcode::i32_imm, 3)
-            .append_opcode_i32(Opcode::host_addr_data_long, 1)
+            .append_opcode_i32(Opcode::host_addr_data_offset, 1)
             //
             .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 3)
-            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 6)
-            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
             .append_opcode_i32(Opcode::i32_imm, 7)
-            .append_opcode_i16_i32(Opcode::host_addr_local_long, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

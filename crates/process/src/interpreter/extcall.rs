@@ -24,7 +24,10 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
     let (unified_external_function_index, type_index) = thread_context
         .program_context
         .external_function_index_section
-        .get_item_unified_external_function_index_and_type_index(module_index, external_function_index);
+        .get_item_unified_external_function_index_and_type_index(
+            module_index,
+            external_function_index,
+        );
 
     // get the data types of params and results of the external function
     let (param_datatypes, result_datatypes) = thread_context.program_context.program_modules
@@ -114,8 +117,6 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter,
         utils::{
@@ -280,12 +281,13 @@ mod tests {
             }],
         );
 
-        let mut pwd = env::current_dir().unwrap();
+        let mut pwd = std::env::current_dir().unwrap();
         if !pwd.ends_with("process") {
-            // in the VSCode `Debug` environment, the `current_dir()`
-            // the project root folder.
-            // while in both `$ cargo test` and VSCode `Run Test` environment
-            // the `current_dir()` return the current crate path.
+            // in the VSCode editor `Debug` environment, the `current_dir()` returns
+            // the project's root folder.
+            // while in both `$ cargo test` and VSCode editor `Run Test` environment,
+            // the `current_dir()` returns the current crate path.
+            // here canonicalize the test resources path.
             pwd.push("crates");
             pwd.push("process");
         }

@@ -41,7 +41,7 @@ pub fn load_symbol(library_ptr: *mut c_void, name: &str) -> Result<*mut c_void, 
 
 #[cfg(test)]
 mod tests {
-    use std::{env, ffi::c_char};
+    use std::ffi::c_char;
 
     use libc::uid_t;
 
@@ -92,15 +92,16 @@ mod tests {
     #[test]
     fn test_load_user_library() {
         // note:
-        // run 'test/lib/compile.sh' to build shared library 'libtest0' first.
+        // run 'tests/lib/compile.sh' to build shared library 'libtest0' first.
 
-        let mut pwd = env::current_dir().unwrap();
+        let mut pwd = std::env::current_dir().unwrap();
 
         if !pwd.ends_with("extfunc_util") {
-            // in the VSCode `Debug` environment, the `current_dir()`
-            // the project root folder.
-            // while in both `$ cargo test` and VSCode `Run Test` environment
-            // the `current_dir()` return the current crate path.
+            // in the VSCode editor `Debug` environment, the `current_dir()` returns
+            // the project's root folder.
+            // while in both `$ cargo test` and VSCode editor `Run Test` environment,
+            // the `current_dir()` returns the current crate path.
+            // here canonicalize the test resources path.
             pwd.push("crates");
             pwd.push("extfunc_util");
         }
