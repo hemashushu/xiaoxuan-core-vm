@@ -20,6 +20,7 @@ use crate::module_image::external_function_index_section::{
 use crate::module_image::external_function_section::ExternalFunctionSection;
 use crate::module_image::external_library_section::ExternalLibrarySection;
 
+use crate::module_image::property_section::PropertySection;
 use crate::module_image::start_function_list_section::StartFunctionListSection;
 use crate::module_image::unified_external_function_section::UnifiedExternalFunctionSection;
 use crate::module_image::unified_external_library_section::UnifiedExternalLibrarySection;
@@ -283,21 +284,21 @@ pub fn save_items<T>(items: &[T], writer: &mut dyn std::io::Write) -> std::io::R
 }
 
 /// helper object for unit test
-pub struct HelperFunctionEntryWithSignatureAndLocalVars {
+pub struct HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     pub code: Vec<u8>,
 }
 
-pub struct HelperFunctionEntryWithLocalVars {
+pub struct HelperFunctionWithCodeAndLocalVariablesEntry {
     pub type_index: usize,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
     pub code: Vec<u8>,
 }
 
 /// helper object for unit test
-pub struct HelperBlockEntry {
+pub struct HelperBlockSignatureAndLocalVariablesEntry {
     pub params: Vec<DataType>,
     pub results: Vec<DataType>,
     pub local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
@@ -315,13 +316,13 @@ pub struct HelperExternalFunctionEntry {
 pub fn helper_build_module_binary_with_single_function(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    local_variable_entries_without_functions_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
 ) -> Vec<u8> {
     helper_build_module_binary_with_single_function_and_data_sections(
         param_datatypes,
         result_datatypes,
-        local_variable_item_entries_without_args,
+        local_variable_entries_without_functions_args,
         code,
         vec![],
         vec![],
@@ -333,7 +334,7 @@ pub fn helper_build_module_binary_with_single_function(
 pub fn helper_build_module_binary_with_single_function_and_data_sections(
     param_datatypes: Vec<DataType>,
     result_datatypes: Vec<DataType>,
-    local_variable_item_entries_without_args: Vec<LocalVariableEntry>,
+    local_variable_entries_without_function_args: Vec<LocalVariableEntry>,
     code: Vec<u8>,
     read_only_data_entries: Vec<InitedDataEntry>,
     read_write_data_entries: Vec<InitedDataEntry>,
@@ -351,7 +352,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
 
     let mut local_variables = Vec::new();
     local_variables.extend_from_slice(&params_as_local_variables);
-    local_variables.extend_from_slice(&local_variable_item_entries_without_args);
+    local_variables.extend_from_slice(&local_variable_entries_without_function_args);
 
     let local_list_entry = LocalListEntry {
         local_variable_entries: local_variables,
@@ -374,6 +375,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
         vec![],
         vec![],
         vec![],
+        0
     )
 }
 
@@ -386,9 +388,9 @@ pub fn helper_build_module_binary_with_single_function_and_blocks(
 
     // although there is no params and no results for the block_nez, but
     // it still is necessary create a 'HelperBlockEntry'.
-    helper_block_entries: Vec<HelperBlockEntry>,
+    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
 ) -> Vec<u8> {
-    let helper_function_entry = HelperFunctionEntryWithSignatureAndLocalVars {
+    let helper_function_entry = HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
         params: param_datatypes,
         results: result_datatypes,
         local_variable_item_entries_without_args,
@@ -397,23 +399,42 @@ pub fn helper_build_module_binary_with_single_function_and_blocks(
 
     helper_build_module_binary_with_functions_and_blocks(
         vec![helper_function_entry],
-        helper_block_entries,
+        helper_block_sig_and_local_vars_entries,
     )
 }
 
 /// helper function for unit test
-pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_function_list(
-    helper_function_entries: Vec<HelperFunctionEntryWithSignatureAndLocalVars>,
-    helper_block_entries: Vec<HelperBlockEntry>,
+pub fn helper_build_module_binary_with_functions_and_blocks(
+    helper_function_with_code_and_sig_and_local_vars_entries: Vec<
+        HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
+    >,
+    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
+) -> Vec<u8> {
+    helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
+        helper_function_with_code_and_sig_and_local_vars_entries,
+        helper_block_sig_and_local_vars_entries,
+        vec![],
+        vec![],
+        0,
+    )
+}
+
+/// helper function for unit test
+pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
+    helper_function_with_code_and_sig_and_local_vars_entries: Vec<
+        HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
+    >,
+    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
     start_function_list: Vec<u32>,
     exit_function_list: Vec<u32>,
+    entry_function_public_index: u32,
 ) -> Vec<u8> {
     // build type entries
 
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let function_type_entries = helper_function_entries
+    let function_type_entries = helper_function_with_code_and_sig_and_local_vars_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -421,7 +442,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_f
         })
         .collect::<Vec<_>>();
 
-    let block_type_entries = helper_block_entries
+    let block_type_entries = helper_block_sig_and_local_vars_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -438,7 +459,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_f
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let local_list_entries_of_functions = helper_function_entries
+    let local_list_entries_of_functions = helper_function_with_code_and_sig_and_local_vars_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -457,7 +478,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_f
         })
         .collect::<Vec<_>>();
 
-    let local_list_entries_of_blocks = helper_block_entries
+    let local_list_entries_of_blocks = helper_block_sig_and_local_vars_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -481,7 +502,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_f
     local_list_entries.extend_from_slice(&local_list_entries_of_blocks);
 
     // build func entries
-    let function_entries = helper_function_entries
+    let function_entries = helper_function_with_code_and_sig_and_local_vars_entries
         .iter()
         .enumerate()
         .map(|(idx, entry)| FunctionEntry {
@@ -502,19 +523,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_f
         vec![],
         start_function_list,
         exit_function_list,
-    )
-}
-
-/// helper function for unit test
-pub fn helper_build_module_binary_with_functions_and_blocks(
-    helper_function_entries: Vec<HelperFunctionEntryWithSignatureAndLocalVars>,
-    helper_block_entries: Vec<HelperBlockEntry>,
-) -> Vec<u8> {
-    helper_build_module_binary_with_functions_and_blocks_and_start_and_exit_function_list(
-        helper_function_entries,
-        helper_block_entries,
-        vec![],
-        vec![],
+        entry_function_public_index
     )
 }
 
@@ -522,7 +531,9 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
 #[allow(clippy::too_many_arguments)]
 pub fn helper_build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
-    helper_function_entries_with_local_vars: Vec<HelperFunctionEntryWithLocalVars>,
+    helper_function_with_code_and_local_vars_entries: Vec<
+        HelperFunctionWithCodeAndLocalVariablesEntry,
+    >,
     read_only_data_entries: Vec<InitedDataEntry>,
     read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
@@ -531,7 +542,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
     let mut function_entries = vec![];
     let mut local_list_entries = vec![];
 
-    helper_function_entries_with_local_vars
+    helper_function_with_code_and_local_vars_entries
         .iter()
         .enumerate()
         .for_each(|(idx, entry)| {
@@ -570,6 +581,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
         helper_external_function_entries,
         vec![],
         vec![],
+        0
     )
 }
 
@@ -586,6 +598,7 @@ pub fn helper_build_module_binary(
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
     start_function_list: Vec<u32>,
     exit_function_list: Vec<u32>,
+    entry_function_public_index: u32,
 ) -> Vec<u8> {
     // build type section
     let (type_items, types_data) = TypeSection::convert_from_entries(&type_entries);
@@ -693,6 +706,11 @@ pub fn helper_build_module_binary(
     // build exit function list
     let exit_function_list_section = ExitFunctionListSection {
         items: &exit_function_list,
+    };
+
+    // build property section
+    let property_section = PropertySection{
+        entry_function_public_index
     };
 
     // build data index
@@ -807,6 +825,7 @@ pub fn helper_build_module_binary(
         &function_index_section,
         &start_function_list_section,
         &exit_function_list_section,
+        &property_section,
         &unified_external_library_section,
         &unified_external_function_section,
         &external_function_index_section,
@@ -847,7 +866,7 @@ mod tests {
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFunctionEntryWithLocalVars,
+            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
 
@@ -1014,7 +1033,7 @@ mod tests {
                     results: vec![DataType::I32],
                 },
             ],
-            vec![HelperFunctionEntryWithLocalVars {
+            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
                 type_index: 0,
                 local_variable_item_entries_without_args: vec![],
                 code: vec![0u8],

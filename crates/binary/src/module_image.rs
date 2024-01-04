@@ -103,14 +103,15 @@ pub mod import_data_section;
 pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
+pub mod property_section;
 pub mod start_function_list_section;
 pub mod type_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
 
 use ancvm_types::{
-    IMAGE_MAGIC_NUMBER, IMAGE_MAJOR_VERSION, IMAGE_MINOR_VERSION, RUNTIME_MAJOR_VERSION,
-    RUNTIME_MINOR_VERSION,
+    IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMAT_MINOR_VERSION,
+    RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
 };
 
 use crate::{
@@ -134,6 +135,7 @@ use self::{
     import_function_section::ImportFunctionSection,
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
+    property_section::PropertySection,
     start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
@@ -145,7 +147,7 @@ use self::{
 //              |---------------------------------------------------|
 //              | magic number (u64)                                | 8 bytes, off=0
 //              |---------------------------------------------------|
-//              | image minor ver (u16)   | image major ver (u16)   | 4 bytes, off=8
+//              | img fmt minor ver (u16) | img fmt major ver (u16) | 4 bytes, off=8
 //              | runtime minor ver (u16) | runtime major ver (u16) | 4 bytes, off=12
 //              | constructor func public index (u32)               | 4 bytes, off=16
 //              | destructor func public index (u32)                | 4 bytes, off=20
@@ -206,6 +208,10 @@ pub enum ModuleSectionId {
     UninitData,          // 0x22
 
     // optional (for debug and link only)
+    //
+    // if the feature 'bridge function' (i.e., embed the XiaoXuan VM
+    // in a C or Rust applicaton, and call VM functions) is required,
+    // the section 'FunctionName' is not optional.
     ImportModule = 0x30, // 0x30
     ImportFunction,      // 0x31
     ImportData,          // 0x32
@@ -218,6 +224,7 @@ pub enum ModuleSectionId {
     FunctionIndex = 0x40, // 0x40
     StartFunctionList,    // 0x41
     ExitFunctionList,     // 0x42
+    Property,             // 0x43
 
     // optional (application only)
     DataIndex = 0x50,        // 0x50
@@ -281,7 +288,7 @@ pub trait SectionEntry<'a> {
 impl<'a> ModuleImage<'a> {
     pub fn load(image_data: &'a [u8]) -> Result<Self, BinaryError> {
         let magic_slice = &image_data[0..8];
-        if magic_slice != IMAGE_MAGIC_NUMBER {
+        if magic_slice != IMAGE_FILE_MAGIC_NUMBER {
             return Err(BinaryError::new("Not a valid module image file."));
         }
 
@@ -293,15 +300,15 @@ impl<'a> ModuleImage<'a> {
         // ```
 
         let ptr = image_data.as_ptr();
-        let ptr_require_module_image_version = unsafe { ptr.offset(8) };
-        let require_module_image_version =
-            unsafe { std::ptr::read(ptr_require_module_image_version as *const u32) };
+        let ptr_declared_module_format_image_version = unsafe { ptr.offset(8) };
+        let declared_module_image_version =
+            unsafe { std::ptr::read(ptr_declared_module_format_image_version as *const u32) };
 
-        let supported_module_image_version =
-            ((IMAGE_MAJOR_VERSION as u32) << 16) | (IMAGE_MINOR_VERSION as u32); // supported version 1.0
-        if require_module_image_version > supported_module_image_version {
+        let supported_module_format_image_version =
+            ((IMAGE_FORMAT_MAJOR_VERSION as u32) << 16) | (IMAGE_FORMAT_MINOR_VERSION as u32); // supported version 1.0
+        if declared_module_image_version > supported_module_format_image_version {
             return Err(BinaryError::new(
-                "The module image requires a newer version runtime.",
+                "The module image format requires a newer version runtime to read.",
             ));
         }
 
@@ -352,9 +359,9 @@ impl<'a> ModuleImage<'a> {
 
     pub fn save(&'a self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         // write header
-        writer.write_all(IMAGE_MAGIC_NUMBER)?;
-        writer.write_all(&IMAGE_MINOR_VERSION.to_le_bytes())?;
-        writer.write_all(&IMAGE_MAJOR_VERSION.to_le_bytes())?;
+        writer.write_all(IMAGE_FILE_MAGIC_NUMBER)?;
+        writer.write_all(&IMAGE_FORMAT_MINOR_VERSION.to_le_bytes())?;
+        writer.write_all(&IMAGE_FORMAT_MAJOR_VERSION.to_le_bytes())?;
         writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
         //
@@ -384,18 +391,18 @@ impl<'a> ModuleImage<'a> {
         let mut image_data: Vec<u8> = Vec::new();
 
         // len0, len0+1, len0+1+2..., len total
-        let mut data_lengths: Vec<usize> = Vec::new();
+        let mut data_increment_lengths: Vec<usize> = Vec::new();
 
         for entry in entries {
             entry.save(&mut image_data).unwrap();
-            data_lengths.push(image_data.len());
+            data_increment_lengths.push(image_data.len());
         }
 
         let mut offsets: Vec<usize> = vec![0];
-        offsets.extend(data_lengths.iter());
+        offsets.extend(data_increment_lengths.iter());
         offsets.pop();
 
-        let lengths = data_lengths
+        let lengths = data_increment_lengths
             .iter()
             .zip(offsets.iter())
             .map(|(next, current)| next - current)
@@ -485,6 +492,15 @@ impl<'a> ModuleImage<'a> {
             .map_or_else(
                 || panic!("Can not find the exit function list section."),
                 ExitFunctionListSection::load,
+            )
+    }
+
+    // essential section (application only)
+    pub fn get_property_section(&'a self) -> PropertySection {
+        self.get_section_data_by_id(ModuleSectionId::Property)
+            .map_or_else(
+                || panic!("Can not find the property section."),
+                PropertySection::load,
             )
     }
 
@@ -594,9 +610,10 @@ mod tests {
         function_index_section::{FunctionIndexItem, FunctionIndexSection},
         function_section::FunctionSection,
         local_variable_section::{LocalVariableItem, LocalVariableSection},
+        property_section::PropertySection,
         start_function_list_section::StartFunctionListSection,
         type_section::TypeSection,
-        ModuleImage, RangeItem, SectionEntry, IMAGE_MAGIC_NUMBER,
+        ModuleImage, RangeItem, SectionEntry, IMAGE_FILE_MAGIC_NUMBER,
     };
 
     #[test]
@@ -688,6 +705,11 @@ mod tests {
             items: &exit_indices,
         };
 
+        // build property section
+        let property_section = PropertySection {
+            entry_function_public_index: 17,
+        };
+
         // build ModuleImage instance
         let section_entries: Vec<&dyn SectionEntry> = vec![
             &type_section,
@@ -696,6 +718,7 @@ mod tests {
             &function_index_section,
             &start_function_list_section,
             &exit_function_list_section,
+            &property_section,
         ];
 
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
@@ -711,9 +734,9 @@ mod tests {
         let mut image_data: Vec<u8> = Vec::new();
         module_image.save(&mut image_data).unwrap();
 
-        assert_eq!(&image_data[0..8], IMAGE_MAGIC_NUMBER);
-        assert_eq!(&image_data[8..10], &[0, 0]); // image minor version number, little endian
-        assert_eq!(&image_data[10..12], &[1, 0]); // image major version number, little endian
+        assert_eq!(&image_data[0..8], IMAGE_FILE_MAGIC_NUMBER);
+        assert_eq!(&image_data[8..10], &[0, 0]); // image format minor version number, little endian
+        assert_eq!(&image_data[10..12], &[1, 0]); // image format major version number, little endian
         assert_eq!(&image_data[12..14], &[0, 0]); // runtime minor version number, little endian
         assert_eq!(&image_data[14..16], &[1, 0]); // runtime major version number, little endian
 
@@ -729,13 +752,13 @@ mod tests {
         // header length = 284 bytes
 
         // section count
-        assert_eq!(&image_data[284..288], &[6, 0, 0, 0]); // item count
+        assert_eq!(&image_data[284..288], &[7, 0, 0, 0]); // section item count
         assert_eq!(&image_data[288..292], &[0, 0, 0, 0]); // padding
 
         let remains = &image_data[292..];
 
-        // section table length = 12 (the record length) * 6
-        let (section_table_data, remains) = remains.split_at(72);
+        // section table length = 12 (the record length) * 7 = 84
+        let (section_table_data, remains) = remains.split_at(84);
 
         assert_eq!(
             section_table_data,
@@ -762,7 +785,11 @@ mod tests {
                 //
                 0x42, 0, 0, 0, // section id, exit func list
                 240, 0, 0, 0, // offset 5
-                16, 0, 0, 0 // length 5 (table header 8 bytes + 2 * 4)
+                16, 0, 0, 0, // length 5 (table header 8 bytes + 2 * 4)
+                //
+                0x43, 0, 0, 0, // section id, property section
+                0, 1, 0, 0, // offset 6, (0x01,00, int = 256)
+                4, 0, 0, 0 // length 6
             ]
         );
 
@@ -893,7 +920,7 @@ mod tests {
             ]
         );
 
-        let (exit_function_list_section_data, _) = remains.split_at(16);
+        let (exit_function_list_section_data, remains) = remains.split_at(16);
         assert_eq!(
             exit_function_list_section_data,
             &[
@@ -905,9 +932,16 @@ mod tests {
             ]
         );
 
+        assert_eq!(
+            remains,
+            &[
+                17,0,0,0, // the public index of function 'entry'
+            ]
+        );
+
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
-        assert_eq!(module_image_restore.items.len(), 6);
+        assert_eq!(module_image_restore.items.len(), 7);
 
         // check type
 
@@ -987,6 +1021,7 @@ mod tests {
             &FunctionIndexItem::new(0, 11, 13)
         );
 
+        // check start function list
         let start_function_list_section_restore =
             module_image_restore.get_start_function_list_section();
         assert_eq!(
@@ -994,8 +1029,13 @@ mod tests {
             &[31, 37, 41, 43,]
         );
 
+        // check exit function list
         let exit_function_list_section_restore =
             module_image_restore.get_exit_function_list_section();
         assert_eq!(exit_function_list_section_restore.items, &[47, 53]);
+
+        // check property section
+        let property_section_restore = module_image_restore.get_property_section();
+        assert_eq!(property_section_restore.entry_function_public_index, 17);
     }
 }

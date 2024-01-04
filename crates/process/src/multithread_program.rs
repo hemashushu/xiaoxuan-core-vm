@@ -6,7 +6,7 @@
 
 use std::{cell::RefCell, sync::Arc};
 
-use ancvm_program::{program_source::ProgramSource, ProgramSourceType};
+use ancvm_program::{program_resource::ProgramResource, ProgramResourceType};
 use ancvm_types::{ForeignValue, VMError};
 
 use crate::{
@@ -18,39 +18,39 @@ use crate::{
 // runs on parallel, so change to thread-local to avoid overwrite by unit tests
 thread_local! {
     pub static MT_PROGRAM_OBJECT_ADDRESS: RefCell<usize> = RefCell::new(0);
-    pub static MT_PROGRAM_SOURCE_TYPE: RefCell<ProgramSourceType> = RefCell::new(ProgramSourceType::InMemory);
+    pub static MT_PROGRAM_SOURCE_TYPE: RefCell<ProgramResourceType> = RefCell::new(ProgramResourceType::InMemory);
 }
 
 pub struct MultithreadProgram<T>
 where
-    T: ProgramSource, //  + ?Sized,
+    T: ProgramResource, //  + ?Sized,
 {
-    pub program_source: Arc<T>,
+    pub program_resource: Arc<T>,
 }
 
 impl<T> MultithreadProgram<T>
 where
-    T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
 {
-    pub fn new(program_source: T) -> Self {
+    pub fn new(program_resource: T) -> Self {
         Self {
-            program_source: Arc::new(program_source),
+            program_resource: Arc::new(program_resource),
         }
     }
 }
 
 pub fn create_thread<T>(
-    mt_program: &MultithreadProgram<T>, // dyn ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+    multithread_program: &MultithreadProgram<T>, // dyn ProgramSource + std::marker::Send + std::marker::Sync + 'static,
     module_index: usize,
     function_public_index: usize,
     thread_start_data: Vec<u8>,
 ) -> u32
 where
-    T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
 {
     let mt_program_object_address =
-        mt_program as *const MultithreadProgram<_> as *const u8 as usize;
-    let mt_program_source_type = mt_program.program_source.get_source_type();
+        multithread_program as *const MultithreadProgram<_> as *const u8 as usize;
+    let mt_program_source_type = multithread_program.program_resource.get_type();
 
     let mut next_thread_id: u32 = 0;
 
@@ -63,7 +63,7 @@ where
     let (parent_tx, child_rx) = std::sync::mpsc::channel::<Vec<u8>>();
     let (child_tx, parent_rx) = std::sync::mpsc::channel::<Vec<u8>>();
 
-    let cloned_program_source = Arc::clone(&mt_program.program_source);
+    let cloned_program_source = Arc::clone(&multithread_program.program_resource);
 
     const HOST_THREAD_STACK_SIZE: usize = 128 * 1024; // 128 KB
 
@@ -103,7 +103,7 @@ where
                 data.replace(thread_start_data);
             });
 
-            let rst_program = cloned_program_source.build_program();
+            let rst_program = cloned_program_source.build_program_context();
             match rst_program {
                 Ok(program) => {
                     let mut thread_context = program.create_thread_context();
@@ -161,19 +161,20 @@ where
     next_thread_id
 }
 
-pub fn run_program_in_multithread<T>(
-    program_source: T,
+pub fn start_program_in_multithread<T>(
+    program_resource: T,
     thread_start_data: Vec<u8>,
 ) -> Result<u64, Box<dyn VMError>>
 where
-    T: ProgramSource + std::marker::Send + std::marker::Sync + 'static,
+    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
 {
-    let multithread_program = MultithreadProgram::new(program_source);
+
+    let multithread_program = MultithreadProgram::new(program_resource);
 
     const MAIN_MODULE_INDEX: usize = 0;
 
     // todo::
-    // find the function which named 'entry' and get the public index
+    // find the function which named 'main' and get the public index
     let entry_function_public_index = 0;
 
     let main_thread_id = create_thread(

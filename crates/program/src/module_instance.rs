@@ -6,7 +6,7 @@
 
 use ancvm_binary::module_image::{
     function_section::FunctionSection, local_variable_section::LocalVariableSection,
-    type_section::TypeSection, ModuleImage,
+    type_section::TypeSection, ModuleImage, function_name_section::FunctionNameSection,
 };
 
 use crate::{
@@ -14,18 +14,16 @@ use crate::{
     indexed_memory::IndexedMemory,
 };
 
-pub struct ProgramModule<'a> {
+pub struct ModuleInstance<'a> {
     pub name: &'a str,
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
     pub function_section: FunctionSection<'a>,
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
-    // pub external_library_section: ExternalLibrarySection<'a>,
-    // pub external_function_section: ExternalFunctionSection<'a>,
-    // pub function_name_section: FunctionNameSection<'a>,
+    pub function_name_section: FunctionNameSection<'a>,
 }
 
-impl<'a> ProgramModule<'a> {
+impl<'a> ModuleInstance<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
         let type_section = module_image.get_type_section();
         let local_variable_section = module_image.get_local_variable_section();
@@ -58,27 +56,13 @@ impl<'a> ProgramModule<'a> {
             },
         );
 
-        //         let external_library_section = module_image
-        //             .get_optional_external_library_section()
-        //             .unwrap_or(ExternalLibrarySection {
-        //                 items: &[],
-        //                 names_data: &[],
-        //             });
-        //
-        //         let external_function_section = module_image
-        //             .get_optional_external_function_section()
-        //             .unwrap_or(ExternalFunctionSection {
-        //                 items: &[],
-        //                 names_data: &[],
-        //             });
-        //
-        //         let function_name_section =
-        //             module_image
-        //                 .get_optional_function_name_section()
-        //                 .unwrap_or(FunctionNameSection {
-        //                     items: &[],
-        //                     names_data: &[],
-        //                 });
+        let function_name_section =
+            module_image
+                .get_optional_function_name_section()
+                .unwrap_or(FunctionNameSection {
+                    items: &[],
+                    names_data: &[],
+                });
 
         Self {
             name: module_image.name,
@@ -90,9 +74,7 @@ impl<'a> ProgramModule<'a> {
                 Box::new(read_write_data),
                 Box::new(uninit_data),
             ],
-            // external_library_section,
-            // external_function_section,
-            // function_name_section,
+            function_name_section,
         }
     }
 }

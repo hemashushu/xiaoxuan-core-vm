@@ -101,11 +101,11 @@ pub fn f64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_program::program_source::ProgramSource;
+    use ancvm_program::program_resource::ProgramResource;
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     #[test]
@@ -124,9 +124,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(11)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11)]);
@@ -147,9 +147,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(0)]);
@@ -172,9 +172,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
@@ -199,7 +199,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -227,7 +227,7 @@ mod tests {
 
         let program_source0 = InMemoryProgramSource::new(vec![binary0]);
         let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -255,9 +255,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
@@ -281,9 +281,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11)]);
@@ -315,9 +315,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -357,9 +357,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(

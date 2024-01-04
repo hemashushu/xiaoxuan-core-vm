@@ -47,7 +47,7 @@ pub fn block(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_context.program_modules[module_index];
+    let module = &thread_context.module_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes =
         module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
@@ -72,7 +72,7 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> InterpretResult {
         function_internal_index: _,
         module_index,
     } = thread_context.pc;
-    let module = &thread_context.program_context.program_modules[module_index];
+    let module = &thread_context.module_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes =
         module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
@@ -107,7 +107,7 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> InterpretResult {
             function_internal_index: _,
             module_index,
         } = thread_context.pc;
-        let module = &thread_context.program_context.program_modules[module_index];
+        let module = &thread_context.module_instances[module_index];
         // let type_item = &module.type_section.items[type_index as usize];
         let local_variables_allocate_bytes =
             module.local_variable_section.lists[local_list_index as usize].list_allocate_bytes;
@@ -204,7 +204,7 @@ fn do_recur(
             function_internal_index,
             module_index,
         } = thread_context.pc;
-        let function_item = &thread_context.program_context.program_modules[module_index]
+        let function_item = &thread_context.module_instances[module_index]
             .function_section
             .items[function_internal_index];
         let relate_offset = function_item.code_offset as isize - instruction_address as isize;
@@ -220,14 +220,14 @@ mod tests {
     use ancvm_binary::{
         bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
-        utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockEntry},
+        utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockSignatureAndLocalVariablesEntry},
     };
 
     use crate::{
-        in_memory_program_source::InMemoryProgramSource, interpreter::process_function,
+        in_memory_program_resource::InMemoryProgramResource, interpreter::process_function,
         InterpreterError, InterpreterErrorType,
     };
-    use ancvm_program::program_source::ProgramSource;
+    use ancvm_program::program_resource::ProgramResource;
     use ancvm_types::{entry::LocalVariableEntry, opcode::Opcode, DataType, ForeignValue};
 
     #[test]
@@ -276,16 +276,16 @@ mod tests {
             vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
             vec![],                                                           // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -346,16 +346,16 @@ mod tests {
             vec![DataType::I32, DataType::I32, DataType::I32], // results
             vec![],                                            // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![DataType::I32],
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -535,7 +535,7 @@ mod tests {
             ], // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32],
                     local_variable_item_entries_without_args: vec![
@@ -543,7 +543,7 @@ mod tests {
                         LocalVariableEntry::from_i32(),
                     ],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![DataType::I32, DataType::I32],
                     results: vec![DataType::I32, DataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -551,9 +551,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -616,9 +616,9 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -684,16 +684,16 @@ mod tests {
             vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
             vec![],                                                           // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
                 results: vec![DataType::I32, DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -764,16 +764,16 @@ mod tests {
             vec![DataType::I32, DataType::I32], // results
             vec![],                             // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
                 results: vec![DataType::I32, DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -842,16 +842,16 @@ mod tests {
             vec![DataType::I32],                  // results
             vec![LocalVariableEntry::from_i32()], // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -954,12 +954,12 @@ mod tests {
             vec![],                                                           // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![DataType::I32, DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![DataType::I32, DataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -967,9 +967,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(1)]);
         assert_eq!(
@@ -1043,16 +1043,16 @@ mod tests {
             vec![DataType::I32],                // results
             vec![],                             // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![], // 'block_alt' has no PARAMS
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -1171,17 +1171,17 @@ mod tests {
             vec![],              // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -1189,9 +1189,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(65)]);
@@ -1332,22 +1332,22 @@ mod tests {
             vec![],              // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1355,9 +1355,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(65)]);
@@ -1469,17 +1469,17 @@ mod tests {
             vec![],              // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1487,10 +1487,10 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
 
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(90)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(65)]);
@@ -1601,12 +1601,12 @@ mod tests {
             vec![LocalVariableEntry::from_i32()], // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1614,9 +1614,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55)]);
@@ -1714,12 +1714,12 @@ mod tests {
             vec![],              // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![DataType::I32, DataType::I32],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1727,9 +1727,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55)]);
@@ -1820,16 +1820,16 @@ mod tests {
             vec![DataType::I32], // results
             vec![],              // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![DataType::I32, DataType::I32],
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55)]);
@@ -1931,12 +1931,12 @@ mod tests {
             vec![],              // local vars
             code0,
             vec![
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![DataType::I32, DataType::I32],
                     results: vec![DataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockEntry {
+                HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1944,9 +1944,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(10)]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55)]);
@@ -2035,16 +2035,16 @@ mod tests {
             vec![DataType::I32],                // results
             vec![],                             // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
             }], // blocks
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -2134,16 +2134,16 @@ mod tests {
             vec![DataType::I32],                // results
             vec![],                             // local vars
             code0,
-            vec![HelperBlockEntry {
+            vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![], // 'block_alt' has no PARAMS
                 results: vec![DataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }], // blocks
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -2215,9 +2215,9 @@ mod tests {
             vec![], // blocks
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

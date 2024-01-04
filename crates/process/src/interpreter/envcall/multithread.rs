@@ -6,10 +6,10 @@
 
 use std::{thread, time::Duration};
 
-use ancvm_program::{thread_context::ThreadContext, ProgramSourceType};
+use ancvm_program::{thread_context::ThreadContext, ProgramResourceType};
 
 use crate::{
-    in_memory_program_source::InMemoryProgramSource,
+    in_memory_program_resource::InMemoryProgramResource,
     multithread_program::{
         create_thread, MultithreadProgram, MT_PROGRAM_OBJECT_ADDRESS, MT_PROGRAM_SOURCE_TYPE,
     },
@@ -49,16 +49,16 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     let mt_program_object_address: usize =
         MT_PROGRAM_OBJECT_ADDRESS.with(|addr_cell| *addr_cell.borrow());
 
-    let mt_program_source_type: ProgramSourceType =
+    let mt_program_source_type: ProgramResourceType =
         MT_PROGRAM_SOURCE_TYPE.with(|source_type_cell| *source_type_cell.borrow());
 
     // get the 'MultithreadProgram' ref
     let mt_program_object_ptr = match mt_program_source_type {
-        ancvm_program::ProgramSourceType::InMemory => {
+        ancvm_program::ProgramResourceType::InMemory => {
             mt_program_object_address as *const u8
-                as *const MultithreadProgram<InMemoryProgramSource>
+                as *const MultithreadProgram<InMemoryProgramResource>
         }
-        ancvm_program::ProgramSourceType::File => {
+        ancvm_program::ProgramResourceType::File => {
             // TODO::
             todo!()
         }
@@ -389,14 +389,14 @@ mod tests {
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_single_function,
-            HelperFunctionEntryWithSignatureAndLocalVars,
+            HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
     use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType};
 
     use crate::{
-        in_memory_program_source::InMemoryProgramSource,
-        multithread_program::run_program_in_multithread,
+        in_memory_program_resource::InMemoryProgramResource,
+        multithread_program::start_program_in_multithread,
     };
 
     #[test]
@@ -416,8 +416,8 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = run_program_in_multithread(program_source0, vec![]);
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let result0 = start_program_in_multithread(program_resource0, vec![]);
 
         const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
         assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
@@ -441,8 +441,8 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = run_program_in_multithread(program_source0, vec![]);
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let result0 = start_program_in_multithread(program_resource0, vec![]);
 
         const FIRST_CHILD_THREAD_ID: u64 = 1;
         assert_eq!(result0.unwrap(), FIRST_CHILD_THREAD_ID);
@@ -475,13 +475,13 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionEntryWithSignatureAndLocalVars {
+                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code0,
                 },
-                HelperFunctionEntryWithSignatureAndLocalVars {
+                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],                                   // params
                     results: vec![DataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
@@ -491,8 +491,8 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let result0 = run_program_in_multithread(program_source0, vec![]);
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let result0 = start_program_in_multithread(program_resource0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
     }
 
@@ -515,10 +515,10 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
         let before = Instant::now();
 
-        let result0 = run_program_in_multithread(program_source0, vec![]);
+        let result0 = start_program_in_multithread(program_resource0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
 
         let after = Instant::now();

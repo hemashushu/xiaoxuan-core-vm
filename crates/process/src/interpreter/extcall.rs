@@ -22,7 +22,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
 
     // get the unified external function index
     let (unified_external_function_index, type_index) = thread_context
-        .program_context
+        .module_index_instance
         .external_function_index_section
         .get_item_unified_external_function_index_and_type_index(
             module_index,
@@ -30,7 +30,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
         );
 
     // get the data types of params and results of the external function
-    let (param_datatypes, result_datatypes) = thread_context.program_context.program_modules
+    let (param_datatypes, result_datatypes) = thread_context.module_instances
         [module_index]
         .type_section
         .get_item_params_and_results(type_index);
@@ -44,13 +44,13 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
         // get the name of the external function and
         // the index of the unified external library
         let (external_function_name, unified_external_library_index) = thread_context
-            .program_context
+            .module_index_instance
             .unified_external_function_section
             .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
         // get the file path or name of the external library
         let (external_library_name, external_library_type) = thread_context
-            .program_context
+            .module_index_instance
             .unified_external_library_section
             .get_item_name_and_external_library_type(unified_external_library_index);
 
@@ -121,18 +121,18 @@ mod tests {
         bytecode_writer::BytecodeWriter,
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
-            HelperExternalFunctionEntry, HelperFunctionEntryWithLocalVars,
+            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
     use ancvm_extfunc_util::cstr_pointer_to_str;
-    use ancvm_program::{program_settings::ProgramSettings, program_source::ProgramSource};
+    use ancvm_program::{program_settings::ProgramSettings, program_resource::ProgramResource};
     use ancvm_types::{
         entry::{InitedDataEntry, TypeEntry},
         opcode::Opcode,
         DataType, ExternalLibraryType, ForeignValue,
     };
 
-    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
 
     #[test]
     fn test_interpreter_extcall_with_system_libc_getuid() {
@@ -157,7 +157,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperFunctionEntryWithLocalVars {
+            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -173,9 +173,9 @@ mod tests {
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
@@ -208,7 +208,7 @@ mod tests {
                     results: vec![DataType::I64], // pointer
                 }, // main
             ], // types
-            vec![HelperFunctionEntryWithLocalVars {
+            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -224,9 +224,9 @@ mod tests {
             }],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
@@ -265,7 +265,7 @@ mod tests {
                     results: vec![DataType::I32],
                 }, // main
             ], // types
-            vec![HelperFunctionEntryWithLocalVars {
+            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -294,13 +294,13 @@ mod tests {
         pwd.push("tests");
         let program_source_path = pwd.to_str().unwrap();
 
-        let program_source0 = InMemoryProgramSource::with_settings(
+        let program_resource0 = InMemoryProgramResource::with_settings(
             vec![binary0],
             &ProgramSettings::new(program_source_path, true, "", ""),
         );
 
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,

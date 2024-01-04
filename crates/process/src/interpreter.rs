@@ -65,10 +65,10 @@ pub enum InterpretResult {
 
 fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
     let pc = &thread_context.pc;
-    let function_item = &thread_context.program_context.program_modules[pc.module_index]
+    let function_item = &thread_context.module_instances[pc.module_index]
         .function_section
         .items[pc.function_internal_index];
-    let codes = &thread_context.program_context.program_modules[pc.module_index]
+    let codes = &thread_context.module_instances[pc.module_index]
         .function_section
         .codes_data[function_item.code_offset as usize
         ..(function_item.code_offset + function_item.code_length) as usize];
@@ -480,7 +480,7 @@ pub fn process_function(
             );
 
     let (params, results) = {
-        let pars = thread_context.program_context.program_modules[target_module_index]
+        let pars = thread_context.module_instances[target_module_index]
             .type_section
             .get_item_params_and_results(type_index);
         (pars.0.to_vec(), pars.1.to_vec())
@@ -602,7 +602,7 @@ pub extern "C" fn process_bridge_function_call(
                 target_module_index,
                 function_internal_index,
             );
-    let type_item = &thread_context.program_context.program_modules[target_module_index]
+    let type_item = &thread_context.module_instances[target_module_index]
         .type_section
         .items[type_index];
 
@@ -687,7 +687,7 @@ pub extern "C" fn process_callback_function_call(
                 target_module_index,
                 function_internal_index,
             );
-    let type_item = &thread_context.program_context.program_modules[target_module_index]
+    let type_item = &thread_context.module_instances[target_module_index]
         .type_section
         .items[type_index];
 

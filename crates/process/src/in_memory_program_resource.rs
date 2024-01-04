@@ -8,17 +8,17 @@ use std::sync::Mutex;
 
 use ancvm_binary::load_modules_from_binaries;
 use ancvm_program::{
-    external_function::ExtenalFunctionTable, program::Program, program_settings::ProgramSettings,
-    program_source::ProgramSource, ProgramSourceType,
+    external_function::ExtenalFunctionTable, program_context::ProgramContext, program_settings::ProgramSettings,
+    program_resource::ProgramResource, ProgramResourceType,
 };
 
-pub struct InMemoryProgramSource {
+pub struct InMemoryProgramResource {
     program_settings: ProgramSettings,
     module_binaries: Vec<Vec<u8>>,
     extenal_function_table: Mutex<ExtenalFunctionTable>,
 }
 
-impl InMemoryProgramSource {
+impl InMemoryProgramResource {
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
             module_binaries,
@@ -39,8 +39,8 @@ impl InMemoryProgramSource {
     }
 }
 
-impl ProgramSource for InMemoryProgramSource {
-    fn build_program(&self) -> Result<Program, ancvm_binary::BinaryError> {
+impl ProgramResource for InMemoryProgramResource {
+    fn build_program_context(&self) -> Result<ProgramContext, ancvm_binary::BinaryError> {
         let binaries_ref = self
             .module_binaries
             .iter()
@@ -49,15 +49,15 @@ impl ProgramSource for InMemoryProgramSource {
 
         let module_images = load_modules_from_binaries(binaries_ref)?;
 
-        Ok(Program::new(
+        Ok(ProgramContext::new(
             &self.program_settings,
             &self.extenal_function_table,
             module_images,
         ))
     }
 
-    fn get_source_type(&self) -> ProgramSourceType {
-        ProgramSourceType::InMemory
+    fn get_type(&self) -> ProgramResourceType {
+        ProgramResourceType::InMemory
     }
 }
 
@@ -65,7 +65,7 @@ impl ProgramSource for InMemoryProgramSource {
 mod tests {
     use ancvm_binary::utils::helper_build_module_binary_with_single_function_and_data_sections;
     use ancvm_program::{
-        program_source::ProgramSource, resizeable_memory::ResizeableMemory,
+        program_resource::ProgramResource, resizeable_memory::ResizeableMemory,
         thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES,
     };
     use ancvm_types::{
@@ -73,7 +73,7 @@ mod tests {
         DataType,
     };
 
-    use crate::in_memory_program_source::InMemoryProgramSource;
+    use crate::in_memory_program_resource::InMemoryProgramResource;
 
     #[test]
     fn test_in_memory_program() {
@@ -97,20 +97,22 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let thread_context0 = program_context0.create_thread_context();
 
-        let program_ref = &thread_context0.program_context;
+        let module_index_instance = &thread_context0.module_index_instance;
 
         // check index sections
-        assert_eq!(program_ref.data_index_section.ranges.len(), 1);
-        assert_eq!(program_ref.data_index_section.items.len(), 6);
-        assert_eq!(program_ref.function_index_section.ranges.len(), 1);
-        assert_eq!(program_ref.function_index_section.items.len(), 1);
+        assert_eq!(module_index_instance.data_index_section.ranges.len(), 1);
+        assert_eq!(module_index_instance.data_index_section.items.len(), 6);
+        assert_eq!(module_index_instance.function_index_section.ranges.len(), 1);
+        assert_eq!(module_index_instance.function_index_section.items.len(), 1);
 
-        assert_eq!(program_ref.program_modules.len(), 1);
-        let module = &program_ref.program_modules[0];
+        let module_instances = &thread_context0.module_instances;
+
+        assert_eq!(module_instances.len(), 1);
+        let module = &module_instances[0];
 
         // check data sections
         assert_eq!(module.datas.len(), 3);

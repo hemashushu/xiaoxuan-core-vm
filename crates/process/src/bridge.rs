@@ -38,7 +38,7 @@ use crate::interpreter::process_bridge_function_call;
 // 1. allocates a block/region of memeory (posix_memalign/mmap, VirtualAlloc(windows))
 // 2. set the memory permission to READ+WRITE (optional, vecause this is the default permissions)
 // 3. copy the native code of function to the memory
-// 4. set the memory permission to READ+EXEC (mprotect, VirtualProtect(windows))
+// 4. set the memory permission to READ+EXEC (by function `mprotect`, `VirtualProtect(windows)`)
 //
 // the following is a snippet for creating a simple native function:
 //
@@ -112,7 +112,7 @@ use crate::interpreter::process_bridge_function_call;
 //     println!("function return: 0x{:x}", val);
 // }
 //
-// however, to build native functions on various arch and platforms is boring job,
+// however, to build native functions on various arch and platforms is a boring job,
 // to make life easy, this module uses crate 'cranelift-jit' :D.
 
 pub fn get_function<T>(
@@ -136,11 +136,11 @@ pub fn get_function<T>(
         return Ok(unsafe { std::mem::transmute_copy::<*const u8, T>(&bridge_function_ptr) });
     }
 
-    let type_index = thread_context.program_context.program_modules[target_module_index]
+    let type_index = thread_context.module_instances[target_module_index]
         .function_section
         .items[function_internal_index]
         .type_index;
-    let (params, results) = thread_context.program_context.program_modules[target_module_index]
+    let (params, results) = thread_context.module_instances[target_module_index]
         .type_section
         .get_item_params_and_results(type_index as usize);
 
@@ -183,10 +183,10 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_program::program_source::ProgramSource;
+    use ancvm_program::program_resource::ProgramResource;
     use ancvm_types::{opcode::Opcode, DataType};
 
-    use crate::{bridge::get_function, in_memory_program_source::InMemoryProgramSource};
+    use crate::{bridge::get_function, in_memory_program_resource::InMemoryProgramResource};
 
     #[test]
     fn test_get_function() {
@@ -209,9 +209,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let fn_add: extern "C" fn(i32, i32) -> i32 =
             get_function(&mut thread_context0, "main", "add").unwrap();

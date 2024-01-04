@@ -734,6 +734,9 @@ pub enum Opcode {
     // this instruction leads VM to create a stack frame which is called 'block frame',
     // block frame is similar to 'function frame' except it has no local variables.
     //
+    // this instruction is different from the WebAssembly instruction 'block', which
+    // its parameters are not 'local variables', and the values are placed on the
+    // operands stack, they can not be accessed with 'local_load/store' instructions.
     block, // (param type_index:i32, local_list_index:i32)
 
     // the instruction 'break' is similar to the instruction 'end', it is

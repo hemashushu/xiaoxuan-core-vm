@@ -493,8 +493,8 @@ mod tests {
         utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
 
-    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
-    use ancvm_program::program_source::ProgramSource;
+    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+    use ancvm_program::program_resource::ProgramResource;
     use ancvm_types::{
         entry::{InitedDataEntry, UninitDataEntry},
         opcode::Opcode,
@@ -609,9 +609,9 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -747,9 +747,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(
             &mut thread_context0,
@@ -881,9 +881,9 @@ mod tests {
             ],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
@@ -923,14 +923,14 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
 
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let mut thread_context0 = program0.create_thread_context();
+            let mut thread_context0 = program_context0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
@@ -957,14 +957,14 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
 
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let mut thread_context0 = program0.create_thread_context();
+            let mut thread_context0 = program_context0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
@@ -992,14 +992,14 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
 
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let mut thread_context0 = program0.create_thread_context();
+            let mut thread_context0 = program_context0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 
@@ -1027,14 +1027,14 @@ mod tests {
             vec![],
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
 
         let prev_hook = std::panic::take_hook(); // let panic silent
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let mut thread_context0 = program0.create_thread_context();
+            let mut thread_context0 = program_context0.create_thread_context();
             let _ = process_function(&mut thread_context0, 0, 0, &[]);
         });
 

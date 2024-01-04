@@ -16,7 +16,7 @@ use std::{
 use ancvm_types::VMError;
 
 pub mod bridge;
-pub mod in_memory_program_source;
+pub mod in_memory_program_resource;
 pub mod interpreter;
 pub mod multithread_program;
 

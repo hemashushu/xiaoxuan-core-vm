@@ -116,8 +116,8 @@ impl<'a> ImportModuleSection<'a> {
                     name_offset,
                     name_length,
                     entry.module_share_type,
-                    entry.version_major,
-                    entry.version_minor,
+                    entry.module_version.major,
+                    entry.module_version.minor,
                 )
             })
             .collect::<Vec<ImportModuleItem>>();
@@ -133,7 +133,7 @@ impl<'a> ImportModuleSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_types::{entry::ImportModuleEntry, ModuleShareType};
+    use ancvm_types::{entry::ImportModuleEntry, EffectiveVersion, ModuleShareType};
 
     use crate::module_image::{
         import_module_section::{ImportModuleItem, ImportModuleSection},
@@ -221,8 +221,16 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            ImportModuleEntry::new("foobar".to_string(), ModuleShareType::User, 23, 29),
-            ImportModuleEntry::new("helloworld".to_string(), ModuleShareType::Share, 31, 37),
+            ImportModuleEntry::new(
+                "foobar".to_string(),
+                ModuleShareType::User,
+                EffectiveVersion::new(23, 29),
+            ),
+            ImportModuleEntry::new(
+                "helloworld".to_string(),
+                ModuleShareType::Share,
+                EffectiveVersion::new(31, 37),
+            ),
         ];
 
         let (items, names_data) = ImportModuleSection::convert_from_entries(&entries);

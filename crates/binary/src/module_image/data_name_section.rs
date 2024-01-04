@@ -30,6 +30,8 @@ pub struct DataNameSection<'a> {
     pub names_data: &'a [u8],
 }
 
+// by default, the name items only contain the internal data items,
+// and the value of 'index' is the 'data public index'.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct DataNameItem {

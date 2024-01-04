@@ -10,8 +10,9 @@ use ancvm_binary::module_image::ModuleImage;
 
 use crate::{
     external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    program_context::ProgramContext, program_settings::ProgramSettings, stack_unary::Stack,
-    INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
+    module_index_instance::ModuleIndexInstance, module_instance::ModuleInstance,
+    program_settings::ProgramSettings, stack_unary::Stack, INIT_HEAP_SIZE_IN_PAGES,
+    INIT_STACK_SIZE_IN_BYTES,
 };
 
 /// one ThreadContext per thread.
@@ -116,11 +117,16 @@ pub struct ThreadContext<'a> {
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
-    pub bridge_function_table: Vec<DelegateLibraryItem>,
-    pub callback_function_table: Vec<DelegateLibraryItem>,
-
+    // runtime generated entries
+    pub bridge_function_module_items: Vec<DelegateFunctionModuleItem>,
+    pub callback_function_module_items: Vec<DelegateFunctionModuleItem>,
     pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
-    pub program_context: ProgramContext<'a>,
+
+    // program modules
+    pub module_index_instance: ModuleIndexInstance<'a>,
+    pub module_instances: Vec<ModuleInstance<'a>>,
+
+    // program settings
     pub program_settings: &'a ProgramSettings,
 }
 
@@ -148,7 +154,7 @@ pub struct ProgramCounter {
     pub module_index: usize,            // the module index
 }
 
-pub struct DelegateLibraryItem {
+pub struct DelegateFunctionModuleItem {
     pub target_module_index: usize,
     pub birdge_function_items: Vec<DelegateFunctionItem>,
 }
@@ -173,29 +179,34 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let program_context = ProgramContext::new(module_images);
+        let module_index_instance = ModuleIndexInstance::new(module_images);
+        let module_instances = module_images
+            .iter()
+            .map(ModuleInstance::new)
+            .collect::<Vec<ModuleInstance>>();
 
         Self {
             stack,
             heap,
             pc,
-            bridge_function_table: vec![],
-            callback_function_table: vec![],
+            bridge_function_module_items: vec![],
+            callback_function_module_items: vec![],
             external_function_table,
-            program_context,
+            module_index_instance,
+            module_instances,
             program_settings,
         }
     }
 
-    pub fn find_function_target_module_index_and_public_index_by_name() -> (usize, usize) {
-        // todo
-        (0, 0)
-    }
-
-    pub fn find_data_target_module_index_and_public_index_by_name() -> (usize, usize) {
-        // todo
-        (0, 0)
-    }
+    //     pub fn find_function_target_module_index_and_public_index_by_name() -> (usize, usize) {
+    //         // todo
+    //         (0, 0)
+    //     }
+    //
+    //     pub fn find_data_target_module_index_and_public_index_by_name() -> (usize, usize) {
+    //         // todo
+    //         (0, 0)
+    //     }
 
     /// return:
     /// (target_module_index:usize, data_internal_index:usize, dyn IndexedMemory)
@@ -208,14 +219,14 @@ impl<'a> ThreadContext<'a> {
         let module_index = self.pc.module_index;
 
         let (target_module_index, data_internal_index, target_data_section_type) = self
-            .program_context
+            .module_index_instance
             .data_index_section
             .get_item_target_module_index_and_data_internal_index_and_data_section_type(
                 module_index,
                 data_public_index,
             );
 
-        let target_module = &mut self.program_context.program_modules[target_module_index];
+        let target_module = &mut self.module_instances[target_module_index];
         let data_object = target_module.datas[target_data_section_type as usize].as_mut();
 
         // bounds check
@@ -253,7 +264,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         function_public_index: usize,
     ) -> (usize, usize) {
         let (target_module_index, function_internal_index) = self
-            .program_context
+            .module_index_instance
             .function_index_section
             .get_item_target_module_index_and_function_internal_index(
                 module_index,
@@ -269,15 +280,14 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         module_index: usize,
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
-        let function_item = &self.program_context.program_modules[module_index]
-            .function_section
-            .items[function_internal_index];
+        let function_item =
+            &self.module_instances[module_index].function_section.items[function_internal_index];
 
         let type_index = function_item.type_index as usize;
         let local_list_index = function_item.local_list_index as usize;
         let code_offset = function_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.program_context.program_modules[module_index]
+        let local_variables_allocate_bytes = self.module_instances[module_index]
             .local_variable_section
             .lists[local_list_index]
             .list_allocate_bytes;
@@ -309,7 +319,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             (frame_pack.address, frame_pack.frame_info.local_list_index)
         };
 
-        let variable_item = &self.program_context.program_modules[module_index]
+        let variable_item = &self.module_instances[module_index]
             .local_variable_section
             .get_local_list(local_list_index as usize)[local_variable_index];
 
@@ -345,7 +355,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         function_internal_index: usize,
     ) -> Option<*const u8> {
         find_delegate_function(
-            &self.bridge_function_table,
+            &self.bridge_function_module_items,
             target_module_index,
             function_internal_index,
         )
@@ -357,7 +367,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         function_internal_index: usize,
     ) -> Option<*const u8> {
         find_delegate_function(
-            &self.callback_function_table,
+            &self.callback_function_module_items,
             target_module_index,
             function_internal_index,
         )
@@ -370,7 +380,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         bridge_function_ptr: *const u8,
     ) {
         insert_delegate_function(
-            &mut self.bridge_function_table,
+            &mut self.bridge_function_module_items,
             target_module_index,
             function_internal_index,
             bridge_function_ptr,
@@ -384,7 +394,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         bridge_function_ptr: *const u8,
     ) {
         insert_delegate_function(
-            &mut self.callback_function_table,
+            &mut self.callback_function_module_items,
             target_module_index,
             function_internal_index,
             bridge_function_ptr,
@@ -486,7 +496,7 @@ offset in bytes: {}, expect length in bytes: {}.",
             module_index,
         } = self.pc;
 
-        let codes_data = self.program_context.program_modules[module_index]
+        let codes_data = self.module_instances[module_index]
             .function_section
             .codes_data;
         let dst = instruction_address + offset;
@@ -495,7 +505,7 @@ offset in bytes: {}, expect length in bytes: {}.",
 }
 
 fn find_delegate_function(
-    delegate_function_table: &[DelegateLibraryItem],
+    delegate_function_table: &[DelegateFunctionModuleItem],
     target_module_index: usize,
     function_internal_index: usize,
 ) -> Option<*const u8> {
@@ -515,7 +525,7 @@ fn find_delegate_function(
 }
 
 fn insert_delegate_function(
-    delegate_function_table: &mut Vec<DelegateLibraryItem>,
+    delegate_function_table: &mut Vec<DelegateFunctionModuleItem>,
     target_module_index: usize,
     function_internal_index: usize,
     bridge_function_ptr: *const u8,
@@ -524,7 +534,7 @@ fn insert_delegate_function(
         .iter()
         .position(|module_item| module_item.target_module_index == target_module_index)
         .unwrap_or_else(|| {
-            delegate_function_table.push(DelegateLibraryItem {
+            delegate_function_table.push(DelegateFunctionModuleItem {
                 target_module_index,
                 birdge_function_items: vec![],
             });

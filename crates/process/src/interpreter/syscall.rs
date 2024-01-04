@@ -151,11 +151,11 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_program::program_source::ProgramSource;
+    use ancvm_program::program_resource::ProgramResource;
     use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
-    use crate::{in_memory_program_source::InMemoryProgramSource, interpreter::process_function};
+    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
 
     #[test]
     fn test_interpreter_syscall_without_args() {
@@ -192,9 +192,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let result_values0 = result0.unwrap();
@@ -243,9 +243,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         const BUF_LENGTH: u32 = 1024;
         let buf = [0u8; BUF_LENGTH as usize];
@@ -319,9 +319,9 @@ mod tests {
             code0,
         );
 
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = program0.create_thread_context();
+        let program_resource0 = InMemoryProgramResource::new(vec![binary0]);
+        let program_context0 = program_resource0.build_program_context().unwrap();
+        let mut thread_context0 = program_context0.create_thread_context();
 
         let file_path0 = b"/this/file/should/not/exist\0";
         let file_path1 = b"/dev/zero\0";

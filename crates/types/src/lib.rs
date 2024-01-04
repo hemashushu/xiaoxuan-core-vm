@@ -4,20 +4,43 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+pub mod entry;
+pub mod envcallcode;
+pub mod opcode;
+pub mod utils;
+
 use std::{
     any::Any,
     fmt::{Debug, Display},
 };
 
+pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
+pub const IMAGE_FILE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct EffectiveVersion {
+    pub major: u16,
+    pub minor: u16,
+}
+
+impl EffectiveVersion {
+    pub fn new(major: u16, minor: u16) -> Self {
+        Self { major, minor }
+    }
+}
+
 // Semantic Versioning
 // - https://semver.org/
 //
 // a module will only run if its required major and minor
-// versions match the current runtime version 100%.
+// versions match the current runtime version strictly.
 pub const RUNTIME_MAJOR_VERSION: u16 = 1;
 pub const RUNTIME_MINOR_VERSION: u16 = 0;
 pub const RUNTIME_PATCH_VERSION: u16 = 0;
-pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
+
+// the max version number the current runtime supported
+pub const IMAGE_FORMAT_MAJOR_VERSION: u16 = 1;
+pub const IMAGE_FORMAT_MINOR_VERSION: u16 = 0;
 
 // the relationship between the version of programs, shared modules and runtime
 // ----------------------------------------------------------------------------
@@ -64,16 +87,6 @@ pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter
 // for the author of a shared module, it is important to note that the
 // public interface (i.e., functions and data) of a module MUST BE KEPT UNCHANGED
 // throughout the major version.
-
-// the max version number the current runtime supported
-pub const IMAGE_MAJOR_VERSION: u16 = 1;
-pub const IMAGE_MINOR_VERSION: u16 = 0;
-pub const IMAGE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
-
-pub mod entry;
-pub mod envcallcode;
-pub mod opcode;
-pub mod utils;
 
 /// the raw data type of operands
 pub type Operand = [u8; 8];

@@ -4,13 +4,17 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use crate::{DataSectionType, DataType, ExternalLibraryType, MemoryDataType, ModuleShareType};
+use crate::{
+    DataSectionType, DataType, EffectiveVersion, ExternalLibraryType, MemoryDataType,
+    ModuleShareType,
+};
 
 #[derive(Debug)]
 pub struct ModuleEntry {
     pub name: String,
-    pub runtime_version_major: u16,
-    pub runtime_version_minor: u16,
+    // pub runtime_version_major: u16,
+    // pub runtime_version_minor: u16,
+    pub runtime_version: EffectiveVersion,
 
     pub import_function_count: usize,
     pub import_read_only_data_count: usize,
@@ -40,7 +44,12 @@ pub struct ModuleEntry {
     pub import_function_entries: Vec<ImportFunctionEntry>,
     pub import_data_entries: Vec<ImportDataEntry>,
 
+    // by default, the name entries only contain the internal functions,
+    // and the value of 'index' is the 'function public index'.
     pub function_name_entries: Vec<FunctionNameEntry>,
+
+    // by default, the name entries only contain the internal data items,
+    // and the value of 'index' is the 'data public index'.
     pub data_name_entries: Vec<DataNameEntry>,
 }
 
@@ -303,22 +312,25 @@ impl ExternalFunctionEntry {
 pub struct ImportModuleEntry {
     pub name: String,
     pub module_share_type: ModuleShareType,
-    pub version_major: u16,
-    pub version_minor: u16,
+    // pub version_major: u16,
+    // pub version_minor: u16,
+    pub module_version: EffectiveVersion,
 }
 
 impl ImportModuleEntry {
     pub fn new(
         name: String,
         module_share_type: ModuleShareType,
-        version_major: u16,
-        version_minor: u16,
+        // version_major: u16,
+        // version_minor: u16,
+        module_version: EffectiveVersion,
     ) -> Self {
         Self {
             name,
             module_share_type,
-            version_major,
-            version_minor,
+            // version_major,
+            // version_minor,
+            module_version,
         }
     }
 }

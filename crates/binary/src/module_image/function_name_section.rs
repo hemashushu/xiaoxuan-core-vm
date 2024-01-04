@@ -30,6 +30,8 @@ pub struct FunctionNameSection<'a> {
     pub names_data: &'a [u8],
 }
 
+// by default, the name items only contain the internal functions,
+// and the value of 'index' is the 'function public index'.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FunctionNameItem {

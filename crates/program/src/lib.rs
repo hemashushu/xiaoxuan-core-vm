@@ -10,11 +10,11 @@ pub mod heap;
 pub mod indexed_memory;
 pub mod jit_util;
 pub mod memory;
-pub mod program;
+pub mod module_instance;
 pub mod program_context;
-pub mod program_module;
+pub mod module_index_instance;
 pub mod program_settings;
-pub mod program_source;
+pub mod program_resource;
 pub mod resizeable_memory;
 pub mod stack_unary;
 pub mod thread_context;
@@ -30,7 +30,7 @@ pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ProgramSourceType {
+pub enum ProgramResourceType {
     InMemory = 0x0,
     File,
 }
