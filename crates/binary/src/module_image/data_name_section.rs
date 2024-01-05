@@ -24,7 +24,7 @@ use crate::utils::{load_section_with_table_and_data_area, save_section_with_tabl
 
 use super::{ModuleSectionId, SectionEntry};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct DataNameSection<'a> {
     pub items: &'a [DataNameItem],
     pub names_data: &'a [u8],
@@ -71,7 +71,10 @@ impl<'a> SectionEntry<'a> for DataNameSection<'a> {
 }
 
 impl<'a> DataNameSection<'a> {
-    pub fn get_item_index_and_export(&'a self, expected_name: &str) -> Option<(usize, bool)> {
+    pub fn get_item_index_and_data_public_index_and_export(
+        &'a self,
+        expected_name: &str,
+    ) -> Option<(usize, usize, bool)> {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -85,7 +88,7 @@ impl<'a> DataNameSection<'a> {
 
         opt_idx.map(|idx| {
             let item = &items[idx];
-            (idx, item.export != 0)
+            (idx, item.data_public_index as usize, item.export != 0)
         })
     }
 
@@ -211,13 +214,19 @@ mod tests {
             names_data: &names_data,
         };
 
-        assert_eq!(section.get_item_index_and_export("foo"), Some((0, false)));
-
         assert_eq!(
-            section.get_item_index_and_export("hello"),
-            Some((1, true))
+            section.get_item_index_and_data_public_index_and_export("foo"),
+            Some((0, 11, false))
         );
 
-        assert_eq!(section.get_item_index_and_export("bar"), None);
+        assert_eq!(
+            section.get_item_index_and_data_public_index_and_export("hello"),
+            Some((1, 13, true))
+        );
+
+        assert_eq!(
+            section.get_item_index_and_data_public_index_and_export("bar"),
+            None
+        );
     }
 }

@@ -211,7 +211,7 @@ pub enum ModuleSectionId {
     //
     // if the feature 'bridge function' (i.e., embed the XiaoXuan VM
     // in a C or Rust applicaton, and call VM functions) is required,
-    // the section 'FunctionName' is not optional.
+    // the section 'FunctionName' and 'DataName' are not optional.
     ImportModule = 0x30, // 0x30
     ImportFunction,      // 0x31
     ImportData,          // 0x32
