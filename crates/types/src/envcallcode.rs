@@ -33,11 +33,17 @@ pub enum EnvCallCode {
 
     // runtime_feature_check,      // `fn (name_ptr:i64, name_len:i32) -> bool`
 
-    // init and fini functions
+    // initialization
     count_start_function = 0x110,   // get the amount of the constructor functions
+                                    // `fn () -> i32`
     count_exit_function,            // get the amount of the destructor functions
+                                    // `fn () -> i32`
     get_start_function_item,        // get 'the public index of constructor function ' by index
+                                    // `fn (index:i32) -> i32`
+                                    // panic if out of index.
     get_exit_function_item,         // get 'the public index of destructor function ' by index
+                                    // `fn (index:i32) -> i32`
+                                    // panic if out of index.
 
     // host info
     // todo

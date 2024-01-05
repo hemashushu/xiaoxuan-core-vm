@@ -135,3 +135,8 @@ where
 
     Ok(data_ptr as *const T)
 }
+
+#[cfg(test)]
+mod tests {
+    // todo
+}

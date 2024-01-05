@@ -27,7 +27,7 @@ impl<'a> SectionEntry<'a> for PropertySection {
         let dst = data.as_mut_ptr();
         unsafe { std::ptr::copy(src, dst, data.len()) };
 
-        writer.write_all(&mut data)
+        writer.write_all(&data)
     }
 
     fn id(&'a self) -> ModuleSectionId {

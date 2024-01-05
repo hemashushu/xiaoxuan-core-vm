@@ -10,6 +10,7 @@ use ancvm_types::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
+mod initialization;
 mod multithread;
 mod runtime_info;
 mod time;
@@ -56,6 +57,13 @@ pub fn init_ecall_handlers() {
     // runtime info
     handlers[EnvCallCode::runtime_name as usize] = runtime_info::runtime_name;
     handlers[EnvCallCode::runtime_version as usize] = runtime_info::runtime_version;
+
+    // initialization
+    handlers[EnvCallCode::count_start_function as usize] = initialization::count_start_function;
+    handlers[EnvCallCode::count_exit_function as usize] = initialization::count_exit_function;
+    handlers[EnvCallCode::get_start_function_item as usize] =
+        initialization::get_start_function_item;
+    handlers[EnvCallCode::get_exit_function_item as usize] = initialization::get_exit_function_item;
 
     // multiple thread
     handlers[EnvCallCode::thread_id as usize] = multithread::thread_id;
