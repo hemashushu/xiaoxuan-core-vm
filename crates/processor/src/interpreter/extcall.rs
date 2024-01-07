@@ -22,7 +22,7 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
 
     // get the unified external function index
     let (unified_external_function_index, type_index) = thread_context
-        .module_index_instance
+        .index_instance
         .external_function_index_section
         .get_item_unified_external_function_index_and_type_index(
             module_index,
@@ -44,13 +44,13 @@ pub fn extcall(thread_context: &mut ThreadContext) -> InterpretResult {
         // get the name of the external function and
         // the index of the unified external library
         let (external_function_name, unified_external_library_index) = thread_context
-            .module_index_instance
+            .index_instance
             .unified_external_function_section
             .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
         // get the file path or name of the external library
         let (external_library_name, external_library_type) = thread_context
-            .module_index_instance
+            .index_instance
             .unified_external_library_section
             .get_item_name_and_external_library_type(unified_external_library_index);
 

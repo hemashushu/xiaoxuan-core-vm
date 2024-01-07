@@ -51,7 +51,7 @@ where
     // use the function 'entry' as the startup function
     const MAIN_MODULE_INDEX: usize = 0;
     let entry_function_public_index = thread_context
-        .module_index_instance
+        .index_instance
         .property_section
         .entry_function_public_index as usize;
 

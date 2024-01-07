@@ -57,8 +57,9 @@ pub struct ModuleEntry {
 pub struct IndexEntry {
     // essential
     pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
-    pub start_function_indices: Vec<u32>,
-    pub exit_function_indices: Vec<u32>,
+    pub start_function_public_indices: Vec<u32>,
+    pub exit_function_public_indices: Vec<u32>,
+    pub entry_function_public_index: u32,
 
     // optional
     pub data_index_module_entries: Vec<DataIndexModuleEntry>,

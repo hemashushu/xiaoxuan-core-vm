@@ -10,7 +10,7 @@ use ancvm_binary::module_image::ModuleImage;
 
 use crate::{
     external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    module_index_instance::ModuleIndexInstance, module_instance::ModuleInstance,
+    index_instance::IndexInstance, module_instance::ModuleInstance,
     program_settings::ProgramSettings, stack_unary::Stack, INIT_HEAP_SIZE_IN_PAGES,
     INIT_STACK_SIZE_IN_BYTES,
 };
@@ -123,7 +123,7 @@ pub struct ThreadContext<'a> {
     pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
 
     // program modules
-    pub module_index_instance: ModuleIndexInstance<'a>,
+    pub index_instance: IndexInstance<'a>,
     pub module_instances: Vec<ModuleInstance<'a>>,
 
     // program settings
@@ -179,7 +179,7 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let module_index_instance = ModuleIndexInstance::new(module_images);
+        let module_index_instance = IndexInstance::new(module_images);
         let module_instances = module_images
             .iter()
             .map(ModuleInstance::new)
@@ -192,7 +192,7 @@ impl<'a> ThreadContext<'a> {
             bridge_function_module_items: vec![],
             callback_function_module_items: vec![],
             external_function_table,
-            module_index_instance,
+            index_instance: module_index_instance,
             module_instances,
             program_settings,
         }
@@ -208,7 +208,7 @@ impl<'a> ThreadContext<'a> {
         expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> (usize, usize, &mut dyn IndexedMemory) {
         let (target_module_index, data_internal_index, target_data_section_type) = self
-            .module_index_instance
+            .index_instance
             .data_index_section
             .get_item_target_module_index_and_data_internal_index_and_data_section_type(
                 module_index,
@@ -253,7 +253,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         function_public_index: usize,
     ) -> (usize, usize) {
         let (target_module_index, function_internal_index) = self
-            .module_index_instance
+            .index_instance
             .function_index_section
             .get_item_target_module_index_and_function_internal_index(
                 module_index,

@@ -9,7 +9,7 @@ use ancvm_context::thread_context::ThreadContext;
 pub fn count_start_function(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let start_function_count = thread_context
-        .module_index_instance
+        .index_instance
         .start_function_list_section
         .items
         .len();
@@ -19,7 +19,7 @@ pub fn count_start_function(thread_context: &mut ThreadContext) {
 pub fn count_exit_function(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let exit_function_count = thread_context
-        .module_index_instance
+        .index_instance
         .exit_function_list_section
         .items
         .len();
@@ -31,7 +31,7 @@ pub fn get_start_function_item(thread_context: &mut ThreadContext) {
     // panic if out of index.
     let idx = thread_context.stack.pop_i32_u();
     let function_public_index = thread_context
-        .module_index_instance
+        .index_instance
         .start_function_list_section
         .items[idx as usize];
     thread_context.stack.push_i32_u(function_public_index);
@@ -42,7 +42,7 @@ pub fn get_exit_function_item(thread_context: &mut ThreadContext) {
     // panic if out of index.
     let idx = thread_context.stack.pop_i32_u();
     let function_public_index = thread_context
-        .module_index_instance
+        .index_instance
         .exit_function_list_section
         .items[idx as usize];
     thread_context.stack.push_i32_u(function_public_index);

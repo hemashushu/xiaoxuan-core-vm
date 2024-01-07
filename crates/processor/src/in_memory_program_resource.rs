@@ -101,7 +101,7 @@ mod tests {
         let process_context0 = program_resource0.create_process_context().unwrap();
         let thread_context0 = process_context0.create_thread_context();
 
-        let module_index_instance = &thread_context0.module_index_instance;
+        let module_index_instance = &thread_context0.index_instance;
 
         // check index sections
         assert_eq!(module_index_instance.data_index_section.ranges.len(), 1);

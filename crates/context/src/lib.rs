@@ -12,7 +12,7 @@ pub mod jit_util;
 pub mod memory;
 pub mod module_instance;
 pub mod process_context;
-pub mod module_index_instance;
+pub mod index_instance;
 pub mod program_settings;
 pub mod program_resource;
 pub mod resizeable_memory;

@@ -13,7 +13,7 @@ use ancvm_binary::module_image::{
     unified_external_library_section::UnifiedExternalLibrarySection, ModuleImage,
 };
 
-pub struct ModuleIndexInstance<'a> {
+pub struct IndexInstance<'a> {
     // the indices
     pub function_index_section: FunctionIndexSection<'a>,
     pub start_function_list_section: StartFunctionListSection<'a>,
@@ -26,7 +26,7 @@ pub struct ModuleIndexInstance<'a> {
     pub external_function_index_section: ExternalFunctionIndexSection<'a>,
 }
 
-impl<'a> ModuleIndexInstance<'a> {
+impl<'a> IndexInstance<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let main_module = &module_images[0];
 
