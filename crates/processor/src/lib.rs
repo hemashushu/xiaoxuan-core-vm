@@ -5,15 +5,14 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use std::{
-    any::Any,
     cell::RefCell,
     collections::BTreeMap,
-    fmt::{Debug, Display},
+    fmt::Display,
     sync::mpsc::{Receiver, Sender},
     thread::JoinHandle,
 };
 
-use ancvm_types::VMError;
+use ancvm_types::GenericError;
 
 pub mod delegate;
 pub mod in_memory_program_resource;
@@ -120,18 +119,11 @@ impl Display for InterpreterError {
     }
 }
 
-impl VMError for InterpreterError {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-// impl std::error::Error for InterpreterError {
-// }
+impl std::error::Error for InterpreterError {}
 
 pub struct ChildThread {
     // the child thread on host will return the 'thread_exit_code'
-    pub join_handle: JoinHandle<Result<u64, Box<dyn VMError>>>,
+    pub join_handle: JoinHandle<Result<u64, GenericError>>,
 
     // the receiver to the child thread
     pub rx: Receiver<Vec<u8>>,

@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_context::{program_resource::ProgramResource, thread_context::ThreadContext};
-use ancvm_types::{ForeignValue, VMError};
+use ancvm_types::{ForeignValue, GenericError};
 
 use crate::{
     delegate::{build_bridge_data, build_bridge_function},
@@ -19,7 +19,7 @@ use crate::{
 pub fn start_program_in_multithread<T>(
     program_resource: T,
     thread_start_data: Vec<u8>,
-) -> Result<u64, Box<dyn VMError>>
+) -> Result<u64, GenericError>
 where
     T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
 {
@@ -37,7 +37,7 @@ where
 pub fn start_program_in_single_thread<T>(
     program_resource: T,
     thread_start_data: Vec<u8>,
-) -> Result<u64, Box<dyn VMError>>
+) -> Result<u64, GenericError>
 where
     T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
 {
@@ -70,7 +70,7 @@ where
             if foreign_values.len() != 1 {
                 return Err(Box::new(InterpreterError::new(
                     InterpreterErrorType::ResultsAmountMissmatch,
-                )) as Box<dyn VMError>);
+                )) as GenericError);
             }
 
             if let ForeignValue::U64(exit_code) = foreign_values[0] {
@@ -78,10 +78,10 @@ where
             } else {
                 Err(Box::new(InterpreterError::new(
                     InterpreterErrorType::DataTypeMissmatch,
-                )) as Box<dyn VMError>)
+                )) as GenericError)
             }
         }
-        Err(e) => Err(Box::new(e) as Box<dyn VMError>),
+        Err(e) => Err(Box::new(e) as GenericError),
     }
 }
 

@@ -7,7 +7,7 @@
 use std::{cell::RefCell, sync::Arc};
 
 use ancvm_context::{program_resource::ProgramResource, ProgramResourceType};
-use ancvm_types::{ForeignValue, VMError};
+use ancvm_types::{ForeignValue, GenericError};
 
 use crate::{
     interpreter::process_function, ChildThread, InterpreterError, InterpreterErrorType,
@@ -146,7 +146,7 @@ where
                             if foreign_values.len() != 1 {
                                 return Err(Box::new(InterpreterError::new(
                                     InterpreterErrorType::ResultsAmountMissmatch,
-                                )) as Box<dyn VMError>);
+                                )) as GenericError);
                             }
 
                             if let ForeignValue::U64(exit_code) = foreign_values[0] {
@@ -154,15 +154,14 @@ where
                             } else {
                                 Err(Box::new(InterpreterError::new(
                                     InterpreterErrorType::DataTypeMissmatch,
-                                )) as Box<dyn VMError>)
+                                )) as GenericError)
                             }
                         }
-                        Err(e) => Err(Box::new(e) as Box<dyn VMError>),
+                        Err(e) => Err(Box::new(e) as GenericError),
                     }
                 }
                 Err(e) => {
-                    // Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>
-                    Err(Box::new(e) as Box<dyn VMError>)
+                    Err(Box::new(e) as GenericError)
                 }
             }
         })

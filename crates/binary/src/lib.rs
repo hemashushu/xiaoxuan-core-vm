@@ -4,9 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use std::{any::Any, fmt::Display};
+use std::fmt::Display;
 
-use ancvm_types::VMError;
 use module_image::ModuleImage;
 
 pub mod bytecode_reader;
@@ -33,14 +32,13 @@ impl Display for BinaryError {
     }
 }
 
-impl VMError for BinaryError {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-// impl std::error::Error for BinaryError {
+// impl VMError for BinaryError {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
 // }
+
+impl std::error::Error for BinaryError {}
 
 pub fn load_modules_from_binaries(
     module_binaries: Vec<&[u8]>,

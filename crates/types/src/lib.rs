@@ -9,10 +9,7 @@ pub mod envcallcode;
 pub mod opcode;
 pub mod utils;
 
-use std::{
-    any::Any,
-    fmt::{Debug, Display},
-};
+use std::fmt::Display;
 
 pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
 pub const IMAGE_FILE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
@@ -268,6 +265,9 @@ impl Display for ExternalLibraryType {
 /// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
 /// - https://doc.rust-lang.org/std/any/
 /// - https://bennett.dev/rust/downcast-trait-object/
-pub trait VMError: Debug + Display + Send + Sync + 'static {
-    fn as_any(&self) -> &dyn Any;
-}
+// pub trait VMError: Debug + Display + Send + Sync + 'static {
+//     fn as_any(&self) -> &dyn Any;
+// }
+
+pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
