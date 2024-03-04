@@ -9,7 +9,9 @@ use ancvm_types::entry::{
     LocalVariableEntry, TypeEntry, UnifiedExternalFunctionEntry, UnifiedExternalLibraryEntry,
     UninitDataEntry,
 };
-use ancvm_types::{DataSectionType, DataType, ExternalLibraryType};
+use ancvm_types::{
+    DataSectionType, DataType, ExternalLibraryType, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
+};
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
@@ -19,6 +21,7 @@ use crate::module_image::external_function_index_section::{
 };
 use crate::module_image::external_function_section::ExternalFunctionSection;
 use crate::module_image::external_library_section::ExternalLibrarySection;
+use crate::module_image::MODULE_NAME_BUFFER_LENGTH;
 
 use crate::module_image::property_section::PropertySection;
 use crate::module_image::start_function_list_section::StartFunctionListSection;
@@ -375,7 +378,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
         vec![],
         vec![],
         vec![],
-        0
+        0,
     )
 }
 
@@ -523,7 +526,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_
         vec![],
         start_function_list,
         exit_function_list,
-        entry_function_public_index
+        entry_function_public_index,
     )
 }
 
@@ -581,7 +584,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
         helper_external_function_entries,
         vec![],
         vec![],
-        0
+        0,
     )
 }
 
@@ -708,9 +711,26 @@ pub fn helper_build_module_binary(
         items: &exit_function_list,
     };
 
+    let name_bytes = name.as_bytes();
+    let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
+
+    unsafe {
+        std::ptr::copy(
+            name_bytes.as_ptr(),
+            module_name_buffer.as_mut_ptr(),
+            name_bytes.len(),
+        )
+    };
+
     // build property section
-    let property_section = PropertySection{
-        entry_function_public_index
+    let property_section = PropertySection {
+        runtime_major_version: RUNTIME_MAJOR_VERSION,
+        runtime_minor_version: RUNTIME_MINOR_VERSION,
+        entry_function_public_index,
+        constructor_function_public_index: u32::MAX,
+        destructor_function_public_index: u32::MAX,
+        module_name_length: name_bytes.len() as u32,
+        module_name_buffer,
     };
 
     // build data index
@@ -834,9 +854,9 @@ pub fn helper_build_module_binary(
 
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
     let module_image = ModuleImage {
-        name,
-        constructor_function_public_index: u32::MAX,
-        destructor_function_public_index: u32::MAX,
+        // name,
+        // constructor_function_public_index: u32::MAX,
+        // destructor_function_public_index: u32::MAX,
         items: &section_items,
         sections_data: &sections_data,
     };
@@ -898,7 +918,6 @@ mod tests {
 
         // check module image
         let module_image = &module_images[0];
-        assert_eq!(module_image.name, "main");
 
         // check data index section
         let data_index_section = module_image.get_optional_data_index_section().unwrap();

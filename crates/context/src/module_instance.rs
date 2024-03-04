@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub struct ModuleInstance<'a> {
-    pub name: &'a str,
+    pub name: String, // &'a str,
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
     pub function_section: FunctionSection<'a>,
@@ -66,8 +66,12 @@ impl<'a> ModuleInstance<'a> {
             .get_optional_data_name_section()
             .unwrap_or_default();
 
+        let property_section =module_image.get_property_section();
+        let name_bytes = property_section.module_name_buffer[0..property_section.module_name_length as usize].to_vec();
+        let name = String::from_utf8(name_bytes).unwrap();
+
         Self {
-            name: module_image.name,
+            name,
             type_section,
             function_section,
             local_variable_section,

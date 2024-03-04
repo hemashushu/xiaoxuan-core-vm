@@ -111,7 +111,6 @@ pub mod unified_external_library_section;
 
 use ancvm_types::{
     IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMAT_MINOR_VERSION,
-    RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
 };
 
 use crate::{
@@ -148,22 +147,16 @@ use self::{
 //              | magic number (u64)                                | 8 bytes, off=0
 //              |---------------------------------------------------|
 //              | img fmt minor ver (u16) | img fmt major ver (u16) | 4 bytes, off=8
-//              | runtime minor ver (u16) | runtime major ver (u16) | 4 bytes, off=12
-//              | constructor func public index (u32)               | 4 bytes, off=16
-//              | destructor func public index (u32)                | 4 bytes, off=20
-//              | name length (u16)       | padding 2 bytes         | 4 bytes, off=24
+//              | padding (4 bytes)                                 | 4 bytes, off=12
 //              |---------------------------------------------------|
-//              | module name (UTF-8) 256 bytes                     | 256 bytes, off=28
-//              |---------------------------------------------------|
-//
-//                 header length = 284ar bytes
-//
+//                 header length = 16 bytes
+
 //                 body
 //              |------------------------------------------------------|
-//              | item count (u32) | (4 bytes padding)                 | 8 bytes
+//              | section item count (u32) | (4 bytes padding)         | 8 bytes, off=16
 //              |------------------------------------------------------|
-//   item 0 --> | section id 0 (u32) | offset 0 (u32) | length 0 (u32) | <-- table
-//   item 1 --> | section id 1       | offset 1       | length 1       |
+//   item 0 --> | section id 0 (u32) | section type 0 (u32) | offset 0 (u32) | length 0 (u32) | <-- table
+//   item 1 --> | section id 1       | section type 1       | offset 1       | length 1       |
 //              | ...                                                  |
 //              |------------------------------------------------------|
 // offset 0 --> | section data 0                                       | <-- data
@@ -171,11 +164,14 @@ use self::{
 //              | ...                                                  |
 //              |------------------------------------------------------|
 
+pub const MODULE_HEADER_LENGTH: usize = 16;
+pub const MODULE_NAME_BUFFER_LENGTH: usize = 256;
+
 #[derive(Debug, PartialEq)]
 pub struct ModuleImage<'a> {
-    pub name: &'a str,
-    pub constructor_function_public_index: u32, // u32::max = none
-    pub destructor_function_public_index: u32,  // u32::max = none
+    // pub name: &'a str,
+    // pub constructor_function_public_index: u32, // u32::max = none
+    // pub destructor_function_public_index: u32,  // u32::max = none
     pub items: &'a [ModuleSection],
     pub sections_data: &'a [u8],
 }
@@ -312,33 +308,32 @@ impl<'a> ModuleImage<'a> {
             ));
         }
 
-        let ptr_require_runtime_version = unsafe { ptr.offset(12) };
-        let require_runtime_version =
-            unsafe { std::ptr::read(ptr_require_runtime_version as *const u32) };
+        //         let ptr_require_runtime_version = unsafe { ptr.offset(12) };
+        //         let require_runtime_version =
+        //             unsafe { std::ptr::read(ptr_require_runtime_version as *const u32) };
+        //
+        //         let supported_runtime_version =
+        //             ((RUNTIME_MAJOR_VERSION as u32) << 16) | (RUNTIME_MINOR_VERSION as u32);
+        //
+        //         // a module will only run if its required major and minor
+        //         // versions match the current runtime version 100%.
+        //         if require_runtime_version != supported_runtime_version {
+        //             return Err(BinaryError::new(
+        //                 "The module requires a different version runtime to run.",
+        //             ));
+        //         }
+        //
+        //         let constructor_function_public_index =
+        //             unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
+        //         let destructor_function_public_index =
+        //             unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
+        //
+        //         let name_length = unsafe { std::ptr::read(ptr.offset(24) as *const u16) };
+        //         let name_bytes = &image_data[28..(28 + (name_length as usize))];
+        //         let name = std::str::from_utf8(name_bytes).unwrap();
+        //
 
-        let supported_runtime_version =
-            ((RUNTIME_MAJOR_VERSION as u32) << 16) | (RUNTIME_MINOR_VERSION as u32);
-
-        // a module will only run if its required major and minor
-        // versions match the current runtime version 100%.
-        if require_runtime_version != supported_runtime_version {
-            return Err(BinaryError::new(
-                "The module requires a different version runtime to run.",
-            ));
-        }
-
-        let constructor_function_public_index =
-            unsafe { std::ptr::read(ptr.offset(16) as *const u32) };
-        let destructor_function_public_index =
-            unsafe { std::ptr::read(ptr.offset(20) as *const u32) };
-
-        let name_length = unsafe { std::ptr::read(ptr.offset(24) as *const u16) };
-        let name_bytes = &image_data[28..(28 + (name_length as usize))];
-        let name = std::str::from_utf8(name_bytes).unwrap();
-
-        const NAME_DATA_LENGTH: usize = 256;
-
-        let image_body = &image_data[(28 + NAME_DATA_LENGTH)..];
+        let image_body = &image_data[MODULE_HEADER_LENGTH..];
 
         // since the structure of module image and a section are the same,
         // that is, the module image itself can be thought of
@@ -349,9 +344,9 @@ impl<'a> ModuleImage<'a> {
             load_section_with_table_and_data_area::<ModuleSection>(image_body);
 
         Ok(Self {
-            name,
-            constructor_function_public_index,
-            destructor_function_public_index,
+            // name,
+            // constructor_function_public_index,
+            // destructor_function_public_index,
             items,
             sections_data,
         })
@@ -362,25 +357,27 @@ impl<'a> ModuleImage<'a> {
         writer.write_all(IMAGE_FILE_MAGIC_NUMBER)?;
         writer.write_all(&IMAGE_FORMAT_MINOR_VERSION.to_le_bytes())?;
         writer.write_all(&IMAGE_FORMAT_MAJOR_VERSION.to_le_bytes())?;
-        writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
-        writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
-        //
-        writer.write_all(&self.constructor_function_public_index.to_le_bytes())?;
-        writer.write_all(&self.destructor_function_public_index.to_le_bytes())?;
-        //
-        writer.write_all(&(self.name.len() as u16).to_le_bytes())?;
-        writer.write_all(&[0u8, 0])?; // padding, 2 bytes
 
-        let name_bytes = self.name.as_bytes();
-        let mut name_buffer = [0u8; 256];
-        unsafe {
-            std::ptr::copy(
-                name_bytes.as_ptr(),
-                name_buffer.as_mut_ptr(),
-                self.name.len(),
-            )
-        };
-        writer.write_all(&name_buffer)?;
+        // padding, 4 bytes
+        writer.write_all(&[0u8, 0, 0, 0])?;
+
+        //         writer.write_all(&RUNTIME_MINOR_VERSION.to_le_bytes())?;
+        //         writer.write_all(&RUNTIME_MAJOR_VERSION.to_le_bytes())?;
+        //         writer.write_all(&self.constructor_function_public_index.to_le_bytes())?;
+        //         writer.write_all(&self.destructor_function_public_index.to_le_bytes())?;
+        //         writer.write_all(&(self.name.len() as u16).to_le_bytes())?;
+        //         writer.write_all(&[0u8, 0])?; // padding, 2 bytes
+        //
+        //         let name_bytes = self.name.as_bytes();
+        //         let mut name_buffer = [0u8; 256];
+        //         unsafe {
+        //             std::ptr::copy(
+        //                 name_bytes.as_ptr(),
+        //                 name_buffer.as_mut_ptr(),
+        //                 self.name.len(),
+        //             )
+        //         };
+        //         writer.write_all(&name_buffer)?;
 
         save_section_with_table_and_data_area(self.items, self.sections_data, writer)
     }
@@ -613,7 +610,8 @@ mod tests {
         property_section::PropertySection,
         start_function_list_section::StartFunctionListSection,
         type_section::TypeSection,
-        ModuleImage, RangeItem, SectionEntry, IMAGE_FILE_MAGIC_NUMBER,
+        ModuleImage, RangeItem, SectionEntry, IMAGE_FILE_MAGIC_NUMBER, MODULE_HEADER_LENGTH,
+        MODULE_NAME_BUFFER_LENGTH,
     };
 
     #[test]
@@ -706,8 +704,19 @@ mod tests {
         };
 
         // build property section
+        let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
+        module_name_buffer[0] = 29;
+        module_name_buffer[1] = 31;
+        module_name_buffer[2] = 37;
+
         let property_section = PropertySection {
+            runtime_major_version: 11,
+            runtime_minor_version: 13,
             entry_function_public_index: 17,
+            constructor_function_public_index: 19,
+            destructor_function_public_index: 23,
+            module_name_length: 3,
+            module_name_buffer,
         };
 
         // build ModuleImage instance
@@ -723,9 +732,9 @@ mod tests {
 
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
         let module_image = ModuleImage {
-            name: "main",
-            constructor_function_public_index: 11,
-            destructor_function_public_index: 13,
+            // name: "main",
+            // constructor_function_public_index: 11,
+            // destructor_function_public_index: 13,
             items: &section_items,
             sections_data: &sections_data,
         };
@@ -737,25 +746,30 @@ mod tests {
         assert_eq!(&image_data[0..8], IMAGE_FILE_MAGIC_NUMBER);
         assert_eq!(&image_data[8..10], &[0, 0]); // image format minor version number, little endian
         assert_eq!(&image_data[10..12], &[1, 0]); // image format major version number, little endian
-        assert_eq!(&image_data[12..14], &[0, 0]); // runtime minor version number, little endian
-        assert_eq!(&image_data[14..16], &[1, 0]); // runtime major version number, little endian
+        assert_eq!(&image_data[12..16], &[0, 0, 0, 0]); // padding
 
-        // constructor and destructor
-        assert_eq!(&image_data[16..20], &[11, 0, 0, 0]); // constructor
-        assert_eq!(&image_data[20..24], &[13, 0, 0, 0]); // destructor
+        //         assert_eq!(&image_data[12..14], &[0, 0]); // runtime minor version number, little endian
+        //         assert_eq!(&image_data[14..16], &[1, 0]); // runtime major version number, little endian
+        //
+        //         // constructor and destructor
+        //         assert_eq!(&image_data[16..20], &[11, 0, 0, 0]); // constructor
+        //         assert_eq!(&image_data[20..24], &[13, 0, 0, 0]); // destructor
+        //
+        //         // name
+        //         assert_eq!(&image_data[24..26], &[4, 0]); // name length, 2 bytes
+        //         assert_eq!(&image_data[26..28], &[0, 0]); // padding, 2 bytes
+        //         assert_eq!(&image_data[28..32], &b"main".to_vec()); // name
+        //
+        //         // header length = 284 bytes
+        //
 
-        // name
-        assert_eq!(&image_data[24..26], &[4, 0]); // name length, 2 bytes
-        assert_eq!(&image_data[26..28], &[0, 0]); // padding, 2 bytes
-        assert_eq!(&image_data[28..32], &b"main".to_vec()); // name
-
-        // header length = 284 bytes
+        // body
+        let remains = &image_data[MODULE_HEADER_LENGTH..];
 
         // section count
-        assert_eq!(&image_data[284..288], &[7, 0, 0, 0]); // section item count
-        assert_eq!(&image_data[288..292], &[0, 0, 0, 0]); // padding
-
-        let remains = &image_data[292..];
+        let (section_count_data, remains) = remains.split_at(8);
+        assert_eq!(&section_count_data[0..4], &[7, 0, 0, 0]); // section item count
+        assert_eq!(&section_count_data[4..8], &[0, 0, 0, 0]); // padding
 
         // section table length = 12 (the record length) * 7 = 84
         let (section_table_data, remains) = remains.split_at(84);
@@ -789,7 +803,7 @@ mod tests {
                 //
                 0x43, 0, 0, 0, // section id, property section
                 0, 1, 0, 0, // offset 6, (0x01,00, int = 256)
-                4, 0, 0, 0 // length 6
+                20, 1, 0, 0 // length 256 + 20
             ]
         );
 
@@ -933,9 +947,14 @@ mod tests {
         );
 
         assert_eq!(
-            remains,
+            &remains[..20],
             &[
-                17,0,0,0, // the public index of function 'entry'
+                11, 0, // runtime major version
+                13, 0, // runtime minor version
+                17, 0, 0, 0, // entry function public index
+                19, 0, 0, 0, // constructor function public index
+                23, 0, 0, 0, // destructor function public index
+                3, 0, 0, 0, // name length
             ]
         );
 
@@ -1036,6 +1055,21 @@ mod tests {
 
         // check property section
         let property_section_restore = module_image_restore.get_property_section();
+        assert_eq!(property_section_restore.runtime_major_version, 11);
+        assert_eq!(property_section_restore.runtime_minor_version, 13);
         assert_eq!(property_section_restore.entry_function_public_index, 17);
+        assert_eq!(
+            property_section_restore.constructor_function_public_index,
+            19
+        );
+        assert_eq!(
+            property_section_restore.destructor_function_public_index,
+            23
+        );
+        assert_eq!(property_section_restore.module_name_length, 3);
+        assert_eq!(
+            property_section_restore.module_name_buffer[..3],
+            [29, 31, 37]
+        );
     }
 }

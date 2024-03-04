@@ -9,7 +9,13 @@ use super::{ModuleSectionId, SectionEntry};
 #[repr(C)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PropertySection {
-    pub entry_function_public_index: u32,
+    pub runtime_major_version: u16,
+    pub runtime_minor_version: u16,
+    pub entry_function_public_index: u32, // u32::max = none
+    pub constructor_function_public_index: u32, // u32::max = none
+    pub destructor_function_public_index: u32, // u32::max = none
+    pub module_name_length: u32,
+    pub module_name_buffer: [u8; 256],
 }
 
 impl<'a> SectionEntry<'a> for PropertySection {
@@ -43,27 +49,66 @@ mod tests {
 
     #[test]
     fn test_save_section() {
+        let mut module_name_buffer = [0u8; 256];
+        module_name_buffer[0] = 29;
+        module_name_buffer[1] = 31;
+        module_name_buffer[2] = 37;
+
         let section = PropertySection {
-            entry_function_public_index: 11,
+            runtime_major_version: 11,
+            runtime_minor_version: 13,
+            entry_function_public_index: 17,
+            constructor_function_public_index: 19,
+            destructor_function_public_index: 23,
+            module_name_length: 3,
+            module_name_buffer,
         };
 
         let mut section_data: Vec<u8> = Vec::new();
         section.save(&mut section_data).unwrap();
 
-        let expect_data = vec![
-            11, 0, 0, 0, // the public index of function 'entry'
+        let mut expect_data = vec![
+            11, 0, // major runtime version
+            13, 0, // minor runtime version
+            17, 0, 0, 0, // entry function public index
+            19, 0, 0, 0, // constructor function public index
+            23, 0, 0, 0, // destructor function public index
+            3, 0, 0, 0, // name length
+            29, 31, 37, // name buffer
         ];
+
+        expect_data.resize(std::mem::size_of::<PropertySection>(), 0);
 
         assert_eq!(section_data, expect_data);
     }
 
     #[test]
     fn test_load_section() {
-        let section_data = vec![
-            11, 0, 0, 0, // the public index of function 'entry'
+        let mut section_data = vec![
+            11, 0, // major runtime version
+            13, 0, // minor runtime version
+            17, 0, 0, 0, // entry function public index
+            19, 0, 0, 0, // constructor function public index
+            23, 0, 0, 0, // destructor function public index
+            3, 0, 0, 0, // name length
+            29, 31, 37, 0, // name buffer
         ];
 
+        section_data.resize(std::mem::size_of::<PropertySection>(), 0);
+
         let section = PropertySection::load(&section_data);
-        assert_eq!(section.entry_function_public_index, 11);
+        assert_eq!(section.runtime_major_version, 11);
+        assert_eq!(section.runtime_minor_version, 13);
+        assert_eq!(section.entry_function_public_index, 17);
+        assert_eq!(section.constructor_function_public_index, 19);
+        assert_eq!(section.destructor_function_public_index, 23);
+        assert_eq!(section.module_name_length, 3);
+
+        let mut module_name_buffer = [0u8; 256];
+        module_name_buffer[0] = 29;
+        module_name_buffer[1] = 31;
+        module_name_buffer[2] = 37;
+
+        assert_eq!(section.module_name_buffer, module_name_buffer);
     }
 }
