@@ -66,7 +66,7 @@ pub fn print_bytecode_as_text(codes: &[u8]) -> String {
             // fundemental
             Opcode::nop
             | Opcode::zero
-            | Opcode::drop
+            // | Opcode::drop
             // | Opcode::duplicate
             // | Opcode::swap
             | Opcode::select_nez => (offset_param, String::new()),

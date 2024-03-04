@@ -11,7 +11,7 @@ impl Opcode {
         match self {
             Opcode::nop => "nop",
             Opcode::zero => "zero",
-            Opcode::drop => "drop",
+            // Opcode::drop => "drop",
             // Opcode::duplicate => "duplicate",
             // Opcode::swap => "swap",
             Opcode::select_nez => "select_nez",

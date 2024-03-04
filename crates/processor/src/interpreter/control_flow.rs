@@ -220,7 +220,10 @@ mod tests {
     use ancvm_binary::{
         bytecode_reader::print_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
-        utils::{helper_build_module_binary_with_single_function_and_blocks, HelperBlockSignatureAndLocalVariablesEntry},
+        utils::{
+            helper_build_module_binary_with_single_function_and_blocks,
+            HelperBlockSignatureAndLocalVariablesEntry,
+        },
     };
 
     use crate::{
@@ -2179,8 +2182,8 @@ mod tests {
         //     zero
         //     i32_gt
         //     (recur_nez 0)
-        //                          ;; drop n, keep sum
-        //     drop
+        //
+        //     drop                 ;; drop n, keep sum
         // end
         //
         // assert (0, 10) -> (55)
@@ -2202,15 +2205,16 @@ mod tests {
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i16_i32(Opcode::recur_nez, 0, 0)
             //
-            .append_opcode(Opcode::drop)
+            // .append_opcode(Opcode::drop)
+            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
-            vec![],                             // local vars
+            vec![DataType::I32, DataType::I32],   // params
+            vec![DataType::I32],                  // results
+            vec![LocalVariableEntry::from_i32()], // local vars (for dropping operands)
             code0,
             vec![], // blocks
         );

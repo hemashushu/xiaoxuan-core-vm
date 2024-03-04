@@ -303,7 +303,7 @@ mod tests {
             // init heap size
             .append_opcode_i32(Opcode::i32_imm, 1)
             .append_opcode(Opcode::heap_resize)
-            .append_opcode(Opcode::drop)
+            // .append_opcode(Opcode::drop)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i32(Opcode::i32_imm, 0x19171311)

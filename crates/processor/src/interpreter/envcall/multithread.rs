@@ -397,7 +397,9 @@ mod tests {
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType};
+    use ancvm_types::{
+        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, DataType,
+    };
 
     use crate::{
         in_memory_program_resource::InMemoryProgramResource, process::start_program_in_multithread,
@@ -466,7 +468,8 @@ mod tests {
             // now the operand(s) on the top of stack is: (child thread id)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_and_collect as u32)
             // now the operand(s) on the top of stack is: (child thread exit code, thread result)
-            .append_opcode(Opcode::drop)
+            // .append_opcode(Opcode::drop)
+            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // now the operand(s) on the top of stack is: (child thread exit code)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -480,9 +483,9 @@ mod tests {
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
-                    params: vec![],                                   // params
-                    results: vec![DataType::I64],                     // results
-                    local_variable_item_entries_without_args: vec![], // local vars
+                    params: vec![],               // params
+                    results: vec![DataType::I64], // results
+                    local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local vars (for dropping operands)
                     code: code0,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {

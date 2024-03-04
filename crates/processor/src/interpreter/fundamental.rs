@@ -17,12 +17,12 @@ pub fn zero(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
+/*
 pub fn drop_(thread_context: &mut ThreadContext) -> InterpretResult {
     thread_context.stack.drop_();
     InterpretResult::Move(2)
 }
 
-/*
 pub fn duplicate(thread_context: &mut ThreadContext) -> InterpretResult {
     thread_context.stack.duplicate();
     InterpretResult::Move(2)
@@ -155,6 +155,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(0)]);
     }
 
+    /*
     #[test]
     fn test_interpreter_fundamental_drop() {
         // () -> (i32)
@@ -180,7 +181,6 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
     }
 
-    /*
     #[test]
     fn test_interpreter_fundamental_duplicate() {
         // () -> (i32, i32)

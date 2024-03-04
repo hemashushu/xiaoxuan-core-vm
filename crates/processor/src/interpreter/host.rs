@@ -806,7 +806,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 1)
             .append_opcode(Opcode::heap_resize)
-            .append_opcode(Opcode::drop)
+            // .append_opcode(Opcode::drop)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i32(Opcode::i32_imm, 0x07050302)
@@ -890,7 +890,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i32(Opcode::i32_imm, 1)
             .append_opcode(Opcode::heap_resize)
-            .append_opcode(Opcode::drop)
+            // .append_opcode(Opcode::drop)
             //
             .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
             .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
