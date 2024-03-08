@@ -12,8 +12,6 @@ use crate::{
 #[derive(Debug)]
 pub struct ModuleEntry {
     pub name: String,
-    // pub runtime_version_major: u16,
-    // pub runtime_version_minor: u16,
     pub runtime_version: EffectiveVersion,
 
     pub import_function_count: usize,
@@ -57,8 +55,8 @@ pub struct ModuleEntry {
 pub struct IndexEntry {
     // essential
     pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
-    pub start_function_public_indices: Vec<u32>,
-    pub exit_function_public_indices: Vec<u32>,
+    // pub start_function_public_indices: Vec<u32>,
+    // pub exit_function_public_indices: Vec<u32>,
     pub entry_function_public_index: u32,
 
     // optional

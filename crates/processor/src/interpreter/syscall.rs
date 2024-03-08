@@ -183,7 +183,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
@@ -234,7 +234,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I64, DataType::I64], // params
@@ -310,7 +310,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![DataType::I64],                // params

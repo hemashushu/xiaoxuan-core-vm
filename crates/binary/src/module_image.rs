@@ -92,7 +92,7 @@
 pub mod data_index_section;
 pub mod data_name_section;
 pub mod data_section;
-pub mod exit_function_list_section;
+// pub mod exit_function_list_section;
 pub mod external_function_index_section;
 pub mod external_function_section;
 pub mod external_library_section;
@@ -104,7 +104,7 @@ pub mod import_function_section;
 pub mod import_module_section;
 pub mod local_variable_section;
 pub mod property_section;
-pub mod start_function_list_section;
+// pub mod start_function_list_section;
 pub mod type_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
@@ -125,7 +125,7 @@ use crate::{
 use self::{
     data_name_section::DataNameSection,
     data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
-    exit_function_list_section::ExitFunctionListSection,
+    // exit_function_list_section::ExitFunctionListSection,
     external_function_index_section::ExternalFunctionIndexSection,
     external_function_section::ExternalFunctionSection,
     external_library_section::ExternalLibrarySection,
@@ -135,7 +135,7 @@ use self::{
     import_module_section::ImportModuleSection,
     local_variable_section::LocalVariableSection,
     property_section::PropertySection,
-    start_function_list_section::StartFunctionListSection,
+    // start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection,
 };
@@ -474,23 +474,23 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
-    // essential section (application only)
-    pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
-            .map_or_else(
-                || panic!("Can not find the start function list section."),
-                StartFunctionListSection::load,
-            )
-    }
+    // // essential section (application only)
+    // pub fn get_start_function_list_section(&'a self) -> StartFunctionListSection<'a> {
+    //     self.get_section_data_by_id(ModuleSectionId::StartFunctionList)
+    //         .map_or_else(
+    //             || panic!("Can not find the start function list section."),
+    //             StartFunctionListSection::load,
+    //         )
+    // }
 
-    // essential section (application only)
-    pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
-        self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
-            .map_or_else(
-                || panic!("Can not find the exit function list section."),
-                ExitFunctionListSection::load,
-            )
-    }
+    // // essential section (application only)
+    // pub fn get_exit_function_list_section(&'a self) -> ExitFunctionListSection<'a> {
+    //     self.get_section_data_by_id(ModuleSectionId::ExitFunctionList)
+    //         .map_or_else(
+    //             || panic!("Can not find the exit function list section."),
+    //             ExitFunctionListSection::load,
+    //         )
+    // }
 
     // essential section (application only)
     pub fn get_property_section(&'a self) -> PropertySection {
@@ -603,12 +603,12 @@ mod tests {
     };
 
     use crate::module_image::{
-        exit_function_list_section::ExitFunctionListSection,
+        // exit_function_list_section::ExitFunctionListSection,
         function_index_section::{FunctionIndexItem, FunctionIndexSection},
         function_section::FunctionSection,
         local_variable_section::{LocalVariableItem, LocalVariableSection},
         property_section::PropertySection,
-        start_function_list_section::StartFunctionListSection,
+        // start_function_list_section::StartFunctionListSection,
         type_section::TypeSection,
         ModuleImage, RangeItem, SectionEntry, IMAGE_FILE_MAGIC_NUMBER, MODULE_HEADER_LENGTH,
         MODULE_NAME_BUFFER_LENGTH,
@@ -691,17 +691,17 @@ mod tests {
             items: &function_index_items,
         };
 
-        // build start function list
-        let start_indices = vec![31u32, 37, 41, 43];
-        let start_function_list_section = StartFunctionListSection {
-            items: &start_indices,
-        };
-
-        // build exit function list
-        let exit_indices = vec![47u32, 53];
-        let exit_function_list_section = ExitFunctionListSection {
-            items: &exit_indices,
-        };
+//         // build start function list
+//         let start_indices = vec![31u32, 37, 41, 43];
+//         let start_function_list_section = StartFunctionListSection {
+//             items: &start_indices,
+//         };
+//
+//         // build exit function list
+//         let exit_indices = vec![47u32, 53];
+//         let exit_function_list_section = ExitFunctionListSection {
+//             items: &exit_indices,
+//         };
 
         // build property section
         let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
@@ -725,8 +725,8 @@ mod tests {
             &function_section,
             &local_var_section,
             &function_index_section,
-            &start_function_list_section,
-            &exit_function_list_section,
+            // &start_function_list_section,
+            // &exit_function_list_section,
             &property_section,
         ];
 
@@ -768,11 +768,11 @@ mod tests {
 
         // section count
         let (section_count_data, remains) = remains.split_at(8);
-        assert_eq!(&section_count_data[0..4], &[7, 0, 0, 0]); // section item count
+        assert_eq!(&section_count_data[0..4], &[5, 0, 0, 0]); // section item count
         assert_eq!(&section_count_data[4..8], &[0, 0, 0, 0]); // padding
 
-        // section table length = 12 (the record length) * 7 = 84
-        let (section_table_data, remains) = remains.split_at(84);
+        // section table length = 12 (the record length) * 5= 60
+        let (section_table_data, remains) = remains.split_at(60);
 
         assert_eq!(
             section_table_data,
@@ -792,17 +792,17 @@ mod tests {
                 0x40, 0, 0, 0, // section id, func index section
                 156, 0, 0, 0, // offset 3
                 60, 0, 0, 0, // length 3
-                //
-                0x41, 0, 0, 0, // section id, start func list
-                216, 0, 0, 0, // offset 4
-                24, 0, 0, 0, // length 4 (table header 8 bytes + 4 * 4)
-                //
-                0x42, 0, 0, 0, // section id, exit func list
-                240, 0, 0, 0, // offset 5
-                16, 0, 0, 0, // length 5 (table header 8 bytes + 2 * 4)
+                // //
+                // 0x41, 0, 0, 0, // section id, start func list
+                // 216, 0, 0, 0, // offset 4
+                // 24, 0, 0, 0, // length 4 (table header 8 bytes + 4 * 4)
+                // //
+                // 0x42, 0, 0, 0, // section id, exit func list
+                // 240, 0, 0, 0, // offset 5
+                // 16, 0, 0, 0, // length 5 (table header 8 bytes + 2 * 4)
                 //
                 0x43, 0, 0, 0, // section id, property section
-                0, 1, 0, 0, // offset 6, (0x01,00, int = 256)
+                216, 0, 0, 0, // offset 6,
                 20, 1, 0, 0 // length 256 + 20
             ]
         );
@@ -920,31 +920,31 @@ mod tests {
             ]
         );
 
-        let (start_function_list_section_data, remains) = remains.split_at(24);
-        assert_eq!(
-            start_function_list_section_data,
-            &[
-                4u8, 0, 0, 0, // item count
-                0, 0, 0, 0, // padding
-                //
-                31, 0, 0, 0, //
-                37, 0, 0, 0, //
-                41, 0, 0, 0, //
-                43, 0, 0, 0, //
-            ]
-        );
-
-        let (exit_function_list_section_data, remains) = remains.split_at(16);
-        assert_eq!(
-            exit_function_list_section_data,
-            &[
-                2u8, 0, 0, 0, // item count
-                0, 0, 0, 0, // padding
-                //
-                47, 0, 0, 0, //
-                53, 0, 0, 0, //
-            ]
-        );
+//         let (start_function_list_section_data, remains) = remains.split_at(24);
+//         assert_eq!(
+//             start_function_list_section_data,
+//             &[
+//                 4u8, 0, 0, 0, // item count
+//                 0, 0, 0, 0, // padding
+//                 //
+//                 31, 0, 0, 0, //
+//                 37, 0, 0, 0, //
+//                 41, 0, 0, 0, //
+//                 43, 0, 0, 0, //
+//             ]
+//         );
+//
+//         let (exit_function_list_section_data, remains) = remains.split_at(16);
+//         assert_eq!(
+//             exit_function_list_section_data,
+//             &[
+//                 2u8, 0, 0, 0, // item count
+//                 0, 0, 0, 0, // padding
+//                 //
+//                 47, 0, 0, 0, //
+//                 53, 0, 0, 0, //
+//             ]
+//         );
 
         assert_eq!(
             &remains[..20],
@@ -960,7 +960,7 @@ mod tests {
 
         // load
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
-        assert_eq!(module_image_restore.items.len(), 7);
+        assert_eq!(module_image_restore.items.len(), 5);
 
         // check type
 
@@ -1040,18 +1040,18 @@ mod tests {
             &FunctionIndexItem::new(0, 11, 13)
         );
 
-        // check start function list
-        let start_function_list_section_restore =
-            module_image_restore.get_start_function_list_section();
-        assert_eq!(
-            start_function_list_section_restore.items,
-            &[31, 37, 41, 43,]
-        );
-
-        // check exit function list
-        let exit_function_list_section_restore =
-            module_image_restore.get_exit_function_list_section();
-        assert_eq!(exit_function_list_section_restore.items, &[47, 53]);
+//         // check start function list
+//         let start_function_list_section_restore =
+//             module_image_restore.get_start_function_list_section();
+//         assert_eq!(
+//             start_function_list_section_restore.items,
+//             &[31, 37, 41, 43,]
+//         );
+//
+//         // check exit function list
+//         let exit_function_list_section_restore =
+//             module_image_restore.get_exit_function_list_section();
+//         assert_eq!(exit_function_list_section_restore.items, &[47, 53]);
 
         // check property section
         let property_section_restore = module_image_restore.get_property_section();

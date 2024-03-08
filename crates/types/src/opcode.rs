@@ -177,10 +177,12 @@ pub enum Opcode {
 
     // the following instructions are specific to the stack VM and have
     // been temporarily dropped for ease of translation to register-based VMs/CPUs.
-
+    //
     // drop,                       // drop one operand (the top most operand)          (operand op:any) -> ()
     // duplicate,                  // duplicate one operand (the top most operand)     (operand op:any) -> any
     // swap,                       // swap the top two operands                        (operand left:any right:any) -> (any, any)
+    //
+    //
 
     select_nez,                 // (operand when_true:any when_false:any test:i32) -> any
                                 //

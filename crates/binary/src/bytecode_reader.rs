@@ -11,7 +11,7 @@ use ancvm_types::opcode::Opcode;
 // 0x0008  00 11 22 33  44 55 66 77
 // 0x0000  88 99 aa bb  cc dd ee ff
 //
-pub fn print_bytecode_as_binary(codes: &[u8]) -> String {
+pub fn format_bytecode_as_binary(codes: &[u8]) -> String {
     codes
         .chunks(8)
         .enumerate()
@@ -49,7 +49,7 @@ pub fn print_bytecode_as_binary(codes: &[u8]) -> String {
 // 0x0000  00 07                       i32.add
 // 0x0002  00 04 02 00                 heap.load       off:0x02
 // 0x0006  08 04 03 00                 heap.store      off:0x03
-pub fn print_bytecode_as_text(codes: &[u8]) -> String {
+pub fn format_bytecode_as_text(codes: &[u8]) -> String {
     let mut lines: Vec<String> = Vec::new();
 
     let code_length = codes.len(); // in bytes
@@ -584,7 +584,7 @@ mod tests {
     use ancvm_types::opcode::Opcode;
 
     use crate::{
-        bytecode_reader::{print_bytecode_as_binary, print_bytecode_as_text},
+        bytecode_reader::{format_bytecode_as_binary, format_bytecode_as_text},
         bytecode_writer::BytecodeWriter,
     };
 
@@ -619,7 +619,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let text = print_bytecode_as_binary(&code0);
+        let text = format_bytecode_as_binary(&code0);
 
         assert_eq!(
             text,
@@ -677,7 +677,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let text = print_bytecode_as_text(&code0);
+        let text = format_bytecode_as_text(&code0);
 
         assert_eq!(
             text,

@@ -218,7 +218,7 @@ fn do_recur(
 #[cfg(test)]
 mod tests {
     use ancvm_binary::{
-        bytecode_reader::print_bytecode_as_text,
+        bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
         utils::{
             helper_build_module_binary_with_single_function_and_blocks,
@@ -342,7 +342,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                            // params
@@ -518,7 +518,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32], // params
@@ -609,7 +609,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
@@ -680,7 +680,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                                           // params
@@ -760,7 +760,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
@@ -838,7 +838,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32],   // params
@@ -949,7 +949,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32],                                              // params
@@ -1039,7 +1039,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32], // params
@@ -1166,7 +1166,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -1327,7 +1327,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", print_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -1464,7 +1464,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -1596,7 +1596,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32],                  // params
@@ -1709,7 +1709,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -1816,7 +1816,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -1926,7 +1926,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32], // params
@@ -2031,7 +2031,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32], // params
@@ -2130,7 +2130,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![DataType::I32, DataType::I32], // params

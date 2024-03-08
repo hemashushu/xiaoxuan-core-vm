@@ -15,7 +15,7 @@ use ancvm_types::{
 
 use std::{mem::size_of, ptr::slice_from_raw_parts};
 
-use crate::module_image::exit_function_list_section::ExitFunctionListSection;
+// use crate::module_image::exit_function_list_section::ExitFunctionListSection;
 use crate::module_image::external_function_index_section::{
     ExternalFunctionIndexItem, ExternalFunctionIndexSection,
 };
@@ -24,7 +24,7 @@ use crate::module_image::external_library_section::ExternalLibrarySection;
 use crate::module_image::MODULE_NAME_BUFFER_LENGTH;
 
 use crate::module_image::property_section::PropertySection;
-use crate::module_image::start_function_list_section::StartFunctionListSection;
+// use crate::module_image::start_function_list_section::StartFunctionListSection;
 use crate::module_image::unified_external_function_section::UnifiedExternalFunctionSection;
 use crate::module_image::unified_external_library_section::UnifiedExternalLibrarySection;
 use crate::module_image::{
@@ -376,8 +376,8 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
         vec![local_list_entry],
         vec![function_entry],
         vec![],
-        vec![],
-        vec![],
+        // vec![],
+        // vec![],
         0,
     )
 }
@@ -416,8 +416,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
         helper_function_with_code_and_sig_and_local_vars_entries,
         helper_block_sig_and_local_vars_entries,
-        vec![],
-        vec![],
+        // vec![],
+        // vec![],
         0,
     )
 }
@@ -428,8 +428,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_
         HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
     >,
     helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
-    start_function_list: Vec<u32>,
-    exit_function_list: Vec<u32>,
+    // start_function_list: Vec<u32>,
+    // exit_function_list: Vec<u32>,
     entry_function_public_index: u32,
 ) -> Vec<u8> {
     // build type entries
@@ -524,8 +524,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_
         local_list_entries,
         function_entries,
         vec![],
-        start_function_list,
-        exit_function_list,
+        // start_function_list,
+        // exit_function_list,
         entry_function_public_index,
     )
 }
@@ -582,8 +582,8 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
         local_list_entries,
         function_entries,
         helper_external_function_entries,
-        vec![],
-        vec![],
+        // vec![],
+        // vec![],
         0,
     )
 }
@@ -599,8 +599,8 @@ pub fn helper_build_module_binary(
     local_list_entries: Vec<LocalListEntry>, // this local list includes args
     function_entries: Vec<FunctionEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
-    start_function_list: Vec<u32>,
-    exit_function_list: Vec<u32>,
+    // start_function_list: Vec<u32>,
+    // exit_function_list: Vec<u32>,
     entry_function_public_index: u32,
 ) -> Vec<u8> {
     // build type section
@@ -701,15 +701,15 @@ pub fn helper_build_module_binary(
         items: &function_index_items,
     };
 
-    // build start function list
-    let start_function_list_section = StartFunctionListSection {
-        items: &start_function_list,
-    };
-
-    // build exit function list
-    let exit_function_list_section = ExitFunctionListSection {
-        items: &exit_function_list,
-    };
+//     // build start function list
+//     let start_function_list_section = StartFunctionListSection {
+//         items: &start_function_list,
+//     };
+//
+//     // build exit function list
+//     let exit_function_list_section = ExitFunctionListSection {
+//         items: &exit_function_list,
+//     };
 
     let name_bytes = name.as_bytes();
     let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
@@ -843,8 +843,8 @@ pub fn helper_build_module_binary(
         &external_function_section,
         // index sections
         &function_index_section,
-        &start_function_list_section,
-        &exit_function_list_section,
+        // &start_function_list_section,
+        // &exit_function_list_section,
         &property_section,
         &unified_external_library_section,
         &unified_external_function_section,

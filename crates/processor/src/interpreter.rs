@@ -6,7 +6,7 @@
 
 use std::sync::Once;
 
-use ancvm_binary::bytecode_reader::print_bytecode_as_text;
+use ancvm_binary::bytecode_reader::format_bytecode_as_text;
 use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_types::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
@@ -72,7 +72,7 @@ fn unreachable(thread_context: &mut ThreadContext) -> InterpretResult {
         .function_section
         .codes_data[function_item.code_offset as usize
         ..(function_item.code_offset + function_item.code_length) as usize];
-    let code_text = print_bytecode_as_text(codes);
+    let code_text = format_bytecode_as_text(codes);
 
     unreachable!(
         "Invalid opcode: 0x{:04x}

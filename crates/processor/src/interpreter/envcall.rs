@@ -4,13 +4,13 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_binary::bytecode_reader::print_bytecode_as_text;
+use ancvm_binary::bytecode_reader::format_bytecode_as_text;
 use ancvm_context::thread_context::ThreadContext;
 use ancvm_types::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 
-mod initialization;
+// mod initialization;
 mod multithread;
 mod runtime_info;
 mod time;
@@ -26,7 +26,7 @@ fn unreachable(thread_context: &mut ThreadContext) {
         .function_section
         .codes_data
         [func_item.code_offset as usize..(func_item.code_offset + func_item.code_length) as usize];
-    let code_text = print_bytecode_as_text(codes);
+    let code_text = format_bytecode_as_text(codes);
 
     unreachable!(
         "Invalid EnvCall number: 0x{:04x}
@@ -58,12 +58,12 @@ pub fn init_ecall_handlers() {
     handlers[EnvCallCode::runtime_name as usize] = runtime_info::runtime_name;
     handlers[EnvCallCode::runtime_version as usize] = runtime_info::runtime_version;
 
-    // initialization
-    handlers[EnvCallCode::count_start_function as usize] = initialization::count_start_function;
-    handlers[EnvCallCode::count_exit_function as usize] = initialization::count_exit_function;
-    handlers[EnvCallCode::get_start_function_item as usize] =
-        initialization::get_start_function_item;
-    handlers[EnvCallCode::get_exit_function_item as usize] = initialization::get_exit_function_item;
+    // // initialization
+    // handlers[EnvCallCode::count_start_function as usize] = initialization::count_start_function;
+    // handlers[EnvCallCode::count_exit_function as usize] = initialization::count_exit_function;
+    // handlers[EnvCallCode::get_start_function_item as usize] =
+    //     initialization::get_start_function_item;
+    // handlers[EnvCallCode::get_exit_function_item as usize] = initialization::get_exit_function_item;
 
     // multiple thread
     handlers[EnvCallCode::thread_id as usize] = multithread::thread_id;

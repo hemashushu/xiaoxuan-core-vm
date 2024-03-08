@@ -5,10 +5,10 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_binary::module_image::{
-    data_index_section::DataIndexSection, exit_function_list_section::ExitFunctionListSection,
+    data_index_section::DataIndexSection, // exit_function_list_section::ExitFunctionListSection,
     external_function_index_section::ExternalFunctionIndexSection,
     function_index_section::FunctionIndexSection, property_section::PropertySection,
-    start_function_list_section::StartFunctionListSection,
+    // start_function_list_section::StartFunctionListSection,
     unified_external_function_section::UnifiedExternalFunctionSection,
     unified_external_library_section::UnifiedExternalLibrarySection, ModuleImage,
 };
@@ -16,8 +16,8 @@ use ancvm_binary::module_image::{
 pub struct IndexInstance<'a> {
     // the indices
     pub function_index_section: FunctionIndexSection<'a>,
-    pub start_function_list_section: StartFunctionListSection<'a>,
-    pub exit_function_list_section: ExitFunctionListSection<'a>,
+    // pub start_function_list_section: StartFunctionListSection<'a>,
+    // pub exit_function_list_section: ExitFunctionListSection<'a>,
     pub property_section: PropertySection,
     //
     pub data_index_section: DataIndexSection<'a>,
@@ -31,8 +31,8 @@ impl<'a> IndexInstance<'a> {
         let main_module = &module_images[0];
 
         let function_index_section = main_module.get_function_index_section();
-        let start_function_list_section = main_module.get_start_function_list_section();
-        let exit_function_list_section = main_module.get_exit_function_list_section();
+        // let start_function_list_section = main_module.get_start_function_list_section();
+        // let exit_function_list_section = main_module.get_exit_function_list_section();
         let property_section = main_module.get_property_section();
 
         let data_index_section = main_module
@@ -53,8 +53,8 @@ impl<'a> IndexInstance<'a> {
 
         Self {
             function_index_section,
-            start_function_list_section,
-            exit_function_list_section,
+            // start_function_list_section,
+            // exit_function_list_section,
             property_section,
             //
             data_index_section,

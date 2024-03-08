@@ -245,7 +245,7 @@ pub fn host_addr_function(thread_context: &mut ThreadContext) -> InterpretResult
 mod tests {
 
     use ancvm_binary::{
-        bytecode_reader::print_bytecode_as_text,
+        bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriter,
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
@@ -537,7 +537,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", print_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -692,7 +692,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", print_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -831,7 +831,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", print_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
