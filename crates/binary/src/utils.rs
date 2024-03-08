@@ -413,25 +413,26 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     >,
     helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
 ) -> Vec<u8> {
-    helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
-        helper_function_with_code_and_sig_and_local_vars_entries,
-        helper_block_sig_and_local_vars_entries,
-        // vec![],
-        // vec![],
-        0,
-    )
-}
+    //     helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
+    //         helper_function_with_code_and_sig_and_local_vars_entries,
+    //         helper_block_sig_and_local_vars_entries,
+    //         // vec![],
+    //         // vec![],
+    //         0,
+    //     )
+    // }
+    //
+    // /// helper function for unit test
+    // pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
+    //     helper_function_with_code_and_sig_and_local_vars_entries: Vec<
+    //         HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
+    //     >,
+    //     helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
+    //     // start_function_list: Vec<u32>,
+    //     // exit_function_list: Vec<u32>,
+    //     entry_function_public_index: u32,
+    // ) -> Vec<u8> {
 
-/// helper function for unit test
-pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_and_exit_functions(
-    helper_function_with_code_and_sig_and_local_vars_entries: Vec<
-        HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
-    >,
-    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
-    // start_function_list: Vec<u32>,
-    // exit_function_list: Vec<u32>,
-    entry_function_public_index: u32,
-) -> Vec<u8> {
     // build type entries
 
     // note:
@@ -514,6 +515,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks_and_entry_and_start_
             code: entry.code.clone(),
         })
         .collect::<Vec<_>>();
+
+    let entry_function_public_index = 0;
 
     helper_build_module_binary(
         "main",
@@ -701,15 +704,15 @@ pub fn helper_build_module_binary(
         items: &function_index_items,
     };
 
-//     // build start function list
-//     let start_function_list_section = StartFunctionListSection {
-//         items: &start_function_list,
-//     };
-//
-//     // build exit function list
-//     let exit_function_list_section = ExitFunctionListSection {
-//         items: &exit_function_list,
-//     };
+    //     // build start function list
+    //     let start_function_list_section = StartFunctionListSection {
+    //         items: &start_function_list,
+    //     };
+    //
+    //     // build exit function list
+    //     let exit_function_list_section = ExitFunctionListSection {
+    //         items: &exit_function_list,
+    //     };
 
     let name_bytes = name.as_bytes();
     let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
