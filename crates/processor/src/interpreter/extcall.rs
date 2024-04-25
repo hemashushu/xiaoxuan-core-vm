@@ -124,7 +124,7 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
-    use ancvm_extfunc_util::cstr_pointer_to_str;
+    use dyncall_util::cstr_pointer_to_str;
     use ancvm_context::{program_settings::ProgramSettings, program_resource::ProgramResource};
     use ancvm_types::{
         entry::{InitedDataEntry, TypeEntry},

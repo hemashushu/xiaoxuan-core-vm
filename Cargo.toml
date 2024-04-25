@@ -2,8 +2,8 @@
 members = [
     "crates/types",
     "crates/binary",
-    "crates/syscall_util",
-    "crates/extfunc_util",
+    # "crates/syscall_util",
+    # "crates/extfunc_util",
     "crates/context",
     "crates/processor",
 ]

@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_context::thread_context::ThreadContext;
-use ancvm_syscall_util::call::{
+use syscall_util::call::{
     syscall_with_1_arg, syscall_with_2_args, syscall_with_3_args, syscall_with_4_args,
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
@@ -152,7 +152,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_syscall_util::{errno::Errno, number::SysCallNum};
+    use syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};

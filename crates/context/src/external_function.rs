@@ -22,7 +22,7 @@
 
 use std::{ffi::c_void, sync::Once};
 
-use ancvm_extfunc_util::{load_library, load_symbol, transmute_symbol_to};
+use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 use ancvm_types::DataType;
 
 use crate::jit_util::build_vm_to_external_function;

@@ -1,20 +1,20 @@
 [package]
-name = "ancvm_context"
+name = "ancvm-context"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ancvm_types = { path = "../types" }
-ancvm_binary = { path = "../binary" }
-ancvm_extfunc_util = { path = "../extfunc_util" }
+ancvm-types = { path = "../types" }
+ancvm-binary = { path = "../binary" }
+dyncall-util = { path = "../../../dyncall-util" }
 
-cranelift-codegen = "0.101.0"
-cranelift-frontend = "0.101.0"
-cranelift-module = "0.101.0"
-cranelift-jit = "0.101.0"
-cranelift-native = "0.101.0"
+cranelift-codegen = "0.107.0"
+cranelift-frontend = "0.107.0"
+cranelift-module = "0.107.0"
+cranelift-jit = "0.107.0"
+cranelift-native = "0.107.0"
 rand = "0.8.5"
 
 [features]
