@@ -28,18 +28,16 @@
 //    |-------|-------|-------|----|----|
 //    |               i64               | <-- native data type
 //    |---------------------------------|
-//    |???????????????|        i32      |
+//    | sign-extend   |        i32      |
 //    |---------------------------------|
-//    |???????????????|-sign--|   i16   |
+//    | sign-extend           |   i16   |
 //    |---------------------------------|
-//    |???????????????|-sign-extend| i8 |
+//    | sign-extend                | i8 |
 //    |---------------------------------|
 //    |               f64               | <-- native data type
 //    |---------------------------------|
-//    |???????????????|        f32      |
+//    | undefined     |        f32      |
 //    |---------------------------------|
-//
-// the value of the high end part of operand is undefined.
 
 // note:
 //
@@ -57,9 +55,9 @@
 // sometimes make problems unpredictable, for example:
 //
 // - NaN != NaN
-// - (NaN < 0) == false, (NaN > 0) == false
+// - (NaN < 0) == false and (NaN > 0) == false
 // - (a != b) cannot assert that !(a == b)
-// - 1/-0 = -Infinity
+// - 1 ÷ -0 = -Infinity
 //
 // ref:
 //
@@ -78,21 +76,22 @@
 //
 // e.g. for f32:
 //
-//                   MSB                                  LSB
-//                   sign    exponent (8 bits)   fraction (23 bits)                                 implicit leading number 1
-//                   ----    -----------------   ------------------                                 |
-//                   |       |                   |                                                  v
-//          format   0       00000000            0000000000 0000000000 000     value = (-1)^sign * (1 + fraction) * 2^(exponent-offset), offset = 127 for f32, 1023 for f64
-//          example  1       10000001            0100000000 0000000000 000     value = (-1)^1 * (1 + 0*2^(-1) + 1*2^(-2)) * 2^(129-127) = -1 * 1.25 * 4 = -5.0
-//          example  0       01111100            0100000000 0000000000 000     value = (-1)^0 * 1.25 * 2^(-3) = 0.15625
+//           MSB                                  LSB
+//           sign    exponent (8 bits)   fraction (23 bits)                                 implicit leading number 1
+//           ----    -----------------   ------------------                                 |
+//           |       |                   |                                                  v
+// format    0       00000000            0000000000 0000000000 000     value = (-1)^sign * (1 + fraction) * 2^(exponent-offset), offset = 127 for f32, 1023 for f64
+// example   1       10000001            0100000000 0000000000 000     value = (-1)^1 * (1 + 0*2^(-1) + 1*2^(-2)) * 2^(129-127) = -1 * 1.25 * 4 = -5.0
+// example   0       01111100            0100000000 0000000000 000     value = (-1)^0 * 1.25 * 2^(-3) = 0.15625
+//
 // support?
-//  Y                -       00000001--\
-//                           11111110--/         ---------- ---------- ---     normal number
-//  Y                0       00000000            0000000000 0000000000 000     value = +0
-//  N                1       00000000            0000000000 0000000000 000     value = -0
-//  Y                -       00000000            ---------- ---------- ---     subnormal number (i.e., numbers between 0 and MIN)
-//  N                -       11111111            0000000000 0000000000 000     value = +/- Infinity
-//  N                -       11111111            ---------- ---------- ---     NaN
+//  Y        -       00000001--\
+//                   11111110--/         ---------- ---------- ---     normal number
+//  Y        0       00000000            0000000000 0000000000 000     value = +0
+//  N        1       00000000            0000000000 0000000000 000     value = -0
+//  Y        -       00000000            ---------- ---------- ---     subnormal number (i.e., numbers between 0 and MIN)
+//  N        -       11111111            0000000000 0000000000 000     value = +/- Infinity
+//  N        -       11111111            ---------- ---------- ---     NaN
 //
 // when load data from memory as floating-point number, there are some checking as the following:
 // 1. exponent between (00000001) and (11111110): pass
@@ -136,8 +135,7 @@
 //   instructions with 3 parameter, such as `local_load`, `local_store`,
 //   16 bits opcode + 16 bits parameter 1 + 16 bits parameter 2 + 16 bits parameter 3
 // - 96 bits
-//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`. `block`, 'block_nez'
-//   (only these instructions currently are 96 bits)
+//   instructions with 2 parameters, such as `i64_imm`, `f64_imm`. `block`, 'block_nez', 'heap_loadx', 'heap_storex'
 //   16 bits opcode + 16 bits padding + 32 bits parameter 0 + 32 bits parameter 1 (ALIGN 4-byte alignment require)
 // - 128 bits
 //   instructions with 3 parameters, such as `block_alt`
@@ -173,6 +171,7 @@ pub enum Opcode {
     //
     nop = 0x100,                // instruction to do nothing,
                                 // it's usually used for padding instructions to archieve 32/64 bits (4/8-byte) alignment.
+    /*
     zero,                       // push 0 (i64) onto stack                          () -> i64
 
     // the following instructions are specific to the stack VM and have
@@ -193,12 +192,13 @@ pub enum Opcode {
                                 // \---------/
                                 //
                                 // pop operands a, b and c, then push c if a!=0, otherwise push b.
-
                                 // b and c should be the same data type.
-    i32_imm = 0x180,            // (param immediate_number:i32) -> i32
-    i64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> i64
-    f32_imm,                    // (param immediate_number:i32) -> f32
-    f64_imm,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> f64
+    */
+
+    imm_i32 = 0x180,            // (param immediate_number:i32) -> i64  (sign extend to i64)
+    imm_i64,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> i64
+    imm_f32,                    // (param immediate_number:i32) -> f32
+    imm_f64,                    // (param immediate_number_low:i32, immediate_number_high:i32) -> f64
 
     // some ISA (VM or real machine) place the immediate numbers in a list of constants
     // in the program image, and then load the constants by address to archieve the
@@ -220,6 +220,116 @@ pub enum Opcode {
     // | i64       | 8             |
     // | f32       | 4             |
     // | f64       | 8             |
+
+    // note:
+    // - there are 2 sets of local load/store instructions, one set is the
+    //   local_load.../local_store.., they are designed to access primitive type data
+    //   and struct data, the other set is the local_offset_load.../local_offset_store..., they
+    //   are designed to access long byte-type data.
+    // - the local_(offset_)load32* instructions will leave the value of the high part of
+    //   operand (on the stack) undefined/unpredictable.
+
+    //
+    // data (thread-local variables) loading and storing
+    //
+    // load the specified data and push onto to the stack, or
+    // pop one operand off the stack and set the specified data
+    //
+    data_load_i64 = 0x200,      // load data                (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i32_s,            //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i32_u,            //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i16_s,            //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i16_u,            //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i8_s,             //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_i8_u,             //                          (param offset_bytes:i16 data_public_index:i32) -> i64
+    data_load_f64,              // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f64
+    data_load_f32,              // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f32
+    data_store_i64,             // store data               (param offset_bytes:i16 data_public_index:i32)      (operand number:i64) -> ()
+    data_store_i32,             //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
+    data_store_i16,             //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
+    data_store_i8,              //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
+    data_store_f64,             // store data               (param offset_bytes:i16 data_public_index:i32)      (operand number:f64) -> ()
+    data_store_f32,             //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:f32) -> ()
+
+    // there are also 2 sets of data load/store instructions, one set is the
+    // data_load.../data_store.., they are designed to access primitive type data
+    // and struct data, the other set is the data_offset_load.../data_offset_store..., they
+    // are designed to access long byte-type data.
+    data_extend_load_i64 = 0x280,       //                    (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i32_s,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i32_u,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i16_s,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i16_u,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i8_s,      //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_i8_u,      //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
+    data_extend_load_f64,       //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> f64
+    data_extend_load_f32,       //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> f32
+    data_extend_store_i64,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i64) -> ()
+    data_extend_store_i32,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
+    data_extend_store_i16,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
+    data_extend_store_i8,         //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
+    data_extend_store_f64,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:f64) -> ()
+    data_extend_store_f32,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:f32) -> ()
+
+    // note
+    // both local variables and data have NO data type, they both are
+    // bytes in the memory. so you can call 'local_store8' and 'local_load32_i8_u'
+    // even if the local variable is defined as i64.
+
+    //
+    // heap (thread-local memory) loading and storing with bound checking
+    //
+
+    // note that the address of heap is a 64-bit integer number, which means that you
+    // must write the target address (to stack) using the
+    // instructions 'i64_imm', 'local_(offset_)load' or 'data_(offset_)load'.
+    // do NOT use the 'i32_imm', 'local_(offset_)load32' or 'data_(offset_)load32', because
+    // the latter instructions leave the value of the high part of
+    // operand (on the stack) undefined/unpredictable.
+    heap_load_i64 = 0x300,      // load heap                (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i32_s,            //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i32_u,            //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i16_s,            //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i16_u,            //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i8_s,             //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_i8_u,             //                          (offset_bytes:i32)    (operand heap_addr:i64) -> i64
+    heap_load_f64,              // Load f64 with floating-point validity check.
+                                // (offset_bytes:i32)    (operand heap_addr:i64) -> f64
+    heap_load_f32,              // Load f32 with floating-point validity check.
+                                // (offset_bytes:i32)    (operand heap_addr:i64) -> f32
+    heap_store_i64,             // store heap               (offset_bytes:i32)    (operand heap_addr:i64 number:i64) -> ()
+    heap_store_i32,             //                          (offset_bytes:i32)    (operand heap_addr:i64 number:i32) -> ()
+    heap_store_i16,             //                          (offset_bytes:i32)    (operand heap_addr:i64 number:i32) -> ()
+    heap_store_i8,              //                          (offset_bytes:i32)    (operand heap_addr:i64 number:i32) -> ()
+    heap_store_f64,             // store heap               (offset_bytes:i32)    (operand heap_addr:i64 number:f64) -> ()
+    heap_store_f32,             //                          (offset_bytes:i32)    (operand heap_addr:i64 number:f32) -> ()
+
+    heap_bound_load_i64 = 0x340,      // load heap          (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i32_s,            //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i32_u,            //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i16_s,            //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i16_u,            //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i8_s,             //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_i8_u,             //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> i64
+    heap_bound_load_f64,              //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> f64
+    heap_bound_load_f32,              //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32) -> f32
+    heap_bound_store_i64,             // store heap         (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:i64) -> ()
+    heap_bound_store_i32,             //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:i32) -> ()
+    heap_bound_store_i16,             //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:i32) -> ()
+    heap_bound_store_i8,              //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:i32) -> ()
+    heap_bound_store_f64,             // store heap         (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:f64) -> ()
+    heap_bound_store_f32,             //                    (operand start_addr:i64 length_bytes:i32 offset_bytes:i32 number:f32) -> ()
+
+    // heap memory
+    heap_fill = 0x380,          // fill the specified memory region with the specified (i8) value
+                                // (operand offset:i64 value:i8 count:i64) -> ()
+    heap_copy,                  // copy the specified memory region to the specified location
+                                // (operand dst_offset:i64 src_offset:i64 length_in_bytes:i64) -> ()
+    heap_capacity,              // return the amount of pages of the thread-local
+                                // memory (i.e. heap), each page is MEMORY_PAGE_SIZE_IN_BYTES (64 KiB) by default
+                                // () -> pages:i64
+    heap_resize,                // increase or decrease the heap size return the new capacity (in pages)
+                                // (operand pages:i64) -> new_pages:i64
 
     // local variables loading and storing:
     //
@@ -252,114 +362,37 @@ pub enum Opcode {
     // instructions).
     // this feature can be used as a trick to improve performance, but the XiaoXuan ISA doesn't
     // provide this feature. please note that to access arguments you should always using the index.
-    local_load64_i64 = 0x200,   // load local variable      (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
-    local_load64_f64,           // Load f64 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f64
-    local_load32_i32,           //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
-    local_load32_i16_s,         //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
-    local_load32_i16_u,         //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
-    local_load32_i8_s,          //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
-    local_load32_i8_u,          //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i32
-    local_load32_f32,           // Load f32 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f32
-    local_store64,              // store local variable     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i64) -> ()
-    local_store32,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
-    local_store16,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
-    local_store8,               //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_load_i64 = 0x400,     // load local variable      (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i32_s,           //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i32_u,           //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i16_s,           //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i16_u,           //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i8_s,            //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_i8_u,            //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    local_load_f64,             // Load f64 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f64
+    local_load_f32,             // Load f32 with floating-point validity check.     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> f32
+    local_store_i64,              // store local variable     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i64) -> ()
+    local_store_i32,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_store_i16,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_store_i8,               //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:i32) -> ()
+    local_store_f64,              // store local variable     (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:f64) -> ()
+    local_store_f32,              //                          (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)    (operand number:f32) -> ()
 
-    local_offset_load64_i64 = 0x280,    //                  (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
-    local_offset_load64_f64,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f64
-    local_offset_load32_i32,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
-    local_offset_load32_i16_s,   //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
-    local_offset_load32_i16_u,   //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
-    local_offset_load32_i8_s,    //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
-    local_offset_load32_i8_u,    //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i32
-    local_offset_load32_f32,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f32
-    local_offset_store64,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i64) -> ()
-    local_offset_store32,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
-    local_offset_store16,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
-    local_offset_store8,         //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
-
-    // note:
-    // - there are 2 sets of local load/store instructions, one set is the
-    //   local_load.../local_store.., they are designed to access primitive type data
-    //   and struct data, the other set is the local_offset_load.../local_offset_store..., they
-    //   are designed to access long byte-type data.
-    // - the local_(offset_)load32* instructions will leave the value of the high part of
-    //   operand (on the stack) undefined/unpredictable.
-
-    //
-    // data (thread-local variables) loading and storing
-    //
-    // load the specified data and push onto to the stack, or
-    // pop one operand off the stack and set the specified data
-    //
-    data_load64_i64 = 0x300,    // load data                (param offset_bytes:i16 data_public_index:i32) -> i64
-    data_load64_f64,            // Load f64 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f64
-    data_load32_i32,            //                          (param offset_bytes:i16 data_public_index:i32) -> i32
-    data_load32_i16_s,          //                          (param offset_bytes:i16 data_public_index:i32) -> i32
-    data_load32_i16_u,          //                          (param offset_bytes:i16 data_public_index:i32) -> i32
-    data_load32_i8_s,           //                          (param offset_bytes:i16 data_public_index:i32) -> i32
-    data_load32_i8_u,           //                          (param offset_bytes:i16 data_public_index:i32) -> i32
-    data_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16 data_public_index:i32) -> f32
-    data_store64,               // store data               (param offset_bytes:i16 data_public_index:i32)      (operand number:i64) -> ()
-    data_store32,               //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
-    data_store16,               //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
-    data_store8,                //                          (param offset_bytes:i16 data_public_index:i32)      (operand number:i32) -> ()
-
-    // there are also 2 sets of data load/store instructions, one set is the
-    // data_load.../data_store.., they are designed to access primitive type data
-    // and struct data, the other set is the data_offset_load.../data_offset_store..., they
-    // are designed to access long byte-type data.
-    data_offset_load64_i64 = 0x380,   //                    (param data_public_index:i32)   (operand offset_bytes:i32) -> i64
-    data_offset_load64_f64,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> f64
-    data_offset_load32_i32,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
-    data_offset_load32_i16_s,   //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
-    data_offset_load32_i16_u,   //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
-    data_offset_load32_i8_s,    //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
-    data_offset_load32_i8_u,    //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> i32
-    data_offset_load32_f32,     //                          (param data_public_index:i32)   (operand offset_bytes:i32) -> f32
-    data_offset_store64,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i64) -> ()
-    data_offset_store32,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
-    data_offset_store16,        //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
-    data_offset_store8,         //                          (param data_public_index:i32)   (operand offset_bytes:i32 number:i32) -> ()
-
-    // note
-    // both local variables and data have NO data type, they both are
-    // bytes in the memory. so you can call 'local_store8' and 'local_load32_i8_u'
-    // even if the local variable is defined as i64.
-
-    //
-    // heap (thread-local memory) loading and storing
-    //
-
-    // note that the address of heap is a 64-bit integer number, which means that you
-    // must write the target address (to stack) using the
-    // instructions 'i64_imm', 'local_(offset_)load' or 'data_(offset_)load'.
-    // do NOT use the 'i32_imm', 'local_(offset_)load32' or 'data_(offset_)load32', because
-    // the latter instructions leave the value of the high part of
-    // operand (on the stack) undefined/unpredictable.
-    heap_load64_i64 = 0x400,    // load heap                (param offset_bytes:i16)    (operand heap_addr:i64) -> i64
-    heap_load64_f64,            // Load f64 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f64
-    heap_load32_i32,            //                          (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
-    heap_load32_i16_s,          //                          (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
-    heap_load32_i16_u,          //                          (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
-    heap_load32_i8_s,           //                          (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
-    heap_load32_i8_u,           //                          (param offset_bytes:i16)    (operand heap_addr:i64) -> i32
-    heap_load32_f32,            // Load f32 with floating-point validity check.     (param offset_bytes:i16)    (operand heap_addr:i64) -> f32
-    heap_store64,               // store heap               (param offset_bytes:i16)    (operand heap_addr:i64 number:i64) -> ()
-    heap_store32,               //                          (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
-    heap_store16,               //                          (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
-    heap_store8,                //                          (param offset_bytes:i16)    (operand heap_addr:i64 number:i32) -> ()
-
-    // heap memory
-    heap_fill = 0x480,          // fill the specified memory region with the specified (i8) value
-                                // (operand offset:i64 value:i8 count:i64) -> ()
-    heap_copy,                  // copy the specified memory region to the specified location
-                                // (operand dst_offset:i64 src_offset:i64 length_in_bytes:i64) -> ()
-    heap_capacity,              // return the amount of pages of the thread-local
-                                // memory (i.e. heap), each page is MEMORY_PAGE_SIZE_IN_BYTES (64 KiB) by default
-                                // () -> pages:i64
-    heap_resize,                // increase or decrease the heap size return the new capacity (in pages)
-                                // (operand pages:i64) -> new_pages:i64
+    local_extend_load_i64 = 0x480,    //                  (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i32_s,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i32_u,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i16_s,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i16_u,     //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i8_s,      //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_i8_u,      //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> i64
+    local_extend_load_f64,       //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f64
+    local_extend_load_f32,       //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32) -> f32
+    local_extend_store_i64,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i64) -> ()
+    local_extend_store_i32,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
+    local_extend_store_i16,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
+    local_extend_store_i8,         //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:i32) -> ()
+    local_extend_store_f64,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:f64) -> ()
+    local_extend_store_f32,        //                         (param reversed_index:i16 local_variable_index:i32)     (operand offset_bytes:i32 number:f32) -> ()
 
     //
     // conversion
@@ -367,38 +400,38 @@ pub enum Opcode {
 
     // truncate i64 to i32
     // discard the high 32 bits of an i64 number directly
-    i32_truncate_i64 = 0x500,   // (operand number:i64) -> i32
+    truncate_i64_to_i32 = 0x500,   // (operand number:i64) -> i64
 
     // extend i32 to i64
-    i64_extend_i32_s,           // (operand number:i32) -> i64
-    i64_extend_i32_u,           // (operand number:i32) -> i64
+    extend_i32_s_to_i64,           // (operand number:i32) -> i64
+    extend_i32_u_to_i64,           // (operand number:i32) -> i64
 
     // demote f64 to f32
-    f32_demote_f64,             // (operand number:f64) -> f32
+    demote_f64_to_f32,             // (operand number:f64) -> f32
 
     // promote f32 to f64
-    f64_promote_f32,            // (operand number:i32) -> f64
+    promote_f32_to_f64,            // (operand number:i32) -> f64
 
     // convert float to int
     // truncate fractional part
-    i32_convert_f32_s,          //                                  (operand number:f32) -> i32
-    i32_convert_f32_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i32
-    i32_convert_f64_s,          //                                  (operand number:f64) -> i32
-    i32_convert_f64_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i32
-    i64_convert_f32_s,          //                                  (operand number:f32) -> i64
-    i64_convert_f32_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i64
-    i64_convert_f64_s,          //                                  (operand number:f64) -> i64
-    i64_convert_f64_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i64
+    convert_f32_to_i32_s,          //                                  (operand number:f32) -> i64
+    convert_f32_to_i32_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i64
+    convert_f64_to_i32_s,          //                                  (operand number:f64) -> i64
+    convert_f64_to_i32_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i64
+    convert_f32_to_i64_s,          //                                  (operand number:f32) -> i64
+    convert_f32_to_i64_u,          // note -x.xx(float) -> 0(int)      (operand number:f32) -> i64
+    convert_f64_to_i64_s,          //                                  (operand number:f64) -> i64
+    convert_f64_to_i64_u,          // note -x.xx(float) -> 0(int)      (operand number:f64) -> i64
 
-    // convert int to float
-    f32_convert_i32_s,          // (operand number:i32) -> f32
-    f32_convert_i32_u,          // (operand number:i32) -> f32
-    f32_convert_i64_s,          // (operand number:i64) -> f32
-    f32_convert_i64_u,          // (operand number:i64) -> f32
-    f64_convert_i32_s,          // (operand number:i32) -> f64
-    f64_convert_i32_u,          // (operand number:i32) -> f64
-    f64_convert_i64_s,          // (operand number:i64) -> f64
-    f64_convert_i64_u,          // (operand number:i64) -> f64
+    // convert from int
+    convert_i32_s_to_f32,          // (operand number:i32) -> f32
+    convert_i32_u_to_f32,          // (operand number:i32) -> f32
+    convert_i64_s_to_f32,          // (operand number:i64) -> f32
+    convert_i64_u_to_f32,          // (operand number:i64) -> f32
+    convert_i32_s_to_f64,          // (operand number:i32) -> f64
+    convert_i32_u_to_f64,          // (operand number:i32) -> f64
+    convert_i64_s_to_f64,          // (operand number:i64) -> f64
+    convert_i64_u_to_f64,          // (operand number:i64) -> f64
 
     //
     // comparsion
@@ -451,63 +484,65 @@ pub enum Opcode {
     // ;; | 1  |
     // ;; \----/
     // ```
-    i32_eqz = 0x600,            // (operand number:i32) -> i32
-    i32_nez,                    // (operand number:i32) -> i32
-    i32_eq,                     // (operand left:i32 right:i32) -> i32
-    i32_ne,                     // (operand left:i32 right:i32) -> i32
-    i32_lt_s,                   // (operand left:i32 right:i32) -> i32
-    i32_lt_u,                   // (operand left:i32 right:i32) -> i32
-    i32_gt_s,                   // (operand left:i32 right:i32) -> i32
-    i32_gt_u,                   // (operand left:i32 right:i32) -> i32
-    i32_le_s,                   // redundant    (operand left:i32 right:i32) -> i32
-    i32_le_u,                   // redundant    (operand left:i32 right:i32) -> i32
-    i32_ge_s,                   // redundant    (operand left:i32 right:i32) -> i32
-    i32_ge_u,                   // redundant    (operand left:i32 right:i32) -> i32
+    compare_eqz = 0x600,            // (operand number:i64) -> i64
+    compare_not_eqz,                // (operand number:i64) -> i64
+    compare_eq,                     // (operand left:i64 right:i64) -> i64
+    compare_ne,                     // (operand left:i64 right:i64) -> i64
+    compare_lt_s,                   // (operand left:i64 right:i64) -> i64
+    compare_lt_u,                   // (operand left:i64 right:i64) -> i64
+    compare_gt_s,                   // (operand left:i64 right:i64) -> i64
+    compare_gt_u,                   // (operand left:i64 right:i64) -> i64
+    compare_le_s,                   // redundant    (operand left:i64 right:i64) -> i64
+    compare_le_u,                   // redundant    (operand left:i64 right:i64) -> i64
+    compare_ge_s,                   // redundant    (operand left:i64 right:i64) -> i64
+    compare_ge_u,                   // redundant    (operand left:i64 right:i64) -> i64
 
-    i64_eqz,                    // (operand number:i64) -> i32
-    i64_nez,                    // (operand number:i64) -> i32
-    i64_eq,                     // (operand left:i64 right:i64) -> i32
-    i64_ne,                     // (operand left:i64 right:i64) -> i32
-    i64_lt_s,                   // (operand left:i64 right:i64) -> i32
-    i64_lt_u,                   // (operand left:i64 right:i64) -> i32
-    i64_gt_s,                   // (operand left:i64 right:i64) -> i32
-    i64_gt_u,                   // (operand left:i64 right:i64) -> i32
-    i64_le_s,                   // redundant    (operand left:i64 right:i64) -> i32
-    i64_le_u,                   // redundant    (operand left:i64 right:i64) -> i32
-    i64_ge_s,                   // redundant    (operand left:i64 right:i64) -> i32
-    i64_ge_u,                   // redundant    (operand left:i64 right:i64) -> i32
+    // i64_eqz,                    // (operand number:i64) -> i32
+    // i64_nez,                    // (operand number:i64) -> i32
+    // i64_eq,                     // (operand left:i64 right:i64) -> i32
+    // i64_ne,                     // (operand left:i64 right:i64) -> i32
+    // i64_lt_s,                   // (operand left:i64 right:i64) -> i32
+    // i64_lt_u,                   // (operand left:i64 right:i64) -> i32
+    // i64_gt_s,                   // (operand left:i64 right:i64) -> i32
+    // i64_gt_u,                   // (operand left:i64 right:i64) -> i32
+    // i64_le_s,                   // redundant    (operand left:i64 right:i64) -> i32
+    // i64_le_u,                   // redundant    (operand left:i64 right:i64) -> i32
+    // i64_ge_s,                   // redundant    (operand left:i64 right:i64) -> i32
+    // i64_ge_u,                   // redundant    (operand left:i64 right:i64) -> i32
 
-    f32_eq,                     // (operand left:f32 right:f32) -> i32
-    f32_ne,                     // (operand left:f32 right:f32) -> i32
-    f32_lt,                     // (operand left:f32 right:f32) -> i32
-    f32_gt,                     // (operand left:f32 right:f32) -> i32
-    f32_le,                     // (operand left:f32 right:f32) -> i32
-    f32_ge,                     // (operand left:f32 right:f32) -> i32
+    compare_eq_f32,                     // (operand left:f32 right:f32) -> i64
+    compare_ne_f32,                     // (operand left:f32 right:f32) -> i64
+    compare_lt_f32,                     // (operand left:f32 right:f32) -> i64
+    compare_gt_f32,                     // (operand left:f32 right:f32) -> i64
+    compare_le_f32,                     // (operand left:f32 right:f32) -> i64
+    compare_ge_f32,                     // (operand left:f32 right:f32) -> i64
 
-    f64_eq,                     // (operand left:f64 right:f64) -> i32
-    f64_ne,                     // (operand left:f64 right:f64) -> i32
-    f64_lt,                     // (operand left:f64 right:f64) -> i32
-    f64_gt,                     // (operand left:f64 right:f64) -> i32
-    f64_le,                     // (operand left:f64 right:f64) -> i32
-    f64_ge,                     // (operand left:f64 right:f64) -> i32
+    compare_eq_f64,                     // (operand left:f64 right:f64) -> i64
+    compare_ne_f64,                     // (operand left:f64 right:f64) -> i64
+    compare_lt_f64,                     // (operand left:f64 right:f64) -> i64
+    compare_gt_f64,                     // (operand left:f64 right:f64) -> i64
+    compare_le_f64,                     // (operand left:f64 right:f64) -> i64
+    compare_ge_f64,                     // (operand left:f64 right:f64) -> i64
 
     //
     // arithmetic
     //
-    i32_add = 0x700,            // (operand left:i32 right:i32) -> i32
+    add_i32 = 0x700,            // (operand left:i64 right:i64) -> i64
                                 // wrapping add, e.g. 0xffff_ffff + 2 = 1 (-1 + 2 = 1)
-    i32_sub,                    // (operand left:i32 right:i32) -> i32
+    sub_i32,                    // (operand left:i64 right:i64) -> i64
                                 // wrapping sub, e.g. 11 - 211 = -200
-    i32_mul,                    // (operand left:i32 right:i32) -> i32
-                                // wrapping mul, e.g. 0xf0e0d0c0 * 2 = 0xf0e0d0c0 << 1
-    i32_div_s,                  // (operand left:i32 right:i32) -> i32
-    i32_div_u,                  // (operand left:i32 right:i32) -> i32
-    i32_rem_s,                  // calculate the remainder      (operand left:i32 right:i32) -> i32
-    i32_rem_u,                  // (operand left:i32 right:i32) -> i32
-    i32_inc,                    // (param amount:i16) (operand number:i32) -> i32
+    add_imm_i32,                // (param amount:i16) (operand number:i64) -> i64
                                 // wrapping inc, e.g. 0xffff_ffff inc 2 = 1
-    i32_dec,                    // (param amount:i16) (operand number:i32) -> i32
+    sub_imm_i32,                // (param amount:i16) (operand number:i64) -> i64
                                 // wrapping dec, e.g. 0x1 dec 2 = 0xffff_ffff
+    mul_i32,                    // (operand left:i64 right:i64) -> i64
+                                // wrapping mul, e.g. 0xf0e0d0c0 * 2 = 0xf0e0d0c0 << 1
+    div_i32_s,                  // (operand left:i64 right:i64) -> i64
+    div_i32_u,                  // (operand left:i64 right:i64) -> i64
+    rem_i32_s,                  // (operand left:i64 right:i64) -> i64
+                                // calculate the remainder
+    rem_i32_u,                  // (operand left:i64 right:i64) -> i64
+
     // remainder vs modulus
     // --------------------
     // The remainder (%) operator returns the remainder left over when one operand is
@@ -568,25 +603,25 @@ pub enum Opcode {
     // ;; the top item on the stack will be 1 (10 % 3 = 1)
     // i32.rem_u
     // ```
-    i64_add,                    // wrapping add     (operand left:i64 right:i64) -> i64
-    i64_sub,                    // wrapping sub     (operand left:i64 right:i64) -> i64
-    i64_mul,                    // wrapping mul     (operand left:i64 right:i64) -> i64
-    i64_div_s,                  // (operand left:i64 right:i64) -> i64
-    i64_div_u,                  // (operand left:i64 right:i64) -> i64
-    i64_rem_s,                  // (operand left:i64 right:i64) -> i64
-    i64_rem_u,                  // (operand left:i64 right:i64) -> i64
-    i64_inc,                    // wrapping inc     (param amount:i16) (operand number:i64) -> i64
-    i64_dec,                    // wrapping dec     (param amount:i16) (operand number:i64) -> i64
+    add_i64,                    // wrapping add     (operand left:i64 right:i64) -> i64
+    sub_i64,                    // wrapping sub     (operand left:i64 right:i64) -> i64
+    add_imm_i64,                // wrapping inc     (param amount:i16) (operand number:i64) -> i64
+    sub_imm_i64,                // wrapping dec     (param amount:i16) (operand number:i64) -> i64
+    mul_i64,                    // wrapping mul     (operand left:i64 right:i64) -> i64
+    div_i64_s,                  // (operand left:i64 right:i64) -> i64
+    div_i64_u,                  // (operand left:i64 right:i64) -> i64
+    rem_i64_s,                  // (operand left:i64 right:i64) -> i64
+    rem_i64_u,                  // (operand left:i64 right:i64) -> i64
 
-    f32_add,                    // (operand left:f32 right:f32) -> f32
-    f32_sub,                    // (operand left:f32 right:f32) -> f32
-    f32_mul,                    // (operand left:f32 right:f32) -> f32
-    f32_div,                    // (operand left:f32 right:f32) -> f32
+    add_f32,                    // (operand left:f32 right:f32) -> f32
+    sub_f32,                    // (operand left:f32 right:f32) -> f32
+    mul_f32,                    // (operand left:f32 right:f32) -> f32
+    div_f32,                    // (operand left:f32 right:f32) -> f32
 
-    f64_add,                    // (operand left:f64 right:f64) -> f64
-    f64_sub,                    // (operand left:f64 right:f64) -> f64
-    f64_mul,                    // (operand left:f64 right:f64) -> f64
-    f64_div,                    // (operand left:f64 right:f64) -> f64
+    add_f64,                    // (operand left:f64 right:f64) -> f64
+    sub_f64,                    // (operand left:f64 right:f64) -> f64
+    mul_f64,                    // (operand left:f64 right:f64) -> f64
+    div_f64,                    // (operand left:f64 right:f64) -> f64
 
     //
     // bitwise
@@ -594,19 +629,20 @@ pub enum Opcode {
 
     // see also:
     // https://en.wikipedia.org/wiki/Bitwise_operation
-    i32_and = 0x800,            // bitwise AND                  (operand left:i32 right:i32) -> i32
-    i32_or,                     // bitwise OR                   (operand left:i32 right:i32) -> i32
-    i32_xor,                    // bitwise XOR                  (operand left:i32 right:i32) -> i32
-    i32_shift_left,             // left shift                   (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-    i32_shift_right_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-    i32_shift_right_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-    i32_rotate_left,            // left rotate                  (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-    i32_rotate_right,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
-    i32_not,                    // bitwise NOT                  (operand number:i32) -> i32
-    i32_leading_zeros,          // count leading zeros          (operand number:i32) -> i32
-    i32_leading_ones,           // count leading zeros          (operand number:i32) -> i32
-    i32_trailing_zeros,         // count trailing zeros         (operand number:i32) -> i32
-    i32_count_ones,             // count the number of ones in the binary representation     (operand number:i32) -> i32
+    and = 0x800,            // bitwise AND                  (operand left:i64 right:i64) -> i64
+    or,                     // bitwise OR                   (operand left:i64 right:i64) -> i64
+    xor,                    // bitwise XOR                  (operand left:i64 right:i64) -> i64
+    not,                    // bitwise NOT                  (operand number:i64) -> i64
+
+    shift_left_i32,             // left shift                   (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    shift_right_i32_s,          // arithmetic right shift       (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    shift_right_i32_u,          // logical right shift          (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    rotate_left_i32,            // left rotate                  (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    rotate_right_i32,           // right rotate                 (operand number:i32 move_bits:i32) -> i32       // move_bits = [0,32)
+    leading_zeros_i32,          // count leading zeros          (operand number:i32) -> i32
+    leading_ones_i32,           // count leading zeros          (operand number:i32) -> i32
+    trailing_zeros_i32,         // count trailing zeros         (operand number:i32) -> i32
+    count_ones_i32,             // count the number of ones in the binary representation     (operand number:i32) -> i32
 
     // instruction `i32.shl` example:
     //
@@ -640,56 +676,58 @@ pub enum Opcode {
     // ;; the top item on the stack will be 2
     // i32.popcnt
     // ```
-    i64_and,                    // (operand left:i64 right:i64) -> i64
-    i64_or,                     // (operand left:i64 right:i64) -> i64
-    i64_xor,                    // (operand left:i64 right:i64) -> i64
-    i64_shift_left,             // left shift                   (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
-    i64_shift_right_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
-    i64_shift_right_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
-    i64_rotate_left,            // left rotate                  (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
-    i64_rotate_right,           // right rotate                 (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
-    i64_not,                    // (operand number:i64) -> i64
-    i64_leading_zeros,          // (operand number:i64) -> i32
-    i64_leading_ones,           // (operand number:i64) -> i32
-    i64_trailing_zeros,         // (operand number:i64) -> i32
-    i64_count_ones,             // (operand number:i64) -> i32
+
+    // i64_and,                    // (operand left:i64 right:i64) -> i64
+    // i64_or,                     // (operand left:i64 right:i64) -> i64
+    // i64_xor,                    // (operand left:i64 right:i64) -> i64
+    // i64_not,                    // (operand number:i64) -> i64
+
+    shift_left_i64,             // left shift                   (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    shift_right_i64_s,          // arithmetic right shift       (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    shift_right_i64_u,          // logical right shift          (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    rotate_left_i64,            // left rotate                  (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    rotate_right_i64,           // right rotate                 (operand number:i64 move_bits:i32) -> i64       // move_bits = [0,64)
+    leading_zeros_i64,          // (operand number:i64) -> i32
+    leading_ones_i64,           // (operand number:i64) -> i32
+    trailing_zeros_i64,         // (operand number:i64) -> i32
+    count_ones_i64,             // (operand number:i64) -> i32
 
     //
     // math
     //
 
-    i32_abs,
-    i32_neg,
+    math_abs_i32,
+    math_neg_i32,
 
-    i64_abs,
-    i64_neg,
+    math_abs_i64,
+    math_neg_i64,
 
-    f32_abs = 0x900,                // (operand number:f32) -> f32
-    f32_neg,                        // (operand number:f32) -> f32
-    f32_ceil,                       // (operand number:f32) -> f32
-    f32_floor,                      // (operand number:f32) -> f32
-    f32_round_half_away_from_zero,  // (operand number:f32) -> f32
-    f32_round_half_to_even,         // (operand number:f32) -> f32
-    f32_trunc,                  // the integer part of x            (operand number:f32) -> f32
-    f32_fract,                  // the fractional part of  x        (operand number:f32) -> f32
-    f32_sqrt,                   // sqrt(x)                          (operand number:f32) -> f32
-    f32_cbrt,                   // cbrt(x), the cube root of x      (operand number:f32) -> f32
-    f32_exp,                    // e^x                              (operand number:f32) -> f32
-    f32_exp2,                   // 2^x                              (operand number:f32) -> f32
-    f32_ln,                     // log_e(x)                         (operand number:f32) -> f32
-    f32_log2,                   // log_2(x)                         (operand number:f32) -> f32
-    f32_log10,                  // log_10(x)                        (operand number:f32) -> f32
-    f32_sin,                    // (operand number:f32) -> f32
-    f32_cos,                    // (operand number:f32) -> f32
-    f32_tan,                    // (operand number:f32) -> f32
-    f32_asin,                   // (operand number:f32) -> f32
-    f32_acos,                   // (operand number:f32) -> f32
-    f32_atan,                   // (operand number:f32) -> f32
-    f32_copysign,               // (operand num:f32 sign:f32) -> f32
-    f32_pow,                    // left^right                       (operand left:f32 right:f32) -> f32
-    f32_log,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
-    f32_min,                    // (operand left:f32 right:f32) -> f32
-    f32_max,                    // (operand left:f32 right:f32) -> f32
+    math_abs_f32 = 0x900,                // (operand number:f32) -> f32
+    math_neg_f32,                        // (operand number:f32) -> f32
+    math_copysign_f32,                   // (operand num:f32 sign:f32) -> f32
+    math_sqrt_f32,                       // sqrt(x)                          (operand number:f32) -> f32
+    math_min_f32,                        // (operand left:f32 right:f32) -> f32
+    math_max_f32,                        // (operand left:f32 right:f32) -> f32
+    math_ceil_f32,                       // (operand number:f32) -> f32
+    math_floor_f32,                      // (operand number:f32) -> f32
+    math_round_half_away_from_zero_f32,  // (operand number:f32) -> f32
+    math_round_half_to_even_f32,         // (operand number:f32) -> f32
+    math_trunc_f32,                  // the integer part of x            (operand number:f32) -> f32
+    math_fract_f32,                  // the fractional part of  x        (operand number:f32) -> f32
+    math_cbrt_f32,                   // cbrt(x), the cube root of x      (operand number:f32) -> f32
+    math_exp_f32,                    // e^x                              (operand number:f32) -> f32
+    math_exp2_f32,                   // 2^x                              (operand number:f32) -> f32
+    math_ln_f32,                     // log_e(x)                         (operand number:f32) -> f32
+    math_log2_f32,                   // log_2(x)                         (operand number:f32) -> f32
+    math_log10_f32,                  // log_10(x)                        (operand number:f32) -> f32
+    math_sin_f32,                    // (operand number:f32) -> f32
+    math_cos_f32,                    // (operand number:f32) -> f32
+    math_tan_f32,                    // (operand number:f32) -> f32
+    math_asin_f32,                   // (operand number:f32) -> f32
+    math_acos_f32,                   // (operand number:f32) -> f32
+    math_atan_f32,                   // (operand number:f32) -> f32
+    math_pow_f32,                    // left^right                       (operand left:f32 right:f32) -> f32
+    math_log_f32,                    // log_right(left)                  (operand left:f32 right:f32) -> f32
 
     // examples of 'round_half_away_from_zero':
     // round(2.4) = 2.0
@@ -699,32 +737,32 @@ pub enum Opcode {
     //
     // ref:
     // https://en.wikipedia.org/wiki/Rounding#Rounding_half_away_from_zero
-    f64_abs,                        // (operand number:f64) -> f64
-    f64_neg,                        // (operand number:f64) -> f64
-    f64_ceil,                       // (operand number:f64) -> f64
-    f64_floor,                      // (operand number:f64) -> f64
-    f64_round_half_away_from_zero,  // (operand number:f64) -> f64
-    f64_round_half_to_even,         // (operand number:f64) -> f64
-    f64_trunc,                  // (operand number:f64) -> f64
-    f64_fract,                  // (operand number:f64) -> f64
-    f64_sqrt,                   // (operand number:f64) -> f64
-    f64_cbrt,                   // (operand number:f64) -> f64
-    f64_exp,                    // (operand number:f64) -> f64
-    f64_exp2,                   // (operand number:f64) -> f64
-    f64_ln,                     // (operand number:f64) -> f64
-    f64_log2,                   // (operand number:f64) -> f64
-    f64_log10,                  // (operand number:f64) -> f64
-    f64_sin,                    // (operand number:f64) -> f64
-    f64_cos,                    // (operand number:f64) -> f64
-    f64_tan,                    // (operand number:f64) -> f64
-    f64_asin,                   // (operand number:f64) -> f64
-    f64_acos,                   // (operand number:f64) -> f64
-    f64_atan,                   // (operand number:f64) -> f64
-    f64_copysign,               // (operand num:f32 sign:f32) -> f32
-    f64_pow,                    // (operand left:f32 right:f32) -> f64
-    f64_log,                    // (operand left:f32 right:f32) -> f64
-    f64_min,                    // (operand left:f32 right:f32) -> f64
-    f64_max,                    // (operand left:f32 right:f32) -> f64
+    math_abs_f64,                        // (operand number:f64) -> f64
+    math_neg_f64,                        // (operand number:f64) -> f64
+    math_copysign_f64,                   // (operand num:f32 sign:f32) -> f32
+    math_sqrt_f64,                       // (operand number:f64) -> f64
+    math_min_f64,                        // (operand left:f32 right:f32) -> f64
+    math_max_f64,                        // (operand left:f32 right:f32) -> f64
+    math_ceil_f64,                       // (operand number:f64) -> f64
+    math_floor_f64,                      // (operand number:f64) -> f64
+    math_round_half_away_from_zero_f64,  // (operand number:f64) -> f64
+    math_round_half_to_even_f64,         // (operand number:f64) -> f64
+    math_trunc_f64,                  // (operand number:f64) -> f64
+    math_fract_f64,                  // (operand number:f64) -> f64
+    math_cbrt_f64,                   // (operand number:f64) -> f64
+    math_exp_f64,                    // (operand number:f64) -> f64
+    math_exp2_f64,                   // (operand number:f64) -> f64
+    math_ln_f64,                     // (operand number:f64) -> f64
+    math_log2_f64,                   // (operand number:f64) -> f64
+    math_log10_f64,                  // (operand number:f64) -> f64
+    math_sin_f64,                    // (operand number:f64) -> f64
+    math_cos_f64,                    // (operand number:f64) -> f64
+    math_tan_f64,                    // (operand number:f64) -> f64
+    math_asin_f64,                   // (operand number:f64) -> f64
+    math_acos_f64,                   // (operand number:f64) -> f64
+    math_atan_f64,                   // (operand number:f64) -> f64
+    math_pow_f64,                    // (operand left:f32 right:f32) -> f64
+    math_log_f64,                    // (operand left:f32 right:f32) -> f64
 
     //
     // control flow
@@ -891,7 +929,7 @@ pub enum Opcode {
     //
     // 'block_nez' has NO PARAMS and NO RESULTS, but it can owns local variables.
     //
-    block_nez, // (param local_list_index:i32, next_inst_offset:i32)
+    block_not_eqz, // (param local_list_index:i32, next_inst_offset:i32)
 
     // the instruction 'block_alt' is similar to the 'block', it also creates a new block scope
     // as well as a block stack frame.
@@ -933,7 +971,7 @@ pub enum Opcode {
     //
     // 'block_alt' has NO PARAMS, but it can return values and own local variables.
     //
-    block_alt, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
+    block_jump_eqz, // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
 
     // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
     // and 'break_nez', e.g.
@@ -977,7 +1015,7 @@ pub enum Opcode {
     // 0d0208 end               ;;          |
     // 0d0210 ...               ;; <--------/
     // ```
-    break_nez, // (param reversed_index:i16, next_inst_offset:i32)
+    break_not_eqz, // (param reversed_index:i16, next_inst_offset:i32)
 
     // when the target frame is the function frame itself, the param 'start_inst_offset' is ignore and
     // all local variables will be reset to 0.
@@ -1094,7 +1132,7 @@ pub enum Opcode {
     //     }
     // }
     // ```
-    recur_nez, // (param reversed_index:i16, start_inst_offset:i32)
+    recur_not_eqz, // (param reversed_index:i16, start_inst_offset:i32)
 
     // table of control flow structures and control flow instructions:
     //
@@ -1352,8 +1390,13 @@ pub enum Opcode {
     // host
     //
     panic = 0xc00,              // terminate VM
-    unreachable,                // unreachable code     (param code:u32) -> ()
-    debug,                      // for VM debug         (param code:u32) -> ()
+    unreachable,                // unreachable code     (param reason_code:u32) -> ()
+
+    //
+    // exception
+    //
+    // trap,                       // raise a user defined (soft) interrupt  (param interrupt_code:u32) -> ()
+    // capture,                    // add the interrupt process function  (param interrupt_code:u32, module_index:i32, func_index:i32) -> ()
 
     // get the host address of memory
     //
@@ -1461,10 +1504,28 @@ pub enum Opcode {
                                 // (operand dst_pointer:i64 src_pointer:i64 length_in_bytes:i64) -> ()
 
     //
-    // SIMD/Vectorization
+    // atomic
     //
 
-    // TODO
+    // atomic_rmw_add_i32 = 0xd00,      // fn (addr, value) -> old_value
+    // atomic_rmw_sub_i32,      // ...
+    // atomic_rmw_and_i32,      // ...
+    // atomic_rmw_or_i32,       // ...
+    // atomic_rmw_xor_i32,      // ...
+    // atomic_rmw_exchange_i32, // ...
+    // atomic_cas_i32,          // fn (addr, expect_value, new_value) -> old_value
+    //
+    // atomic_rmw_add_i64,      // fn (addr, value) -> old_value
+    // atomic_rmw_sub_i64,      // ...
+    // atomic_rmw_and_i64,      // ...
+    // atomic_rmw_or_i64,       // ...
+    // atomic_rmw_xor_i64,      // ...
+    // atomic_rmw_exchange_i64, // ...
+    // atomic_cas_i64,          // fn (addr, expect_value, new_value) -> old_value
+
+    //
+    // SIMD/Vectorization
+    //
 
     // ref:
     // - https://github.com/rust-lang/portable-simd
@@ -1473,4 +1534,4 @@ pub enum Opcode {
     // - https://github.com/rust-lang/rfcs/blob/master/text/2325-stable-simd.md
 }
 
-pub const MAX_OPCODE_NUMBER: usize = 0xd00;
+pub const MAX_OPCODE_NUMBER: usize = 0xe00;

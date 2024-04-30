@@ -596,7 +596,7 @@ impl<'a> ModuleImage<'a> {
 mod tests {
     use ancvm_types::{
         entry::{
-            FunctionEntry, FunctionIndexEntry, FunctionIndexModuleEntry, LocalListEntry,
+            FunctionEntry, FunctionIndexEntry, FunctionIndexListEntry, LocalListEntry,
             LocalVariableEntry, TypeEntry,
         },
         DataType, MemoryDataType,
@@ -676,11 +676,11 @@ mod tests {
         // build FuncIndexSection instance
         // note: arbitrary indices
         let function_index_module_entries = vec![
-            FunctionIndexModuleEntry::new(vec![
+            FunctionIndexListEntry::new(vec![
                 FunctionIndexEntry::new(0, 1, 3),
                 FunctionIndexEntry::new(1, 5, 7),
             ]),
-            FunctionIndexModuleEntry::new(vec![FunctionIndexEntry::new(0, 11, 13)]),
+            FunctionIndexListEntry::new(vec![FunctionIndexEntry::new(0, 11, 13)]),
         ];
 
         let (function_index_ranges, function_index_items) =

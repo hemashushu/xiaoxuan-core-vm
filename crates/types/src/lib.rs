@@ -170,26 +170,44 @@ impl Display for DataSectionType {
 
 // for foreign function interface (FFI)
 // that is, for calling function (in a module of the VM) from the outside,
-// or returning values to the outside.
+// or returning values to the foreign caller.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ForeignValue {
-    U32(u32),
-    U64(u64),
+    // U32(u32),
+    // U64(u64),
+    I32(i32),
+    I64(i64),
     F32(f32),
     F64(f64),
 }
 
 impl ForeignValue {
-    pub fn as_u32(&self) -> Option<u32> {
-        if let ForeignValue::U32(v) = self {
+    //     pub fn as_u32(&self) -> Option<u32> {
+    //         if let ForeignValue::U32(v) = self {
+    //             Some(*v)
+    //         } else {
+    //             None
+    //         }
+    //     }
+    //
+    //     pub fn as_u64(&self) -> Option<u64> {
+    //         if let ForeignValue::U64(v) = self {
+    //             Some(*v)
+    //         } else {
+    //             None
+    //         }
+    //     }
+
+    pub fn as_i32(&self) -> Option<i32> {
+        if let ForeignValue::I32(v) = self {
             Some(*v)
         } else {
             None
         }
     }
 
-    pub fn as_u64(&self) -> Option<u64> {
-        if let ForeignValue::U64(v) = self {
+    pub fn as_i64(&self) -> Option<i64> {
+        if let ForeignValue::I64(v) = self {
             Some(*v)
         } else {
             None
@@ -270,4 +288,3 @@ impl Display for ExternalLibraryType {
 // }
 
 pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
-

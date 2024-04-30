@@ -20,7 +20,7 @@
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_types::{entry::DataIndexModuleEntry, DataSectionType};
+use ancvm_types::{entry::DataIndexListEntry, DataSectionType};
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -132,7 +132,7 @@ impl<'a> DataIndexSection<'a> {
     }
 
     pub fn convert_from_entries(
-        sorted_module_entries: &[DataIndexModuleEntry],
+        sorted_module_entries: &[DataIndexListEntry],
     ) -> (Vec<RangeItem>, Vec<DataIndexItem>) {
         let mut range_start_offset: u32 = 0;
 
@@ -173,7 +173,7 @@ mod tests {
         SectionEntry,
     };
 
-    use super::DataIndexModuleEntry;
+    use super::DataIndexListEntry;
 
     #[test]
     fn test_load_section() {
@@ -305,12 +305,12 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            DataIndexModuleEntry::new(vec![
+            DataIndexListEntry::new(vec![
                 DataIndexEntry::new(0, 1, 3, DataSectionType::ReadOnly),
                 DataIndexEntry::new(1, 5, 7, DataSectionType::ReadWrite),
                 DataIndexEntry::new(2, 11, 13, DataSectionType::Uninit),
             ]),
-            DataIndexModuleEntry::new(vec![
+            DataIndexListEntry::new(vec![
                 DataIndexEntry::new(0, 17, 19, DataSectionType::ReadWrite),
                 DataIndexEntry::new(1, 23, 29, DataSectionType::ReadWrite),
             ]),

@@ -1,11 +1,9 @@
 [workspace]
 members = [
     "crates/types",
-    "crates/binary",
-    # "crates/syscall_util",
-    # "crates/extfunc_util",
-    "crates/context",
-    "crates/processor",
+    # "crates/binary",
+    # "crates/context",
+    # "crates/processor",
 ]
 
 resolver = "2"

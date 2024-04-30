@@ -20,7 +20,7 @@
 //         | ...                                                                          |
 //         |------------------------------------------------------------------------------|
 
-use ancvm_types::entry::FunctionIndexModuleEntry;
+use ancvm_types::entry::FunctionIndexListEntry;
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -118,7 +118,7 @@ impl<'a> FunctionIndexSection<'a> {
     }
 
     pub fn convert_from_entries(
-        sorted_entries: &[FunctionIndexModuleEntry],
+        sorted_entries: &[FunctionIndexListEntry],
     ) -> (Vec<RangeItem>, Vec<FunctionIndexItem>) {
         let mut range_start_offset: u32 = 0;
         let range_items = sorted_entries
@@ -157,7 +157,7 @@ mod tests {
         RangeItem, SectionEntry,
     };
 
-    use super::FunctionIndexModuleEntry;
+    use super::FunctionIndexListEntry;
 
     #[test]
     fn test_load_section() {
@@ -262,11 +262,11 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            FunctionIndexModuleEntry::new(vec![
+            FunctionIndexListEntry::new(vec![
                 FunctionIndexEntry::new(0, 1, 3),
                 FunctionIndexEntry::new(1, 5, 7),
             ]),
-            FunctionIndexModuleEntry::new(vec![
+            FunctionIndexListEntry::new(vec![
                 FunctionIndexEntry::new(0, 11, 13),
                 FunctionIndexEntry::new(1, 17, 19),
                 FunctionIndexEntry::new(2, 23, 29),

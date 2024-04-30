@@ -14,21 +14,21 @@ pub struct ModuleEntry {
     pub name: String,
     pub runtime_version: EffectiveVersion,
 
-    pub import_function_count: usize,
     pub import_read_only_data_count: usize,
     pub import_read_write_data_count: usize,
     pub import_uninit_data_count: usize,
+    pub import_function_count: usize,
 
     pub constructor_function_public_index: Option<u32>,
     pub destructor_function_public_index: Option<u32>,
 
-    pub type_entries: Vec<TypeEntry>,
-    pub local_list_entries: Vec<LocalListEntry>,
-    pub function_entries: Vec<FunctionEntry>,
-
     pub read_only_data_entries: Vec<InitedDataEntry>,
     pub read_write_data_entries: Vec<InitedDataEntry>,
     pub uninit_data_entries: Vec<UninitDataEntry>,
+
+    pub type_entries: Vec<TypeEntry>,
+    pub local_list_entries: Vec<LocalListEntry>,
+    pub function_entries: Vec<FunctionEntry>,
 
     pub external_library_entries: Vec<ExternalLibraryEntry>,
     pub external_function_entries: Vec<ExternalFunctionEntry>,
@@ -51,19 +51,22 @@ pub struct ModuleEntry {
     pub data_name_entries: Vec<DataNameEntry>,
 }
 
+// application only
 #[derive(Debug)]
 pub struct IndexEntry {
+    // optional
+    pub data_index_lists: Vec<DataIndexListEntry>,
+
     // essential
-    pub function_index_module_entries: Vec<FunctionIndexModuleEntry>,
-    // pub start_function_public_indices: Vec<u32>,
-    // pub exit_function_public_indices: Vec<u32>,
+    pub function_index_lists: Vec<FunctionIndexListEntry>,
+
+    // essential
     pub entry_function_public_index: u32,
 
     // optional
-    pub data_index_module_entries: Vec<DataIndexModuleEntry>,
+    pub external_function_index_lists: Vec<ExternalFunctionIndexListEntry>,
     pub unified_external_library_entries: Vec<UnifiedExternalLibraryEntry>,
     pub unified_external_function_entries: Vec<UnifiedExternalFunctionEntry>,
-    pub external_function_index_module_entries: Vec<ExternalFunctionIndexModuleEntry>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -455,11 +458,11 @@ impl FunctionIndexEntry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FunctionIndexModuleEntry {
+pub struct FunctionIndexListEntry {
     pub index_entries: Vec<FunctionIndexEntry>,
 }
 
-impl FunctionIndexModuleEntry {
+impl FunctionIndexListEntry {
     pub fn new(index_entries: Vec<FunctionIndexEntry>) -> Self {
         Self { index_entries }
     }
@@ -490,11 +493,11 @@ impl DataIndexEntry {
 }
 
 #[derive(Debug)]
-pub struct DataIndexModuleEntry {
+pub struct DataIndexListEntry {
     pub index_entries: Vec<DataIndexEntry>,
 }
 
-impl DataIndexModuleEntry {
+impl DataIndexListEntry {
     pub fn new(index_entries: Vec<DataIndexEntry>) -> Self {
         Self { index_entries }
     }
@@ -555,11 +558,11 @@ impl ExternalFunctionIndexEntry {
 }
 
 #[derive(Debug)]
-pub struct ExternalFunctionIndexModuleEntry {
+pub struct ExternalFunctionIndexListEntry {
     pub index_entries: Vec<ExternalFunctionIndexEntry>,
 }
 
-impl ExternalFunctionIndexModuleEntry {
+impl ExternalFunctionIndexListEntry {
     pub fn new(index_entries: Vec<ExternalFunctionIndexEntry>) -> Self {
         Self { index_entries }
     }

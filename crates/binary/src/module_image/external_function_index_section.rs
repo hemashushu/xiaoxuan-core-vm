@@ -25,7 +25,7 @@
 //         | ...                                                                                |
 //         |------------------------------------------------------------------------------------|
 
-use ancvm_types::entry::ExternalFunctionIndexModuleEntry;
+use ancvm_types::entry::ExternalFunctionIndexListEntry;
 
 use crate::utils::{load_section_with_two_tables, save_section_with_two_tables};
 
@@ -110,7 +110,7 @@ impl<'a> ExternalFunctionIndexSection<'a> {
     }
 
     pub fn convert_from_entries(
-        sorted_external_function_index_module_entries: &[ExternalFunctionIndexModuleEntry],
+        sorted_external_function_index_module_entries: &[ExternalFunctionIndexListEntry],
     ) -> (Vec<RangeItem>, Vec<ExternalFunctionIndexItem>) {
         let mut range_start_offset: u32 = 0;
         let range_items = sorted_external_function_index_module_entries
