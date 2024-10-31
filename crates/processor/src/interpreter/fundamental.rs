@@ -59,13 +59,13 @@ pub fn select_nez(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(2)
 }
 
-pub fn i32_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn imm_i32(thread_context: &mut ThreadContext) -> InterpretResult {
     let value = thread_context.get_param_i32();
     thread_context.stack.push_i32_u(value);
     InterpretResult::Move(8)
 }
 
-pub fn i64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn imm_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     let (low, high) = thread_context.get_param_i32_i32();
     let mut value: u64 = high as u64;
     value <<= 32;
@@ -75,7 +75,7 @@ pub fn i64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(12)
 }
 
-pub fn f32_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn imm_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     let i32_value = thread_context.get_param_i32();
     let value = f32::from_bits(i32_value);
 
@@ -83,7 +83,7 @@ pub fn f32_imm(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(8)
 }
 
-pub fn f64_imm(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn imm_f64(thread_context: &mut ThreadContext) -> InterpretResult {
     let (low, high) = thread_context.get_param_i32_i32();
 
     let mut bytes = [0u8; 8];
@@ -106,7 +106,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_host_nop() {
@@ -118,8 +118,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
         );
@@ -142,7 +142,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
         );
@@ -160,15 +160,15 @@ mod tests {
     fn test_interpreter_fundamental_drop() {
         // () -> (i32)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 13)
-            .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode_i32(Opcode::imm_i32, 13)
+            .append_opcode_i32(Opcode::imm_i32, 17)
             .append_opcode(Opcode::drop)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
         );
@@ -185,14 +185,14 @@ mod tests {
     fn test_interpreter_fundamental_duplicate() {
         // () -> (i32, i32)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::duplicate)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
-            vec![DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );
@@ -212,15 +212,15 @@ mod tests {
     fn test_interpreter_fundamental_swap() {
         // () -> (i32, i32)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 211)
-            .append_opcode_i32(Opcode::i32_imm, 223)
+            .append_opcode_i32(Opcode::imm_i32, 211)
+            .append_opcode_i32(Opcode::imm_i32, 223)
             .append_opcode(Opcode::swap)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
-            vec![DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );
@@ -241,8 +241,8 @@ mod tests {
     fn test_interpreter_fundamental_select_nez_false() {
         // () -> (i32)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode(Opcode::zero)
             .append_opcode(Opcode::select_nez)
             .append_opcode(Opcode::end)
@@ -250,7 +250,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
         );
@@ -267,16 +267,16 @@ mod tests {
     fn test_interpreter_fundamental_select_nez_true() {
         // () -> (i32)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
-            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
+            .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::select_nez)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
         );
@@ -301,16 +301,16 @@ mod tests {
         //
         // () -> (i32, i64, i32, i64)
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x29313741_43475359u64)
-            .append_opcode_i32(Opcode::i32_imm, (0i32 - 223) as u32)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, (0i64 - 227) as u64)
+            .append_opcode_i32(Opcode::imm_i32, 23)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x29313741_43475359u64)
+            .append_opcode_i32(Opcode::imm_i32, (0i32 - 223) as u32)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, (0i64 - 227) as u64)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                                           // params
-            vec![DataType::I32, DataType::I64, DataType::I32, DataType::I64], // results
+            vec![OperandDataType::I32, OperandDataType::I64, OperandDataType::I32, OperandDataType::I64], // results
             vec![],                                                           // local vars
             code0,
         );
@@ -343,16 +343,16 @@ mod tests {
         //
         // () -> (f32, f64, f32, f64)
         let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_f32(Opcode::f32_imm, std::f32::consts::PI)
-            .append_opcode_pesudo_f64(Opcode::f64_imm, std::f64::consts::SQRT_2)
-            .append_opcode_pesudo_f32(Opcode::f32_imm, -std::f32::consts::E)
-            .append_opcode_pesudo_f64(Opcode::f64_imm, -std::f64::consts::FRAC_PI_6)
+            .append_opcode_pesudo_f32(Opcode::imm_f32, std::f32::consts::PI)
+            .append_opcode_pesudo_f64(Opcode::imm_f64, std::f64::consts::SQRT_2)
+            .append_opcode_pesudo_f32(Opcode::imm_f32, -std::f32::consts::E)
+            .append_opcode_pesudo_f64(Opcode::imm_f64, -std::f64::consts::FRAC_PI_6)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                                           // params
-            vec![DataType::F32, DataType::F64, DataType::F32, DataType::F64], // results
+            vec![OperandDataType::F32, OperandDataType::F64, OperandDataType::F32, OperandDataType::F64], // results
             vec![],                                                           // local vars
             code0,
         );

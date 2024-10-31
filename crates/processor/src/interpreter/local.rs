@@ -13,7 +13,7 @@ const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
 const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
 const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
 
-pub fn local_load64_i64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn local_load_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
@@ -382,7 +382,7 @@ fn do_local_load64_f64(
     InterpretResult::Move(8)
 }
 
-pub fn local_store64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn local_store_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
@@ -584,7 +584,7 @@ mod tests {
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{entry::LocalVariableEntry, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{entry::LocalVariableEntry, opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_local_load_and_store() {
@@ -617,27 +617,27 @@ mod tests {
         // (f32, f64) -> (i64,i32,i32,i32,i32,i32, f32,f64 ,i64,i32)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .append_opcode_i32(Opcode::imm_i32, 0x19171311)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .append_opcode_i32(Opcode::imm_i32, 0xd0c0)
             .append_opcode_i16_i16_i16(Opcode::local_store16, 0, 4, 2)
-            .append_opcode_i32(Opcode::i32_imm, 0xe0)
+            .append_opcode_i32(Opcode::imm_i32, 0xe0)
             .append_opcode_i16_i16_i16(Opcode::local_store8, 0, 6, 2)
-            .append_opcode_i32(Opcode::i32_imm, 0xf0)
+            .append_opcode_i32(Opcode::imm_i32, 0xf0)
             .append_opcode_i16_i16_i16(Opcode::local_store8, 0, 7, 2)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_store64, 0, 0, 4) // store f64
+            .append_opcode_i16_i16_i16(Opcode::local_store_i64, 0, 0, 4) // store f64
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 3) // store f32
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_store64, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_store_i64, 0, 0, 5)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 6)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 4, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i16_u, 0, 6, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i16_s, 0, 6, 2)
@@ -647,25 +647,25 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 5)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 6)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::F32, DataType::F64], // params
+            vec![OperandDataType::F32, OperandDataType::F64], // params
             vec![
-                DataType::I64,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::F32,
-                DataType::F64,
-                DataType::I64,
-                DataType::I32,
+                OperandDataType::I64,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::F32,
+                OperandDataType::F64,
+                OperandDataType::I64,
+                OperandDataType::I32,
             ], // results
             vec![
                 LocalVariableEntry::from_bytes(8, 8),
@@ -738,47 +738,47 @@ mod tests {
         // () -> (i64,i32,i32,i32,i32,i32,  i64,i32,i32,i32)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .append_opcode_i32(Opcode::imm_i32, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0x19171311)
             .append_opcode_i16_i32(Opcode::local_offset_store32, 0, 0) // store 32
             //
-            .append_opcode_i32(Opcode::i32_imm, 4)
-            .append_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .append_opcode_i32(Opcode::imm_i32, 4)
+            .append_opcode_i32(Opcode::imm_i32, 0xd0c0)
             .append_opcode_i16_i32(Opcode::local_offset_store16, 0, 0) // store 16
             //
-            .append_opcode_i32(Opcode::i32_imm, 6)
-            .append_opcode_i32(Opcode::i32_imm, 0xe0)
+            .append_opcode_i32(Opcode::imm_i32, 6)
+            .append_opcode_i32(Opcode::imm_i32, 0xe0)
             .append_opcode_i16_i32(Opcode::local_offset_store8, 0, 0) // store 8
             //
-            .append_opcode_i32(Opcode::i32_imm, 7)
-            .append_opcode_i32(Opcode::i32_imm, 0xf0)
+            .append_opcode_i32(Opcode::imm_i32, 7)
+            .append_opcode_i32(Opcode::imm_i32, 0xf0)
             .append_opcode_i16_i32(Opcode::local_offset_store8, 0, 0) // store 8
             //
-            .append_opcode_i32(Opcode::i32_imm, 0)
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load64_i64, 0, 0) // load 64
             .append_opcode_i16_i32(Opcode::local_offset_store64, 0, 1) // store 64
             //
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load64_i64, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode_i32(Opcode::imm_i32, 4)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i32, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 6)
+            .append_opcode_i32(Opcode::imm_i32, 6)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i16_u, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 6)
+            .append_opcode_i32(Opcode::imm_i32, 6)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i16_s, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 7)
+            .append_opcode_i32(Opcode::imm_i32, 7)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i8_u, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 7)
+            .append_opcode_i32(Opcode::imm_i32, 7)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i8_s, 0, 0)
             //
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load64_i64, 0, 1)
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i32, 0, 1)
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i16_u, 0, 1)
-            .append_opcode_i32(Opcode::i32_imm, 0)
+            .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i32(Opcode::local_offset_load32_i8_u, 0, 1)
             //
             .append_opcode(Opcode::end)
@@ -787,16 +787,16 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![
-                DataType::I64,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I64,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I64,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I64,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
             ], // results
             vec![
                 LocalVariableEntry::from_bytes(8, 8),
@@ -862,7 +862,7 @@ mod tests {
     #[test]
     fn test_interpreter_local_bounds_check1() {
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -892,7 +892,7 @@ mod tests {
     #[test]
     fn test_interpreter_local_bounds_check2() {
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
+            .append_opcode_i32(Opcode::imm_i32, 11)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 2, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -923,7 +923,7 @@ mod tests {
     #[test]
     fn test_interpreter_local_bounds_check3() {
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 2) // offset
+            .append_opcode_i32(Opcode::imm_i32, 2) // offset
             .append_opcode_i16_i32(Opcode::local_offset_load32_i32, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();

@@ -6,7 +6,7 @@
 
 use ancvm_binary::bytecode_reader::format_bytecode_as_text;
 use ancvm_context::thread_context::ThreadContext;
-use ancvm_types::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
+use ancvm_isa::envcallcode::{EnvCallCode, MAX_ECALLCODE_NUMBER};
 
 use crate::interpreter::InterpretResult;
 

@@ -33,7 +33,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{envcallcode::EnvCallCode, opcode::Opcode, DataType};
+    use ancvm_isa::{envcallcode::EnvCallCode, opcode::Opcode, OperandDataType};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
@@ -49,7 +49,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
-            vec![DataType::I64, DataType::I32], // results
+            vec![OperandDataType::I64, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );

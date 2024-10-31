@@ -23,7 +23,7 @@
 use std::{ffi::c_void, sync::Once};
 
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
-use ancvm_types::DataType;
+use ancvm_isa::OperandDataType;
 
 use crate::jit_util::build_vm_to_external_function;
 
@@ -57,8 +57,8 @@ pub struct UnifiedExternalFunctionPointerItem {
 }
 
 pub struct WrapperFunctionItem {
-    pub param_datatypes: Vec<DataType>,
-    pub result_datatypes: Vec<DataType>,
+    pub param_datatypes: Vec<OperandDataType>,
+    pub result_datatypes: Vec<OperandDataType>,
     pub wrapper_function: WrapperFunction,
 }
 
@@ -115,8 +115,8 @@ impl ExtenalFunctionTable {
         unified_external_library_index: usize,
         external_library_file_path_or_name: &str,
         external_function_name: &str,
-        param_datatypes: &[DataType],
-        result_datatypes: &[DataType],
+        param_datatypes: &[OperandDataType],
+        result_datatypes: &[OperandDataType],
     ) -> Result<(*mut c_void, WrapperFunction), &'static str> {
         if result_datatypes.len() > 1 {
             return Err("The specified function has more than 1 return value.");
@@ -178,8 +178,8 @@ impl ExtenalFunctionTable {
 
     fn add_wrapper_function(
         &mut self,
-        param_types: &[DataType],
-        result_types: &[DataType],
+        param_types: &[OperandDataType],
+        result_types: &[OperandDataType],
     ) -> usize {
         // build wrapper function
         let wrapper_function_index = self.wrapper_function_list.len();

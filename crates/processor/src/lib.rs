@@ -12,7 +12,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use ancvm_types::GenericError;
+use ancvm_isa::GenericError;
 
 pub mod delegate;
 pub mod in_memory_program_resource;

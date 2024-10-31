@@ -83,7 +83,7 @@ mod tests {
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_function_call() {
@@ -97,7 +97,7 @@ mod tests {
         //     (block 3 3) (sum/0:i32, n/1:i32) -> (i32)
         //                                  ;; if n == 0
         //         (local_load32 0 1)
-        //         i32_eqz
+        //         eqz_i32
         //         (block_alt 4 4) () -> (i32)
         //             (local_load32 1 0)   ;; then sum
         //             (break 0)            ;; else
@@ -105,7 +105,7 @@ mod tests {
         //             (local_load32 1 0)
         //             (local_load32 1 1)
         //             (call $square)
-        //             i32_add
+        //             add_i32
         //                                  ;; n - 1
         //             (local_load32 1 1)
         //             (i32_dec 1)
@@ -134,7 +134,7 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 3, 3)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
@@ -143,7 +143,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i32(Opcode::call, 2)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -165,33 +165,33 @@ mod tests {
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_sum_square,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_square,
                 },
             ],
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
             ],
@@ -208,67 +208,67 @@ mod tests {
     #[test]
     fn test_interpreter_function_call_dyncall() {
         // fn $test () -> (i32, i32, i32, i32, i32)
-        //     (i32_imm 2)
+        //     (imm_i32 2)
         //     (dyncall)
-        //     (i32_imm 4)
+        //     (imm_i32 4)
         //     (dyncall)
-        //     (i32_imm 3)
+        //     (imm_i32 3)
         //     (dyncall)
-        //     (i32_imm 1)
+        //     (imm_i32 1)
         //     (dyncall)
-        //     (i32_imm 2)
+        //     (imm_i32 2)
         //     (dyncall)
         // end
         //
         // fn $eleven (;1;) () -> (i32)
-        //     (i32_imm 11)
+        //     (imm_i32 11)
         // end
         //
         // fn $thirteen (;2;) () -> (i32)
-        //     (i32_imm 13)
+        //     (imm_i32 13)
         // end
         //
         // fn $seventeen (;3;) () -> (i32)
-        //     (i32_imm 17)
+        //     (imm_i32 17)
         // end
         //
         // fn $nineteen (;4;) () -> (i32)
-        //     (i32_imm 19)
+        //     (imm_i32 19)
         // end
 
         // expect (13, 19, 17, 11, 13)
 
         let code_main = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode_i32(Opcode::imm_i32, 2)
             .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode_i32(Opcode::imm_i32, 4)
             .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::i32_imm, 3)
+            .append_opcode_i32(Opcode::imm_i32, 3)
             .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode_i32(Opcode::imm_i32, 2)
             .append_opcode(Opcode::dyncall)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_eleven = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
+            .append_opcode_i32(Opcode::imm_i32, 11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_thirteen = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_seventeen = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 17)
+            .append_opcode_i32(Opcode::imm_i32, 17)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let code_nineteen = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -277,36 +277,36 @@ mod tests {
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],
                     results: vec![
-                        DataType::I32,
-                        DataType::I32,
-                        DataType::I32,
-                        DataType::I32,
-                        DataType::I32,
+                        OperandDataType::I32,
+                        OperandDataType::I32,
+                        OperandDataType::I32,
+                        OperandDataType::I32,
+                        OperandDataType::I32,
                     ],
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_eleven,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_thirteen,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_seventeen,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_nineteen,
                 },

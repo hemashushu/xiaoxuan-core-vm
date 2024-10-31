@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/types",
-    # "crates/binary",
+    "crates/isa",
+    "crates/image",
     # "crates/context",
     # "crates/processor",
 ]

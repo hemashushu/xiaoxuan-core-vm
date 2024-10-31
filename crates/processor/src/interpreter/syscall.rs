@@ -153,7 +153,7 @@ mod tests {
     };
     use ancvm_context::program_resource::ProgramResource;
     use syscall_util::{errno::Errno, number::SysCallNum};
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
 
@@ -175,8 +175,8 @@ mod tests {
             // push syscall args from 1 to 6
             // -none-
             // prepare syscall
-            .append_opcode_i32(Opcode::i32_imm, SysCallNum::getpid as u32) // syscall num
-            .append_opcode_i32(Opcode::i32_imm, 0) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getpid as u32) // syscall num
+            .append_opcode_i32(Opcode::imm_i32, 0) // the amount of syscall args
             //
             .append_opcode(Opcode::syscall)
             //
@@ -187,7 +187,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
-            vec![DataType::I64, DataType::I32], // results
+            vec![OperandDataType::I64, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );
@@ -223,11 +223,11 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             // prepare syscall
-            .append_opcode_i32(Opcode::i32_imm, SysCallNum::getcwd as u32) // syscall num
-            .append_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getcwd as u32) // syscall num
+            .append_opcode_i32(Opcode::imm_i32, 2) // the amount of syscall args
             //
             .append_opcode(Opcode::syscall)
             //
@@ -237,8 +237,8 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I64, DataType::I64], // params
-            vec![DataType::I64, DataType::I32], // results
+            vec![OperandDataType::I64, OperandDataType::I64], // params
+            vec![OperandDataType::I64, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );
@@ -299,11 +299,11 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // push syscall args from 1 to 6
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0) // file path addr
-            .append_opcode_i32(Opcode::i32_imm, 0) // open flags
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // file path addr
+            .append_opcode_i32(Opcode::imm_i32, 0) // open flags
             // prepare syscall
-            .append_opcode_i32(Opcode::i32_imm, SysCallNum::open as u32) // syscall num
-            .append_opcode_i32(Opcode::i32_imm, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::open as u32) // syscall num
+            .append_opcode_i32(Opcode::imm_i32, 2) // the amount of syscall args
             //
             .append_opcode(Opcode::syscall)
             //
@@ -313,8 +313,8 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I64],                // params
-            vec![DataType::I64, DataType::I32], // results
+            vec![OperandDataType::I64],                // params
+            vec![OperandDataType::I64, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );

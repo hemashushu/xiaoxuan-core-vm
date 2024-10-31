@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_context::{program_resource::ProgramResource, thread_context::ThreadContext};
-use ancvm_types::{ForeignValue, GenericError};
+use ancvm_isa::{ForeignValue, GenericError};
 
 use crate::{
     delegate::{build_bridge_data, build_bridge_function},

@@ -7,7 +7,7 @@
 use std::{cell::RefCell, sync::Arc};
 
 use ancvm_context::{program_resource::ProgramResource, ProgramResourceType};
-use ancvm_types::{ForeignValue, GenericError};
+use ancvm_isa::{ForeignValue, GenericError};
 
 use crate::{
     interpreter::process_function, ChildThread, InterpreterError, InterpreterErrorType,

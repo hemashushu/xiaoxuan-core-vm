@@ -8,9 +8,9 @@ use std::sync::Once;
 
 use ancvm_binary::bytecode_reader::format_bytecode_as_text;
 use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_types::{
+use ancvm_isa::{
     opcode::{Opcode, MAX_OPCODE_NUMBER},
-    DataType, ForeignValue, OPERAND_SIZE_IN_BYTES,
+    OperandDataType, ForeignValue, OPERAND_SIZE_IN_BYTES,
 };
 
 use crate::{InterpreterError, InterpreterErrorType};
@@ -119,13 +119,13 @@ fn init_interpreters_internal() {
     // interpreters[Opcode::duplicate as usize] = fundamental::duplicate;
     // interpreters[Opcode::swap as usize] = fundamental::swap;
     interpreters[Opcode::select_nez as usize] = fundamental::select_nez;
-    interpreters[Opcode::i32_imm as usize] = fundamental::i32_imm;
-    interpreters[Opcode::i64_imm as usize] = fundamental::i64_imm;
-    interpreters[Opcode::f32_imm as usize] = fundamental::f32_imm;
-    interpreters[Opcode::f64_imm as usize] = fundamental::f64_imm;
+    interpreters[Opcode::imm_i32 as usize] = fundamental::imm_i32;
+    interpreters[Opcode::imm_i64 as usize] = fundamental::imm_i64;
+    interpreters[Opcode::imm_f32 as usize] = fundamental::imm_f32;
+    interpreters[Opcode::imm_f64 as usize] = fundamental::imm_f64;
 
     // local variables
-    interpreters[Opcode::local_load64_i64 as usize] = local::local_load64_i64;
+    interpreters[Opcode::local_load_i64 as usize] = local::local_load_i64;
     interpreters[Opcode::local_load64_f64 as usize] = local::local_load64_f64;
     interpreters[Opcode::local_load32_i32 as usize] = local::local_load32_i32;
     interpreters[Opcode::local_load32_i16_s as usize] = local::local_load32_i16_s;
@@ -133,7 +133,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::local_load32_i8_s as usize] = local::local_load32_i8_s;
     interpreters[Opcode::local_load32_i8_u as usize] = local::local_load32_i8_u;
     interpreters[Opcode::local_load32_f32 as usize] = local::local_load32_f32;
-    interpreters[Opcode::local_store64 as usize] = local::local_store64;
+    interpreters[Opcode::local_store_i64 as usize] = local::local_store_i64;
     interpreters[Opcode::local_store32 as usize] = local::local_store32;
     interpreters[Opcode::local_store16 as usize] = local::local_store16;
     interpreters[Opcode::local_store8 as usize] = local::local_store8;
@@ -152,7 +152,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::local_offset_store8 as usize] = local::local_offset_store8;
 
     // data sections
-    interpreters[Opcode::data_load64_i64 as usize] = data::data_load64_i64;
+    interpreters[Opcode::data_load_i64 as usize] = data::data_load_i64;
     interpreters[Opcode::data_load64_f64 as usize] = data::data_load64_f64;
     interpreters[Opcode::data_load32_i32 as usize] = data::data_load32_i32;
     interpreters[Opcode::data_load32_i16_s as usize] = data::data_load32_i16_s;
@@ -160,7 +160,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::data_load32_i8_s as usize] = data::data_load32_i8_s;
     interpreters[Opcode::data_load32_i8_u as usize] = data::data_load32_i8_u;
     interpreters[Opcode::data_load32_f32 as usize] = data::data_load32_f32;
-    interpreters[Opcode::data_store64 as usize] = data::data_store64;
+    interpreters[Opcode::data_store_i64 as usize] = data::data_store_i64;
     interpreters[Opcode::data_store32 as usize] = data::data_store32;
     interpreters[Opcode::data_store16 as usize] = data::data_store16;
     interpreters[Opcode::data_store8 as usize] = data::data_store8;
@@ -179,7 +179,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::data_offset_store8 as usize] = data::data_offset_store8;
 
     // heap
-    interpreters[Opcode::heap_load64_i64 as usize] = heap::heap_load64_i64;
+    interpreters[Opcode::heap_load_i64 as usize] = heap::heap_load_i64;
     interpreters[Opcode::heap_load64_f64 as usize] = heap::heap_load64_f64;
     interpreters[Opcode::heap_load32_i32 as usize] = heap::heap_load32_i32;
     interpreters[Opcode::heap_load32_i16_s as usize] = heap::heap_load32_i16_s;
@@ -187,7 +187,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::heap_load32_i8_s as usize] = heap::heap_load32_i8_s;
     interpreters[Opcode::heap_load32_i8_u as usize] = heap::heap_load32_i8_u;
     interpreters[Opcode::heap_load32_f32 as usize] = heap::heap_load32_f32;
-    interpreters[Opcode::heap_store64 as usize] = heap::heap_store64;
+    interpreters[Opcode::heap_store_i64 as usize] = heap::heap_store_i64;
     interpreters[Opcode::heap_store32 as usize] = heap::heap_store32;
     interpreters[Opcode::heap_store16 as usize] = heap::heap_store16;
     interpreters[Opcode::heap_store8 as usize] = heap::heap_store8;
@@ -199,7 +199,7 @@ fn init_interpreters_internal() {
     interpreters[Opcode::heap_resize as usize] = heap::heap_resize;
 
     // conversion
-    interpreters[Opcode::i32_truncate_i64 as usize] = conversion::i32_truncate_i64;
+    interpreters[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
     interpreters[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;
     interpreters[Opcode::i64_extend_i32_u as usize] = conversion::i64_extend_i32_u;
     interpreters[Opcode::f32_demote_f64 as usize] = conversion::f32_demote_f64;
@@ -222,9 +222,9 @@ fn init_interpreters_internal() {
     interpreters[Opcode::f64_convert_i64_u as usize] = conversion::f64_convert_i64_u;
 
     // comparison
-    interpreters[Opcode::i32_eqz as usize] = comparison::i32_eqz;
-    interpreters[Opcode::i32_eq as usize] = comparison::i32_eq;
-    interpreters[Opcode::i32_nez as usize] = comparison::i32_nez;
+    interpreters[Opcode::eqz_i32 as usize] = comparison::eqz_i32;
+    interpreters[Opcode::eq_i32 as usize] = comparison::eq_i32;
+    interpreters[Opcode::nez_i32 as usize] = comparison::nez_i32;
     interpreters[Opcode::i32_ne as usize] = comparison::i32_ne;
     interpreters[Opcode::i32_lt_s as usize] = comparison::i32_lt_s;
     interpreters[Opcode::i32_lt_u as usize] = comparison::i32_lt_u;
@@ -260,8 +260,8 @@ fn init_interpreters_internal() {
     interpreters[Opcode::f64_ge as usize] = comparison::f64_ge;
 
     // arithmetic
-    interpreters[Opcode::i32_add as usize] = arithmetic::i32_add;
-    interpreters[Opcode::i32_sub as usize] = arithmetic::i32_sub;
+    interpreters[Opcode::add_i32 as usize] = arithmetic::add_i32;
+    interpreters[Opcode::sub_i32 as usize] = arithmetic::sub_i32;
     interpreters[Opcode::i32_mul as usize] = arithmetic::i32_mul;
     interpreters[Opcode::i32_div_s as usize] = arithmetic::i32_div_s;
     interpreters[Opcode::i32_div_u as usize] = arithmetic::i32_div_u;
@@ -498,10 +498,25 @@ pub fn process_function(
     // push arguments
     // the first value will be first inserted, and placed at the stack bottom:
     //
-    // array [0, 1, 2] -> |  2  |
+    // array [0, 1, 2] -> |  2  | <-- high addr
     //                    |  1  |
     //                    |  0  |
-    //                    \-----/
+    //                    \-----/ <-- low addr
+    //
+    // the reason why the arguments on the left are pushed onto the stack first
+    // is to make it easier to copy or move several consecutive arguments elsewhere.
+    //
+    // e.g.
+    // stack[low_addr] = arg 0
+    // stack[low_addr + OPERAND_SIZE] = arg 1
+    // ...
+    // stack[high_addr] = arg n
+    // stack[low_addr:high_addr] = args from 0 to n
+    //
+    // on a real machine (e.g. x86_64), the right arguments will be inserted (pushed)
+    // first, this is because the stack on the real machine is growed from high addr
+    // to low addr.
+
     for value in arguments {
         match value {
             ForeignValue::U32(value) => thread_context.stack.push_i32_u(*value),
@@ -551,22 +566,22 @@ pub fn process_function(
         .iter()
         .enumerate()
         .map(|(idx, dt)| match dt {
-            DataType::I32 => ForeignValue::U32(u32::from_le_bytes(
+            OperandDataType::I32 => ForeignValue::U32(u32::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::I64 => ForeignValue::U64(u64::from_le_bytes(
+            OperandDataType::I64 => ForeignValue::U64(u64::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::F32 => ForeignValue::F32(f32::from_le_bytes(
+            OperandDataType::F32 => ForeignValue::F32(f32::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
                     .try_into()
                     .unwrap(),
             )),
-            DataType::F64 => ForeignValue::F64(f64::from_le_bytes(
+            OperandDataType::F64 => ForeignValue::F64(f64::from_le_bytes(
                 result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
                     .try_into()
                     .unwrap(),

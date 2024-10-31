@@ -405,7 +405,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_math_i32() {
@@ -434,8 +434,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32], // params
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
         );
@@ -476,20 +476,20 @@ mod tests {
         // (i64 i64) -> (i64 i64 i64 i64)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_neg)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_neg)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I64, DataType::I64], // params
-            vec![DataType::I64, DataType::I64, DataType::I64, DataType::I64], // results
+            vec![OperandDataType::I64, OperandDataType::I64], // params
+            vec![OperandDataType::I64, OperandDataType::I64, OperandDataType::I64, OperandDataType::I64], // results
             vec![],                             // local vars
             code0,
         );
@@ -636,50 +636,50 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
             ], // params
             vec![
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
             ], // results
             vec![], // local vars
             code0,
@@ -832,11 +832,11 @@ mod tests {
             .append_opcode(Opcode::f32_cos)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
             .append_opcode(Opcode::f32_tan)
-            .append_opcode_pesudo_f32(Opcode::f32_imm, 0.5)
+            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.5)
             .append_opcode(Opcode::f32_asin)
-            .append_opcode_pesudo_f32(Opcode::f32_imm, 0.866_025_4)
+            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.866_025_4)
             .append_opcode(Opcode::f32_acos)
-            .append_opcode_pesudo_f32(Opcode::f32_imm, 0.577_350_3)
+            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.577_350_3)
             .append_opcode(Opcode::f32_atan)
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
@@ -877,49 +877,49 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
             ], // params
             vec![
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
                 //
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
-                DataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
             ], // results
             vec![], // local vars
             code0,
@@ -1105,50 +1105,50 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
             ], // params
             vec![
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
             ], // results
             vec![], // local vars
             code0,
@@ -1301,11 +1301,11 @@ mod tests {
             .append_opcode(Opcode::f64_cos)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
             .append_opcode(Opcode::f64_tan)
-            .append_opcode_pesudo_f64(Opcode::f64_imm, 0.5)
+            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.5)
             .append_opcode(Opcode::f64_asin)
-            .append_opcode_pesudo_f64(Opcode::f64_imm, 0.8660254037844386)
+            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.8660254037844386)
             .append_opcode(Opcode::f64_acos)
-            .append_opcode_pesudo_f64(Opcode::f64_imm, 0.5773502691896258)
+            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.5773502691896258)
             .append_opcode(Opcode::f64_atan)
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
@@ -1346,49 +1346,49 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
             ], // params
             vec![
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
                 //
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
-                DataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
             ], // results
             vec![], // local vars
             code0,

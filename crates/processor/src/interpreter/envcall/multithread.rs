@@ -397,8 +397,8 @@ mod tests {
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_types::{
-        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, DataType,
+    use ancvm_isa::{
+        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, OperandDataType,
     };
 
     use crate::{
@@ -411,13 +411,13 @@ mod tests {
         // () -> (i64)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x11)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I64], // results
+            vec![OperandDataType::I64], // results
             vec![],              // local vars
             code0,
         );
@@ -442,7 +442,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I64], // results
+            vec![OperandDataType::I64], // results
             vec![],              // local vars
             code0,
         );
@@ -461,9 +461,9 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // envcall/thread_create params
-            .append_opcode_i32(Opcode::i32_imm, 1) // function_public_index
-            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_address, no start data
-            .append_opcode_i32(Opcode::i32_imm, 0) // thread_start_data_length, no start data
+            .append_opcode_i32(Opcode::imm_i32, 1) // function_public_index
+            .append_opcode_i32(Opcode::imm_i32, 0) // thread_start_data_address, no start data
+            .append_opcode_i32(Opcode::imm_i32, 0) // thread_start_data_length, no start data
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
             // now the operand(s) on the top of stack is: (child thread id)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_and_collect as u32)
@@ -476,7 +476,7 @@ mod tests {
 
         let code1 = BytecodeWriter::new()
             // set the thread exit code
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x13)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -484,13 +484,13 @@ mod tests {
             vec![
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],               // params
-                    results: vec![DataType::I64], // results
+                    results: vec![OperandDataType::I64], // results
                     local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local vars (for dropping operands)
                     code: code0,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],                                   // params
-                    results: vec![DataType::I64],                     // results
+                    results: vec![OperandDataType::I64],                     // results
                     local_variable_item_entries_without_args: vec![], // local vars
                     code: code1,
                 },
@@ -509,15 +509,15 @@ mod tests {
         // () -> (i64)
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 1000)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 1000)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_sleep as u32)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x13)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I64], // results
+            vec![OperandDataType::I64], // results
             vec![],              // local vars
             code0,
         );

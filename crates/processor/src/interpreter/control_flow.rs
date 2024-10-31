@@ -231,19 +231,19 @@ mod tests {
         InterpreterError, InterpreterErrorType,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{entry::LocalVariableEntry, opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{entry::LocalVariableEntry, opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_control_flow_block() {
         // fn () -> (i32, i32, i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (block 1 1) () -> ()
-        //         (i32_imm 17)
-        //         (i32_imm 19)
+        //         (imm_i32 17)
+        //         (imm_i32 19)
         //     end
-        //     (i32_imm 23)
-        //     (i32_imm 29)
+        //     (imm_i32 23)
+        //     (imm_i32 29)
         // end
         //
         // expect (11, 13, 23, 29)
@@ -263,20 +263,20 @@ mod tests {
         // 0x0040  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode_i32(Opcode::imm_i32, 23)
+            .append_opcode_i32(Opcode::imm_i32, 29)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                                           // params
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
             vec![],                                                           // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
@@ -305,14 +305,14 @@ mod tests {
     #[test]
     fn test_interpreter_control_flow_block_with_args_and_results() {
         // fn () -> (i32, i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (block 1 1) (i32) -> (i32)
         //         (local_load 0)
-        //         (i32_imm 17)
-        //         (i32_add)
+        //         (imm_i32 17)
+        //         (add_i32)
         //     end
-        //     (i32_imm 19)
+        //     (imm_i32 19)
         // end
         //
         // expect (11, 30, 19)
@@ -331,14 +331,14 @@ mod tests {
         // 0x0038  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local list index = 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode(Opcode::add_i32)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -346,12 +346,12 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                            // params
-            vec![DataType::I32, DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
             vec![],                                            // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
-                params: vec![DataType::I32],
-                results: vec![DataType::I32],
+                params: vec![OperandDataType::I32],
+                results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -474,12 +474,12 @@ mod tests {
             // p=c+d
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             // q=c-d
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 3)
-            .append_opcode(Opcode::i32_sub)
+            .append_opcode(Opcode::sub_i32)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
             // load c, d
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 2)
@@ -497,11 +497,11 @@ mod tests {
             // x+q
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             // y+p
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             //
             .append_opcode(Opcode::end)
             // load p, q
@@ -521,16 +521,16 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
+            vec![OperandDataType::I32, OperandDataType::I32], // params
             vec![
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
             ], // results
             vec![
                 LocalVariableEntry::from_i32(),
@@ -540,15 +540,15 @@ mod tests {
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32],
+                    results: vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![
                         LocalVariableEntry::from_i32(),
                         LocalVariableEntry::from_i32(),
                     ],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32, DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
             ],
@@ -582,11 +582,11 @@ mod tests {
     #[test]
     fn test_interpreter_control_flow_break_function() {
         // fn () -> (i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (break 0)
-        //     (i32_imm 17)
-        //     (i32_imm 19)
+        //     (imm_i32 17)
+        //     (imm_i32 19)
         // end
         //
         // expect (11, 13)
@@ -601,11 +601,11 @@ mod tests {
         // 0x0028  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i16_i32(Opcode::break_, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -613,7 +613,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
-            vec![DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
             vec![],
@@ -633,17 +633,17 @@ mod tests {
     #[test]
     fn test_interpreter_control_flow_break_block() {
         // fn () -> (i32, i32, i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (block 1 1) () -> (i32, i32)
-        //         (i32_imm 17)
-        //         (i32_imm 19)
+        //         (imm_i32 17)
+        //         (imm_i32 19)
         //         (break 0)
-        //         (i32_imm 23)
-        //         (i32_imm 29)
+        //         (imm_i32 23)
+        //         (imm_i32 29)
         //     end
-        //     (i32_imm 31)
-        //     (i32_imm 37)
+        //     (imm_i32 31)
+        //     (imm_i32 37)
         // end
         //
         // expect (17, 19, 31, 37)
@@ -666,17 +666,17 @@ mod tests {
         // 0x0058  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x1a)
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode_i32(Opcode::imm_i32, 23)
+            .append_opcode_i32(Opcode::imm_i32, 29)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 31)
-            .append_opcode_i32(Opcode::i32_imm, 37)
+            .append_opcode_i32(Opcode::imm_i32, 31)
+            .append_opcode_i32(Opcode::imm_i32, 37)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -684,12 +684,12 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                                                           // params
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
             vec![],                                                           // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
-                results: vec![DataType::I32, DataType::I32],
+                results: vec![OperandDataType::I32, OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -713,17 +713,17 @@ mod tests {
     #[test]
     fn test_interpreter_control_flow_break_block_to_function() {
         // fn () -> (i32, i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (block 1 1) () -> (i32 i32)
-        //         (i32_imm 17)
-        //         (i32_imm 19)
+        //         (imm_i32 17)
+        //         (imm_i32 19)
         //         (break 1)
-        //         (i32_imm 23)
-        //         (i32_imm 29)
+        //         (imm_i32 23)
+        //         (imm_i32 29)
         //     end
-        //     (i32_imm 31)
-        //     (i32_imm 37)
+        //     (imm_i32 31)
+        //     (imm_i32 37)
         // end
         //
         // expect (17, 19)
@@ -746,17 +746,17 @@ mod tests {
         // 0x0058  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local variable index = 1
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode_i16_i32(Opcode::break_, 1, 0)
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode_i32(Opcode::imm_i32, 23)
+            .append_opcode_i32(Opcode::imm_i32, 29)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 31)
-            .append_opcode_i32(Opcode::i32_imm, 37)
+            .append_opcode_i32(Opcode::imm_i32, 31)
+            .append_opcode_i32(Opcode::imm_i32, 37)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -764,12 +764,12 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
             vec![],                             // params
-            vec![DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32, OperandDataType::I32], // results
             vec![],                             // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![],
-                results: vec![DataType::I32, DataType::I32],
+                results: vec![OperandDataType::I32, OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -841,8 +841,8 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32],   // params
-            vec![DataType::I32],                  // results
+            vec![OperandDataType::I32, OperandDataType::I32],   // params
+            vec![OperandDataType::I32],                  // results
             vec![LocalVariableEntry::from_i32()], // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
@@ -878,24 +878,24 @@ mod tests {
         // cross block breaking
         //
         // fn (i32) -> (i32 i32 i32 i32)
-        //     (i32_imm 11)
-        //     (i32_imm 13)
+        //     (imm_i32 11)
+        //     (imm_i32 13)
         //     (block 1 1) () -> (i32 i32)
-        //         (i32_imm 17)
-        //         (i32_imm 19)
+        //         (imm_i32 17)
+        //         (imm_i32 19)
         //         (local_load32_i32 1 0)  ;; true
         //         (block_nez 2 2) () -> (i32 i32)
-        //             (i32_imm 23)
-        //             (i32_imm 29)
+        //             (imm_i32 23)
+        //             (imm_i32 29)
         //             (break 1)
-        //             (i32_imm 31)
-        //             (i32_imm 37)
+        //             (imm_i32 31)
+        //             (imm_i32 37)
         //         end
-        //         (i32_imm 41)
-        //         (i32_imm 43)
+        //         (imm_i32 41)
+        //         (imm_i32 43)
         //     end
-        //     (i32_imm 51)
-        //     (i32_imm 53)
+        //     (imm_i32 51)
+        //     (imm_i32 53)
         // end
         //
         // expect (1) -> (23, 29, 51, 53)
@@ -928,43 +928,43 @@ mod tests {
         // 0x0090  00 0a                       end
 
         let code0 = BytecodeWriter::new()
-            .append_opcode_i32(Opcode::i32_imm, 11)
-            .append_opcode_i32(Opcode::i32_imm, 13)
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
-            .append_opcode_i32(Opcode::i32_imm, 17)
-            .append_opcode_i32(Opcode::i32_imm, 19)
+            .append_opcode_i32(Opcode::imm_i32, 17)
+            .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x36) // block type = 2
-            .append_opcode_i32(Opcode::i32_imm, 23)
-            .append_opcode_i32(Opcode::i32_imm, 29)
+            .append_opcode_i32(Opcode::imm_i32, 23)
+            .append_opcode_i32(Opcode::imm_i32, 29)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x2e)
-            .append_opcode_i32(Opcode::i32_imm, 31)
-            .append_opcode_i32(Opcode::i32_imm, 37)
+            .append_opcode_i32(Opcode::imm_i32, 31)
+            .append_opcode_i32(Opcode::imm_i32, 37)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 41)
-            .append_opcode_i32(Opcode::i32_imm, 43)
+            .append_opcode_i32(Opcode::imm_i32, 41)
+            .append_opcode_i32(Opcode::imm_i32, 43)
             .append_opcode(Opcode::end)
-            .append_opcode_i32(Opcode::i32_imm, 51)
-            .append_opcode_i32(Opcode::i32_imm, 53)
+            .append_opcode_i32(Opcode::imm_i32, 51)
+            .append_opcode_i32(Opcode::imm_i32, 53)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32],                                              // params
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // results
+            vec![OperandDataType::I32],                                              // params
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
             vec![],                                                           // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32, DataType::I32],
+                    results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32, DataType::I32],
+                    results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
             ],
@@ -1042,13 +1042,13 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
+            vec![OperandDataType::I32, OperandDataType::I32], // params
+            vec![OperandDataType::I32],                // results
             vec![],                             // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![], // 'block_alt' has no PARAMS
-                results: vec![DataType::I32],
+                results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -1078,24 +1078,24 @@ mod tests {
     fn test_interpreter_control_flow_structure_if_nested() {
         // fn $level (i32) -> (i32)
         //     (local_load32 0 0)
-        //     (i32_imm 85)
+        //     (imm_i32 85)
         //     i32_gt_u
         //     (block_alt 1 1) ()->(i32)            ;; block 1 1
-        //         (i32_imm 65)                     ;; 'A' (85, 100]
+        //         (imm_i32 65)                     ;; 'A' (85, 100]
         //     (break 0)
         //         (local_load32 1 0)
-        //         (i32_imm 70)
+        //         (imm_i32 70)
         //         i32_gt_u
         //         (block_alt 2 2) ()->(i32)        ;; block 2 2
-        //             (i32_imm 66)                 ;; 'B' (70,85]
+        //             (imm_i32 66)                 ;; 'B' (70,85]
         //         (break 0)
         //             (local_load32 2 0)
-        //             (i32_imm 55)
+        //             (imm_i32 55)
         //             i32_gt_u
         //             (block_alt 3 3) ()->(i32)    ;; block 3 3
-        //                 (i32_imm 67)             ;; 'C' (55, 70]
+        //                 (imm_i32 67)             ;; 'C' (55, 70]
         //             (break 0)
-        //                 (i32_imm 68)             ;; 'D' [0, 55]
+        //                 (imm_i32 68)             ;; 'D' [0, 55]
         //             end
         //         end
         //     end
@@ -1142,24 +1142,24 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 85)
+            .append_opcode_i32(Opcode::imm_i32, 85)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
-            .append_opcode_i32(Opcode::i32_imm, 65)
+            .append_opcode_i32(Opcode::imm_i32, 65)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x7e)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 70)
+            .append_opcode_i32(Opcode::imm_i32, 70)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x20)
-            .append_opcode_i32(Opcode::i32_imm, 66)
+            .append_opcode_i32(Opcode::imm_i32, 66)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x48)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 2, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 55)
+            .append_opcode_i32(Opcode::imm_i32, 55)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 3, 3, 0x20)
-            .append_opcode_i32(Opcode::i32_imm, 67)
+            .append_opcode_i32(Opcode::imm_i32, 67)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x12)
-            .append_opcode_i32(Opcode::i32_imm, 68)
+            .append_opcode_i32(Opcode::imm_i32, 68)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
@@ -1169,24 +1169,24 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![], // 'block_alt' has no PARAMS
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
             ],
@@ -1221,30 +1221,30 @@ mod tests {
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
         //         (local_load32 0 0)
-        //         (i32_imm 85)
+        //         (imm_i32 85)
         //         i32_gt_u
         //         (block_nez 2) ()->()     ;; block 2 2
-        //             (i32_imm 65)         ;; 'A' (85, 100]
+        //             (imm_i32 65)         ;; 'A' (85, 100]
         //             (break 1)
         //         end
         //                                  ;; case 2
         //         (local_load32 0 0)
-        //         (i32_imm 70)
+        //         (imm_i32 70)
         //         i32_gt_u
         //         (block_nez 3) ()->()     ;; block 3 3
-        //             (i32_imm 66)         ;; 'B' (70,85]
+        //             (imm_i32 66)         ;; 'B' (70,85]
         //             (break 1)
         //         end
         //                                  ;; case 3
         //         (local_load32 0 0)
-        //         (i32_imm 55)
+        //         (imm_i32 55)
         //         i32_gt_u
         //         (block_nez 4) ()->()     ;; block 4 4
-        //             (i32_imm 67)         ;; 'C' (55, 70]
+        //             (imm_i32 67)         ;; 'C' (55, 70]
         //             (break 1)
         //         end
         //                                  ;; default
-        //         (i32_imm 68)             ;; 'D' [0, 55]
+        //         (imm_i32 68)             ;; 'D' [0, 55]
         //     end
         // end
         //
@@ -1297,30 +1297,30 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // case 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 85)
+            .append_opcode_i32(Opcode::imm_i32, 85)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
-            .append_opcode_i32(Opcode::i32_imm, 65)
+            .append_opcode_i32(Opcode::imm_i32, 65)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x7e)
             .append_opcode(Opcode::end)
             // case 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 70)
+            .append_opcode_i32(Opcode::imm_i32, 70)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
-            .append_opcode_i32(Opcode::i32_imm, 66)
+            .append_opcode_i32(Opcode::imm_i32, 66)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x4a)
             .append_opcode(Opcode::end)
             // case 3
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 55)
+            .append_opcode_i32(Opcode::imm_i32, 55)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 4, 0x1e)
-            .append_opcode_i32(Opcode::i32_imm, 67)
+            .append_opcode_i32(Opcode::imm_i32, 67)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x16)
             .append_opcode(Opcode::end)
             // default
-            .append_opcode_i32(Opcode::i32_imm, 68)
+            .append_opcode_i32(Opcode::imm_i32, 68)
             // block end
             .append_opcode(Opcode::end)
             //
@@ -1330,14 +1330,14 @@ mod tests {
         println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
@@ -1387,18 +1387,18 @@ mod tests {
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
         //         (local_load32 0 0)
-        //         (i32_imm 85)
+        //         (imm_i32 85)
         //         i32_gt_u
         //         (block_nez 2) ()->()     ;; block 2 2
-        //             (i32_imm 65)         ;; 'A' (85, 100]
+        //             (imm_i32 65)         ;; 'A' (85, 100]
         //             (break 1)
         //         end
         //                                  ;; case 2
         //         (local_load32 0 0)
-        //         (i32_imm 70)
+        //         (imm_i32 70)
         //         i32_gt_u
         //         (block_nez 3) ()->()     ;; block 3 3
-        //             (i32_imm 66)         ;; 'B' (70,85]
+        //             (imm_i32 66)         ;; 'B' (70,85]
         //             (break 1)
         //         end
         //         unreachable
@@ -1442,18 +1442,18 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // case 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 85)
+            .append_opcode_i32(Opcode::imm_i32, 85)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
-            .append_opcode_i32(Opcode::i32_imm, 65)
+            .append_opcode_i32(Opcode::imm_i32, 65)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x4a)
             .append_opcode(Opcode::end)
             // case 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i32(Opcode::i32_imm, 70)
+            .append_opcode_i32(Opcode::imm_i32, 70)
             .append_opcode(Opcode::i32_gt_u)
             .append_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
-            .append_opcode_i32(Opcode::i32_imm, 66)
+            .append_opcode_i32(Opcode::imm_i32, 66)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x16)
             .append_opcode(Opcode::end)
             // unreachable
@@ -1467,14 +1467,14 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
@@ -1525,14 +1525,14 @@ mod tests {
         //     (block 1 1) ()->()
         //                              ;; break if n==0
         //         (local_load32 1 0)
-        //         i32_eqz
+        //         eqz_i32
         //         (block_nez 2)
         //             (break 1)
         //         end
         //                              ;; sum = sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
-        //         i32_add
+        //         add_i32
         //         (local_store32 1 1)
         //                              ;; n = n - 1
         //         (local_load32 1 0)
@@ -1574,14 +1574,14 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x16)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x42)
             .append_opcode(Opcode::end)
             // sum = sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 1, 0, 1)
             // n = n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
@@ -1599,8 +1599,8 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32],                  // params
-            vec![DataType::I32],                  // results
+            vec![OperandDataType::I32],                  // params
+            vec![OperandDataType::I32],                  // results
             vec![LocalVariableEntry::from_i32()], // local vars
             code0,
             vec![
@@ -1636,7 +1636,7 @@ mod tests {
         //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
         //                              ;; break if n==0
         //         (local_load32 0 1)
-        //         i32_eqz
+        //         eqz_i32
         //         (block_nez)
         //             (local_load32 0 1)
         //             (break 1)
@@ -1644,7 +1644,7 @@ mod tests {
         //                              ;; sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //         i32_add
+        //         add_i32
         //                              ;; n - 1
         //         (local_load32 0 1)
         //         (i32_dec 1)
@@ -1687,7 +1687,7 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // if n==0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
             // load sum, break sum
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
@@ -1697,7 +1697,7 @@ mod tests {
             // sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -1712,14 +1712,14 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
@@ -1750,13 +1750,13 @@ mod tests {
         //                              ;; break if n==0
         //         (local_load32 0 0)   ;; load sum first
         //         (local_load32 0 1)   ;; load n
-        //         i32_eqz              ;; consume n
+        //         eqz_i32              ;; consume n
         //         (break_nez 0)        ;; break with 'sum'
         //
         //                              ;; sum + n
         //         (local_load32 0 0)
         //         (local_load32 0 1)
-        //         i32_add
+        //         add_i32
         //                              ;; n - 1
         //         (local_load32 0 1)
         //         (i32_dec 1)
@@ -1799,12 +1799,12 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             // break if n==0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i16_i32(Opcode::break_nez, 0, 0x32)
             // sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -1819,13 +1819,13 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
-                params: vec![DataType::I32, DataType::I32],
-                results: vec![DataType::I32],
+                params: vec![OperandDataType::I32, OperandDataType::I32],
+                results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }],
         );
@@ -1849,7 +1849,7 @@ mod tests {
         //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
         //                              ;; if n==0
         //         (local_load32 0 1)
-        //         i32_eqz
+        //         eqz_i32
         //         (block_alt)
         //             (local_load32 0 1)
         //             (break 1)
@@ -1857,7 +1857,7 @@ mod tests {
         //                              ;; sum + n
         //             (local_load32 0 0)
         //             (local_load32 0 1)
-        //             i32_add
+        //             add_i32
         //                              ;; n - 1
         //             (local_load32 0 1)
         //             (i32_dec 1)
@@ -1903,7 +1903,7 @@ mod tests {
             .append_opcode_i32_i32(Opcode::block, 1, 1)
             // if
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x28)
             // then
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
@@ -1913,7 +1913,7 @@ mod tests {
             // sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -1929,14 +1929,14 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32], // params
-            vec![DataType::I32], // results
+            vec![OperandDataType::I32], // params
+            vec![OperandDataType::I32], // results
             vec![],              // local vars
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
@@ -1964,7 +1964,7 @@ mod tests {
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
         //     (local_load32 0 1)
-        //     i32_add
+        //     add_i32
         //     (local_store32 0 0)
         //                              ;; n = n - 1
         //     (local_load32 0 1)
@@ -2010,7 +2010,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
@@ -2034,8 +2034,8 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
+            vec![OperandDataType::I32, OperandDataType::I32], // params
+            vec![OperandDataType::I32],                // results
             vec![],                             // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
@@ -2070,14 +2070,14 @@ mod tests {
     fn test_interpreter_control_flow_function_tail_call_with_if() {
         // fn $accu (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
-        //     i32_eqz
+        //     eqz_i32
         //     (block_alt 1 1) () -> (i32)      ;; if n == 0
         //         (local_load32 1 0)           ;; then sum
         //     (break 0)                        ;; else
         //                                      ;; sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
-        //         i32_add
+        //         add_i32
         //                                      ;; n - 1
         //         (local_load32 1 1)
         //         (i32_dec 1)
@@ -2110,7 +2110,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_eqz)
+            .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
             // then
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
@@ -2118,7 +2118,7 @@ mod tests {
             // else
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -2133,13 +2133,13 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
+            vec![OperandDataType::I32, OperandDataType::I32], // params
+            vec![OperandDataType::I32],                // results
             vec![],                             // local vars
             code0,
             vec![HelperBlockSignatureAndLocalVariablesEntry {
                 params: vec![], // 'block_alt' has no PARAMS
-                results: vec![DataType::I32],
+                results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
             }], // blocks
         );
@@ -2171,7 +2171,7 @@ mod tests {
         //                          ;; sum + n
         //     (local_load32 0)
         //     (local_load32 1)
-        //     i32_add
+        //     add_i32
         //                          ;; n - 1
         //     (local_load32 1)
         //     (i32_dec 1)
@@ -2193,7 +2193,7 @@ mod tests {
             // sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
             .append_opcode_i16(Opcode::i32_dec, 1)
@@ -2212,8 +2212,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_blocks(
-            vec![DataType::I32, DataType::I32],   // params
-            vec![DataType::I32],                  // results
+            vec![OperandDataType::I32, OperandDataType::I32],   // params
+            vec![OperandDataType::I32],                  // results
             vec![LocalVariableEntry::from_i32()], // local vars (for dropping operands)
             code0,
             vec![], // blocks

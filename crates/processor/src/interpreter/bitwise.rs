@@ -235,7 +235,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_bitwise_i32() {
@@ -285,26 +285,26 @@ mod tests {
             .append_opcode(Opcode::i32_xor)
             // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode_i32(Opcode::imm_i32, 4)
             .append_opcode(Opcode::i32_shift_left)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode_i32(Opcode::i32_imm, 16)
+            .append_opcode_i32(Opcode::imm_i32, 16)
             .append_opcode(Opcode::i32_shift_right_s)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode_i32(Opcode::i32_imm, 16)
+            .append_opcode_i32(Opcode::imm_i32, 16)
             .append_opcode(Opcode::i32_shift_right_u)
             // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 24)
+            .append_opcode_i32(Opcode::imm_i32, 24)
             .append_opcode(Opcode::i32_shift_left)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 24)
+            .append_opcode_i32(Opcode::imm_i32, 24)
             .append_opcode(Opcode::i32_rotate_left)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 28)
+            .append_opcode_i32(Opcode::imm_i32, 28)
             .append_opcode(Opcode::i32_shift_right_u)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 28)
+            .append_opcode_i32(Opcode::imm_i32, 28)
             .append_opcode(Opcode::i32_rotate_right)
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
@@ -324,27 +324,27 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32, DataType::I32, DataType::I32], // params
+            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // params
             vec![
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
                 //
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
                 //
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
                 //
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
                 //
             ], // results
             vec![],                                                           // local vars
@@ -430,77 +430,77 @@ mod tests {
 
         let code0 = BytecodeWriter::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_and)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_or)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_xor)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 8)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i32(Opcode::imm_i32, 8)
             .append_opcode(Opcode::i64_shift_left)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
-            .append_opcode_i32(Opcode::i32_imm, 16)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
+            .append_opcode_i32(Opcode::imm_i32, 16)
             .append_opcode(Opcode::i64_shift_right_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 3)
-            .append_opcode_i32(Opcode::i32_imm, 16)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
+            .append_opcode_i32(Opcode::imm_i32, 16)
             .append_opcode(Opcode::i64_shift_right_u)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i32(Opcode::imm_i32, 32)
             .append_opcode(Opcode::i64_shift_left)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i32(Opcode::imm_i32, 32)
             .append_opcode(Opcode::i64_rotate_left)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 56)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i32(Opcode::imm_i32, 56)
             .append_opcode(Opcode::i64_shift_right_u)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
-            .append_opcode_i32(Opcode::i32_imm, 56)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
+            .append_opcode_i32(Opcode::imm_i32, 56)
             .append_opcode(Opcode::i64_rotate_right)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_not)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::i64_leading_ones)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode(Opcode::i64_leading_ones)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_leading_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_trailing_zeros)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode(Opcode::i64_count_ones)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I64, DataType::I64, DataType::I64, DataType::I64], // params
+            vec![OperandDataType::I64, OperandDataType::I64, OperandDataType::I64, OperandDataType::I64], // params
             vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
                 //
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
                 //
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
                 //
-                DataType::I64,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
+                OperandDataType::I64,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
                 //
             ], // results
             vec![],                                                           // local vars

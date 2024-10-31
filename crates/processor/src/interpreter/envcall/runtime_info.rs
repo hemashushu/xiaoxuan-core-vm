@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use ancvm_context::thread_context::ThreadContext;
-use ancvm_types::{
+use ancvm_isa::{
     RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
 };
 
@@ -47,8 +47,8 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{
-        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, DataType,
+    use ancvm_isa::{
+        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, OperandDataType,
         ForeignValue, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
         RUNTIME_PATCH_VERSION,
     };
@@ -73,7 +73,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
-            vec![DataType::I64], // results
+            vec![OperandDataType::I64], // results
             vec![],              // local vars
             code0,
         );
@@ -111,7 +111,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 0)
             .append_opcode_i32(Opcode::envcall, EnvCallCode::runtime_name as u32)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_i64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -119,7 +119,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                     // params
-            vec![DataType::I32, DataType::I64],         // results
+            vec![OperandDataType::I32, OperandDataType::I64],         // results
             vec![LocalVariableEntry::from_bytes(8, 8)], // local vars
             code0,
         );

@@ -10,7 +10,7 @@ use ancvm_context::{
 
 use super::InterpretResult;
 
-pub fn heap_load64_i64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_load_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64)
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
@@ -118,7 +118,7 @@ pub fn heap_load32_f32(thread_context: &mut ThreadContext) -> InterpretResult {
     InterpretResult::Move(4)
 }
 
-pub fn heap_store64(thread_context: &mut ThreadContext) -> InterpretResult {
+pub fn heap_store_i64(thread_context: &mut ThreadContext) -> InterpretResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 number:i64)
     let offset_bytes = thread_context.get_param_i16();
 
@@ -215,7 +215,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType, ForeignValue};
+    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_heap_capacity() {
@@ -225,13 +225,13 @@ mod tests {
             // get the capacity
             .append_opcode(Opcode::heap_capacity)
             // resize - increase
-            .append_opcode_i32(Opcode::i32_imm, 2)
+            .append_opcode_i32(Opcode::imm_i32, 2)
             .append_opcode(Opcode::heap_resize)
             // resize - increase
-            .append_opcode_i32(Opcode::i32_imm, 4)
+            .append_opcode_i32(Opcode::imm_i32, 4)
             .append_opcode(Opcode::heap_resize)
             // resize - decrease
-            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::heap_resize)
             // get the capcity
             .append_opcode(Opcode::heap_capacity)
@@ -241,11 +241,11 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
-                DataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
             ], // results
             vec![], // local vars
             code0,
@@ -301,82 +301,82 @@ mod tests {
             // change the capacity of heap before test
 
             // init heap size
-            .append_opcode_i32(Opcode::i32_imm, 1)
+            .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::heap_resize)
             // .append_opcode(Opcode::drop)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i32(Opcode::i32_imm, 0x19171311)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::imm_i32, 0x19171311)
             .append_opcode_i16(Opcode::heap_store32, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i32(Opcode::i32_imm, 0xd0c0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::imm_i32, 0xd0c0)
             .append_opcode_i16(Opcode::heap_store16, 4)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i32(Opcode::i32_imm, 0xe0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::imm_i32, 0xe0)
             .append_opcode_i16(Opcode::heap_store8, 6)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i32(Opcode::i32_imm, 0xf0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::imm_i32, 0xf0)
             .append_opcode_i16(Opcode::heap_store8, 7)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x300)
             .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16(Opcode::heap_store64, 0) // store f64
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_i16(Opcode::heap_store_i64, 0) // store f64
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
             .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
             .append_opcode_i16(Opcode::heap_store32, 0) // store f32
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load64_i64, 0)
-            .append_opcode_i16(Opcode::heap_store64, 0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x400)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i16(Opcode::heap_load_i64, 0)
+            .append_opcode_i16(Opcode::heap_store_i64, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load64_i64, 0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x500)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i16(Opcode::heap_load_i64, 0)
             .append_opcode_i16(Opcode::heap_store32, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
-            .append_opcode_i16(Opcode::heap_load64_i64, 0)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i16(Opcode::heap_load_i64, 0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i32, 4)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i16_u, 6)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i16_s, 6)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i8_u, 7)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x100)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16(Opcode::heap_load32_i8_s, 7)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x200)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
             .append_opcode_i16(Opcode::heap_load32_f32, 0)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x300)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x300)
             .append_opcode_i16(Opcode::heap_load64_f64, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x400)
-            .append_opcode_i16(Opcode::heap_load64_i64, 0)
-            .append_opcode_pesudo_i64(Opcode::i64_imm, 0x500)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x400)
+            .append_opcode_i16(Opcode::heap_load_i64, 0)
+            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x500)
             .append_opcode_i16(Opcode::heap_load32_i32, 0)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::F32, DataType::F64], // params
+            vec![OperandDataType::F32, OperandDataType::F64], // params
             vec![
-                DataType::I64,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::I32,
-                DataType::F32,
-                DataType::F64,
-                DataType::I64,
-                DataType::I32,
+                OperandDataType::I64,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::F32,
+                OperandDataType::F64,
+                OperandDataType::I64,
+                OperandDataType::I32,
             ], // results
             vec![],                             // local vars
             code0,

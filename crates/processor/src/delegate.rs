@@ -252,7 +252,7 @@ mod tests {
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
     use ancvm_context::program_resource::ProgramResource;
-    use ancvm_types::{opcode::Opcode, DataType};
+    use ancvm_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
         delegate::build_bridge_function, in_memory_program_resource::InMemoryProgramResource,
@@ -264,17 +264,17 @@ mod tests {
         //
         // 0x0000 local_load32         0 0 0
         // 0x0008 local_load32         0 0 1
-        // 0x0010 i32_add
+        // 0x0010 add_i32
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_add)
+            .append_opcode(Opcode::add_i32)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![DataType::I32, DataType::I32], // params
-            vec![DataType::I32],                // results
+            vec![OperandDataType::I32, OperandDataType::I32], // params
+            vec![OperandDataType::I32],                // results
             vec![],                             // local vars
             code0,
         );

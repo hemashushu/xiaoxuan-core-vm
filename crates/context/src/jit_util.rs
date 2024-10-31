@@ -16,7 +16,7 @@ use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{DataDescription, Linkage, Module};
 use rand::Rng;
 
-use ancvm_types::{DataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_isa::{OperandDataType, OPERAND_SIZE_IN_BYTES};
 
 static mut JIT_UTIL_WITHOUT_IMPORTED_SYMBOLS: Mutex<Option<JITUtil>> = Mutex::new(None);
 static INIT: Once = Once::new();
@@ -94,12 +94,12 @@ impl JITUtil {
     }
 }
 
-fn convert_vm_data_type_to_jit_type(dt: DataType) -> Type {
+fn convert_vm_data_type_to_jit_type(dt: OperandDataType) -> Type {
     match dt {
-        DataType::I32 => types::I32,
-        DataType::I64 => types::I64,
-        DataType::F32 => types::F32,
-        DataType::F64 => types::F64,
+        OperandDataType::I32 => types::I32,
+        OperandDataType::I64 => types::I64,
+        OperandDataType::F32 => types::F32,
+        OperandDataType::F64 => types::F64,
     }
 }
 
@@ -137,8 +137,8 @@ pub fn build_host_to_vm_function(
     thread_context_addr: usize,
     target_module_index: usize,
     function_internal_index: usize,
-    params: &[DataType],
-    results: &[DataType],
+    params: &[OperandDataType],
+    results: &[OperandDataType],
 ) -> *const u8 {
     let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
     let jit_helper = mutex_jit_helper.as_mut().unwrap();
@@ -310,8 +310,8 @@ pub fn build_host_to_vm_function(
 // }
 pub fn build_vm_to_external_function(
     _wrapper_function_index: usize,
-    params: &[DataType],
-    results: &[DataType],
+    params: &[OperandDataType],
+    results: &[OperandDataType],
 ) -> *const u8 {
     let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
     let jit_helper = mutex_jit_helper.as_mut().unwrap();

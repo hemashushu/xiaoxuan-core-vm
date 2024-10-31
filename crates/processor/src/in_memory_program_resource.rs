@@ -68,9 +68,9 @@ mod tests {
         program_resource::ProgramResource, resizeable_memory::ResizeableMemory,
         thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES,
     };
-    use ancvm_types::{
+    use ancvm_isa::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
-        DataType,
+        OperandDataType,
     };
 
     use crate::in_memory_program_resource::InMemoryProgramResource;
@@ -78,8 +78,8 @@ mod tests {
     #[test]
     fn test_in_memory_program() {
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
-            vec![DataType::I32, DataType::I32],
-            vec![DataType::I64],
+            vec![OperandDataType::I32, OperandDataType::I32],
+            vec![OperandDataType::I64],
             vec![LocalVariableEntry::from_i32()],
             vec![0u8],
             vec![

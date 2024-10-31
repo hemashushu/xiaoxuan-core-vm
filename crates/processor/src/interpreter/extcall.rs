@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 
 use ancvm_context::thread_context::ThreadContext;
-use ancvm_types::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
+use ancvm_isa::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 
 use super::InterpretResult;
 
@@ -126,10 +126,10 @@ mod tests {
     };
     use dyncall_util::cstr_pointer_to_str;
     use ancvm_context::{program_settings::ProgramSettings, program_resource::ProgramResource};
-    use ancvm_types::{
+    use ancvm_isa::{
         entry::{InitedDataEntry, TypeEntry},
         opcode::Opcode,
-        DataType, ExternalLibraryType, ForeignValue,
+        OperandDataType, ExternalLibraryType, ForeignValue,
     };
 
     use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn test_interpreter_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriter::new()
-            // .append_opcode_i32(Opcode::i32_imm, 0) // 0 is the external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // 0 is the external func index
             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
@@ -150,11 +150,11 @@ mod tests {
             vec![
                 TypeEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                 }, // getuid
                 TypeEntry {
                     params: vec![],
-                    results: vec![DataType::I32],
+                    results: vec![OperandDataType::I32],
                 }, // main
             ], // types
             vec![HelperFunctionWithCodeAndLocalVariablesEntry {
@@ -188,7 +188,7 @@ mod tests {
         let code0 = BytecodeWriter::new()
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
             //
-            // .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // external func index
             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
@@ -200,12 +200,12 @@ mod tests {
         let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
-                    params: vec![DataType::I64],  // pointer
-                    results: vec![DataType::I64], // pointer
+                    params: vec![OperandDataType::I64],  // pointer
+                    results: vec![OperandDataType::I64], // pointer
                 }, // getenv
                 TypeEntry {
                     params: vec![],
-                    results: vec![DataType::I64], // pointer
+                    results: vec![OperandDataType::I64], // pointer
                 }, // main
             ], // types
             vec![HelperFunctionWithCodeAndLocalVariablesEntry {
@@ -248,7 +248,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 0
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 1
             //
-            // .append_opcode_i32(Opcode::i32_imm, 0) // external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // external func index
             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
             //
             .append_opcode(Opcode::end)
@@ -257,12 +257,12 @@ mod tests {
         let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                 }, // getenv
                 TypeEntry {
-                    params: vec![DataType::I32, DataType::I32],
-                    results: vec![DataType::I32],
+                    params: vec![OperandDataType::I32, OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                 }, // main
             ], // types
             vec![HelperFunctionWithCodeAndLocalVariablesEntry {
@@ -285,16 +285,18 @@ mod tests {
         // only supports several options:
         // https://doc.rust-lang.org/reference/conditional-compilation.html
         // https://doc.rust-lang.org/reference/attributes.html
+        // https://doc.rust-lang.org/cargo/reference/environment-variables.html
 
         let mut pwd = std::env::current_dir().unwrap();
-        if !pwd.ends_with("processor") {
+        let pkg_name = env!("CARGO_PKG_NAME");
+        if !pwd.ends_with(pkg_name) {
             // in the VSCode editor `Debug` environment, the `current_dir()` returns
             // the project's root folder.
             // while in both `$ cargo test` and VSCode editor `Run Test` environment,
             // the `current_dir()` returns the current crate path.
             // here canonicalize the test resources path.
             pwd.push("crates");
-            pwd.push("processor");
+            pwd.push(pkg_name);
         }
         pwd.push("tests");
         let program_source_path = pwd.to_str().unwrap();
