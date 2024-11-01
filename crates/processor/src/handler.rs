@@ -13,14 +13,14 @@ type HandleFunc = fn(&mut ThreadContext) -> HandleResult;
 // mod arithmetic;
 // mod bitwise;
 // mod comparison;
-mod control_flow;
 // mod conversion;
-mod data;
 // mod funcall;
+mod control_flow;
+mod data;
 mod fundamental;
-// mod heap;
+mod heap;
+mod local;
 // mod host;
-// mod local;
 // mod math;
 // mod syscall;
 
@@ -132,82 +132,94 @@ impl Handler {
         handlers[Opcode::imm_f64 as usize] = fundamental::imm_f64;
         //
         // local variables
-        // handlers[Opcode::local_load_i64 as usize] = local::local_load_i64;
-        // handlers[Opcode::local_load_i32 as usize] = local::local_load_i32;
-        // handlers[Opcode::local_load_i32 as usize] = local::local_load_i32;
-        // handlers[Opcode::local_load_i16_s as usize] = local::local_load32_i16_s;
-        // handlers[Opcode::local_load_i16_u as usize] = local::local_load32_i16_u;
-        // handlers[Opcode::local_load_i8_s as usize] = local::local_load32_i8_s;
-        // handlers[Opcode::local_load_i8_u as usize] = local::local_load32_i8_u;
-        // handlers[Opcode::local_load_f32 as usize] = local::local_load32_f32;
-        // handlers[Opcode::local_load_f64 as usize] = local::local_load64_f64;
-        // handlers[Opcode::local_store_i64 as usize] = local::local_store_i64;
-        // handlers[Opcode::local_store_i32 as usize] = local::local_store32;
-        // handlers[Opcode::local_store_i16 as usize] = local::local_store16;
-        // handlers[Opcode::local_store_i8 as usize] = local::local_store8;
-        //
-        //     handlers[Opcode::local_offset_load64_i64 as usize] = local::local_offset_load64_i64;
-        //     handlers[Opcode::local_offset_load64_f64 as usize] = local::local_offset_load64_f64;
-        //     handlers[Opcode::local_offset_load32_i32 as usize] = local::local_offset_load32_i32;
-        //     handlers[Opcode::local_offset_load32_i16_s as usize] = local::local_offset_load32_i16_s;
-        //     handlers[Opcode::local_offset_load32_i16_u as usize] = local::local_offset_load32_i16_u;
-        //     handlers[Opcode::local_offset_load32_i8_s as usize] = local::local_offset_load32_i8_s;
-        //     handlers[Opcode::local_offset_load32_i8_u as usize] = local::local_offset_load32_i8_u;
-        //     handlers[Opcode::local_offset_load32_f32 as usize] = local::local_offset_load32_f32;
-        //     handlers[Opcode::local_offset_store64 as usize] = local::local_offset_store64;
-        //     handlers[Opcode::local_offset_store32 as usize] = local::local_offset_store32;
-        //     handlers[Opcode::local_offset_store16 as usize] = local::local_offset_store16;
-        //     handlers[Opcode::local_offset_store8 as usize] = local::local_offset_store8;
-        //
-            // data sections
-            handlers[Opcode::data_load_i64 as usize] = data::data_load_i64;
-            handlers[Opcode::data_load_i32_s as usize] = data::data_load_i32_s;
-            handlers[Opcode::data_load_i32_u as usize] = data::data_load_i32_u;
-            handlers[Opcode::data_load_i16_s as usize] = data::data_load_i16_s;
-            handlers[Opcode::data_load_i16_u as usize] = data::data_load_i16_u;
-            handlers[Opcode::data_load_i8_s as usize] = data::data_load_i8_s;
-            handlers[Opcode::data_load_i8_u as usize] = data::data_load_i8_u;
-            handlers[Opcode::data_load_f64 as usize] = data::data_load_f64;
-            handlers[Opcode::data_load_f32 as usize] = data::data_load_f32;
-            handlers[Opcode::data_store_i64 as usize] = data::data_store_i64;
-            handlers[Opcode::data_store_i32 as usize] = data::data_store_i32;
-            handlers[Opcode::data_store_i16 as usize] = data::data_store_i16;
-            handlers[Opcode::data_store_i8 as usize] = data::data_store_i8;
+        handlers[Opcode::local_load_i64 as usize] = local::local_load_i64;
+        handlers[Opcode::local_load_i32_s as usize] = local::local_load_i32_s;
+        handlers[Opcode::local_load_i32_u as usize] = local::local_load_i32_u;
+        handlers[Opcode::local_load_i16_s as usize] = local::local_load_i16_s;
+        handlers[Opcode::local_load_i16_u as usize] = local::local_load_i16_u;
+        handlers[Opcode::local_load_i8_s as usize] = local::local_load_i8_s;
+        handlers[Opcode::local_load_i8_u as usize] = local::local_load_i8_u;
+        handlers[Opcode::local_load_f32 as usize] = local::local_load_f32;
+        handlers[Opcode::local_load_f64 as usize] = local::local_load_f64;
+        handlers[Opcode::local_store_i64 as usize] = local::local_store_i64;
+        handlers[Opcode::local_store_i32 as usize] = local::local_store_i32;
+        handlers[Opcode::local_store_i16 as usize] = local::local_store_i16;
+        handlers[Opcode::local_store_i8 as usize] = local::local_store_i8;
+        handlers[Opcode::local_store_f64 as usize] = local::local_store_i64; // store_f64 == store_i64
+        handlers[Opcode::local_store_f32 as usize] = local::local_store_i32; // store_f32 == store_i32
 
-            handlers[Opcode::data_load_extend_i64 as usize] = data::data_load_extend_i64;
-            handlers[Opcode::data_load_extend_i32_s as usize] = data::data_load_extend_i32_s;
-            handlers[Opcode::data_load_extend_i32_u as usize] = data::data_load_extend_i32_u;
-            handlers[Opcode::data_load_extend_i16_s as usize] = data::data_load_extend_i16_s;
-            handlers[Opcode::data_load_extend_i16_u as usize] = data::data_load_extend_i16_u;
-            handlers[Opcode::data_load_extend_i8_s as usize] = data::data_load_extend_i8_s;
-            handlers[Opcode::data_load_extend_i8_u as usize] = data::data_load_extend_i8_u;
-            handlers[Opcode::data_load_extend_f64 as usize] = data::data_load_extend_f64;
-            handlers[Opcode::data_load_extend_f32 as usize] = data::data_load_extend_f32;
-            handlers[Opcode::data_store_extend_i64 as usize] = data::data_store_extend_i64;
-            handlers[Opcode::data_store_extend_i32 as usize] = data::data_store_extend_i32;
-            handlers[Opcode::data_store_extend_i16 as usize] = data::data_store_extend_i16;
-            handlers[Opcode::data_store_extend_i8 as usize] = data::data_store_extend_i8;
+        handlers[Opcode::local_load_extend_i64 as usize] = local::local_load_extend_i64;
+        handlers[Opcode::local_load_extend_i32_s as usize] = local::local_load_extend_i32_s;
+        handlers[Opcode::local_load_extend_i32_u as usize] = local::local_load_extend_i32_u;
+        handlers[Opcode::local_load_extend_i16_s as usize] = local::local_load_extend_i16_s;
+        handlers[Opcode::local_load_extend_i16_u as usize] = local::local_load_extend_i16_u;
+        handlers[Opcode::local_load_extend_i8_s as usize] = local::local_load_extend_i8_s;
+        handlers[Opcode::local_load_extend_i8_u as usize] = local::local_load_extend_i8_u;
+        handlers[Opcode::local_load_extend_f64 as usize] = local::local_load_extend_f64;
+        handlers[Opcode::local_load_extend_f32 as usize] = local::local_load_extend_f32;
+        handlers[Opcode::local_store_extend_i64 as usize] = local::local_store_extend_i64;
+        handlers[Opcode::local_store_extend_i32 as usize] = local::local_store_extend_i32;
+        handlers[Opcode::local_store_extend_i16 as usize] = local::local_store_extend_i16;
+        handlers[Opcode::local_store_extend_i8 as usize] = local::local_store_extend_i8;
+        handlers[Opcode::local_store_extend_f64 as usize] = local::local_store_extend_i64; // store_f64 == store_i64
+        handlers[Opcode::local_store_extend_f32 as usize] = local::local_store_extend_i32; // store_f32 == store_i32
 
-        //     // heap
-        //     handlers[Opcode::heap_load_i64 as usize] = heap::heap_load_i64;
-        //     handlers[Opcode::heap_load64_f64 as usize] = heap::heap_load64_f64;
-        //     handlers[Opcode::heap_load32_i32 as usize] = heap::heap_load32_i32;
-        //     handlers[Opcode::heap_load32_i16_s as usize] = heap::heap_load32_i16_s;
-        //     handlers[Opcode::heap_load32_i16_u as usize] = heap::heap_load32_i16_u;
-        //     handlers[Opcode::heap_load32_i8_s as usize] = heap::heap_load32_i8_s;
-        //     handlers[Opcode::heap_load32_i8_u as usize] = heap::heap_load32_i8_u;
-        //     handlers[Opcode::heap_load32_f32 as usize] = heap::heap_load32_f32;
-        //     handlers[Opcode::heap_store_i64 as usize] = heap::heap_store_i64;
-        //     handlers[Opcode::heap_store32 as usize] = heap::heap_store32;
-        //     handlers[Opcode::heap_store16 as usize] = heap::heap_store16;
-        //     handlers[Opcode::heap_store8 as usize] = heap::heap_store8;
-        //
-        //     // heap memory
-        //     handlers[Opcode::heap_fill as usize] = heap::heap_fill;
-        //     handlers[Opcode::heap_copy as usize] = heap::heap_copy;
-        //     handlers[Opcode::heap_capacity as usize] = heap::heap_capacity;
-        //     handlers[Opcode::heap_resize as usize] = heap::heap_resize;
-        //
+        // data sections
+        handlers[Opcode::data_load_i64 as usize] = data::data_load_i64;
+        handlers[Opcode::data_load_i32_s as usize] = data::data_load_i32_s;
+        handlers[Opcode::data_load_i32_u as usize] = data::data_load_i32_u;
+        handlers[Opcode::data_load_i16_s as usize] = data::data_load_i16_s;
+        handlers[Opcode::data_load_i16_u as usize] = data::data_load_i16_u;
+        handlers[Opcode::data_load_i8_s as usize] = data::data_load_i8_s;
+        handlers[Opcode::data_load_i8_u as usize] = data::data_load_i8_u;
+        handlers[Opcode::data_load_f64 as usize] = data::data_load_f64;
+        handlers[Opcode::data_load_f32 as usize] = data::data_load_f32;
+        handlers[Opcode::data_store_i64 as usize] = data::data_store_i64;
+        handlers[Opcode::data_store_i32 as usize] = data::data_store_i32;
+        handlers[Opcode::data_store_i16 as usize] = data::data_store_i16;
+        handlers[Opcode::data_store_i8 as usize] = data::data_store_i8;
+        handlers[Opcode::data_store_f64 as usize] = data::data_store_i64; // store_f64 == store_i64
+        handlers[Opcode::data_store_f32 as usize] = data::data_store_i32; // store_f32 == store_i32
+
+        handlers[Opcode::data_load_extend_i64 as usize] = data::data_load_extend_i64;
+        handlers[Opcode::data_load_extend_i32_s as usize] = data::data_load_extend_i32_s;
+        handlers[Opcode::data_load_extend_i32_u as usize] = data::data_load_extend_i32_u;
+        handlers[Opcode::data_load_extend_i16_s as usize] = data::data_load_extend_i16_s;
+        handlers[Opcode::data_load_extend_i16_u as usize] = data::data_load_extend_i16_u;
+        handlers[Opcode::data_load_extend_i8_s as usize] = data::data_load_extend_i8_s;
+        handlers[Opcode::data_load_extend_i8_u as usize] = data::data_load_extend_i8_u;
+        handlers[Opcode::data_load_extend_f64 as usize] = data::data_load_extend_f64;
+        handlers[Opcode::data_load_extend_f32 as usize] = data::data_load_extend_f32;
+        handlers[Opcode::data_store_extend_i64 as usize] = data::data_store_extend_i64;
+        handlers[Opcode::data_store_extend_i32 as usize] = data::data_store_extend_i32;
+        handlers[Opcode::data_store_extend_i16 as usize] = data::data_store_extend_i16;
+        handlers[Opcode::data_store_extend_i8 as usize] = data::data_store_extend_i8;
+        handlers[Opcode::data_store_extend_f64 as usize] = data::data_store_extend_i64; // store_f64 == store_i64
+        handlers[Opcode::data_store_extend_f32 as usize] = data::data_store_extend_i32; // store_f32 == store_i32
+
+        // heap
+        handlers[Opcode::heap_load_i64 as usize] = heap::heap_load_i64;
+        handlers[Opcode::heap_load_i32_s as usize] = heap::heap_load_i32_s;
+        handlers[Opcode::heap_load_i32_u as usize] = heap::heap_load_i32_u;
+        handlers[Opcode::heap_load_i16_s as usize] = heap::heap_load_i16_s;
+        handlers[Opcode::heap_load_i16_u as usize] = heap::heap_load_i16_u;
+        handlers[Opcode::heap_load_i8_s as usize] = heap::heap_load_i8_s;
+        handlers[Opcode::heap_load_i8_u as usize] = heap::heap_load_i8_u;
+        handlers[Opcode::heap_load_f64 as usize] = heap::heap_load_f64;
+        handlers[Opcode::heap_load_f32 as usize] = heap::heap_load_f32;
+        handlers[Opcode::heap_store_i64 as usize] = heap::heap_store_i64;
+        handlers[Opcode::heap_store_i32 as usize] = heap::heap_store_i32;
+        handlers[Opcode::heap_store_i16 as usize] = heap::heap_store_i16;
+        handlers[Opcode::heap_store_i8 as usize] = heap::heap_store_i8;
+        handlers[Opcode::heap_store_f64 as usize] = heap::heap_store_i64; // store_f64 == store_i64
+        handlers[Opcode::heap_store_f32 as usize] = heap::heap_store_i32; // store_f32 == store_i32
+
+        // heap memory
+        handlers[Opcode::heap_fill as usize] = heap::heap_fill;
+        handlers[Opcode::heap_copy as usize] = heap::heap_copy;
+        handlers[Opcode::heap_capacity as usize] = heap::heap_capacity;
+        handlers[Opcode::heap_resize as usize] = heap::heap_resize;
+
         //     // conversion
         //     handlers[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
         //     handlers[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;

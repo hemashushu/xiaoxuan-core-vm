@@ -220,7 +220,7 @@ fn do_recur(
 //         interpreter::{self, process_function, Interpreter},
 //         InterpreterError, InterpreterErrorType,
 //     };
-//     use ancvm_context::program_resource::ProgramResource;
+//     use ancvm_context::resource::Resource;
 //
 //     #[test]
 //     fn test_interpreter_control_flow_block() {

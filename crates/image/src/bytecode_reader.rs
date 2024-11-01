@@ -75,6 +75,55 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
                     format!("low:0x{:08x}  high:0x{:08x}", v_low, v_high),
                 )
             }
+            // local load/store
+            Opcode::local_load_i64
+            | Opcode::local_load_i32_s
+            | Opcode::local_load_i32_u
+            | Opcode::local_load_i16_s
+            | Opcode::local_load_i16_u
+            | Opcode::local_load_i8_s
+            | Opcode::local_load_i8_u
+            | Opcode::local_load_f64
+            | Opcode::local_load_f32
+            | Opcode::local_store_i64
+            | Opcode::local_store_i32
+            | Opcode::local_store_i16
+            | Opcode::local_store_i8
+            | Opcode::local_store_f64
+            | Opcode::local_store_f32 => {
+                let (offset_next, reversed_index, offset, index) =
+                    continue_read_param_i16_i16_i16(codes, offset_param);
+                (
+                    offset_next,
+                    format!(
+                        "rev:{:<2}  off:0x{:02x}  idx:{}",
+                        reversed_index, offset, index,
+                    ),
+                )
+            }
+            //
+            Opcode::local_load_extend_i64
+            | Opcode::local_load_extend_i32_s
+            | Opcode::local_load_extend_i32_u
+            | Opcode::local_load_extend_i16_s
+            | Opcode::local_load_extend_i16_u
+            | Opcode::local_load_extend_i8_s
+            | Opcode::local_load_extend_i8_u
+            | Opcode::local_load_extend_f64
+            | Opcode::local_load_extend_f32
+            | Opcode::local_store_extend_i64
+            | Opcode::local_store_extend_i32
+            | Opcode::local_store_extend_i16
+            | Opcode::local_store_extend_i8
+            | Opcode::local_store_extend_f64
+            | Opcode::local_store_extend_f32 => {
+                let (offset_next, reversed_index, index) =
+                    continue_read_param_i16_i32(codes, offset_param);
+                (
+                    offset_next,
+                    format!("rev:{:<2}  idx:{}", reversed_index, index),
+                )
+            }
             // data load/store
             Opcode::data_load_i64
             | Opcode::data_load_i32_s
@@ -136,55 +185,7 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
             Opcode::heap_fill | Opcode::heap_copy | Opcode::heap_capacity | Opcode::heap_resize => {
                 (offset_param, String::new())
             }
-            // local load/store
-            Opcode::local_load_i64
-            | Opcode::local_load_i32_s
-            | Opcode::local_load_i32_u
-            | Opcode::local_load_i16_s
-            | Opcode::local_load_i16_u
-            | Opcode::local_load_i8_s
-            | Opcode::local_load_i8_u
-            | Opcode::local_load_f64
-            | Opcode::local_load_f32
-            | Opcode::local_store_i64
-            | Opcode::local_store_i32
-            | Opcode::local_store_i16
-            | Opcode::local_store_i8
-            | Opcode::local_store_f64
-            | Opcode::local_store_f32 => {
-                let (offset_next, reversed_index, offset, index) =
-                    continue_read_param_i16_i16_i16(codes, offset_param);
-                (
-                    offset_next,
-                    format!(
-                        "rev:{:<2}  idx:{}  off:0x{:02x}",
-                        reversed_index, index, offset
-                    ),
-                )
-            }
-            //
-            Opcode::local_load_extend_i64
-            | Opcode::local_load_extend_i32_s
-            | Opcode::local_load_extend_i32_u
-            | Opcode::local_load_extend_i16_s
-            | Opcode::local_load_extend_i16_u
-            | Opcode::local_load_extend_i8_s
-            | Opcode::local_load_extend_i8_u
-            | Opcode::local_load_extend_f64
-            | Opcode::local_load_extend_f32
-            | Opcode::local_store_extend_i64
-            | Opcode::local_store_extend_i32
-            | Opcode::local_store_extend_i16
-            | Opcode::local_store_extend_i8
-            | Opcode::local_store_extend_f64
-            | Opcode::local_store_extend_f32 => {
-                let (offset_next, reversed_index, index) =
-                    continue_read_param_i16_i32(codes, offset_param);
-                (
-                    offset_next,
-                    format!("rev:{:<2}  idx:{}", reversed_index, index),
-                )
-            }
+
             // conversion
             Opcode::truncate_i64_to_i32
             | Opcode::extend_i32_s_to_i64
@@ -404,11 +405,11 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
                 (offset_next, format!("code:{}", code))
             }
             Opcode::host_addr_local => {
-                let (offset_next, reversed_idx, idx, offset) =
+                let (offset_next, reversed_idx, offset, idx) =
                     continue_read_param_i16_i16_i16(codes, offset_param);
                 (
                     offset_next,
-                    format!("rev:{:<2}  idx:{}  off:0x{:02x}", reversed_idx, idx, offset),
+                    format!("rev:{:<2}  off:0x{:02x}  idx:{}", reversed_idx, offset, idx,),
                 )
             }
             Opcode::host_addr_local_extend => {
@@ -630,9 +631,9 @@ mod tests {
 0x0000  c0 02 00 01  40 01 00 00
 0x0008  13 00 00 00  02 03 02 00
 0x0010  40 01 00 00  13 00 00 00
-0x0018  c0 02 00 01  80 01 17 00
+0x0018  c0 02 00 01  c0 01 17 00
 0x0020  19 00 00 00  02 03 02 00
-0x0028  80 01 17 00  19 00 00 00
+0x0028  c0 01 17 00  19 00 00 00
 0x0030  c0 02 00 01  c1 03 00 00
 0x0038  23 00 00 00  29 00 00 00
 0x0040  02 03 02 00  c1 03 00 00
@@ -681,9 +682,9 @@ mod tests {
 0x0010  40 01 00 00  13 00 00 00    imm_i32           0x00000013
 0x0018  c0 02                       eqz_i32
 0x001a  00 01                       nop
-0x001c  80 01 17 00  19 00 00 00    data_load_i64     off:0x17  idx:25
+0x001c  c0 01 17 00  19 00 00 00    data_load_i64     off:0x17  idx:25
 0x0024  02 03 02 00                 add_imm_i32       2
-0x0028  80 01 17 00  19 00 00 00    data_load_i64     off:0x17  idx:25
+0x0028  c0 01 17 00  19 00 00 00    data_load_i64     off:0x17  idx:25
 0x0030  c0 02                       eqz_i32
 0x0032  00 01                       nop
 0x0034  c1 03 00 00  23 00 00 00    block             type:35  local:41

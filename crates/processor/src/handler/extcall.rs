@@ -228,7 +228,9 @@ mod tests {
         OperandDataType, ExternalLibraryType, ForeignValue,
     };
 
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
 
     #[test]
     fn test_interpreter_extcall_with_system_libc_getuid() {

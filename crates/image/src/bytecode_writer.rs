@@ -355,7 +355,7 @@ mod tests {
         assert_eq!(
             code1,
             vec![
-                0xc0, 0x01, // opcode
+                0x00, 0x02, // opcode
                 7, 0, // param
             ]
         );
@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(
             code4,
             vec![
-                0x40, 0x02, // opcode
+                0x80, 0x01, // opcode
                 19, 0, // param 0
                 23, 0, // param 1
                 29, 0 // param 2
@@ -520,7 +520,7 @@ mod tests {
                 vec![
                     0xc0, 0x02, // eqz_i32
                     0x02, 0x03, 0x02, 0x00, // add_imm_i32
-                    0x40, 0x02, 0x05, 0x00, 0x07, 0x00, 0x11, 0x00 // local_load_i64
+                    0x80, 0x01, 0x05, 0x00, 0x07, 0x00, 0x11, 0x00 // local_load_i64
                 ]
             );
         }
@@ -564,9 +564,9 @@ mod tests {
                     //
                     0xc0, 0x02, // eqz_i32
                     0x00, 0x01, // NOP (auto padding)
-                    0x80, 0x01, 0x17, 0x00, 0x19, 0x00, 0x00, 0x00, // data_load_i64
+                    0xc0, 0x01, 0x17, 0x00, 0x19, 0x00, 0x00, 0x00, // data_load_i64
                     0x02, 0x03, 0x02, 0x00, // add_imm_i32
-                    0x80, 0x01, 0x17, 0x00, 0x19, 0x00, 0x00, 0x00, // data_load_i64
+                    0xc0, 0x01, 0x17, 0x00, 0x19, 0x00, 0x00, 0x00, // data_load_i64
                     //
                     0xc0, 0x02, // eqz_i32
                     0x00, 0x01, // NOP (auto padding)

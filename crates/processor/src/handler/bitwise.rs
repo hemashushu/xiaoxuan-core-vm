@@ -230,40 +230,42 @@ fn store_i64_u(thread_context: &mut ThreadContext, v: u64) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_context::program_resource::ProgramResource;
+    use ancvm_context::resource::Resource;
     use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_bitwise_i32() {
         // numbers:
-        //   - 0: 0xff0000ff
-        //   - 1: 0xf0f000ff
-        //   - 2: 0x00f00000
-        //   - 3: 0x80000000
+        //   - 0: 0xff00_00ff
+        //   - 1: 0xf0f0_00ff
+        //   - 2: 0x00f0_0000
+        //   - 3: 0x8000_0000
 
         // arithemtic:
         //   group 0:
-        //   - and       0 1      -> 0xf00000ff
-        //   - or        0 1      -> 0xfff000ff
-        //   - xor       0 1      -> 0x0ff00000
+        //   - and       0 1      -> 0xf000_00ff
+        //   - or        0 1      -> 0xfff0_00ff
+        //   - xor       0 1      -> 0x0ff0_0000
         //
         //   group 1:
-        //   - shift_l   2 imm:4    -> 0x0f000000
-        //   - shift_r_s 3 imm:16   -> 0xffff8000
-        //   - shift_r_u 3 imm:16   -> 0x00008000
+        //   - shift_l   2 imm:4    -> 0x0f00_0000
+        //   - shift_r_s 3 imm:16   -> 0xffff_8000
+        //   - shift_r_u 3 imm:16   -> 0x0000_8000
         //
         //   group 2:
-        //   - shift_l   2 imm:24   -> 0x00000000
-        //   - rotate_l  2 imm:24   -> 0x0000f000
-        //   - shift_r_u 2 imm:28   -> 0x00000000
-        //   - rotate_r  2 imm:28   -> 0x0f000000
+        //   - shift_l   2 imm:24   -> 0x0000_0000
+        //   - rotate_l  2 imm:24   -> 0x0000_f000
+        //   - shift_r_u 2 imm:28   -> 0x0000_0000
+        //   - rotate_r  2 imm:28   -> 0x0f00_0000
         //
         //   group 3:
-        //   - not       0        -> 0x00ffff00
+        //   - not       0        -> 0x00ff_ff00
         //   - cls       0        -> 8
         //   - cls       1        -> 4
         //   - clz       2        -> 8
@@ -360,30 +362,30 @@ mod tests {
             0,
             0,
             &[
-                ForeignValue::U32(0xff0000ff),
-                ForeignValue::U32(0xf0f000ff),
-                ForeignValue::U32(0x00f00000),
-                ForeignValue::U32(0x80000000),
+                ForeignValue::U32(0xff00_00ff),
+                ForeignValue::U32(0xf0f0_00ff),
+                ForeignValue::U32(0x00f0_0000),
+                ForeignValue::U32(0x8000_0000),
             ],
         );
         assert_eq!(
             result0.unwrap(),
             vec![
                 // group 0
-                ForeignValue::U32(0xf00000ff),
-                ForeignValue::U32(0xfff000ff),
-                ForeignValue::U32(0x0ff00000),
+                ForeignValue::U32(0xf000_00ff),
+                ForeignValue::U32(0xfff0_00ff),
+                ForeignValue::U32(0x0ff0_0000),
                 // group 1
-                ForeignValue::U32(0x0f000000),
-                ForeignValue::U32(0xffff8000),
-                ForeignValue::U32(0x00008000),
+                ForeignValue::U32(0x0f00_0000),
+                ForeignValue::U32(0xffff_8000),
+                ForeignValue::U32(0x0000_8000),
                 // group 2
-                ForeignValue::U32(0x00000000),
-                ForeignValue::U32(0x0000f000),
-                ForeignValue::U32(0x00000000),
-                ForeignValue::U32(0x0f000000),
+                ForeignValue::U32(0x0000_0000),
+                ForeignValue::U32(0x0000_f000),
+                ForeignValue::U32(0x0000_0000),
+                ForeignValue::U32(0x0f00_0000),
                 // group 3
-                ForeignValue::U32(0x00ffff00),
+                ForeignValue::U32(0x00ff_ff00),
                 ForeignValue::U32(8),
                 ForeignValue::U32(4),
                 ForeignValue::U32(8),

@@ -440,7 +440,7 @@ pub fn build_callback_function(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::program_resource::ProgramResource;
+    use ancvm_context::resource::Resource;
     use ancvm_image::{
         bytecode_writer::{BytecodeWriter, BytecodeWriterHelper},
         utils::helper_build_module_binary_with_single_function,

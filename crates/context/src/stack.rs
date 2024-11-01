@@ -1035,7 +1035,6 @@ mod tests {
         // check duplicate
         stack.push_i32_u(17);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES + INIT_SP);
-
         stack.duplicate();
         assert_eq!(stack.peek_i32_u(), 17);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 2 + INIT_SP);
@@ -1044,11 +1043,26 @@ mod tests {
         stack.push_i32_u(19);
         stack.push_i32_u(23);
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 4 + INIT_SP);
-
         stack.drop_();
         assert_eq!(stack.sp, OPERAND_SIZE_IN_BYTES * 3 + INIT_SP);
-
         assert_eq!(stack.peek_i32_u(), 19);
+    }
+
+    #[test]
+    fn test_operand_signed_extend() {
+        let mut stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
+
+        // because there is bounds check in the 'pop..' operations, the 'pop..' functions
+        // will panic without a frame.
+        stack.create_empty_frame();
+
+        // check signed-extend
+        stack.push_i32_s(0x8000_0000_u32 as i32);
+        stack.push_i32_u(0x8000_0000_u32);
+        assert_eq!(stack.peek_i64_s(), 0x0000_0000_8000_0000_u64 as i64);
+        assert_eq!(stack.pop_i64_u(), 0x0000_0000_8000_0000_u64);
+        assert_eq!(stack.peek_i64_s(), 0xffff_ffff_8000_0000_u64 as i64);
+        assert_eq!(stack.pop_i64_u(), 0xffff_ffff_8000_0000_u64);
     }
 
     #[test]
@@ -1065,7 +1079,7 @@ mod tests {
 
         // stack.pop_i32_u(); // will panic
 
-        let prev_hook = std::panic::take_hook(); // let panic silent
+        let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || stack.pop_i32_u());

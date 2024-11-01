@@ -32,11 +32,13 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_context::program_resource::ProgramResource;
+    use ancvm_context::resource::Resource;
     use ancvm_isa::{envcallcode::EnvCallCode, opcode::Opcode, OperandDataType};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
 
     #[test]
     fn test_envcall_time_now() {

@@ -46,14 +46,16 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_context::program_resource::ProgramResource;
+    use ancvm_context::resource::Resource;
     use ancvm_isa::{
         entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, OperandDataType,
         ForeignValue, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
         RUNTIME_PATCH_VERSION,
     };
 
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
 
     #[test]
     fn test_envcall_runtime_version() {

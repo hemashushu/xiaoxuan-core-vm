@@ -81,8 +81,10 @@ mod tests {
         },
     };
 
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
-    use ancvm_context::program_resource::ProgramResource;
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
+    use ancvm_context::resource::Resource;
     use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]

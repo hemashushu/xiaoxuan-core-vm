@@ -151,11 +151,13 @@ mod tests {
     use ancvm_binary::{
         bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_context::program_resource::ProgramResource;
+    use ancvm_context::resource::Resource;
     use syscall_util::{errno::Errno, number::SysCallNum};
     use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
-    use crate::{in_memory_program_resource::InMemoryProgramResource, interpreter::process_function};
+        use crate::{
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    };
 
     #[test]
     fn test_interpreter_syscall_without_args() {
