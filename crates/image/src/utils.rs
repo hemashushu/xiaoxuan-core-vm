@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_isa::entry::{
+use crate::entry::{
     ExternalFunctionEntry, ExternalLibraryEntry, FunctionEntry, InitedDataEntry, LocalListEntry,
     LocalVariableEntry, TypeEntry, UnifiedExternalFunctionEntry, UnifiedExternalLibraryEntry,
     UninitDataEntry,
@@ -585,13 +585,11 @@ fn helper_new_local_variable_entry(operand_data_type: OperandDataType) -> LocalV
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{
-        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
-        DataSectionType, ExternalLibraryType, MemoryDataType, OperandDataType,
-    };
+    use ancvm_isa::{DataSectionType, ExternalLibraryType, MemoryDataType, OperandDataType};
 
     use crate::{
         common_sections::{data_section::DataItem, local_variable_section::LocalVariableItem},
+        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
         index_sections::{
             data_index_section::DataIndexItem,
             external_function_index_section::ExternalFunctionIndexItem,

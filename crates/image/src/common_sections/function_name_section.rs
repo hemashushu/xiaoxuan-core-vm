@@ -18,11 +18,8 @@
 //              | ...                                                                                            |
 //              |------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::FunctionNameEntry;
-
 use crate::{
-    module_image::{ModuleSectionId, SectionEntry},
-    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
+    entry::FunctionNameEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
 };
 
 #[derive(Debug, PartialEq, Default)]

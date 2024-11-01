@@ -18,11 +18,8 @@
 //              | ...                                                                                           |
 //              |-----------------------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::ExternalFunctionEntry;
-
 use crate::{
-    module_image::{ModuleSectionId, SectionEntry},
-    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
+    entry::ExternalFunctionEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
 };
 
 #[derive(Debug, PartialEq)]

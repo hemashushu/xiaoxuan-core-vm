@@ -4,6 +4,14 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+pub mod envcallcode;
+pub mod jit_util;
+// pub mod delegate;
+pub mod handler;
+pub mod in_memory_resource;
+// pub mod multithread_program;
+pub mod process;
+
 use std::{
     cell::RefCell,
     collections::BTreeMap,
@@ -13,12 +21,6 @@ use std::{
 };
 
 use ancvm_isa::GenericError;
-
-pub mod delegate;
-pub mod in_memory_program_resource;
-pub mod interpreter;
-pub mod multithread_program;
-pub mod process;
 
 // about the Tx and Rx:
 //
@@ -69,9 +71,9 @@ pub enum InterpreterErrorType {
     IndexNotFound,    // the index of function (or data, local variables) does not found
     OutOfBoundary,    // out of boundary
     ItemNotFound,     // the specified item (module, function or data) does not found.
-    Panic,
-    Debug(u32),
-    Unreachable(u32),
+    Panic(u32),
+    // Debug(u32),
+    // Unreachable(u32),
 }
 
 impl InterpreterError {
@@ -83,38 +85,34 @@ impl InterpreterError {
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.error_type {
-            InterpreterErrorType::ParametersAmountMissmatch => f.write_fmt(format_args!(
+            InterpreterErrorType::ParametersAmountMissmatch => write!(
+                f,
                 "Interpreter error: {}",
                 "The number of parameters doesn't match"
-            )),
-            InterpreterErrorType::ResultsAmountMissmatch => f.write_fmt(format_args!(
+            ),
+            InterpreterErrorType::ResultsAmountMissmatch => write!(
+                f,
                 "Interpreter error: {}",
                 "The number of results doesn't match"
-            )),
+            ),
             InterpreterErrorType::DataTypeMissmatch => {
-                f.write_fmt(format_args!("Interpreter error: {}", "Data type missmatch"))
+                write!(f, "Interpreter error: {}", "Data type missmatch")
             }
             InterpreterErrorType::InvalidOperation => {
-                f.write_fmt(format_args!("Interpreter error: {}", "Invalid operation"))
+                write!(f, "Interpreter error: {}", "Invalid operation")
             }
             InterpreterErrorType::IndexNotFound => {
-                f.write_fmt(format_args!("Interpreter error: {}", "Index not found"))
+                write!(f, "Interpreter error: {}", "Index not found")
             }
             InterpreterErrorType::OutOfBoundary => {
-                f.write_fmt(format_args!("Interpreter error: {}", "Out of boundary"))
+                write!(f, "Interpreter error: {}", "Out of boundary")
             }
             InterpreterErrorType::ItemNotFound => f.write_str("Item not found."),
-            InterpreterErrorType::Panic => {
-                f.write_fmt(format_args!("VM was terminated by instruction panic."))
-            }
-            InterpreterErrorType::Debug(code) => f.write_fmt(format_args!(
-                "VM was terminated by instruction \"unreachable\", code: {}.",
+            InterpreterErrorType::Panic(code) => write!(
+                f,
+                "VM was terminated by instruction \"panic\", code: {}.",
                 code
-            )),
-            InterpreterErrorType::Unreachable(code) => f.write_fmt(format_args!(
-                "VM was terminated by instruction \"debug\", code: {}",
-                code
-            )),
+            ),
         }
     }
 }

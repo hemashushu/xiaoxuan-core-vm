@@ -22,11 +22,10 @@
 
 use std::ptr::slice_from_raw_parts;
 
-use ancvm_isa::{entry::TypeEntry, OperandDataType};
+use ancvm_isa::OperandDataType;
 
 use crate::{
-    module_image::{ModuleSectionId, SectionEntry},
-    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
+    entry::TypeEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
 };
 
 #[derive(Debug, PartialEq)]
@@ -152,11 +151,8 @@ impl<'a> TypeSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::entry::TypeEntry;
-
     use crate::{
-        common_sections::type_section::{OperandDataType, TypeItem, TypeSection},
-        module_image::SectionEntry,
+        common_sections::type_section::{OperandDataType, TypeItem, TypeSection}, entry::TypeEntry, module_image::SectionEntry
     };
 
     #[test]

@@ -40,12 +40,10 @@
 
 use std::mem::size_of;
 
-use ancvm_isa::{
-    entry::{LocalListEntry, LocalVariableEntry},
-    MemoryDataType, OPERAND_SIZE_IN_BYTES,
-};
+use ancvm_isa::{MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
+    entry::{LocalListEntry, LocalVariableEntry},
     module_image::{ModuleSectionId, SectionEntry},
     tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
 };
@@ -168,7 +166,9 @@ impl<'a> LocalVariableSection<'a> {
                 align: item.var_align,
             })
             .collect::<Vec<_>>();
-        LocalListEntry { local_variable_entries: variable_entries }
+        LocalListEntry {
+            local_variable_entries: variable_entries,
+        }
     }
 
     pub fn convert_from_entries(entiress: &[LocalListEntry]) -> (Vec<LocalList>, Vec<u8>) {
@@ -262,9 +262,12 @@ impl<'a> LocalVariableSection<'a> {
 mod tests {
     use ancvm_isa::MemoryDataType;
 
-    use crate::{common_sections::local_variable_section::{
+    use crate::{
+        common_sections::local_variable_section::{
             LocalList, LocalListEntry, LocalVariableEntry, LocalVariableItem, LocalVariableSection,
-        }, module_image::SectionEntry};
+        },
+        module_image::SectionEntry,
+    };
 
     #[test]
     fn test_save_section() {

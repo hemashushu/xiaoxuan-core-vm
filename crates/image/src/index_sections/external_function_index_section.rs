@@ -25,14 +25,11 @@
 //         | ...                                                                                |
 //         |------------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::ExternalFunctionIndexListEntry;
-
 use crate::{
-    module_image::{ModuleSectionId, RangeItem, SectionEntry},
-    tableaccess::{
+    entry::ExternalFunctionIndexListEntry, module_image::{ModuleSectionId, RangeItem, SectionEntry}, tableaccess::{
         load_section_with_two_tables,
         save_section_with_two_tables,
-    },
+    }
 };
 
 #[derive(Debug, PartialEq, Default)]

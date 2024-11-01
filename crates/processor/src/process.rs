@@ -4,139 +4,197 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{program_resource::ProgramResource, thread_context::ThreadContext};
-use ancvm_isa::{ForeignValue, GenericError};
+use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
+use ancvm_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
-use crate::{
-    delegate::{build_bridge_data, build_bridge_function},
-    interpreter::process_function,
-    multithread_program::{create_thread, MultithreadProgram},
-    InterpreterError, InterpreterErrorType, CHILD_THREADS, THREAD_START_DATA,
-};
+use crate::{handler::{HandleResult, Handler}, InterpreterError, InterpreterErrorType};
 
-// process_function
+// when the function call is a nested (in a callback function loop),
+// then the current handler-loop should be ended when this
+// bit is encountered.
+pub const EXIT_CURRENT_HANDLER_LOOP_BIT:usize = 0x8000_0000;
+pub const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT:usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
 
-pub fn start_program_in_multithread<T>(
-    program_resource: T,
-    thread_start_data: Vec<u8>,
-) -> Result<u64, GenericError>
-where
-    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
-{
-    let multithread_program = MultithreadProgram::new(program_resource);
-    let main_thread_id = create_thread(&multithread_program, None, thread_start_data);
-
-    CHILD_THREADS.with(|child_threads_cell| {
-        let mut child_threads = child_threads_cell.borrow_mut();
-        let opt_child_thread = child_threads.remove(&main_thread_id);
-        let child_thread = opt_child_thread.unwrap();
-        child_thread.join_handle.join().unwrap()
-    })
-}
-
-pub fn start_program_in_single_thread<T>(
-    program_resource: T,
-    thread_start_data: Vec<u8>,
-) -> Result<u64, GenericError>
-where
-    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
-{
-    THREAD_START_DATA.with(|data| {
-        data.replace(thread_start_data);
-    });
-
-    let process_context = program_resource.create_process_context().unwrap();
-    let mut thread_context = process_context.create_thread_context();
-
-    // use the function 'entry' as the startup function
-    const MAIN_MODULE_INDEX: usize = 0;
-    let entry_function_public_index = thread_context
-        .index_instance
-        .property_section
-        .entry_function_public_index as usize;
-
-    // the signature of the 'entry function' must be:
-    // 'fn () -> exit_code:u64'
-
-    let result_foreign_values = process_function(
-        &mut thread_context,
-        MAIN_MODULE_INDEX,
-        entry_function_public_index,
-        &[],
-    );
-
-    match result_foreign_values {
-        Ok(foreign_values) => {
-            if foreign_values.len() != 1 {
-                return Err(Box::new(InterpreterError::new(
-                    InterpreterErrorType::ResultsAmountMissmatch,
-                )) as GenericError);
-            }
-
-            if let ForeignValue::U64(exit_code) = foreign_values[0] {
-                Ok(exit_code)
-            } else {
-                Err(Box::new(InterpreterError::new(
-                    InterpreterErrorType::DataTypeMissmatch,
-                )) as GenericError)
-            }
-        }
-        Err(e) => Err(Box::new(e) as GenericError),
-    }
-}
-
-pub fn call_function(
+// note:
+// 'function public index' includes the imported functions, it equals to
+// 'amount of imported functions' + 'function internal index'
+pub fn process_function(
+    handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, InterpreterError> {
-    process_function(
-        thread_context,
-        module_index,
-        function_public_index,
-        arguments,
-    )
+    // reset the statck
+    thread_context.stack.reset();
+
+    // find the code start address
+    let (target_module_index, function_internal_index) = thread_context
+        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
+    let (type_index, local_list_index, code_offset, local_variables_allocate_bytes) =
+        thread_context
+            .get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
+                target_module_index,
+                function_internal_index,
+            );
+
+    let (params, results) = {
+        let pars = thread_context.module_common_instances[target_module_index]
+            .type_section
+            .get_item_params_and_results(type_index);
+        (pars.0.to_vec(), pars.1.to_vec())
+    };
+
+    // the number of arguments does not match the specified funcion.
+    if arguments.len() != params.len() {
+        return Err(InterpreterError::new(
+            InterpreterErrorType::ParametersAmountMissmatch,
+        ));
+    }
+
+    // push arguments
+    // --------------
+    //
+    // the first value will be inserted first, and placed at the stack bottom side:
+    //
+    // array [0, 1, 2] -> |  2  | <-- high addr
+    //                    |  1  |
+    //                    |  0  |
+    //                    \-----/ <-- low addr
+    //
+    // the reason why the arguments on the left side are pushed first onto the stack
+    // is to make it easier to copy or move several consecutive arguments.
+    //
+    // e.g.
+    // stack[low_addr] = arg 0
+    // stack[low_addr + OPERAND_SIZE] = arg 1
+    // ...
+    // stack[high_addr] = arg n
+    //
+    // thus:
+    // stack[low_addr:high_addr] = args from 0 to n
+    //
+    // note that for simplicity, this procdure does not check the data type of arguments.
+
+    for value in arguments {
+        match value {
+            ForeignValue::U32(value) => thread_context.stack.push_i32_u(*value),
+            ForeignValue::U64(value) => thread_context.stack.push_i64_u(*value),
+            ForeignValue::F32(value) => thread_context.stack.push_f32(*value),
+            ForeignValue::F64(value) => thread_context.stack.push_f64(*value),
+        }
+    }
+
+    // create function statck frame
+    thread_context.stack.create_frame(
+        params.len() as u16,
+        results.len() as u16,
+        local_list_index as u32,
+        local_variables_allocate_bytes,
+        Some(ProgramCounter {
+            instruction_address: 0,
+            function_internal_index: 0,
+
+            // set MSB of 'return module index' to '1' to indicate that it's the END of the
+            // current function call.
+            module_index: 0 | EXIT_CURRENT_HANDLER_LOOP_BIT,
+        }),
+    );
+
+    // set new PC
+    thread_context.pc.module_index = target_module_index;
+    thread_context.pc.function_internal_index = function_internal_index;
+    thread_context.pc.instruction_address = code_offset;
+
+    // start processing instructions
+    process_continuous_instructions(handler, thread_context)?;
+
+    // pop the results from the stack
+    //
+    // the values on the stack top will be poped first and became
+    // the LAST element of the array
+    //
+    // |  2  | -> array [0, 1, 2]
+    // |  1  |
+    // |  0  |
+    // \-----/
+    let result_operands = thread_context
+        .stack
+        .pop_operands_without_bound_check(results.len());
+    let result_values = results
+        .iter()
+        .enumerate()
+        .map(|(idx, dt)| match dt {
+            OperandDataType::I32 => ForeignValue::U32(u32::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            OperandDataType::I64 => ForeignValue::U64(u64::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            OperandDataType::F32 => ForeignValue::F32(f32::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..(idx * OPERAND_SIZE_IN_BYTES + 4)]
+                    .try_into()
+                    .unwrap(),
+            )),
+            OperandDataType::F64 => ForeignValue::F64(f64::from_le_bytes(
+                result_operands[(idx * OPERAND_SIZE_IN_BYTES)..((idx + 1) * OPERAND_SIZE_IN_BYTES)]
+                    .try_into()
+                    .unwrap(),
+            )),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(result_values)
 }
 
-pub fn get_bridge_function<T>(
+pub fn process_continuous_instructions(
+    handler: &Handler,
     thread_context: &mut ThreadContext,
-    module_name: &str,
-    function_name: &str,
-) -> Result<T, InterpreterError> {
-    let (module_index, function_public_index) = thread_context
-        .find_function_public_index_by_name(module_name, function_name)
-        .ok_or(InterpreterError::new(InterpreterErrorType::ItemNotFound))?;
+) -> Result<(), InterpreterError> {
+    loop {
+        let result = process_instruction(handler, thread_context);
+        match result {
+            HandleResult::Move(relate_offset_in_bytes) => {
+                let next_instruction_offset =
+                    thread_context.pc.instruction_address as isize + relate_offset_in_bytes;
+                thread_context.pc.instruction_address = next_instruction_offset as usize;
+            }
+            HandleResult::Jump(return_pc) => {
+                thread_context.pc.module_index = return_pc.module_index;
+                thread_context.pc.function_internal_index = return_pc.function_internal_index;
+                thread_context.pc.instruction_address = return_pc.instruction_address;
+            }
+            HandleResult::End(original_pc) => {
+                thread_context.pc.module_index = original_pc.module_index;
+                thread_context.pc.function_internal_index = original_pc.function_internal_index;
+                thread_context.pc.instruction_address = original_pc.instruction_address;
 
-    let function_ptr = build_bridge_function(thread_context, module_index, function_public_index)?;
-    let function = unsafe { std::mem::transmute_copy(&function_ptr) };
-    Ok(function)
+                // break the instruction processing loop
+                break Ok(());
+            }
+            HandleResult::Panic(code) => {
+                break Err(InterpreterError::new(InterpreterErrorType::Panic(code)))
+            } // HandleResult::Unreachable(code) => {
+              //     break Err(InterpreterError::new(InterpreterErrorType::Unreachable(
+              //         code,
+              //     )))
+              // }
+              // HandleResult::Debug(code) => {
+              //     break Err(InterpreterError::new(InterpreterErrorType::Debug(code)))
+              // }
+        }
+    }
 }
 
-pub fn get_bridge_data<T>(
+pub fn process_instruction(
+    handler: &Handler,
     thread_context: &mut ThreadContext,
-    module_name: &str,
-    data_name: &str,
-) -> Result<*const T, InterpreterError>
-where
-    T: Sized,
-{
-    let (module_index, data_public_index) = thread_context
-        .find_data_public_index_by_name(module_name, data_name)
-        .ok_or(InterpreterError::new(InterpreterErrorType::ItemNotFound))?;
-
-    let data_ptr = build_bridge_data(
-        thread_context,
-        module_index,
-        data_public_index,
-        0,
-        std::mem::size_of::<T>(),
-    )?;
-
-    Ok(data_ptr as *const T)
-}
-
-#[cfg(test)]
-mod tests {
-    // todo
+) -> HandleResult {
+    let opcode_num = thread_context.get_opcode_num();
+    let func = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
+    func(thread_context)
 }

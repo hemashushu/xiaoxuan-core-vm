@@ -6,9 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ancvm-isa = { path = "../types" }
-ancvm-binary = { path = "../binary" }
-syscall-util = { git = "https://github.com/hemashushu/syscall-util.git", tag=""}
-dyncall-util = { git = "https://github.com/hemashushu/dyncall-util.git", tag=""}
+ancvm-isa = { path = "../isa" }
+ancvm-image = { path = "../image" }
 ancvm-context = { path = "../context" }
+syscall-util = { git = "https://github.com/hemashushu/syscall-util.git", commit = "c21096fe6f31b63424eec1e5c39a3c1ffe63d67c" }
+dyncall-util = { git = "https://github.com/hemashushu/dyncall-util.git", commit = "0a56f688d9b48dec59d19512aaef666c8d69884c" }
+
+cranelift-codegen = "0.113.0"
+cranelift-frontend = "0.113.0"
+cranelift-module = "0.113.0"
+cranelift-jit = "0.113.0"
+cranelift-native = "0.113.0"
 libc = "0.2"
+rand = "0.8.5"

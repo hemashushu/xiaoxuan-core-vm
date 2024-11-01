@@ -5,20 +5,19 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 pub mod datas;
-pub mod external_function;
+pub mod external_function_table;
 pub mod heap;
 pub mod indexed_memory;
-pub mod jit_util;
 pub mod memory;
-pub mod module_instance;
+pub mod module_common_instance;
 pub mod process_context;
-pub mod index_instance;
-pub mod program_settings;
-pub mod program_resource;
+pub mod module_index_instance;
+pub mod environment;
+pub mod resource;
 pub mod resizeable_memory;
-pub mod stack_unary;
+pub mod stack;
 pub mod thread_context;
-pub mod type_memory;
+pub mod typed_memory;
 
 pub const STACK_FRAME_INCREMENT_SIZE_IN_BYTES: usize = 64 * 1024;
 // the stack will be enlarge when the free size of stack is less than this value

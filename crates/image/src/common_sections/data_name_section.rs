@@ -18,7 +18,7 @@
 //              | ...                                                                                              |
 //              |--------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::DataNameEntry;
+use crate::entry::DataNameEntry;
 
 use crate::{
     module_image::{ModuleSectionId, SectionEntry},
@@ -129,11 +129,8 @@ impl<'a> DataNameSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::entry::DataNameEntry;
-
     use crate::{
-        common_sections::data_name_section::{DataNameItem, DataNameSection},
-        module_image::SectionEntry,
+        common_sections::data_name_section::{DataNameItem, DataNameSection}, entry::DataNameEntry, module_image::SectionEntry
     };
 
     #[test]

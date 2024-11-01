@@ -6,17 +6,18 @@
 
 use std::sync::Mutex;
 
-use ancvm_binary::module_image::ModuleImage;
+use ancvm_image::module_image::ModuleImage;
 
 use crate::{
-    external_function::ExtenalFunctionTable, program_settings::ProgramSettings,
+    external_function_table::ExtenalFunctionTable, environment::Environment,
     thread_context::ThreadContext,
 };
 
-// all asserts when a program is running.
-// it's the reference of the 'ProgramResource'
+/// `ProcessContext` contains all asserts (environment and module images)
+/// when a program is running.
+/// ThreadContext is produced by ProcessContext.
 pub struct ProcessContext<'a> {
-    pub program_settings: &'a ProgramSettings,
+    pub environment: &'a Environment,
     pub module_images: Vec<ModuleImage<'a>>,
 
     // since the 'loadlibrary' is process-scope, the external function (pointer) table
@@ -26,7 +27,7 @@ pub struct ProcessContext<'a> {
 
 impl<'a> ProcessContext<'a> {
     pub fn new(
-        program_settings: &'a ProgramSettings,
+        environment: &'a Environment,
         external_function_table: &'a Mutex<ExtenalFunctionTable>,
         module_images: Vec<ModuleImage<'a>>,
     ) -> Self {
@@ -44,7 +45,7 @@ impl<'a> ProcessContext<'a> {
         );
 
         Self {
-            program_settings,
+            environment,
             module_images,
             external_function_table,
         }
@@ -52,9 +53,9 @@ impl<'a> ProcessContext<'a> {
 
     pub fn create_thread_context(&'a self) -> ThreadContext<'a> {
         ThreadContext::new(
-            self.external_function_table,
-            self.program_settings,
+            self.environment,
             &self.module_images,
+            self.external_function_table,
         )
     }
 }

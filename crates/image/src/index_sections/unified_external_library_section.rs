@@ -18,11 +18,10 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::{entry::UnifiedExternalLibraryEntry, ExternalLibraryType};
+use ancvm_isa::ExternalLibraryType;
 
 use crate::{
-    module_image::{ModuleSectionId, SectionEntry},
-    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
+    entry::UnifiedExternalLibraryEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
 };
 
 #[derive(Debug, PartialEq, Default)]

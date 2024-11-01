@@ -20,14 +20,13 @@
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::{entry::DataIndexListEntry, DataSectionType};
+use ancvm_isa::DataSectionType;
 
 use crate::{
-    module_image::{ModuleSectionId, RangeItem, SectionEntry},
-    tableaccess::{
+    entry::DataIndexListEntry, module_image::{ModuleSectionId, RangeItem, SectionEntry}, tableaccess::{
         load_section_with_two_tables,
         save_section_with_two_tables,
-    },
+    }
 };
 
 #[derive(Debug, PartialEq, Default)]
@@ -170,11 +169,10 @@ impl<'a> DataIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{entry::DataIndexEntry, DataSectionType};
+    use ancvm_isa::DataSectionType;
 
     use crate::{
-        index_sections::data_index_section::{DataIndexItem, DataIndexSection, RangeItem},
-        module_image::SectionEntry,
+        entry::DataIndexEntry, index_sections::data_index_section::{DataIndexItem, DataIndexSection, RangeItem}, module_image::SectionEntry
     };
 
     use super::DataIndexListEntry;

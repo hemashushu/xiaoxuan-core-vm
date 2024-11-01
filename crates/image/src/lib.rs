@@ -4,18 +4,19 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+pub mod bytecode_reader;
+pub mod bytecode_writer;
+pub mod common_sections;
+pub mod entry;
+pub mod index_sections;
+pub mod module_image;
+pub mod tableaccess;
+pub mod utils;
+
 use std::fmt::Display;
 
 use ancvm_isa::{RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION};
 use module_image::ModuleImage;
-
-pub mod common_sections;
-pub mod index_sections;
-pub mod bytecode_reader;
-pub mod bytecode_writer;
-pub mod module_image;
-pub mod tableaccess;
-pub mod utils;
 
 #[derive(Debug)]
 pub struct BinaryError {

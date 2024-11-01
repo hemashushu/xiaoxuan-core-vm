@@ -498,19 +498,17 @@ impl<'a> ModuleImage<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{
-        entry::{
-            FunctionEntry, FunctionIndexEntry, FunctionIndexListEntry, LocalListEntry,
-            LocalVariableEntry, TypeEntry,
-        },
-        MemoryDataType, OperandDataType,
-    };
+    use ancvm_isa::{MemoryDataType, OperandDataType};
 
     use crate::{
         common_sections::{
             function_section::FunctionSection,
             local_variable_section::{LocalVariableItem, LocalVariableSection},
             type_section::TypeSection,
+        },
+        entry::{
+            FunctionEntry, FunctionIndexEntry, FunctionIndexListEntry, LocalListEntry,
+            LocalVariableEntry, TypeEntry,
         },
         index_sections::{
             function_index_section::{FunctionIndexItem, FunctionIndexSection},

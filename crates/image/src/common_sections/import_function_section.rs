@@ -18,11 +18,8 @@
 //              | ...                                                                                        |
 //              |--------------------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::ImportFunctionEntry;
-
 use crate::{
-    module_image::{ModuleSectionId, SectionEntry},
-    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
+    entry::ImportFunctionEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
 };
 
 #[derive(Debug, PartialEq)]
@@ -129,11 +126,8 @@ impl<'a> ImportFunctionSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::entry::ImportFunctionEntry;
-
     use crate::{
-        common_sections::import_function_section::{ImportFunctionItem, ImportFunctionSection},
-        module_image::SectionEntry,
+        common_sections::import_function_section::{ImportFunctionItem, ImportFunctionSection}, entry::ImportFunctionEntry, module_image::SectionEntry
     };
 
     #[test]

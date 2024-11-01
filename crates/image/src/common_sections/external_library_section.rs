@@ -18,9 +18,10 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::{entry::ExternalLibraryEntry, ExternalLibraryType};
+use ancvm_isa::ExternalLibraryType;
 
 use crate::{
+    entry::ExternalLibraryEntry,
     module_image::{ModuleSectionId, SectionEntry},
     tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
 };
@@ -124,9 +125,12 @@ impl<'a> ExternalLibrarySection<'a> {
 mod tests {
     use ancvm_isa::ExternalLibraryType;
 
-    use crate::{common_sections::external_library_section::{
-        ExternalLibraryEntry, ExternalLibraryItem, ExternalLibrarySection,
-    }, module_image::SectionEntry};
+    use crate::{
+        common_sections::external_library_section::{
+            ExternalLibraryEntry, ExternalLibraryItem, ExternalLibrarySection,
+        },
+        module_image::SectionEntry,
+    };
 
     #[test]
     fn test_load_section() {

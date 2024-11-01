@@ -6,12 +6,12 @@
 
 use std::sync::Mutex;
 
-use ancvm_binary::module_image::ModuleImage;
+use ancvm_image::module_image::ModuleImage;
 
 use crate::{
-    external_function::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    index_instance::IndexInstance, module_instance::ModuleInstance,
-    program_settings::ProgramSettings, stack_unary::Stack, INIT_HEAP_SIZE_IN_PAGES,
+    external_function_table::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
+    module_index_instance::ModuleIndexInstance, module_common_instance::ModuleCommonInstance,
+    environment::Environment, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
     INIT_STACK_SIZE_IN_BYTES,
 };
 
@@ -113,7 +113,7 @@ pub struct ThreadContext<'a> {
     pub heap: Heap,
 
     // the position of the next executing instruction (a.k.a. IP/PC)
-    // the XiaoXuan VM load multiple modules for a application, thus the
+    // the XiaoXuan Core VM load multiple modules for a application, thus the
     // "complete IP" consists of the module index and the instruction position.
     pub pc: ProgramCounter,
 
@@ -123,11 +123,11 @@ pub struct ThreadContext<'a> {
     pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
 
     // program modules
-    pub index_instance: IndexInstance<'a>,
-    pub module_instances: Vec<ModuleInstance<'a>>,
+    pub module_index_instance: ModuleIndexInstance<'a>,
+    pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
     // program settings
-    pub program_settings: &'a ProgramSettings,
+    pub environment: &'a Environment,
 }
 
 /// unlike the ELF and Linux runting environment, which all data and code of execuatable binary
@@ -166,9 +166,9 @@ pub struct DelegateFunctionItem {
 
 impl<'a> ThreadContext<'a> {
     pub fn new(
-        external_function_table: &'a Mutex<ExtenalFunctionTable>,
-        program_settings: &'a ProgramSettings,
+        environment: &'a Environment,
         module_images: &'a [ModuleImage<'a>],
+        external_function_table: &'a Mutex<ExtenalFunctionTable>,
     ) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
@@ -179,11 +179,11 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let module_index_instance = IndexInstance::new(module_images);
-        let module_instances = module_images
+        let module_index_instance = ModuleIndexInstance::new(module_images);
+        let module_common_instances = module_images
             .iter()
-            .map(ModuleInstance::new)
-            .collect::<Vec<ModuleInstance>>();
+            .map(ModuleCommonInstance::new)
+            .collect::<Vec<ModuleCommonInstance>>();
 
         Self {
             stack,
@@ -192,9 +192,9 @@ impl<'a> ThreadContext<'a> {
             bridge_function_module_items: vec![],
             callback_function_module_items: vec![],
             external_function_table,
-            index_instance: module_index_instance,
-            module_instances,
-            program_settings,
+            module_index_instance,
+            module_common_instances,
+            environment,
         }
     }
 
@@ -208,14 +208,14 @@ impl<'a> ThreadContext<'a> {
         expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> (usize, usize, &mut dyn IndexedMemory) {
         let (target_module_index, data_internal_index, target_data_section_type) = self
-            .index_instance
+            .module_index_instance
             .data_index_section
             .get_item_target_module_index_and_data_internal_index_and_data_section_type(
                 module_index,
                 data_public_index,
             );
 
-        let target_module = &mut self.module_instances[target_module_index];
+        let target_module = &mut self.module_common_instances[target_module_index];
         let data_object = target_module.datas[target_data_section_type as usize].as_mut();
 
         // bounds check
@@ -253,7 +253,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         function_public_index: usize,
     ) -> (usize, usize) {
         let (target_module_index, function_internal_index) = self
-            .index_instance
+            .module_index_instance
             .function_index_section
             .get_item_target_module_index_and_function_internal_index(
                 module_index,
@@ -270,13 +270,13 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
         let function_item =
-            &self.module_instances[module_index].function_section.items[function_internal_index];
+            &self.module_common_instances[module_index].function_section.items[function_internal_index];
 
         let type_index = function_item.type_index as usize;
         let local_list_index = function_item.local_list_index as usize;
         let code_offset = function_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.module_instances[module_index]
+        let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
             .lists[local_list_index]
             .list_allocate_bytes;
@@ -308,7 +308,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             (frame_pack.address, frame_pack.frame_info.local_list_index)
         };
 
-        let variable_item = &self.module_instances[module_index]
+        let variable_item = &self.module_common_instances[module_index]
             .local_variable_section
             .get_local_list(local_list_index as usize)[local_variable_index];
 
@@ -344,7 +344,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         function_name: &str,
     ) -> Option<(usize, usize)> {
         let (module_index, module_instance) = self
-            .module_instances
+            .module_common_instances
             .iter()
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
@@ -362,7 +362,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         data_name: &str,
     ) -> Option<(usize, usize)> {
         let (module_index, module_instance) = self
-            .module_instances
+            .module_common_instances
             .iter()
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
@@ -521,7 +521,7 @@ offset in bytes: {}, expect length in bytes: {}.",
             module_index,
         } = self.pc;
 
-        let codes_data = self.module_instances[module_index]
+        let codes_data = self.module_common_instances[module_index]
             .function_section
             .codes_data;
         let dst = instruction_address + offset;

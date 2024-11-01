@@ -20,14 +20,10 @@
 //         | ...                                                                          |
 //         |------------------------------------------------------------------------------|
 
-use ancvm_isa::entry::FunctionIndexListEntry;
-
 use crate::{
+    entry::FunctionIndexListEntry,
     module_image::{ModuleSectionId, RangeItem, SectionEntry},
-    tableaccess::{
-        load_section_with_two_tables,
-        save_section_with_two_tables,
-    },
+    tableaccess::{load_section_with_two_tables, save_section_with_two_tables},
 };
 
 #[derive(Debug, PartialEq)]
@@ -154,9 +150,12 @@ impl<'a> FunctionIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::entry::FunctionIndexEntry;
 
-    use crate::{index_sections::function_index_section::{FunctionIndexItem, FunctionIndexSection}, module_image::{RangeItem, SectionEntry}};
+    use crate::{
+        entry::FunctionIndexEntry,
+        index_sections::function_index_section::{FunctionIndexItem, FunctionIndexSection},
+        module_image::{RangeItem, SectionEntry},
+    };
 
     use super::FunctionIndexListEntry;
 

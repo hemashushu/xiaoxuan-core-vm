@@ -4,10 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-pub mod entry;
-pub mod envcallcode;
 pub mod opcode;
-pub mod utils;
 
 use std::fmt::Display;
 
@@ -29,7 +26,7 @@ impl EffectiveVersion {
 // Semantic Versioning
 // - https://semver.org/
 //
-// a module will only run if its required major and minor
+// an application will only run if its required major and minor
 // versions match the current runtime version strictly.
 pub const RUNTIME_MAJOR_VERSION: u16 = 1;
 pub const RUNTIME_MINOR_VERSION: u16 = 0;
@@ -173,39 +170,28 @@ impl Display for DataSectionType {
 // or returning values to the foreign caller.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ForeignValue {
-    // U32(u32),
-    // U64(u64),
-    I32(i32),
-    I64(i64),
+    U32(u32),
+    U64(u64),
     F32(f32),
     F64(f64),
 }
 
 impl ForeignValue {
-    //     pub fn as_u32(&self) -> Option<u32> {
-    //         if let ForeignValue::U32(v) = self {
-    //             Some(*v)
-    //         } else {
-    //             None
-    //         }
+    // pub fn as_u32(&self) -> Option<u32> {
+    //     if let ForeignValue::U32(v) = self {
+    //         Some(*v)
+    //     } else {
+    //         None
     //     }
+    // }
     //
-    //     pub fn as_u64(&self) -> Option<u64> {
-    //         if let ForeignValue::U64(v) = self {
-    //             Some(*v)
-    //         } else {
-    //             None
-    //         }
+    // pub fn as_u64(&self) -> Option<u64> {
+    //     if let ForeignValue::U64(v) = self {
+    //         Some(*v)
+    //     } else {
+    //         None
     //     }
-
-    pub fn as_i32(&self) -> i32 {
-        if let ForeignValue::I32(v) = self {
-            *v
-        } else {
-            panic!("Not an i32.")
-        }
-    }
-
+    // }
     // pub fn as_i32(&self) -> Option<i32> {
     //     if let ForeignValue::I32(v) = self {
     //         Some(*v)
@@ -213,15 +199,6 @@ impl ForeignValue {
     //         None
     //     }
     // }
-
-    pub fn as_i64(&self) -> i64 {
-        if let ForeignValue::I64(v) = self {
-            *v
-        } else {
-            panic!("Not an i64.")
-        }
-    }
-
     // pub fn as_i64(&self) -> Option<i64> {
     //     if let ForeignValue::I64(v) = self {
     //         Some(*v)
@@ -229,6 +206,53 @@ impl ForeignValue {
     //         None
     //     }
     // }
+    // pub fn as_f32(&self) -> Option<f32> {
+    //     if let ForeignValue::F32(v) = self {
+    //         Some(*v)
+    //     } else {
+    //         None
+    //     }
+    // }
+
+    // pub fn as_f64(&self) -> Option<f64> {
+    //     if let ForeignValue::F64(v) = self {
+    //         Some(*v)
+    //     } else {
+    //         None
+    //     }
+    // }
+
+    pub fn as_u32(&self) -> u32 {
+        if let ForeignValue::U32(v) = self {
+            *v
+        } else {
+            panic!("Not an u32.")
+        }
+    }
+
+    pub fn as_u64(&self) -> u64 {
+        if let ForeignValue::U64(v) = self {
+            *v
+        } else {
+            panic!("Not an u64.")
+        }
+    }
+
+//     pub fn as_i32(&self) -> i32 {
+//         if let ForeignValue::I32(v) = self {
+//             *v
+//         } else {
+//             panic!("Not an i32.")
+//         }
+//     }
+//
+//     pub fn as_i64(&self) -> i64 {
+//         if let ForeignValue::I64(v) = self {
+//             *v
+//         } else {
+//             panic!("Not an i64.")
+//         }
+//     }
 
     pub fn as_f32(&self) -> f32 {
         if let ForeignValue::F32(v) = self {
@@ -245,37 +269,23 @@ impl ForeignValue {
             panic!("Not a f64.")
         }
     }
-
-    // pub fn as_f32(&self) -> Option<f32> {
-    //     if let ForeignValue::F32(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    // pub fn as_f64(&self) -> Option<f64> {
-    //     if let ForeignValue::F64(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
 }
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleShareType {
-    User = 0x0,
-    Share,
+    User = 0x0, // from local file system
+    Share,  // from the user share
+    Runtime, // from the runtime
 }
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ExternalLibraryType {
-    User = 0x0,
-    Share,
-    System,
+    User = 0x0, // from the project
+    Share,  // from the user share
+    Runtime, // from the runtime
+    System, // from system
 }
 
 impl Display for ExternalLibraryType {
@@ -283,6 +293,7 @@ impl Display for ExternalLibraryType {
         match self {
             ExternalLibraryType::User => f.write_str("user"),
             ExternalLibraryType::Share => f.write_str("share"),
+            ExternalLibraryType::Runtime => f.write_str("runtime"),
             ExternalLibraryType::System => f.write_str("system"),
         }
     }

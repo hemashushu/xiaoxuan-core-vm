@@ -7,15 +7,11 @@ edition = "2021"
 
 [dependencies]
 ancvm-isa = { path = "../isa" }
-ancvm-binary = { path = "../binary" }
-dyncall-util = { git = "https://github.com/hemashushu/dyncall-util.git", tag=""}
+ancvm-image = { path = "../image" }
 
-cranelift-codegen = "0.113.0"
-cranelift-frontend = "0.113.0"
-cranelift-module = "0.113.0"
-cranelift-jit = "0.113.0"
-cranelift-native = "0.113.0"
-rand = "0.8.5"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
 
 [features]
 # https://doc.rust-lang.org/cargo/reference/features.html
