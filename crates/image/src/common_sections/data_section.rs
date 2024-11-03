@@ -300,10 +300,10 @@ mod tests {
     fn test_save_section_read_write_data() {
         let data_entry0 = InitedDataEntry::from_i32(11);
         let data_entry1 = InitedDataEntry::from_i64(13);
-        let data_entry2 = InitedDataEntry::from_bytes(b"hello".to_vec(), 1);
+        let data_entry2 = InitedDataEntry::from_raw(b"hello".to_vec(), 1);
         let data_entry3 = InitedDataEntry::from_f32(std::f32::consts::PI);
         let data_entry4 = InitedDataEntry::from_f64(std::f64::consts::E);
-        let data_entry5 = InitedDataEntry::from_bytes(b"foo".to_vec(), 8);
+        let data_entry5 = InitedDataEntry::from_raw(b"foo".to_vec(), 8);
         let data_entry6 = InitedDataEntry::from_i64(17);
         let data_entry7 = InitedDataEntry::from_i32(19);
 
@@ -530,10 +530,10 @@ mod tests {
     fn test_save_section_uninitialized_data() {
         let data_entry0 = UninitDataEntry::from_i32();
         let data_entry1 = UninitDataEntry::from_i64();
-        let data_entry2 = UninitDataEntry::from_bytes(5, 1);
+        let data_entry2 = UninitDataEntry::from_raw(5, 1);
         let data_entry3 = UninitDataEntry::from_f32();
         let data_entry4 = UninitDataEntry::from_f64();
-        let data_entry5 = UninitDataEntry::from_bytes(3, 8);
+        let data_entry5 = UninitDataEntry::from_raw(3, 8);
         let data_entry6 = UninitDataEntry::from_i64();
         let data_entry7 = UninitDataEntry::from_i32();
 

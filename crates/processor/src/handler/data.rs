@@ -649,14 +649,14 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![
                 InitedDataEntry::from_i32(0x19171311),
                 InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
             vec![
-                InitedDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
+                InitedDataEntry::from_raw(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
                 InitedDataEntry::from_f32(std::f32::consts::PI),
                 InitedDataEntry::from_f64(std::f64::consts::E),
                 InitedDataEntry::from_i64(0),
@@ -797,7 +797,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local vars
+            vec![],                                           // local variables
             code0,
             vec![
                 InitedDataEntry::from_i32(0x19171311),
@@ -805,7 +805,7 @@ mod tests {
             ],
             vec![],
             vec![
-                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_raw(8, 8),
                 UninitDataEntry::from_f32(),
                 UninitDataEntry::from_f64(),
                 UninitDataEntry::from_i64(),
@@ -946,13 +946,13 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![],
             vec![],
             vec![
-                UninitDataEntry::from_bytes(8, 8),
-                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_raw(8, 8),
+                UninitDataEntry::from_raw(8, 8),
             ],
         );
 
@@ -993,7 +993,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![],
             vec![InitedDataEntry::from_i32(11)],
@@ -1031,7 +1031,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![],
             vec![InitedDataEntry::from_i32(11)],
@@ -1068,7 +1068,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![],
             vec![InitedDataEntry::from_i32(11)],
@@ -1106,7 +1106,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
             vec![],
             vec![InitedDataEntry::from_i32(11)],

@@ -73,19 +73,20 @@ fn do_call(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter,
+    use ancvm_context::resource::Resource;
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
         utils::{
-            helper_build_module_binary_with_functions_and_blocks, HelperBlockSignatureAndLocalVariablesEntry,
+            helper_build_module_binary_with_functions_and_blocks,
+            HelperBlockSignatureAndLocalVariablesEntry,
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
+    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
-        use crate::{
+    use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_context::resource::Resource;
-    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
     #[test]
     fn test_interpreter_function_call() {
@@ -110,7 +111,7 @@ mod tests {
         //             add_i32
         //                                  ;; n - 1
         //             (local_load32 1 1)
-        //             (i32_dec 1)
+        //             (sub_imm_i32 1)
         //                                  ;; recur 1
         //             (recur 1)
         //         end
@@ -120,35 +121,36 @@ mod tests {
         // fn $square (i32) -> (i32)
         //     (local_load 32)
         //     (local_load 32)
-        //     i32_mul
+        //     mul_i32
         // end
 
         // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
 
-        let code_main = BytecodeWriter::new()
+        let code_main = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::call, 1)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_sum_square = BytecodeWriter::new()
-            .append_opcode(Opcode::zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+        let code_sum_square = BytecodeWriterHelper::new()
+            // .append_opcode(Opcode::zero)
+            .append_opcode_i32(Opcode::imm_i32, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode_i32_i32(Opcode::block, 3, 3)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i32(Opcode::break_, 0, 0x3a)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
             .append_opcode_i32(Opcode::call, 2)
             .append_opcode(Opcode::add_i32)
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 1, 0, 1)
-            .append_opcode_i16(Opcode::i32_dec, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+            .append_opcode_i16(Opcode::sub_imm_i32, 1)
             //
             .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
             //
@@ -157,10 +159,10 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_square = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode(Opcode::i32_mul)
+        let code_square = BytecodeWriterHelper::new()
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+            .append_opcode(Opcode::mul_i32)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -199,11 +201,18 @@ mod tests {
             ],
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[ForeignValue::U32(5)]);
+        let result0 = process_function(
+            &handler,
+            &mut thread_context0,
+            0,
+            0,
+            &[ForeignValue::U32(5)],
+        );
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55),]);
     }
 
@@ -240,7 +249,7 @@ mod tests {
 
         // expect (13, 19, 17, 11, 13)
 
-        let code_main = BytecodeWriter::new()
+        let code_main = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 2)
             .append_opcode(Opcode::dyncall)
             .append_opcode_i32(Opcode::imm_i32, 4)
@@ -254,22 +263,22 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_eleven = BytecodeWriter::new()
+        let code_eleven = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 11)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_thirteen = BytecodeWriter::new()
+        let code_thirteen = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_seventeen = BytecodeWriter::new()
+        let code_seventeen = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 17)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code_nineteen = BytecodeWriter::new()
+        let code_nineteen = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 19)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -316,11 +325,12 @@ mod tests {
             vec![],
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![

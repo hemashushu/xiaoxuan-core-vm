@@ -10,7 +10,7 @@ use ancvm_context::{
     external_function_table::ExtenalFunctionTable, process_context::ProcessContext,
     resource::Resource, environment::Environment, ProgramResourceType,
 };
-use ancvm_image::load_modules_from_binaries;
+use ancvm_image::utils::helper_load_modules_from_binaries;
 
 pub struct InMemoryResource {
     environment: Environment,
@@ -47,7 +47,7 @@ impl Resource for InMemoryResource {
             .map(|e| &e[..])
             .collect::<Vec<_>>();
 
-        let module_images = load_modules_from_binaries(binaries_ref)?;
+        let module_images = helper_load_modules_from_binaries(binaries_ref)?;
 
         Ok(ProcessContext::new(
             &self.environment,
@@ -86,7 +86,7 @@ mod tests {
                 InitedDataEntry::from_i32(0x11),
                 InitedDataEntry::from_i64(0x13),
             ],
-            vec![InitedDataEntry::from_bytes(
+            vec![InitedDataEntry::from_raw(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],
@@ -143,11 +143,11 @@ mod tests {
         // check type section
         assert_eq!(module.type_section.items.len(), 1);
 
-        // check func section
+        // check function section
         assert_eq!(module.function_section.items.len(), 1);
 
         // check local variable section
-        assert_eq!(module.local_variable_section.lists.len(), 1);
+        assert_eq!(module.local_variable_section.list_items.len(), 1);
 
         // check pc
         assert_eq!(

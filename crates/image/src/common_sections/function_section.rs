@@ -135,12 +135,12 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, 0, 0, // func type index
+            7, 0, 0, 0, // function type index
             11, 0, 0, 0, // local variable list index
             //
             13, 0, 0, 0, // code offset (item 1)
             17, 0, 0, 0, // code length
-            19, 0, 0, 0, // func type index
+            19, 0, 0, 0, // function type index
             23, 0, 0, 0, // local variable list index
         ];
 
@@ -172,12 +172,12 @@ mod tests {
             //
             3, 0, 0, 0, // code offset (item 0)
             5, 0, 0, 0, // code length
-            7, 0, 0, 0, // func type index
+            7, 0, 0, 0, // function type index
             11, 0, 0, 0, // local variable list index
             //
             13, 0, 0, 0, // code offset (item 1)
             17, 0, 0, 0, // code length
-            19, 0, 0, 0, // func type index
+            19, 0, 0, 0, // function type index
             23, 0, 0, 0, // local variable list index
         ];
 

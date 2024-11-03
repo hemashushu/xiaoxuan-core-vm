@@ -851,18 +851,18 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
             self.sp -= params_bytes;
 
             // reset the local vars
-            let local_vars_addr_start = self.fp + size_of::<FrameInfo>() + params_bytes;
+            let local_variables_addr_start = self.fp + size_of::<FrameInfo>() + params_bytes;
 
             let local_variables_allocate_bytes_without_args =
                 local_variables_allocate_bytes - params_bytes;
 
-            // let dst = self.data[local_vars_addr_start..].as_mut_ptr();
+            // let dst = self.data[local_variables_addr_start..].as_mut_ptr();
             // unsafe {
             //     std::ptr::write_bytes(dst, 0, local_variables_allocate_bytes_without_args);
             // }
 
-            self.data[local_vars_addr_start
-                ..(local_vars_addr_start + local_variables_allocate_bytes_without_args)]
+            self.data[local_variables_addr_start
+                ..(local_variables_addr_start + local_variables_allocate_bytes_without_args)]
                 .fill(0);
 
             return is_function_frame;

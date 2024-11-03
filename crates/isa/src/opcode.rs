@@ -492,7 +492,7 @@ pub enum Opcode {
     // when the result is TRUE, the number `1:i32` is pushed onto the stack,
     // and vice versa the number is `0:i32`.
     //
-    // instruction `i32_lt_u` example:
+    // instruction `lt_i32_u` example:
     //
     // ```
     // ;; load 2 numbers on to the stack
@@ -560,31 +560,31 @@ pub enum Opcode {
     // ----------
     //
     // wrapping add, e.g. 0xffff_ffff + 2 = 1 (-1 + 2 = 1)
-    // () (operand left:i64 right:i64) -> i64
+    // () (operand left:i32 right:i32) -> i32
     add_i32 = 0x0300,
 
     // wrapping sub, e.g. 11 - 211 = -200
-    // () (operand left:i64 right:i64) -> i64
+    // () (operand left:i32 right:i32) -> i32
     sub_i32,
 
     // wrapping inc, e.g. 0xffff_ffff inc 2 = 1
-    // (param amount:i16) (operand number:i64) -> i64
+    // (param amount:i16) (operand number:i32) -> i32
     add_imm_i32,
 
     // wrapping dec, e.g. 0x1 dec 2 = 0xffff_ffff
-    // (param amount:i16) (operand number:i64) -> i64
+    // (param amount:i16) (operand number:i32) -> i32
     sub_imm_i32,
 
     // wrapping mul, e.g. 0xf0e0d0c0 * 2 = 0xf0e0d0c0 << 1
-    // () (operand left:i64 right:i64) -> i64
+    // () (operand left:i32 right:i32) -> i32
     mul_i32,
 
-    div_i32_s, // () (operand left:i64 right:i64) -> i64
-    div_i32_u, // () (operand left:i64 right:i64) -> i64
-    rem_i32_s, // () (operand left:i64 right:i64) -> i64
+    div_i32_s, // () (operand left:i32 right:i32) -> i32
+    div_i32_u, // () (operand left:i32 right:i32) -> i32
+    rem_i32_s, // () (operand left:i32 right:i32) -> i32
 
     // calculate the remainder
-    // () (operand left:i64 right:i64) -> i64
+    // () (operand left:i32 right:i32) -> i32
     rem_i32_u,
 
     // remainder vs modulus
@@ -709,24 +709,24 @@ pub enum Opcode {
     rotate_left_i32, // left rotate                 () (operand number:i32 move_bits:i32) -> i32, move_bits = [0,32)
     rotate_right_i32, // right rotate               () (operand number:i32 move_bits:i32) -> i32, move_bits = [0,32)
 
-    // instructions `leading_zeros_i32`, `trailing_zeros_i32`
+    // instructions `count_leading_zeros_i32`, `count_trailing_zeros_i32`
     //
     // ```
     // ;; load a number onto the stack
     // (i32.imm 8_388_608)      ;; 00000000_10000000_00000000_00000000
     // ;; count leading zeros
     // ;; the top item on the stack will be 8
-    // leading_zeros_i32
+    // count_leading_zeros_i32
     //
     // ;; load a number onto the stack
     // (i32.imm 8_388_608)      ;; 00000000_10000000_00000000_00000000
     // ;; count trailing zeros
     // ;; the top item on the stack will be 23
-    // trailing_zeros_i32
+    // count_trailing_zeros_i32
     //
-    leading_zeros_i32,  // count leading zeros      () (operand number:i32) -> i32
-    leading_ones_i32,   // count leading ones       () (operand number:i32) -> i32
-    trailing_zeros_i32, // count trailing zeros     () (operand number:i32) -> i32
+    count_leading_zeros_i32,  // count leading zeros      () (operand number:i32) -> i32
+    count_leading_ones_i32,   // count leading ones       () (operand number:i32) -> i32
+    count_trailing_zeros_i32, // count trailing zeros     () (operand number:i32) -> i32
 
     // count the number of ones in the binary representation
     //
@@ -745,9 +745,9 @@ pub enum Opcode {
     shift_right_i64_u, // logical right shift       () (operand number:i64 move_bits:i32) -> i64, move_bits = [0,64)
     rotate_left_i64, // left rotate                 () (operand number:i64 move_bits:i32) -> i64, move_bits = [0,64)
     rotate_right_i64, // right rotate               () (operand number:i64 move_bits:i32) -> i64, move_bits = [0,64)
-    leading_zeros_i64, // () (operand number:i64) -> i32
-    leading_ones_i64, // () (operand number:i64) -> i32
-    trailing_zeros_i64, // () (operand number:i64) -> i32
+    count_leading_zeros_i64, // () (operand number:i64) -> i32
+    count_leading_ones_i64, // () (operand number:i64) -> i32
+    count_trailing_zeros_i64, // () (operand number:i64) -> i32
     count_ones_i64,   // () (operand number:i64) -> i32
 
     // math
@@ -859,7 +859,7 @@ pub enum Opcode {
     // parameters and results, it shares the type with function, so the 'block'
     // instruction has a parameter called 'type_index'.
     // this instruction leads VM to create a stack frame which is called 'block frame',
-    // block frame is similar to 'function frame' except it has no local variables.
+    // block frame is similar to 'function frame'.
     //
     // this instruction is different from the WebAssembly instruction 'block', which
     // its parameters are not 'local variables', and the values are placed on the
@@ -870,6 +870,7 @@ pub enum Opcode {
 
     // the instruction 'break' is similar to the instruction 'end', it is
     // used for finishing a block or a function.
+    //
     // - for a block:
     //   a block stack frame will be removed and jump to the next instruction
     //   that AFTER the instruction 'end'.
@@ -879,7 +880,10 @@ pub enum Opcode {
     //   instruction next to the instruction 'call'.
     //   the value of the parameter 'next_inst_offset' is ignored.
     //
-    // note that this instruction implies the function of instruction 'end'.
+    // note that instruction 'end' and 'break' are the same actually except
+    // the 'break' instruction can specify the 'reversed_index'
+    // and 'next_inst_offset', thus `end` == `break reversed_index=0 next_inst_offset=2`
+
     //
     // e.g.
     //
@@ -943,12 +947,6 @@ pub enum Opcode {
     // after balancing between performance and elegance, XiaoXuan instruction
     // 'break' implies 'end' as well as jumps directly to the next instruction
     // after the instruction 'end'.
-    //
-    // note that both instruction 'end' and 'break' can end
-    // a function or a block, they are the same actually except
-    // the 'break' instruction can specify the 'reversed_index'
-    // and 'next_inst_offset'.
-    // thus `end` == `break reversed_index=0 next_inst_offset=2`
     //
     // (param reversed_index:i16, next_inst_offset:i32)
     break_,
@@ -1064,13 +1062,12 @@ pub enum Opcode {
     //
     // (+ => execute, - => pass)
     //
-    // 'block_alt' has NO PARAMS, but it can return values and own local variables.
-    //
     // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
     block_alt,
 
-    // a complete 'for' structure is actually combined with instructions 'block', 'block_alt', 'recur', 'break'
-    // and 'break_nez', e.g.
+    // a complete 'for' structure is actually combined with instructions
+    // 'block', 'recur',
+    // 'block_alt' and 'break' (or 'break_nez'), e.g.
     //
     // ```rust
     // let i = loop {
@@ -1096,7 +1093,7 @@ pub enum Opcode {
     // 0d0210 ...               ;; <--------/
     // ```
     //
-    // the code above can be optimized by instruction 'break_nez', e.g.
+    // the code above can be optimized with instruction 'break_nez', e.g.
     //
     // ```bytecode
     // 0d0000 block 0
@@ -1298,11 +1295,11 @@ pub enum Opcode {
     // |    ...            |                   |   ..a..   <----\   |
     // | }                 |                   |   break_nez 0 -|-\ |
     // |                   |                   |   ...          | | |
-    // | (or for...)       |                   |   recur 0 -----/ | |
+    // | for {...}         |                   |   recur 0 -----/ | |
     // |                   |                   | end              | |
     // |                   |                   | ...        <-----/ |
     // |                   |                   |                    |
-    // |                   | ----------------- | ------------------ |
+    // |-------------------| ----------------- | ------------------ |
     // |                   |                   |                    |
     // |                   | (for (code        | block              |
     // |                   |   (when (a)       |   ..a..    <---\   |
@@ -1341,7 +1338,7 @@ pub enum Opcode {
     // | func foo {        | (function         | -- func begin --   |
     // |    ...            |   (code ...       |   ...   <-------\  |
     // |    if ..a.. {     |     (when (a)     |   ..a..         |  |
-    // |      foo()        |       (tcall ...) |   block_nez --\ |  |
+    // |      foo()        |       (selfcall.) |   block_nez --\ |  |
     // |    }              |     )             |     recur 1 --|-/  |
     // | }                 |   )               |   end         |    |
     // |                   | )                 | end      <----/    |
@@ -1360,7 +1357,7 @@ pub enum Opcode {
     // |       ..b..       |     (b)           |   block_alt -\ |   |
     // |    } else {       |     (code         |     ..b..    | |   |
     // |       ..c..       |       ..c..       |     break 0 -|-|-\ |
-    // |       foo()       |       (tcall ...) |     ..c.. <--/ | | |
+    // |       foo()       |       (selfcall.) |     ..c.. <--/ | | |
     // |    }              |     )             |     recur 1 ---/ | |
     // | }                 |   )               |   end            | |
     // |                   | ))                | end         <----/ |
@@ -1506,7 +1503,7 @@ pub enum Opcode {
     // |--------------------|--------------|------------------|-----------------|
     // |                    | by indice    | by mem allocator | by host address |
     // |--------------------|--------------|------------------|-----------------|
-    // | local vars         | safe         | -                | unsafe          |
+    // | local variables         | safe         | -                | unsafe          |
     // |--------------------|--------------|------------------|-----------------|
     // | read-only data     |              |                  |                 |
     // | read-write data    | safe         | -                | unsafe          |
@@ -1518,11 +1515,11 @@ pub enum Opcode {
     // note that the host address only valid in the current function and
     // its sub-functions. when a function exited, the function stack frame
     // will be destroied (or modified), as well as the local variables.
-    host_addr_local, // (param reversed_index:i16 local_variable_index:i16 offset_bytes:i16) -> i64/i32
-    host_addr_local_extend, // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32) -> i64/i32
-    host_addr_data,         // (param offset_bytes:i16 data_public_index:i32) -> i64/i32
-    host_addr_data_extend,  // (param data_public_index:i32) (operand offset_bytes:i32) -> i64/i32
-    host_addr_heap,         // (param offset_bytes:i32) (operand heap_addr:i64) -> i64/i32
+    host_addr_local, // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
+    host_addr_local_extend, // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32) -> i64
+    host_addr_data,         // (param offset_bytes:i16 data_public_index:i32) -> i64
+    host_addr_data_extend,  // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
+    host_addr_heap,         // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
 
     // create a new host function and map it to a VM function.
     // this host function named 'bridge funcion'
@@ -1829,18 +1826,18 @@ impl Opcode {
             Opcode::xor => "xor",
             Opcode::not => "not",
             //
-            Opcode::leading_zeros_i32 => "leading_zeros_i32",
-            Opcode::leading_ones_i32 => "leading_ones_i32",
-            Opcode::trailing_zeros_i32 => "trailing_zeros_i32",
+            Opcode::count_leading_zeros_i32 => "count_leading_zeros_i32",
+            Opcode::count_leading_ones_i32 => "count_leading_ones_i32",
+            Opcode::count_trailing_zeros_i32 => "count_trailing_zeros_i32",
             Opcode::count_ones_i32 => "count_ones_i32",
             Opcode::shift_left_i32 => "shift_left_i32",
             Opcode::shift_right_i32_s => "shift_right_i32_s",
             Opcode::shift_right_i32_u => "shift_right_i32_u",
             Opcode::rotate_left_i32 => "rotate_left_i32",
             Opcode::rotate_right_i32 => "rotate_right_i32",
-            Opcode::leading_zeros_i64 => "leading_zeros_i64",
-            Opcode::leading_ones_i64 => "leading_ones_i64",
-            Opcode::trailing_zeros_i64 => "trailing_zeros_i64",
+            Opcode::count_leading_zeros_i64 => "count_leading_zeros_i64",
+            Opcode::count_leading_ones_i64 => "count_leading_ones_i64",
+            Opcode::count_trailing_zeros_i64 => "count_trailing_zeros_i64",
             Opcode::count_ones_i64 => "count_ones_i64",
             Opcode::shift_left_i64 => "shift_left_i64",
             Opcode::shift_right_i64_s => "shift_right_i64_s",

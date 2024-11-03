@@ -281,18 +281,18 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
             | Opcode::or
             | Opcode::xor
             | Opcode::not
-            | Opcode::leading_zeros_i32
-            | Opcode::leading_ones_i32
-            | Opcode::trailing_zeros_i32
+            | Opcode::count_leading_zeros_i32
+            | Opcode::count_leading_ones_i32
+            | Opcode::count_trailing_zeros_i32
             | Opcode::count_ones_i32
             | Opcode::shift_left_i32
             | Opcode::shift_right_i32_s
             | Opcode::shift_right_i32_u
             | Opcode::rotate_left_i32
             | Opcode::rotate_right_i32
-            | Opcode::leading_zeros_i64
-            | Opcode::leading_ones_i64
-            | Opcode::trailing_zeros_i64
+            | Opcode::count_leading_zeros_i64
+            | Opcode::count_leading_ones_i64
+            | Opcode::count_trailing_zeros_i64
             | Opcode::count_ones_i64
             | Opcode::shift_left_i64
             | Opcode::shift_right_i64_s

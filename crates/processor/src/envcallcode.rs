@@ -84,7 +84,7 @@ pub enum EnvCallCode {
     //   |  | read-only data (ref)  | |         | |
     //   |  | types (ref)           | |         | |
     //   |  | functions (ref)       | |         | |
-    //   |  | local vars (ref)      | |         | |
+    //   |  | local variables (ref)      | |         | |
     //   |  \-----------------------/ |         | |
     //   |    \----------------------/          | |
     //   |       module images                  | |

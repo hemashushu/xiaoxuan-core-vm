@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-// "func name section" binary layout
+// "function name section" binary layout
 //
 //              |------------------------------------------------------------------------------------------------|
 //              | item count (u32) | (4 bytes padding)                                                           |
@@ -19,7 +19,9 @@
 //              |------------------------------------------------------------------------------------------------|
 
 use crate::{
-    entry::FunctionNameEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
+    entry::FunctionNameEntry,
+    module_image::{ModuleSectionId, SectionEntry},
+    tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
 };
 
 #[derive(Debug, PartialEq, Default)]
@@ -28,24 +30,28 @@ pub struct FunctionNameSection<'a> {
     pub names_data: &'a [u8],
 }
 
-// by default, the name items only contain the internal functions,
-// and the value of 'index' is the 'function public index'.
+// this table only contains the internal functions,
+// imported functions will not be list in this table.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
 pub struct FunctionNameItem {
     pub name_offset: u32,
     pub name_length: u32,
-    pub function_public_index: u32,
+    // pub function_public_index: u32, // this field is used for bridge function call
     pub export: u8, // 0=false, 1=true
     _padding0: [u8; 3],
 }
 
 impl FunctionNameItem {
-    pub fn new(name_offset: u32, name_length: u32, function_public_index: u32, export: u8) -> Self {
+    pub fn new(
+        name_offset: u32,
+        name_length: u32,
+        /*function_public_index: u32,*/ export: u8,
+    ) -> Self {
         Self {
             name_offset,
             name_length,
-            function_public_index,
+            // function_public_index,
             export,
             _padding0: [0, 0, 0],
         }
@@ -69,10 +75,11 @@ impl<'a> SectionEntry<'a> for FunctionNameSection<'a> {
 }
 
 impl<'a> FunctionNameSection<'a> {
-    pub fn get_item_index_and_function_public_index_and_export(
+    pub fn get_item_index_and_export(
         &'a self,
         expected_name: &str,
-    ) -> Option<(usize, usize, bool)> {
+        // ) -> Option<(usize, usize, bool)> {
+    ) -> Option<(usize, bool)> {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -86,7 +93,10 @@ impl<'a> FunctionNameSection<'a> {
 
         opt_idx.map(|idx| {
             let item = &items[idx];
-            (idx, item.function_public_index as usize, item.export != 0)
+            (
+                idx,
+                /* item.function_public_index as usize,*/ item.export != 0,
+            )
         })
     }
 
@@ -109,7 +119,7 @@ impl<'a> FunctionNameSection<'a> {
                 FunctionNameItem::new(
                     name_offset,
                     name_length,
-                    entry.function_public_index as u32,
+                    // entry.function_public_index as u32,
                     if entry.export { 1 } else { 0 },
                 )
             })
@@ -136,8 +146,8 @@ mod tests {
     #[test]
     fn test_save_section() {
         let items: Vec<FunctionNameItem> = vec![
-            FunctionNameItem::new(0, 3, 11, 0),
-            FunctionNameItem::new(3, 5, 13, 1),
+            FunctionNameItem::new(0, 3, /* 11,*/ 0),
+            FunctionNameItem::new(3, 5, /* 13,*/ 1),
         ];
 
         let section = FunctionNameSection {
@@ -154,13 +164,13 @@ mod tests {
             //
             0, 0, 0, 0, // name offset (item 0)
             3, 0, 0, 0, // name length
-            11, 0, 0, 0, // func pub index
+            // 11, 0, 0, 0, // function pub index
             0, // export
             0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
             5, 0, 0, 0, // name length
-            13, 0, 0, 0, // func pub index
+            // 13, 0, 0, 0, // function pub index
             1, // export
             0, 0, 0, // padding
         ];
@@ -179,13 +189,13 @@ mod tests {
             //
             0, 0, 0, 0, // name offset (item 0)
             3, 0, 0, 0, // name length
-            11, 0, 0, 0, // func pub index
+            // 11, 0, 0, 0, // function pub index
             0, // export
             0, 0, 0, // padding
             //
             3, 0, 0, 0, // name offset (item 1)
             5, 0, 0, 0, // name length
-            13, 0, 0, 0, // func pub index
+            // 13, 0, 0, 0, // function pub index
             1, // export
             0, 0, 0, // padding
         ];
@@ -196,16 +206,16 @@ mod tests {
         let section = FunctionNameSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
-        assert_eq!(section.items[0], FunctionNameItem::new(0, 3, 11, 0));
-        assert_eq!(section.items[1], FunctionNameItem::new(3, 5, 13, 1));
+        assert_eq!(section.items[0], FunctionNameItem::new(0, 3, /*11,*/ 0));
+        assert_eq!(section.items[1], FunctionNameItem::new(3, 5, /*13,*/ 1));
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
 
     #[test]
     fn test_convert() {
         let entries: Vec<FunctionNameEntry> = vec![
-            FunctionNameEntry::new("foo".to_string(), 11, false),
-            FunctionNameEntry::new("hello".to_string(), 13, true),
+            FunctionNameEntry::new("foo".to_string(), /*11,*/ false),
+            FunctionNameEntry::new("hello".to_string(), /*13,*/ true),
         ];
 
         let (items, names_data) = FunctionNameSection::convert_from_entries(&entries);
@@ -215,17 +225,17 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_item_index_and_function_public_index_and_export("foo"),
-            Some((0, 11, false))
+            section.get_item_index_and_export("foo"),
+            Some((0, /*11,*/ false))
         );
 
         assert_eq!(
-            section.get_item_index_and_function_public_index_and_export("hello"),
-            Some((1, 13, true))
+            section.get_item_index_and_export("hello"),
+            Some((1, /*13,*/ true))
         );
 
         assert_eq!(
-            section.get_item_index_and_function_public_index_and_export("bar"),
+            section.get_item_index_and_export("bar"),
             None
         );
     }

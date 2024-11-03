@@ -418,7 +418,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I64], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -436,14 +436,14 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
-            .append_opcode(Opcode::i64_extend_i32_u)
+            .append_opcode(Opcode::extend_i32_u_to_i64)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I64], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -485,13 +485,13 @@ mod tests {
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],               // params
                     results: vec![OperandDataType::I64], // results
-                    local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local vars (for dropping operands)
+                    local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local variables (for dropping operands)
                     code: code0,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],                                   // params
                     results: vec![OperandDataType::I64],                     // results
-                    local_variable_item_entries_without_args: vec![], // local vars
+                    local_variable_item_entries_without_args: vec![], // local variables
                     code: code1,
                 },
             ],
@@ -518,7 +518,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I64], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 

@@ -195,6 +195,6 @@ pub fn process_instruction(
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let opcode_num = thread_context.get_opcode_num();
-    let func = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
-    func(thread_context)
+    let function = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
+    function(thread_context)
 }

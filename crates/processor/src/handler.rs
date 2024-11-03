@@ -10,18 +10,18 @@ use ancvm_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
 
 type HandleFunc = fn(&mut ThreadContext) -> HandleResult;
 
-// mod arithmetic;
-// mod bitwise;
-// mod comparison;
-// mod conversion;
-// mod funcall;
+mod arithmetic;
+mod bitwise;
+mod comparison;
+mod conversion;
+mod funcall;
 mod control_flow;
 mod data;
 mod fundamental;
 mod heap;
+mod host;
 mod local;
-// mod host;
-// mod math;
+mod math;
 // mod syscall;
 
 // mod envcall;
@@ -130,8 +130,8 @@ impl Handler {
         handlers[Opcode::imm_i64 as usize] = fundamental::imm_i64;
         handlers[Opcode::imm_f32 as usize] = fundamental::imm_f32;
         handlers[Opcode::imm_f64 as usize] = fundamental::imm_f64;
-        //
-        // local variables
+
+        // local variable
         handlers[Opcode::local_load_i64 as usize] = local::local_load_i64;
         handlers[Opcode::local_load_i32_s as usize] = local::local_load_i32_s;
         handlers[Opcode::local_load_i32_u as usize] = local::local_load_i32_u;
@@ -148,6 +148,7 @@ impl Handler {
         handlers[Opcode::local_store_f64 as usize] = local::local_store_i64; // store_f64 == store_i64
         handlers[Opcode::local_store_f32 as usize] = local::local_store_i32; // store_f32 == store_i32
 
+        // local variable extend
         handlers[Opcode::local_load_extend_i64 as usize] = local::local_load_extend_i64;
         handlers[Opcode::local_load_extend_i32_s as usize] = local::local_load_extend_i32_s;
         handlers[Opcode::local_load_extend_i32_u as usize] = local::local_load_extend_i32_u;
@@ -164,7 +165,7 @@ impl Handler {
         handlers[Opcode::local_store_extend_f64 as usize] = local::local_store_extend_i64; // store_f64 == store_i64
         handlers[Opcode::local_store_extend_f32 as usize] = local::local_store_extend_i32; // store_f32 == store_i32
 
-        // data sections
+        // data
         handlers[Opcode::data_load_i64 as usize] = data::data_load_i64;
         handlers[Opcode::data_load_i32_s as usize] = data::data_load_i32_s;
         handlers[Opcode::data_load_i32_u as usize] = data::data_load_i32_u;
@@ -181,6 +182,7 @@ impl Handler {
         handlers[Opcode::data_store_f64 as usize] = data::data_store_i64; // store_f64 == store_i64
         handlers[Opcode::data_store_f32 as usize] = data::data_store_i32; // store_f32 == store_i32
 
+        // data extend
         handlers[Opcode::data_load_extend_i64 as usize] = data::data_load_extend_i64;
         handlers[Opcode::data_load_extend_i32_s as usize] = data::data_load_extend_i32_s;
         handlers[Opcode::data_load_extend_i32_u as usize] = data::data_load_extend_i32_u;
@@ -214,191 +216,193 @@ impl Handler {
         handlers[Opcode::heap_store_f64 as usize] = heap::heap_store_i64; // store_f64 == store_i64
         handlers[Opcode::heap_store_f32 as usize] = heap::heap_store_i32; // store_f32 == store_i32
 
-        // heap memory
+        // heap memory operations
         handlers[Opcode::heap_fill as usize] = heap::heap_fill;
         handlers[Opcode::heap_copy as usize] = heap::heap_copy;
         handlers[Opcode::heap_capacity as usize] = heap::heap_capacity;
         handlers[Opcode::heap_resize as usize] = heap::heap_resize;
 
-        //     // conversion
-        //     handlers[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
-        //     handlers[Opcode::i64_extend_i32_s as usize] = conversion::i64_extend_i32_s;
-        //     handlers[Opcode::i64_extend_i32_u as usize] = conversion::i64_extend_i32_u;
-        //     handlers[Opcode::f32_demote_f64 as usize] = conversion::f32_demote_f64;
-        //     handlers[Opcode::f64_promote_f32 as usize] = conversion::f64_promote_f32;
-        //     handlers[Opcode::i32_convert_f32_s as usize] = conversion::i32_convert_f32_s;
-        //     handlers[Opcode::i32_convert_f32_u as usize] = conversion::i32_convert_f32_u;
-        //     handlers[Opcode::i32_convert_f64_s as usize] = conversion::i32_convert_f64_s;
-        //     handlers[Opcode::i32_convert_f64_u as usize] = conversion::i32_convert_f64_u;
-        //     handlers[Opcode::i64_convert_f32_s as usize] = conversion::i64_convert_f32_s;
-        //     handlers[Opcode::i64_convert_f32_u as usize] = conversion::i64_convert_f32_u;
-        //     handlers[Opcode::i64_convert_f64_s as usize] = conversion::i64_convert_f64_s;
-        //     handlers[Opcode::i64_convert_f64_u as usize] = conversion::i64_convert_f64_u;
-        //     handlers[Opcode::f32_convert_i32_s as usize] = conversion::f32_convert_i32_s;
-        //     handlers[Opcode::f32_convert_i32_u as usize] = conversion::f32_convert_i32_u;
-        //     handlers[Opcode::f32_convert_i64_s as usize] = conversion::f32_convert_i64_s;
-        //     handlers[Opcode::f32_convert_i64_u as usize] = conversion::f32_convert_i64_u;
-        //     handlers[Opcode::f64_convert_i32_s as usize] = conversion::f64_convert_i32_s;
-        //     handlers[Opcode::f64_convert_i32_u as usize] = conversion::f64_convert_i32_u;
-        //     handlers[Opcode::f64_convert_i64_s as usize] = conversion::f64_convert_i64_s;
-        //     handlers[Opcode::f64_convert_i64_u as usize] = conversion::f64_convert_i64_u;
-        //
-        //     // comparison
-        //     handlers[Opcode::eqz_i32 as usize] = comparison::eqz_i32;
-        //     handlers[Opcode::eq_i32 as usize] = comparison::eq_i32;
-        //     handlers[Opcode::nez_i32 as usize] = comparison::nez_i32;
-        //     handlers[Opcode::i32_ne as usize] = comparison::i32_ne;
-        //     handlers[Opcode::i32_lt_s as usize] = comparison::i32_lt_s;
-        //     handlers[Opcode::i32_lt_u as usize] = comparison::i32_lt_u;
-        //     handlers[Opcode::i32_gt_s as usize] = comparison::i32_gt_s;
-        //     handlers[Opcode::i32_gt_u as usize] = comparison::i32_gt_u;
-        //     handlers[Opcode::i32_le_s as usize] = comparison::i32_le_s;
-        //     handlers[Opcode::i32_le_u as usize] = comparison::i32_le_u;
-        //     handlers[Opcode::i32_ge_s as usize] = comparison::i32_ge_s;
-        //     handlers[Opcode::i32_ge_u as usize] = comparison::i32_ge_u;
-        //     handlers[Opcode::i64_eqz as usize] = comparison::i64_eqz;
-        //     handlers[Opcode::i64_eq as usize] = comparison::i64_eq;
-        //     handlers[Opcode::i64_nez as usize] = comparison::i64_nez;
-        //     handlers[Opcode::i64_ne as usize] = comparison::i64_ne;
-        //     handlers[Opcode::i64_lt_s as usize] = comparison::i64_lt_s;
-        //     handlers[Opcode::i64_lt_u as usize] = comparison::i64_lt_u;
-        //     handlers[Opcode::i64_gt_s as usize] = comparison::i64_gt_s;
-        //     handlers[Opcode::i64_gt_u as usize] = comparison::i64_gt_u;
-        //     handlers[Opcode::i64_le_s as usize] = comparison::i64_le_s;
-        //     handlers[Opcode::i64_le_u as usize] = comparison::i64_le_u;
-        //     handlers[Opcode::i64_ge_s as usize] = comparison::i64_ge_s;
-        //     handlers[Opcode::i64_ge_u as usize] = comparison::i64_ge_u;
-        //     handlers[Opcode::f32_eq as usize] = comparison::f32_eq;
-        //     handlers[Opcode::f32_ne as usize] = comparison::f32_ne;
-        //     handlers[Opcode::f32_lt as usize] = comparison::f32_lt;
-        //     handlers[Opcode::f32_gt as usize] = comparison::f32_gt;
-        //     handlers[Opcode::f32_le as usize] = comparison::f32_le;
-        //     handlers[Opcode::f32_ge as usize] = comparison::f32_ge;
-        //     handlers[Opcode::f64_eq as usize] = comparison::f64_eq;
-        //     handlers[Opcode::f64_ne as usize] = comparison::f64_ne;
-        //     handlers[Opcode::f64_lt as usize] = comparison::f64_lt;
-        //     handlers[Opcode::f64_gt as usize] = comparison::f64_gt;
-        //     handlers[Opcode::f64_le as usize] = comparison::f64_le;
-        //     handlers[Opcode::f64_ge as usize] = comparison::f64_ge;
-        //
-        //     // arithmetic
-        //     handlers[Opcode::add_i32 as usize] = arithmetic::add_i32;
-        //     handlers[Opcode::sub_i32 as usize] = arithmetic::sub_i32;
-        //     handlers[Opcode::i32_mul as usize] = arithmetic::i32_mul;
-        //     handlers[Opcode::i32_div_s as usize] = arithmetic::i32_div_s;
-        //     handlers[Opcode::i32_div_u as usize] = arithmetic::i32_div_u;
-        //     handlers[Opcode::i32_rem_s as usize] = arithmetic::i32_rem_s;
-        //     handlers[Opcode::i32_rem_u as usize] = arithmetic::i32_rem_u;
-        //     handlers[Opcode::i32_inc as usize] = arithmetic::i32_inc;
-        //     handlers[Opcode::i32_dec as usize] = arithmetic::i32_dec;
-        //     handlers[Opcode::i64_add as usize] = arithmetic::i64_add;
-        //     handlers[Opcode::i64_sub as usize] = arithmetic::i64_sub;
-        //     handlers[Opcode::i64_mul as usize] = arithmetic::i64_mul;
-        //     handlers[Opcode::i64_div_s as usize] = arithmetic::i64_div_s;
-        //     handlers[Opcode::i64_div_u as usize] = arithmetic::i64_div_u;
-        //     handlers[Opcode::i64_rem_s as usize] = arithmetic::i64_rem_s;
-        //     handlers[Opcode::i64_rem_u as usize] = arithmetic::i64_rem_u;
-        //     handlers[Opcode::i64_inc as usize] = arithmetic::i64_inc;
-        //     handlers[Opcode::i64_dec as usize] = arithmetic::i64_dec;
-        //     handlers[Opcode::f32_add as usize] = arithmetic::f32_add;
-        //     handlers[Opcode::f32_sub as usize] = arithmetic::f32_sub;
-        //     handlers[Opcode::f32_mul as usize] = arithmetic::f32_mul;
-        //     handlers[Opcode::f32_div as usize] = arithmetic::f32_div;
-        //     handlers[Opcode::f64_add as usize] = arithmetic::f64_add;
-        //     handlers[Opcode::f64_sub as usize] = arithmetic::f64_sub;
-        //     handlers[Opcode::f64_mul as usize] = arithmetic::f64_mul;
-        //     handlers[Opcode::f64_div as usize] = arithmetic::f64_div;
-        //
-        //     // bitwise
-        //     handlers[Opcode::i32_and as usize] = bitwise::i32_and;
-        //     handlers[Opcode::i32_or as usize] = bitwise::i32_or;
-        //     handlers[Opcode::i32_xor as usize] = bitwise::i32_xor;
-        //     handlers[Opcode::i32_not as usize] = bitwise::i32_not;
-        //     handlers[Opcode::i32_leading_zeros as usize] = bitwise::i32_leading_zeros;
-        //     handlers[Opcode::i32_leading_ones as usize] = bitwise::i32_leading_ones;
-        //     handlers[Opcode::i32_trailing_zeros as usize] = bitwise::i32_trailing_zeros;
-        //     handlers[Opcode::i32_count_ones as usize] = bitwise::i32_count_ones;
-        //     handlers[Opcode::i32_shift_left as usize] = bitwise::i32_shift_left;
-        //     handlers[Opcode::i32_shift_right_s as usize] = bitwise::i32_shift_right_s;
-        //     handlers[Opcode::i32_shift_right_u as usize] = bitwise::i32_shift_right_u;
-        //     handlers[Opcode::i32_rotate_left as usize] = bitwise::i32_rotate_left;
-        //     handlers[Opcode::i32_rotate_right as usize] = bitwise::i32_rotate_right;
-        //     handlers[Opcode::i64_and as usize] = bitwise::i64_and;
-        //     handlers[Opcode::i64_or as usize] = bitwise::i64_or;
-        //     handlers[Opcode::i64_xor as usize] = bitwise::i64_xor;
-        //     handlers[Opcode::i64_not as usize] = bitwise::i64_not;
-        //     handlers[Opcode::i64_leading_zeros as usize] = bitwise::i64_leading_zeros;
-        //     handlers[Opcode::i64_leading_ones as usize] = bitwise::i64_leading_ones;
-        //     handlers[Opcode::i64_trailing_zeros as usize] = bitwise::i64_trailing_zeros;
-        //     handlers[Opcode::i64_count_ones as usize] = bitwise::i64_count_ones;
-        //     handlers[Opcode::i64_shift_left as usize] = bitwise::i64_shift_left;
-        //     handlers[Opcode::i64_shift_right_s as usize] = bitwise::i64_shift_right_s;
-        //     handlers[Opcode::i64_shift_right_u as usize] = bitwise::i64_shift_right_u;
-        //     handlers[Opcode::i64_rotate_left as usize] = bitwise::i64_rotate_left;
-        //     handlers[Opcode::i64_rotate_right as usize] = bitwise::i64_rotate_right;
-        //
-        //     // math
-        //     handlers[Opcode::i32_abs as usize] = math::i32_abs;
-        //     handlers[Opcode::i32_neg as usize] = math::i32_neg;
-        //     handlers[Opcode::i64_abs as usize] = math::i64_abs;
-        //     handlers[Opcode::i64_neg as usize] = math::i64_neg;
-        //     //
-        //     handlers[Opcode::f32_abs as usize] = math::f32_abs;
-        //     handlers[Opcode::f32_neg as usize] = math::f32_neg;
-        //     handlers[Opcode::f32_ceil as usize] = math::f32_ceil;
-        //     handlers[Opcode::f32_floor as usize] = math::f32_floor;
-        //     handlers[Opcode::f32_round_half_away_from_zero as usize] =
-        //         math::f32_round_half_away_from_zero;
-        //     handlers[Opcode::f32_round_half_to_even as usize] = math::f32_round_half_to_even;
-        //     handlers[Opcode::f32_trunc as usize] = math::f32_trunc;
-        //     handlers[Opcode::f32_fract as usize] = math::f32_fract;
-        //     handlers[Opcode::f32_sqrt as usize] = math::f32_sqrt;
-        //     handlers[Opcode::f32_cbrt as usize] = math::f32_cbrt;
-        //     handlers[Opcode::f32_exp as usize] = math::f32_exp;
-        //     handlers[Opcode::f32_exp2 as usize] = math::f32_exp2;
-        //     handlers[Opcode::f32_ln as usize] = math::f32_ln;
-        //     handlers[Opcode::f32_log2 as usize] = math::f32_log2;
-        //     handlers[Opcode::f32_log10 as usize] = math::f32_log10;
-        //     handlers[Opcode::f32_sin as usize] = math::f32_sin;
-        //     handlers[Opcode::f32_cos as usize] = math::f32_cos;
-        //     handlers[Opcode::f32_tan as usize] = math::f32_tan;
-        //     handlers[Opcode::f32_asin as usize] = math::f32_asin;
-        //     handlers[Opcode::f32_acos as usize] = math::f32_acos;
-        //     handlers[Opcode::f32_atan as usize] = math::f32_atan;
-        //     handlers[Opcode::f32_copysign as usize] = math::f32_copysign;
-        //     handlers[Opcode::f32_pow as usize] = math::f32_pow;
-        //     handlers[Opcode::f32_log as usize] = math::f32_log;
-        //     handlers[Opcode::f32_min as usize] = math::f32_min;
-        //     handlers[Opcode::f32_max as usize] = math::f32_max;
-        //
-        //     handlers[Opcode::f64_abs as usize] = math::f64_abs;
-        //     handlers[Opcode::f64_neg as usize] = math::f64_neg;
-        //     handlers[Opcode::f64_ceil as usize] = math::f64_ceil;
-        //     handlers[Opcode::f64_floor as usize] = math::f64_floor;
-        //     handlers[Opcode::f64_round_half_away_from_zero as usize] =
-        //         math::f64_round_half_away_from_zero;
-        //     handlers[Opcode::f64_round_half_to_even as usize] = math::f64_round_half_to_even;
-        //     handlers[Opcode::f64_trunc as usize] = math::f64_trunc;
-        //     handlers[Opcode::f64_fract as usize] = math::f64_fract;
-        //     handlers[Opcode::f64_sqrt as usize] = math::f64_sqrt;
-        //     handlers[Opcode::f64_cbrt as usize] = math::f64_cbrt;
-        //     handlers[Opcode::f64_exp as usize] = math::f64_exp;
-        //     handlers[Opcode::f64_exp2 as usize] = math::f64_exp2;
-        //     handlers[Opcode::f64_ln as usize] = math::f64_ln;
-        //     handlers[Opcode::f64_log2 as usize] = math::f64_log2;
-        //     handlers[Opcode::f64_log10 as usize] = math::f64_log10;
-        //     handlers[Opcode::f64_sin as usize] = math::f64_sin;
-        //     handlers[Opcode::f64_cos as usize] = math::f64_cos;
-        //     handlers[Opcode::f64_tan as usize] = math::f64_tan;
-        //     handlers[Opcode::f64_asin as usize] = math::f64_asin;
-        //     handlers[Opcode::f64_acos as usize] = math::f64_acos;
-        //     handlers[Opcode::f64_atan as usize] = math::f64_atan;
-        //     handlers[Opcode::f64_copysign as usize] = math::f64_copysign;
-        //     handlers[Opcode::f64_pow as usize] = math::f64_pow;
-        //     handlers[Opcode::f64_log as usize] = math::f64_log;
-        //     handlers[Opcode::f64_min as usize] = math::f64_min;
-        //     handlers[Opcode::f64_max as usize] = math::f64_max;
-        //
+        // conversion
+        handlers[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
+        handlers[Opcode::extend_i32_s_to_i64 as usize] = conversion::extend_i32_s_to_i64;
+        handlers[Opcode::extend_i32_u_to_i64 as usize] = conversion::extend_i32_u_to_i64;
+        handlers[Opcode::demote_f64_to_f32 as usize] = conversion::demote_f64_to_f32;
+        handlers[Opcode::promote_f32_to_f64 as usize] = conversion::promote_f32_to_f64;
+        handlers[Opcode::convert_f32_to_i32_s as usize] = conversion::convert_f32_to_i32_s;
+        handlers[Opcode::convert_f32_to_i32_u as usize] = conversion::convert_f32_to_i32_u;
+        handlers[Opcode::convert_f64_to_i32_s as usize] = conversion::convert_f64_to_i32_s;
+        handlers[Opcode::convert_f64_to_i32_u as usize] = conversion::convert_f64_to_i32_u;
+        handlers[Opcode::convert_f32_to_i64_s as usize] = conversion::convert_f32_to_i64_s;
+        handlers[Opcode::convert_f32_to_i64_u as usize] = conversion::convert_f32_to_i64_u;
+        handlers[Opcode::convert_f64_to_i64_s as usize] = conversion::convert_f64_to_i64_s;
+        handlers[Opcode::convert_f64_to_i64_u as usize] = conversion::convert_f64_to_i64_u;
+        handlers[Opcode::convert_i32_s_to_f32 as usize] = conversion::convert_i32_s_to_f32;
+        handlers[Opcode::convert_i32_u_to_f32 as usize] = conversion::convert_i32_u_to_f32;
+        handlers[Opcode::convert_i64_s_to_f32 as usize] = conversion::convert_i64_s_to_f32;
+        handlers[Opcode::convert_i64_u_to_f32 as usize] = conversion::convert_i64_u_to_f32;
+        handlers[Opcode::convert_i32_s_to_f64 as usize] = conversion::convert_i32_s_to_f64;
+        handlers[Opcode::convert_i32_u_to_f64 as usize] = conversion::convert_i32_u_to_f64;
+        handlers[Opcode::convert_i64_s_to_f64 as usize] = conversion::convert_i64_s_to_f64;
+        handlers[Opcode::convert_i64_u_to_f64 as usize] = conversion::convert_i64_u_to_f64;
+
+        // comparison
+        handlers[Opcode::eqz_i32 as usize] = comparison::eqz_i32;
+        handlers[Opcode::nez_i32 as usize] = comparison::nez_i32;
+        handlers[Opcode::eq_i32 as usize] = comparison::eq_i32;
+        handlers[Opcode::ne_i32 as usize] = comparison::ne_i32;
+        handlers[Opcode::lt_i32_s as usize] = comparison::lt_i32_s;
+        handlers[Opcode::lt_i32_u as usize] = comparison::lt_i32_u;
+        handlers[Opcode::gt_i32_s as usize] = comparison::gt_i32_s;
+        handlers[Opcode::gt_i32_u as usize] = comparison::gt_i32_u;
+        handlers[Opcode::le_i32_s as usize] = comparison::le_i32_s;
+        handlers[Opcode::le_i32_u as usize] = comparison::le_i32_u;
+        handlers[Opcode::ge_i32_s as usize] = comparison::ge_i32_s;
+        handlers[Opcode::ge_i32_u as usize] = comparison::ge_i32_u;
+        handlers[Opcode::eqz_i64 as usize] = comparison::eqz_i64;
+        handlers[Opcode::nez_i64 as usize] = comparison::nez_i64;
+        handlers[Opcode::eq_i64 as usize] = comparison::eq_i64;
+        handlers[Opcode::ne_i64 as usize] = comparison::ne_i64;
+        handlers[Opcode::lt_i64_s as usize] = comparison::lt_i64_s;
+        handlers[Opcode::lt_i64_u as usize] = comparison::lt_i64_u;
+        handlers[Opcode::gt_i64_s as usize] = comparison::gt_i64_s;
+        handlers[Opcode::gt_i64_u as usize] = comparison::gt_i64_u;
+        handlers[Opcode::le_i64_s as usize] = comparison::le_i64_s;
+        handlers[Opcode::le_i64_u as usize] = comparison::le_i64_u;
+        handlers[Opcode::ge_i64_s as usize] = comparison::ge_i64_s;
+        handlers[Opcode::ge_i64_u as usize] = comparison::ge_i64_u;
+        handlers[Opcode::eq_f32 as usize] = comparison::eq_f32;
+        handlers[Opcode::ne_f32 as usize] = comparison::ne_f32;
+        handlers[Opcode::lt_f32 as usize] = comparison::lt_f32;
+        handlers[Opcode::gt_f32 as usize] = comparison::gt_f32;
+        handlers[Opcode::le_f32 as usize] = comparison::le_f32;
+        handlers[Opcode::ge_f32 as usize] = comparison::ge_f32;
+        handlers[Opcode::eq_f64 as usize] = comparison::eq_f64;
+        handlers[Opcode::ne_f64 as usize] = comparison::ne_f64;
+        handlers[Opcode::lt_f64 as usize] = comparison::lt_f64;
+        handlers[Opcode::gt_f64 as usize] = comparison::gt_f64;
+        handlers[Opcode::le_f64 as usize] = comparison::le_f64;
+        handlers[Opcode::ge_f64 as usize] = comparison::ge_f64;
+
+        // arithmetic i32
+        handlers[Opcode::add_i32 as usize] = arithmetic::add_i32;
+        handlers[Opcode::sub_i32 as usize] = arithmetic::sub_i32;
+        handlers[Opcode::add_imm_i32 as usize] = arithmetic::add_imm_i32;
+        handlers[Opcode::sub_imm_i32 as usize] = arithmetic::sub_imm_i32;
+        handlers[Opcode::mul_i32 as usize] = arithmetic::mul_i32;
+        handlers[Opcode::div_i32_s as usize] = arithmetic::div_i32_s;
+        handlers[Opcode::div_i32_u as usize] = arithmetic::div_i32_u;
+        handlers[Opcode::rem_i32_s as usize] = arithmetic::rem_i32_s;
+        handlers[Opcode::rem_i32_u as usize] = arithmetic::rem_i32_u;
+
+        // arithmetic i64
+        handlers[Opcode::add_i64 as usize] = arithmetic::add_i64;
+        handlers[Opcode::sub_i64 as usize] = arithmetic::sub_i64;
+        handlers[Opcode::add_imm_i64 as usize] = arithmetic::add_imm_i64;
+        handlers[Opcode::sub_imm_i64 as usize] = arithmetic::sub_imm_i64;
+        handlers[Opcode::mul_i64 as usize] = arithmetic::mul_i64;
+        handlers[Opcode::div_i64_s as usize] = arithmetic::div_i64_s;
+        handlers[Opcode::div_i64_u as usize] = arithmetic::div_i64_u;
+        handlers[Opcode::rem_i64_s as usize] = arithmetic::rem_i64_s;
+        handlers[Opcode::rem_i64_u as usize] = arithmetic::rem_i64_u;
+
+        // arithmetic f32 and f64
+        handlers[Opcode::add_f32 as usize] = arithmetic::add_f32;
+        handlers[Opcode::sub_f32 as usize] = arithmetic::sub_f32;
+        handlers[Opcode::mul_f32 as usize] = arithmetic::mul_f32;
+        handlers[Opcode::div_f32 as usize] = arithmetic::div_f32;
+        handlers[Opcode::add_f64 as usize] = arithmetic::add_f64;
+        handlers[Opcode::sub_f64 as usize] = arithmetic::sub_f64;
+        handlers[Opcode::mul_f64 as usize] = arithmetic::mul_f64;
+        handlers[Opcode::div_f64 as usize] = arithmetic::div_f64;
+
+        // bitwise
+        handlers[Opcode::and as usize] = bitwise::and;
+        handlers[Opcode::or as usize] = bitwise::or;
+        handlers[Opcode::xor as usize] = bitwise::xor;
+        handlers[Opcode::not as usize] = bitwise::not;
+        handlers[Opcode::count_leading_zeros_i32 as usize] = bitwise::count_leading_zeros_i32;
+        handlers[Opcode::count_leading_ones_i32 as usize] = bitwise::count_leading_ones_i32;
+        handlers[Opcode::count_trailing_zeros_i32 as usize] = bitwise::count_trailing_zeros_i32;
+        handlers[Opcode::count_ones_i32 as usize] = bitwise::count_ones_i32;
+        handlers[Opcode::shift_left_i32 as usize] = bitwise::shift_left_i32;
+        handlers[Opcode::shift_right_i32_s as usize] = bitwise::shift_right_i32_s;
+        handlers[Opcode::shift_right_i32_u as usize] = bitwise::shift_right_i32_u;
+        handlers[Opcode::rotate_left_i32 as usize] = bitwise::rotate_left_i32;
+        handlers[Opcode::rotate_right_i32 as usize] = bitwise::rotate_right_i32;
+        handlers[Opcode::count_leading_zeros_i64 as usize] = bitwise::count_leading_zeros_i64;
+        handlers[Opcode::count_leading_ones_i64 as usize] = bitwise::count_leading_ones_i64;
+        handlers[Opcode::count_trailing_zeros_i64 as usize] = bitwise::count_trailing_zeros_i64;
+        handlers[Opcode::count_ones_i64 as usize] = bitwise::count_ones_i64;
+        handlers[Opcode::shift_left_i64 as usize] = bitwise::shift_left_i64;
+        handlers[Opcode::shift_right_i64_s as usize] = bitwise::shift_right_i64_s;
+        handlers[Opcode::shift_right_i64_u as usize] = bitwise::shift_right_i64_u;
+        handlers[Opcode::rotate_left_i64 as usize] = bitwise::rotate_left_i64;
+        handlers[Opcode::rotate_right_i64 as usize] = bitwise::rotate_right_i64;
+
+        // math - int
+        handlers[Opcode::abs_i32 as usize] = math::abs_i32;
+        handlers[Opcode::neg_i32 as usize] = math::neg_i32;
+        handlers[Opcode::abs_i64 as usize] = math::abs_i64;
+        handlers[Opcode::neg_i64 as usize] = math::neg_i64;
+
+        // math - f32
+        handlers[Opcode::abs_f32 as usize] = math::abs_f32;
+        handlers[Opcode::neg_f32 as usize] = math::neg_f32;
+        handlers[Opcode::ceil_f32 as usize] = math::ceil_f32;
+        handlers[Opcode::floor_f32 as usize] = math::floor_f32;
+        handlers[Opcode::round_half_away_from_zero_f32 as usize] =
+            math::round_half_away_from_zero_f32;
+        handlers[Opcode::round_half_to_even_f32 as usize] = math::round_half_to_even_f32;
+        handlers[Opcode::trunc_f32 as usize] = math::trunc_f32;
+        handlers[Opcode::fract_f32 as usize] = math::fract_f32;
+        handlers[Opcode::sqrt_f32 as usize] = math::sqrt_f32;
+        handlers[Opcode::cbrt_f32 as usize] = math::cbrt_f32;
+        handlers[Opcode::exp_f32 as usize] = math::exp_f32;
+        handlers[Opcode::exp2_f32 as usize] = math::exp2_f32;
+        handlers[Opcode::ln_f32 as usize] = math::ln_f32;
+        handlers[Opcode::log2_f32 as usize] = math::log2_f32;
+        handlers[Opcode::log10_f32 as usize] = math::log10_f32;
+        handlers[Opcode::sin_f32 as usize] = math::sin_f32;
+        handlers[Opcode::cos_f32 as usize] = math::cos_f32;
+        handlers[Opcode::tan_f32 as usize] = math::tan_f32;
+        handlers[Opcode::asin_f32 as usize] = math::asin_f32;
+        handlers[Opcode::acos_f32 as usize] = math::acos_f32;
+        handlers[Opcode::atan_f32 as usize] = math::atan_f32;
+        handlers[Opcode::copysign_f32 as usize] = math::copysign_f32;
+        handlers[Opcode::pow_f32 as usize] = math::pow_f32;
+        handlers[Opcode::log_f32 as usize] = math::log_f32;
+        handlers[Opcode::min_f32 as usize] = math::min_f32;
+        handlers[Opcode::max_f32 as usize] = math::max_f32;
+
+        // math - f64
+        handlers[Opcode::abs_f64 as usize] = math::abs_f64;
+        handlers[Opcode::neg_f64 as usize] = math::neg_f64;
+        handlers[Opcode::ceil_f64 as usize] = math::ceil_f64;
+        handlers[Opcode::floor_f64 as usize] = math::floor_f64;
+        handlers[Opcode::round_half_away_from_zero_f64 as usize] =
+            math::round_half_away_from_zero_f64;
+        handlers[Opcode::round_half_to_even_f64 as usize] = math::round_half_to_even_f64;
+        handlers[Opcode::trunc_f64 as usize] = math::trunc_f64;
+        handlers[Opcode::fract_f64 as usize] = math::fract_f64;
+        handlers[Opcode::sqrt_f64 as usize] = math::sqrt_f64;
+        handlers[Opcode::cbrt_f64 as usize] = math::cbrt_f64;
+        handlers[Opcode::exp_f64 as usize] = math::exp_f64;
+        handlers[Opcode::exp2_f64 as usize] = math::exp2_f64;
+        handlers[Opcode::ln_f64 as usize] = math::ln_f64;
+        handlers[Opcode::log2_f64 as usize] = math::log2_f64;
+        handlers[Opcode::log10_f64 as usize] = math::log10_f64;
+        handlers[Opcode::sin_f64 as usize] = math::sin_f64;
+        handlers[Opcode::cos_f64 as usize] = math::cos_f64;
+        handlers[Opcode::tan_f64 as usize] = math::tan_f64;
+        handlers[Opcode::asin_f64 as usize] = math::asin_f64;
+        handlers[Opcode::acos_f64 as usize] = math::acos_f64;
+        handlers[Opcode::atan_f64 as usize] = math::atan_f64;
+        handlers[Opcode::copysign_f64 as usize] = math::copysign_f64;
+        handlers[Opcode::pow_f64 as usize] = math::pow_f64;
+        handlers[Opcode::log_f64 as usize] = math::log_f64;
+        handlers[Opcode::min_f64 as usize] = math::min_f64;
+        handlers[Opcode::max_f64 as usize] = math::max_f64;
+
         // control flow
         handlers[Opcode::end as usize] = control_flow::end;
         handlers[Opcode::block as usize] = control_flow::block;
@@ -408,27 +412,29 @@ impl Handler {
         handlers[Opcode::block_nez as usize] = control_flow::block_nez;
         handlers[Opcode::break_nez as usize] = control_flow::break_nez;
         handlers[Opcode::recur_nez as usize] = control_flow::recur_nez;
-        //
-        //     // function call
-        //     handlers[Opcode::call as usize] = funcall::call;
-        //     handlers[Opcode::dyncall as usize] = funcall::dyncall;
-        //     handlers[Opcode::envcall as usize] = envcall::envcall;
-        //     handlers[Opcode::syscall as usize] = syscall::syscall;
-        //     handlers[Opcode::extcall as usize] = extcall::extcall;
-        //
-        //     // host
-        //     handlers[Opcode::panic as usize] = host::panic;
-        //     handlers[Opcode::unreachable as usize] = host::unreachable;
-        //     handlers[Opcode::debug as usize] = host::debug;
-        //     handlers[Opcode::host_addr_local as usize] = host::host_addr_local;
-        //     handlers[Opcode::host_addr_local_offset as usize] = host::host_addr_local_offset;
-        //     handlers[Opcode::host_addr_data as usize] = host::host_addr_data;
-        //     handlers[Opcode::host_addr_data_offset as usize] = host::host_addr_data_offset;
-        //     handlers[Opcode::host_addr_heap as usize] = host::host_addr_heap;
-        //     handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
-        //     handlers[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;
-        //     handlers[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
-        //     handlers[Opcode::host_memory_copy as usize] = host::host_memory_copy;
+
+        // function call
+        handlers[Opcode::call as usize] = funcall::call;
+        handlers[Opcode::dyncall as usize] = funcall::dyncall;
+
+        // other calling
+        // handlers[Opcode::syscall as usize] = syscall::syscall;
+        // handlers[Opcode::envcall as usize] = envcall::envcall;
+        // handlers[Opcode::extcall as usize] = extcall::extcall;
+
+        // host
+        handlers[Opcode::panic as usize] = host::panic;
+        // handlers[Opcode::unreachable as usize] = host::unreachable;
+        // handlers[Opcode::debug as usize] = host::debug;
+        handlers[Opcode::host_addr_local as usize] = host::host_addr_local;
+        handlers[Opcode::host_addr_local_extend as usize] = host::host_addr_local_extend;
+        handlers[Opcode::host_addr_data as usize] = host::host_addr_data;
+        handlers[Opcode::host_addr_data_extend as usize] = host::host_addr_data_extend;
+        handlers[Opcode::host_addr_heap as usize] = host::host_addr_heap;
+        // handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
+        handlers[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;
+        handlers[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
+        handlers[Opcode::host_memory_copy as usize] = host::host_memory_copy;
 
         Handler { handlers }
     }

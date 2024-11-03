@@ -26,199 +26,199 @@ pub fn eq_i32(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-pub fn i32_ne(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_i32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn i32_lt_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn i32_lt_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn i32_gt_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn i32_gt_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn i32_le_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn i32_le_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn i32_ge_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn i32_ge_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn i64_eqz(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eqz_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     store_bool(thread_context, value == 0);
     HandleResult::Move(2)
 }
 
-pub fn i64_nez(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn nez_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     store_bool(thread_context, value != 0);
     HandleResult::Move(2)
 }
 
-pub fn i64_eq(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left == right);
     HandleResult::Move(2)
 }
 
-pub fn i64_ne(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn i64_lt_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn i64_lt_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn i64_gt_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn i64_gt_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn i64_le_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn i64_le_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn i64_ge_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn i64_ge_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn f32_eq(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left == right);
     HandleResult::Move(2)
 }
 
-pub fn f32_ne(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn f32_lt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn f32_gt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn f32_le(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn f32_ge(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn f64_eq(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left == right);
     HandleResult::Move(2)
 }
 
-pub fn f64_ne(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn f64_lt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn f64_gt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn f64_le(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn f64_ge(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
@@ -274,14 +274,16 @@ fn store_bool(thread_context: &mut ThreadContext, b: bool) {
 
 #[cfg(test)]
 mod tests {
-        use crate::{
+    use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
-    };
+
     use ancvm_context::resource::Resource;
-    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
+        utils::helper_build_module_binary_with_single_function,
+    };
+    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
     fn test_interpreter_comparison_i32() {
@@ -325,72 +327,77 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode(Opcode::nez_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::nez_i32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
             .append_opcode(Opcode::eq_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_ne)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+            .append_opcode(Opcode::ne_i32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eq_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_ne)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode(Opcode::ne_i32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode(Opcode::i32_lt_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode(Opcode::i32_lt_u)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode(Opcode::i32_gt_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 3)
-            .append_opcode(Opcode::i32_gt_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 3)
+            .append_opcode(Opcode::lt_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 3)
+            .append_opcode(Opcode::lt_i32_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 3)
+            .append_opcode(Opcode::gt_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 3)
+            .append_opcode(Opcode::gt_i32_u)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_le_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_le_u)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_le_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_le_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode(Opcode::le_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode(Opcode::le_i32_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode(Opcode::le_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode(Opcode::le_i32_u)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_ge_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 2)
-            .append_opcode(Opcode::i32_ge_u)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_ge_s)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_ge_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 2)
+            .append_opcode(Opcode::ge_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+            .append_opcode(Opcode::ge_i32_u)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode(Opcode::ge_i32_s)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode(Opcode::ge_i32_u)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // params
+            vec![
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+            ], // params
             vec![
                 // group 0
                 OperandDataType::I32,
@@ -418,15 +425,17 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                                           // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -512,71 +521,76 @@ mod tests {
         let code0 = BytecodeWriterHelper::new()
             // group 0
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode(Opcode::i64_eqz)
+            .append_opcode(Opcode::eqz_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_eqz)
+            .append_opcode(Opcode::eqz_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode(Opcode::i64_nez)
+            .append_opcode(Opcode::nez_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_nez)
+            .append_opcode(Opcode::nez_i64)
             // group 1
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_eq)
+            .append_opcode(Opcode::eq_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_ne)
+            .append_opcode(Opcode::ne_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_eq)
+            .append_opcode(Opcode::eq_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_ne)
+            .append_opcode(Opcode::ne_i64)
             // group 2
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
-            .append_opcode(Opcode::i64_lt_s)
+            .append_opcode(Opcode::lt_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
-            .append_opcode(Opcode::i64_lt_u)
+            .append_opcode(Opcode::lt_i64_u)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
-            .append_opcode(Opcode::i64_gt_s)
+            .append_opcode(Opcode::gt_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 3)
-            .append_opcode(Opcode::i64_gt_u)
+            .append_opcode(Opcode::gt_i64_u)
             // group 3
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_le_s)
+            .append_opcode(Opcode::le_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_le_u)
+            .append_opcode(Opcode::le_i64_u)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_le_s)
+            .append_opcode(Opcode::le_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_le_u)
+            .append_opcode(Opcode::le_i64_u)
             // group 4
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_ge_s)
+            .append_opcode(Opcode::ge_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 2)
-            .append_opcode(Opcode::i64_ge_u)
+            .append_opcode(Opcode::ge_i64_u)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_ge_s)
+            .append_opcode(Opcode::ge_i64_s)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_ge_u)
+            .append_opcode(Opcode::ge_i64_u)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I64, OperandDataType::I64, OperandDataType::I64, OperandDataType::I64], // params
+            vec![
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // params
             vec![
                 // group 0
                 OperandDataType::I32,
@@ -604,15 +618,17 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                                           // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -685,50 +701,50 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_eq)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_ne)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_eq)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_ne)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::eq_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::ne_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::eq_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::ne_f32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_gt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_gt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_gt)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::lt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::lt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::lt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::gt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::gt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::gt_f32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_le)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_le)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_ge)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_ge)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::le_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::le_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::ge_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::ge_f32)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -754,22 +770,21 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                             // local vars
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
-            &[
-                ForeignValue::F32(1.414f32),
-                ForeignValue::F32(1.732f32),
-            ],
+            &[ForeignValue::F32(1.414f32), ForeignValue::F32(1.732f32)],
         );
         assert_eq!(
             result0.unwrap(),
@@ -825,50 +840,50 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_eq)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_ne)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_eq)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_ne)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::eq_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::ne_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::eq_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::ne_f64)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_lt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_gt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_gt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_gt)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::lt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::lt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::lt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::gt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::gt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::gt_f64)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_le)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_le)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_ge)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_ge)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::le_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::le_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::ge_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::ge_f64)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -894,22 +909,21 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                             // local vars
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
-            &[
-                ForeignValue::F64(1.414f64),
-                ForeignValue::F64(1.732f64),
-            ],
+            &[ForeignValue::F64(1.414f64), ForeignValue::F64(1.732f64)],
         );
         assert_eq!(
             result0.unwrap(),

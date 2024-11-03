@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 // a module consists of two parts, data and code (i.e., instructions), which
-// are spread out in the following sections:
+// are spread out in the several sections:
 //
 // - type section
 //   the signature of a function, the types are also applied to the code blocks and external functions.
@@ -13,12 +13,12 @@
 //   a function is consists of a type, a local variable list, and instructions
 // - function section
 // - data sections
-//   there are 3 kinds of data sections:
+//   there are 3 kinds of data section:
 //   - read-only
 //   - read-write
-//   - uninit(ialized)
+//   - uninit(uninitialized)
 //   all data are thread-local, so the read-write section will be cloned and the
-//   uninitialized section will be allocated when a new thread is created.
+//   uninitialized section will be re-allocated when a new thread is created.
 // - import module section
 // - import function section
 // - import data section
@@ -26,59 +26,74 @@
 // - data name section
 // - external library section
 // - external function section
-
-// a simple module requires only 3 sections:
+// - common property section
+//
+// a minimal module requires only 4 sections:
 //
 // - type section
 // - local variable section
 // - function section
+// - common property section
 //
-// and there are optional sections:
+// data sections are optional:
+//
 // - read-only data section
 // - read-write data section
 // - uninitialized data section
 //
-// the following sections are not required during the runtime,
-// they are used for debuging and linking.
+// other sections are not required during the runtime,
+// they are used for debug and linking:
 //
+// - function name section
+// - data name section
 // - import module section
 // - import function section
 // - import data section
-// - function name section
-// - data name section
 // - external library section
 // - external function section
+//
+// note that when the 'bridge function' feature is enable, the
+// function name section and data name section are required.
 
-// in the stage of linking modules (which follows the stage compiling), all imports and exports
-// are resolved and stored the indices in the following sections:
+// an application is consisted of one or more modules,
+// the main module and other modules will be linked,
+// all imports data and functions are resolved and
+// stored in the following sections:
 //
 // - function index section
-// - data index section (optional)
-// - unified external library section (optional)
-// - unified external functon section (optional)
-// - external function index section (optional)
+// - index property section
 //
-// these sections help speeding up the program loading,
-// note that only the application module contains these sections.
+// there are also several optional sections:
+//
+// - data index section
+// - external function index section
+// - unified external library section
+// - unified external functon section
 
-// about the design of module:
+// the design of module
+// --------------------
 //
-// the loading and startup of XiaoXuan modules are extremely fast, because:
-// - there is no parsing process and zero-copy, the loading process actually does only two things: maps
-//   the module image file into memory, and locates the start and end positions of echo
-//   sections.
-// - instructions are executed directly on the (binary) bytecode and all sores of indices of the module.
+// the loading and startup of XiaoXuan Core modules are extremely fast, because:
+// - there is no parsing process and copy overhead, the loading process actually does only two things:
+//   maps the module image file into memory, and
+//   locates the start and end positions of each sections.
+// - instructions are executed directly on the bytecode.
 //
-// these allow the XiaoXuan applications to have almost no startup delay time.
+// these allow the XiaoXuan Core applications to have almost no startup delay time.
 //
-// since XiaoXuan application starts up almost instantly, it is suitable for
-// using as 'function' in other applications or scripts.
+// since XiaoXuan Core application starts up almost instantly, it is suitable for
+// using as 'function' in other applications.
 
-// the data type of image section fields:
+// the data type of image section fields
+// -------------------------------------
 //
-// - u8: data type, data section type, module share type
-// - u16: 'local variables' and 'data' store/load offset, data align, block break/recur skip depth, params count, results count
-// - u32: section id, syscall number, env call number
+// - u8
+//   data type, data section type, module share type
+// - u16
+//   'local variables' and 'data' store/load offset, data align,
+//   block break/recur skip depth, params count, results count
+// - u32
+//   section id, syscall number, env call number,
 //   module index, function type index, data index, local (variable list) index,
 //   function index, dynamic function index, c function index
 
@@ -86,6 +101,7 @@ use ancvm_isa::{IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMA
 
 use crate::{
     common_sections::{
+        common_property_section::CommonPropertySection,
         data_name_section::DataNameSection,
         data_section::{ReadOnlyDataSection, ReadWriteDataSection, UninitDataSection},
         external_function_section::ExternalFunctionSection,
@@ -101,7 +117,7 @@ use crate::{
     index_sections::{
         data_index_section::DataIndexSection,
         external_function_index_section::ExternalFunctionIndexSection,
-        function_index_section::FunctionIndexSection, property_section::PropertySection,
+        function_index_section::FunctionIndexSection, index_property_section::IndexPropertySection,
         unified_external_function_section::UnifiedExternalFunctionSection,
         unified_external_library_section::UnifiedExternalLibrarySection,
     },
@@ -161,41 +177,45 @@ impl ModuleSectionItem {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleSectionId {
     // essential
-    Type = 0x10,   // 0x10
-    LocalVariable, // 0x11
-    Function,      // 0x12
+    Type = 0x0010,  // 0x10
+    LocalVariable,  // 0x11
+    Function,       // 0x12
+    CommonProperty, // 0x13
 
     // optional
-    ReadOnlyData = 0x20, // 0x20
-    ReadWriteData,       // 0x21
-    UninitData,          // 0x22
+    ReadOnlyData = 0x0020, // 0x20
+    ReadWriteData,         // 0x21
+    UninitData,            // 0x22
 
-    // optional (for debug and link only)
+    // optional (for debug and linking)
     //
     // if the feature 'bridge function' is required (i.e.,
-    // embed the XiaoXuan Core VM in a C or Rust applicaton,
-    // and then call XiaoXuan Core VM functions from application) ,
+    // embed the XiaoXuan Core VM in another Rust applicaton) ,
     // the section 'FunctionName' and 'DataName' are required also.
-    ImportModule = 0x30, // 0x30
-    ImportFunction,      // 0x31
-    ImportData,          // 0x32
-    FunctionName,        // 0x33
-    DataName,            // 0x34
-    ExternalLibrary,     // 0x35
-    ExternalFunction,    // 0x36
+    FunctionName = 0x0030, // 0x30
+    DataName,              // 0x31
+
+    // optional (for debug and linking)
+    ImportModule = 0x0040, // 0x40
+    ImportFunction,        // 0x41
+    ImportData,            // 0x42
+    ExternalLibrary,       // 0x43
+    ExternalFunction,      // 0x43
 
     // essential (application only)
-    FunctionIndex = 0x40, // 0x40
-    Property,             // 0x41
+    FunctionIndex = 0x0080, // 0x80
+    IndexProperty,          // 0x81
 
     // optional (application only)
-    DataIndex = 0x50,        // 0x50
-    UnifiedExternalLibrary,  // 0x51
-    UnifiedExternalFunction, // 0x52
-    ExternalFunctionIndex,   // 0x53
+    DataIndex = 0x0090,      // 0x90
+    UnifiedExternalLibrary,  // 0x91
+    UnifiedExternalFunction, // 0x92
 
-                             // the section ExternalFunctionIndex is used for mapping
-                             // 'external function' to 'unified external function')
+    // the section ExternalFunctionIndex is used for mapping
+    // 'external function' to 'unified external function')
+    ExternalFunctionIndex, // 0x93
+
+    ImageIndex = 0x00a0, // 0xa0
 }
 
 // `RangeItem` is used for data index section and function index section
@@ -387,6 +407,15 @@ impl<'a> ModuleImage<'a> {
             )
     }
 
+    // essential section
+    pub fn get_common_property_section(&'a self) -> CommonPropertySection {
+        self.get_section_data_by_id(ModuleSectionId::CommonProperty)
+            .map_or_else(
+                || panic!("Can not find the common property section."),
+                CommonPropertySection::load,
+            )
+    }
+
     // essential section (application only)
     pub fn get_function_index_section(&'a self) -> FunctionIndexSection<'a> {
         self.get_section_data_by_id(ModuleSectionId::FunctionIndex)
@@ -397,11 +426,11 @@ impl<'a> ModuleImage<'a> {
     }
 
     // essential section (application only)
-    pub fn get_property_section(&'a self) -> PropertySection {
-        self.get_section_data_by_id(ModuleSectionId::Property)
+    pub fn get_index_property_section(&'a self) -> IndexPropertySection {
+        self.get_section_data_by_id(ModuleSectionId::IndexProperty)
             .map_or_else(
-                || panic!("Can not find the property section."),
-                PropertySection::load,
+                || panic!("Can not find the index property section."),
+                IndexPropertySection::load,
             )
     }
 
@@ -502,18 +531,16 @@ mod tests {
 
     use crate::{
         common_sections::{
+            common_property_section::CommonPropertySection,
             function_section::FunctionSection,
             local_variable_section::{LocalVariableItem, LocalVariableSection},
             type_section::TypeSection,
         },
         entry::{
-            FunctionEntry, FunctionIndexEntry, FunctionIndexListEntry, LocalListEntry,
-            LocalVariableEntry, TypeEntry,
+            FunctionEntry, FunctionIndexEntry, FunctionIndexListEntry, LocalVariableEntry,
+            LocalVariableListEntry, TypeEntry,
         },
-        index_sections::{
-            function_index_section::{FunctionIndexItem, FunctionIndexSection},
-            property_section::PropertySection,
-        },
+        index_sections::function_index_section::{FunctionIndexItem, FunctionIndexSection},
         module_image::{
             ModuleImage, RangeItem, SectionEntry, IMAGE_FILE_MAGIC_NUMBER, MODULE_HEADER_LENGTH,
             MODULE_NAME_BUFFER_LENGTH,
@@ -564,18 +591,18 @@ mod tests {
 
         // build LocalVariableSection instance
         // note: arbitrary local variables
-        let local_list_entries = vec![
-            LocalListEntry::new(vec![
+        let local_variable_list_entries = vec![
+            LocalVariableListEntry::new(vec![
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i64(),
             ]),
-            LocalListEntry::new(vec![LocalVariableEntry::from_bytes(12, 4)]),
+            LocalVariableListEntry::new(vec![LocalVariableEntry::from_raw(12, 4)]),
         ];
 
-        let (local_lists, local_list_data) =
-            LocalVariableSection::convert_from_entries(&local_list_entries);
-        let local_var_section = LocalVariableSection {
-            lists: &local_lists,
+        let (local_variable_list_items, local_list_data) =
+            LocalVariableSection::convert_from_entries(&local_variable_list_entries);
+        let local_variable_section = LocalVariableSection {
+            list_items: &local_variable_list_items,
             list_data: &local_list_data,
         };
 
@@ -597,18 +624,17 @@ mod tests {
             items: &function_index_items,
         };
 
-        // build property section
+        // build common property section
         let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
         module_name_buffer[0] = 29;
         module_name_buffer[1] = 31;
         module_name_buffer[2] = 37;
 
-        let property_section = PropertySection {
-            runtime_major_version: 11,
-            runtime_minor_version: 13,
-            entry_function_public_index: 17,
-            constructor_function_public_index: 19,
-            destructor_function_public_index: 23,
+        let common_property_section = CommonPropertySection {
+            constructor_function_public_index: 11,
+            destructor_function_public_index: 13,
+            import_data_count: 17,
+            import_function_count: 19,
             module_name_length: 3,
             module_name_buffer,
         };
@@ -617,9 +643,9 @@ mod tests {
         let section_entries: Vec<&dyn SectionEntry> = vec![
             &type_section,
             &function_section,
-            &local_var_section,
+            &local_variable_section,
             &function_index_section,
-            &property_section,
+            &common_property_section,
         ];
 
         let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
@@ -655,7 +681,7 @@ mod tests {
                 0, 0, 0, 0, // offset 0
                 36, 0, 0, 0, // length 0
                 //
-                0x12, 0, 0, 0, // section id, func section
+                0x12, 0, 0, 0, // section id, function section
                 36, 0, 0, 0, // offset 1
                 52, 0, 0, 0, // length 1
                 //
@@ -663,11 +689,11 @@ mod tests {
                 88, 0, 0, 0, // offset 2
                 68, 0, 0, 0, // length 2
                 //
-                0x40, 0, 0, 0, // section id, func index section
+                0x80, 0, 0, 0, // section id, function index section
                 156, 0, 0, 0, // offset 3
                 60, 0, 0, 0, // length 3
                 //
-                0x41, 0, 0, 0, // section id, property section
+                0x13, 0, 0, 0, // section id, property section
                 216, 0, 0, 0, // offset 6,
                 20, 1, 0, 0 // length 256 + 20
             ]
@@ -706,12 +732,12 @@ mod tests {
                 //
                 0, 0, 0, 0, // code offset 0
                 5, 0, 0, 0, // code len 0
-                2, 0, 0, 0, // func type index 0
+                2, 0, 0, 0, // function type index 0
                 3, 0, 0, 0, // local variable index 0
                 //
                 5, 0, 0, 0, // code offset 1
                 6, 0, 0, 0, // code len 1
-                5, 0, 0, 0, // func type index 1
+                5, 0, 0, 0, // function type index 1
                 7, 0, 0, 0, // local variable index 1
                 //
                 1, 2, 3, 5, 7, // code 0
@@ -721,9 +747,9 @@ mod tests {
             ]
         );
 
-        let (local_var_section_data, remains) = remains.split_at(68);
+        let (local_variable_section_data, remains) = remains.split_at(68);
         assert_eq!(
-            local_var_section_data,
+            local_variable_section_data,
             &[
                 // header
                 2, 0, 0, 0, // item count
@@ -773,27 +799,27 @@ mod tests {
                 2, 0, 0, 0, // offset 1
                 1, 0, 0, 0, // count 1
                 /* table 1 - module 0 */
-                0, 0, 0, 0, // func idx 0
+                0, 0, 0, 0, // function idx 0
                 1, 0, 0, 0, // target module idx 0
-                3, 0, 0, 0, // target func idx 0
-                1, 0, 0, 0, // func idx 1
+                3, 0, 0, 0, // target function idx 0
+                1, 0, 0, 0, // function idx 1
                 5, 0, 0, 0, // target module idx 1
-                7, 0, 0, 0, // target func idx 1
+                7, 0, 0, 0, // target function idx 1
                 /* table 1 - module 0 */
-                0, 0, 0, 0, // func idx 0
+                0, 0, 0, 0, // function idx 0
                 11, 0, 0, 0, // target module idx 0
-                13, 0, 0, 0, // target func idx 0
+                13, 0, 0, 0, // target function idx 0
             ]
         );
 
+        // common property
         assert_eq!(
             &remains[..20],
             &[
-                11, 0, // runtime major version
-                13, 0, // runtime minor version
-                17, 0, 0, 0, // entry function public index
-                19, 0, 0, 0, // constructor function public index
-                23, 0, 0, 0, // destructor function public index
+                11, 0, 0, 0, // constructor function public index
+                13, 0, 0, 0, // destructor function public index
+                17, 0, 0, 0, // import_data_count
+                19, 0, 0, 0, // import_function_count
                 3, 0, 0, 0, // name length
             ]
         );
@@ -802,8 +828,7 @@ mod tests {
         let module_image_restore = ModuleImage::load(&image_data).unwrap();
         assert_eq!(module_image_restore.items.len(), 5);
 
-        // check type
-
+        // check type section
         let type_section_restore = module_image_restore.get_type_section();
         assert_eq!(type_section_restore.items.len(), 2);
 
@@ -820,8 +845,7 @@ mod tests {
             ([].as_ref(), vec![OperandDataType::F64].as_ref(),)
         );
 
-        // check func
-
+        // check function section
         let function_section_restore = module_image_restore.get_function_section();
         assert_eq!(function_section_restore.items.len(), 2);
 
@@ -835,13 +859,12 @@ mod tests {
             (5, 7, vec![11u8, 13, 17, 19, 23, 29].as_ref(),)
         );
 
-        // check local vars
-
-        let local_var_section_restore = module_image_restore.get_local_variable_section();
-        assert_eq!(local_var_section_restore.lists.len(), 2);
+        // check local variable section
+        let local_variable_section_restore = module_image_restore.get_local_variable_section();
+        assert_eq!(local_variable_section_restore.list_items.len(), 2);
 
         assert_eq!(
-            local_var_section_restore.get_local_list(0),
+            local_variable_section_restore.get_local_list(0),
             &[
                 LocalVariableItem::new(0, 4, MemoryDataType::I32, 4),
                 LocalVariableItem::new(8, 8, MemoryDataType::I64, 8),
@@ -849,10 +872,11 @@ mod tests {
         );
 
         assert_eq!(
-            local_var_section_restore.get_local_list(1),
+            local_variable_section_restore.get_local_list(1),
             &[LocalVariableItem::new(0, 12, MemoryDataType::Raw, 4),]
         );
 
+        // check function index section
         let function_index_section_restore = module_image_restore.get_function_index_section();
 
         assert_eq!(function_index_section_restore.ranges.len(), 2);
@@ -881,21 +905,20 @@ mod tests {
         );
 
         // check property section
-        let property_section_restore = module_image_restore.get_property_section();
-        assert_eq!(property_section_restore.runtime_major_version, 11);
-        assert_eq!(property_section_restore.runtime_minor_version, 13);
-        assert_eq!(property_section_restore.entry_function_public_index, 17);
+        let common_property_section_restore = module_image_restore.get_common_property_section();
         assert_eq!(
-            property_section_restore.constructor_function_public_index,
-            19
+            common_property_section_restore.constructor_function_public_index,
+            11
         );
         assert_eq!(
-            property_section_restore.destructor_function_public_index,
-            23
+            common_property_section_restore.destructor_function_public_index,
+            13
         );
-        assert_eq!(property_section_restore.module_name_length, 3);
+        assert_eq!(common_property_section_restore.import_data_count, 17);
+        assert_eq!(common_property_section_restore.import_function_count, 19);
+        assert_eq!(common_property_section_restore.module_name_length, 3);
         assert_eq!(
-            property_section_restore.module_name_buffer[..3],
+            common_property_section_restore.module_name_buffer[..3],
             [29, 31, 37]
         );
     }

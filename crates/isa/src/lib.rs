@@ -274,24 +274,58 @@ impl ForeignValue {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ModuleShareType {
-    User = 0x0, // from local file system
-    Share,  // from the user share
-    Runtime, // from the runtime
+    // module from local file system, e.g. `~/myprojects/hello`
+    // it's also possible a remote GIT resource, e.g.
+    // {url:`https://github.com/hemashushu/xiaoxuan-core-vm.git`, commit="...", path="..."}
+    // the remote resource will be download first and cached in a local folder.
+    // the user specified module path can be multiple, e.g.
+    // [local_file_folder1, local_file_folder2, remote_1, remote_2, ...]
+    // the value of this type is `[(LOCAL|REMOTE), ...]`
+    User = 0x0,
+
+    // module from the user share repository, e.g.
+    // `{/usr/lib, ~/.local/lib}/anc/VER/modules/modname/VER`
+    // it can be multiple pathes.
+    // the value of this type is `{NAME, VER}`
+    Share,
+
+    // module from the runtime, e.g.
+    // `{/usr/lib, C:/Program Fiels}/anc/VER/modules/modname/VER`
+    // the value of this type is `{NAME, VER}`
+    Runtime,
 }
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ExternalLibraryType {
-    User = 0x0, // from the project
-    Share,  // from the user share
-    Runtime, // from the runtime
-    System, // from system
+    // library from the local file system, e.g. `~/myprojects/workd/lib/libworld.so`
+    // it's also possible a remote GIT resource, e.g.
+    // {url:`https://github.com/hemashushu/xiaoxuan-core-vm.git`, commit="...", path="..."}
+    // the remote resource will be download first and cached in a local folder.
+    // the user specified module path can be multiple, e.g.
+    // [local_file_folder1, local_file_folder2, remote_1, remote_2, ...]
+    // the value of this type is `[(LOCAL|REMOTE), ...]`
+    User = 0x0,
+
+    // library from the user share repository, e.g.
+    // `{/usr/lib, ~/.local/lib, C:/Program Data}/anc/VER/libraries/libname/VER/libfile.so`
+    // the value of this type is `{NAME, VER}`
+    Share,
+
+    // library from the runtime, e.g.
+    // `{/usr/lib, C:/Program Fiels}/anc/VER/libraries/libname/VER/libfile.so`
+    // the value of this type is `{NAME, VER}`
+    Runtime,
+
+    // library from system
+    // the value of this type is `{NAME}`
+    System,
 }
 
 impl Display for ExternalLibraryType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExternalLibraryType::User => f.write_str("user"),
+            ExternalLibraryType::User => f.write_str("file"),
             ExternalLibraryType::Share => f.write_str("share"),
             ExternalLibraryType::Runtime => f.write_str("runtime"),
             ExternalLibraryType::System => f.write_str("system"),

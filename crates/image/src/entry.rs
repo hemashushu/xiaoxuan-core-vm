@@ -1,26 +1,30 @@
-// Copyright (c) 2023 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+
+//! Entries are used to simplify the creation and parsing of
+//! sections.
+//!
+//! Sections are based on binary, and Entries are based
+//! on general data types. Compiler and unit tests
+//! access Sections through Entries, but Entries are not need
+//! at runtime, which accesses the binary image directly.
 
 use ancvm_isa::{
     DataSectionType, EffectiveVersion, ExternalLibraryType, MemoryDataType, ModuleShareType,
     OperandDataType,
 };
 
-// `Entry` are used to build sections in a simplier way.
-
 #[derive(Debug)]
 pub struct CommonEntry {
     pub name: String,
     pub runtime_version: EffectiveVersion,
-
     pub import_read_only_data_count: usize,
     pub import_read_write_data_count: usize,
     pub import_uninit_data_count: usize,
     pub import_function_count: usize,
-
     pub constructor_function_public_index: Option<u32>,
     pub destructor_function_public_index: Option<u32>,
 
@@ -29,7 +33,7 @@ pub struct CommonEntry {
     pub uninit_data_entries: Vec<UninitDataEntry>,
 
     pub type_entries: Vec<TypeEntry>,
-    pub local_list_entries: Vec<LocalListEntry>,
+    pub local_list_entries: Vec<LocalVariableListEntry>,
     pub function_entries: Vec<FunctionEntry>,
 
     pub external_library_entries: Vec<ExternalLibraryEntry>,
@@ -44,11 +48,11 @@ pub struct CommonEntry {
     pub import_function_entries: Vec<ImportFunctionEntry>,
     pub import_data_entries: Vec<ImportDataEntry>,
 
-    // by default, the name entries only contain the internal functions,
+    // the name entries only contain the internal functions,
     // and the value of 'index' is the 'function public index'.
     pub function_name_entries: Vec<FunctionNameEntry>,
 
-    // by default, the name entries only contain the internal data items,
+    // the name entries only contain the internal data items,
     // and the value of 'index' is the 'data public index'.
     pub data_name_entries: Vec<DataNameEntry>,
 }
@@ -57,10 +61,10 @@ pub struct CommonEntry {
 #[derive(Debug)]
 pub struct IndexEntry {
     // essential
-    pub function_index_lists: Vec<FunctionIndexListEntry>,
+    pub entry_function_public_index: u32,
 
     // essential
-    pub entry_function_public_index: u32,
+    pub function_index_lists: Vec<FunctionIndexListEntry>,
 
     // optional
     pub data_index_lists: Vec<DataIndexListEntry>,
@@ -79,11 +83,11 @@ pub struct TypeEntry {
 
 // both function and block can contains a 'local variables list'
 #[derive(Debug, PartialEq, Clone)]
-pub struct LocalListEntry {
+pub struct LocalVariableListEntry {
     pub local_variable_entries: Vec<LocalVariableEntry>,
 }
 
-impl LocalListEntry {
+impl LocalVariableListEntry {
     pub fn new(local_variable_entries: Vec<LocalVariableEntry>) -> Self {
         Self {
             local_variable_entries,
@@ -134,7 +138,7 @@ impl LocalVariableEntry {
         }
     }
 
-    pub fn from_bytes(length: u32, align: u16) -> Self {
+    pub fn from_raw(length: u32, align: u16) -> Self {
         Self {
             memory_data_type: MemoryDataType::Raw,
             length,
@@ -210,7 +214,7 @@ impl InitedDataEntry {
         }
     }
 
-    pub fn from_bytes(data: Vec<u8>, align: u16) -> Self {
+    pub fn from_raw(data: Vec<u8>, align: u16) -> Self {
         let length = data.len() as u32;
 
         Self {
@@ -262,7 +266,7 @@ impl UninitDataEntry {
         }
     }
 
-    pub fn from_bytes(length: u32, align: u16) -> Self {
+    pub fn from_raw(length: u32, align: u16) -> Self {
         Self {
             memory_data_type: MemoryDataType::Raw,
             length,
@@ -386,15 +390,15 @@ pub struct FunctionNameEntry {
     // the name path of functon 'add' in module 'myapp' is 'add',
     // the name path of function 'add' in submodule 'myapp:utils' is 'utils::add'.
     pub name_path: String,
-    pub function_public_index: usize, // todo REDUNDENT
+    // pub function_public_index: usize, // this field is used for bridge function call
     pub export: bool,
 }
 
 impl FunctionNameEntry {
-    pub fn new(name_path: String, function_public_index: usize, export: bool) -> Self {
+    pub fn new(name_path: String, /* function_public_index: usize,*/ export: bool) -> Self {
         Self {
             name_path,
-            function_public_index,
+            // function_public_index,
             export,
         }
     }
@@ -409,15 +413,15 @@ pub struct DataNameEntry {
     // the name path of data 'buf' in module 'myapp' is 'buf',
     // the name path of data 'buf' in submodule 'myapp:utils' is 'utils::buf'.
     pub name_path: String,
-    pub data_public_index: usize, // todo REDUNDENT
+    // pub data_public_index: usize, // this field is used for bridge function call
     pub export: bool,
 }
 
 impl DataNameEntry {
-    pub fn new(name_path: String, data_public_index: usize, export: bool) -> Self {
+    pub fn new(name_path: String, /* data_public_index: usize, */ export: bool) -> Self {
         Self {
             name_path,
-            data_public_index,
+            // data_public_index,
             export,
         }
     }

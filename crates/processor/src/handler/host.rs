@@ -41,26 +41,25 @@
 
 use ancvm_context::{memory::Memory, thread_context::ThreadContext};
 
-use crate::delegate::build_callback_function;
-
 use super::HandleResult;
 
-pub fn panic(_thread: &mut ThreadContext) -> HandleResult {
-    HandleResult::Panic
+pub fn panic(thread: &mut ThreadContext) -> HandleResult {
+    let code = thread.get_param_i32();
+    HandleResult::Panic(code)
 }
 
-pub fn unreachable(thread: &mut ThreadContext) -> HandleResult {
-    let code = thread.get_param_i32();
-    HandleResult::Unreachable(code)
-}
-
-pub fn debug(thread: &mut ThreadContext) -> HandleResult {
-    let code = thread.get_param_i32();
-    HandleResult::Debug(code)
-}
+// pub fn unreachable(thread: &mut ThreadContext) -> HandleResult {
+//     let code = thread.get_param_i32();
+//     HandleResult::Unreachable(code)
+// }
+//
+// pub fn debug(thread: &mut ThreadContext) -> HandleResult {
+//     let code = thread.get_param_i32();
+//     HandleResult::Debug(code)
+// }
 
 pub fn host_addr_local(thread_context: &mut ThreadContext) -> HandleResult {
-    // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16)
+    // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
     do_host_addr_local(
@@ -71,8 +70,8 @@ pub fn host_addr_local(thread_context: &mut ThreadContext) -> HandleResult {
     )
 }
 
-pub fn host_addr_local_offset(thread_context: &mut ThreadContext) -> HandleResult {
-    // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
+pub fn host_addr_local_extend(thread_context: &mut ThreadContext) -> HandleResult {
+    // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32) -> i64
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_host_addr_local(
@@ -102,7 +101,7 @@ fn do_host_addr_local(
 }
 
 pub fn host_addr_data(thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16 data_public_index:i32)
+    // (param offset_bytes:i16 data_public_index:i32) -> i64
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_host_addr_data(
         thread_context,
@@ -111,8 +110,8 @@ pub fn host_addr_data(thread_context: &mut ThreadContext) -> HandleResult {
     )
 }
 
-pub fn host_addr_data_offset(thread_context: &mut ThreadContext) -> HandleResult {
-    // (param data_public_index:i32) (operand offset_bytes:i32)
+pub fn host_addr_data_extend(thread_context: &mut ThreadContext) -> HandleResult {
+    // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_host_addr_data(
@@ -142,14 +141,14 @@ fn do_host_addr_data(
 }
 
 pub fn host_addr_heap(thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64)
-    let offset_bytes = thread_context.get_param_i16();
+    // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
+    let offset_bytes = thread_context.get_param_i32();
     let heap_address = thread_context.stack.pop_i64_u();
 
     let total_offset = heap_address as usize + offset_bytes as usize;
     let ptr = thread_context.heap.get_ptr(total_offset);
     store_pointer_to_operand_stack(thread_context, ptr);
-    HandleResult::Move(4)
+    HandleResult::Move(8)
 }
 
 pub fn host_copy_heap_to_memory(thread_context: &mut ThreadContext) -> HandleResult {
@@ -225,6 +224,7 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
     }
 }
 
+/*
 pub fn host_addr_function(thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> i64/i32
 
@@ -240,30 +240,25 @@ pub fn host_addr_function(thread_context: &mut ThreadContext) -> HandleResult {
         HandleResult::Panic
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {
-
-    use ancvm_binary::{
+    use ancvm_context::resource::Resource;
+    use ancvm_image::{
         bytecode_reader::format_bytecode_as_text,
-        bytecode_writer::BytecodeWriter,
+        bytecode_writer::BytecodeWriterHelper,
+        entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
         utils::{
-            helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
             helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
+    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        in_memory_program_resource::InMemoryProgramResource, interpreter::process_function,
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
         InterpreterError, InterpreterErrorType,
-    };
-    use ancvm_context::{program_resource::ProgramResource, environment::ProgramSettings};
-    use ancvm_isa::{
-        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
-        opcode::Opcode,
-        OperandDataType, ExternalLibraryType, ForeignValue,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
@@ -337,34 +332,35 @@ mod tests {
     #[test]
     fn test_interpreter_host_panic() {
         // () -> ()
-
         let code0 = BytecodeWriterHelper::new()
             .append_opcode(Opcode::nop)
-            .append_opcode(Opcode::panic)
+            .append_opcode_i32(Opcode::panic, 0x101)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
 
         assert!(matches!(
             result0,
             Err(InterpreterError {
-                error_type: InterpreterErrorType::Panic
+                error_type: InterpreterErrorType::Panic(0x101)
             })
         ));
     }
 
+    /*
     #[test]
     fn test_interpreter_host_debug() {
         // () -> ()
@@ -378,7 +374,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
@@ -409,7 +405,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![], // params
             vec![], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
@@ -426,9 +422,10 @@ mod tests {
             })
         ));
     }
+    */
 
     #[test]
-    fn test_interpreter_host_address_of_data_and_local_vars() {
+    fn test_interpreter_host_address_of_data_and_local_variables() {
         //        read-only data section
         //        ======================
         //
@@ -476,53 +473,53 @@ mod tests {
         //
         // () -> (i64,i64,i64,i64,i64,i64, i64,i64)
         //        -----------------------  -------
-        //        | addr of data           | addr of local vars
+        //        | addr of data           | addr of local variables
         //
-        // read the values of data and local vars through the host address.
+        // read the values of data and local variables through the host address.
 
         // bytecode:
         //
-        // 0x0000  81 01 00 00  17 00 00 00    i64.imm           low:0x00000017  high:0x00000000
+        // 0x0000  41 01 00 00  17 00 00 00    imm_i64           low:0x00000017  high:0x00000000
         //         00 00 00 00
-        // 0x000c  08 03 00 00  02 00 00 00    data.store64      off:0x00  idx:2
-        // 0x0014  80 01 00 00  19 00 00 00    i32.imm           0x00000019
-        // 0x001c  09 03 00 00  03 00 00 00    data.store32      off:0x00  idx:3
-        // 0x0024  80 01 00 00  23 00 00 00    i32.imm           0x00000023
-        // 0x002c  09 03 00 00  04 00 00 00    data.store32      off:0x00  idx:4
-        // 0x0034  81 01 00 00  29 00 00 00    i64.imm           low:0x00000029  high:0x00000000
+        // 0x000c  c9 01 00 00  02 00 00 00    data_store_i64    off:0x00  idx:2
+        // 0x0014  40 01 00 00  19 00 00 00    imm_i32           0x00000019
+        // 0x001c  ca 01 00 00  03 00 00 00    data_store_i32    off:0x00  idx:3
+        // 0x0024  40 01 00 00  23 00 00 00    imm_i32           0x00000023
+        // 0x002c  ca 01 00 00  04 00 00 00    data_store_i32    off:0x00  idx:4
+        // 0x0034  41 01 00 00  29 00 00 00    imm_i64           low:0x00000029  high:0x00000000
         //         00 00 00 00
-        // 0x0040  08 03 00 00  05 00 00 00    data.store64      off:0x00  idx:5
-        // 0x0048  80 01 00 00  31 00 00 00    i32.imm           0x00000031
-        // 0x0050  09 02 00 00  00 00 01 00    local.store32     rev:0   off:0x00  idx:1
-        // 0x0058  80 01 00 00  37 00 00 00    i32.imm           0x00000037
-        // 0x0060  09 02 00 00  00 00 02 00    local.store32     rev:0   off:0x00  idx:2
-        // 0x0068  05 0c 00 00  00 00 00 00    host.addr_data    off:0x00  idx:0
-        // 0x0070  05 0c 00 00  01 00 00 00    host.addr_data    off:0x00  idx:1
-        // 0x0078  05 0c 00 00  02 00 00 00    host.addr_data    off:0x00  idx:2
-        // 0x0080  05 0c 00 00  03 00 00 00    host.addr_data    off:0x00  idx:3
-        // 0x0088  05 0c 00 00  04 00 00 00    host.addr_data    off:0x00  idx:4
-        // 0x0090  05 0c 00 00  05 00 00 00    host.addr_data    off:0x00  idx:5
-        // 0x0098  03 0c 00 00  00 00 01 00    host.addr_local   rev:0   off:0x00  idx:1
-        // 0x00a0  03 0c 00 00  00 00 02 00    host.addr_local   rev:0   off:0x00  idx:2
-        // 0x00a8  00 0a                       end
+        // 0x0040  c9 01 00 00  05 00 00 00    data_store_i64    off:0x00  idx:5
+        // 0x0048  40 01 00 00  31 00 00 00    imm_i32           0x00000031
+        // 0x0050  8a 01 00 00  00 00 01 00    local_store_i32   rev:0   off:0x00  idx:1
+        // 0x0058  40 01 00 00  37 00 00 00    imm_i32           0x00000037
+        // 0x0060  8a 01 00 00  00 00 02 00    local_store_i32   rev:0   off:0x00  idx:2
+        // 0x0068  43 04 00 00  00 00 00 00    host_addr_data    off:0x00  idx:0
+        // 0x0070  43 04 00 00  01 00 00 00    host_addr_data    off:0x00  idx:1
+        // 0x0078  43 04 00 00  02 00 00 00    host_addr_data    off:0x00  idx:2
+        // 0x0080  43 04 00 00  03 00 00 00    host_addr_data    off:0x00  idx:3
+        // 0x0088  43 04 00 00  04 00 00 00    host_addr_data    off:0x00  idx:4
+        // 0x0090  43 04 00 00  05 00 00 00    host_addr_data    off:0x00  idx:5
+        // 0x0098  41 04 00 00  00 00 01 00    host_addr_local   rev:0   off:0x00  idx:1
+        // 0x00a0  41 04 00 00  00 00 02 00    host_addr_local   rev:0   off:0x00  idx:2
+        // 0x00a8  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x17)
+            .append_opcode_i64(Opcode::imm_i64, 0x17)
             .append_opcode_i16_i32(Opcode::data_store_i64, 0, 2)
             //
             .append_opcode_i32(Opcode::imm_i32, 0x19)
-            .append_opcode_i16_i32(Opcode::data_store32, 0, 3)
+            .append_opcode_i16_i32(Opcode::data_store_i32, 0, 3)
             //
             .append_opcode_i32(Opcode::imm_i32, 0x23)
-            .append_opcode_i16_i32(Opcode::data_store32, 0, 4)
+            .append_opcode_i16_i32(Opcode::data_store_i32, 0, 4)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x29)
+            .append_opcode_i64(Opcode::imm_i64, 0x29)
             .append_opcode_i16_i32(Opcode::data_store_i64, 0, 5)
             //
             .append_opcode_i32(Opcode::imm_i32, 0x31)
-            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 1)
             .append_opcode_i32(Opcode::imm_i32, 0x37)
-            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 2)
+            .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 2)
             //
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 1)
@@ -567,10 +564,10 @@ mod tests {
             vec![],           // params
             result_datatypes, // results
             vec![
-                LocalVariableEntry::from_bytes(64, 8), // space
+                LocalVariableEntry::from_raw(64, 8), // space
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i32(),
-            ], // local vars
+            ], // local variables
             code0,
             vec![
                 InitedDataEntry::from_i32(0x11),
@@ -583,11 +580,12 @@ mod tests {
             vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -608,7 +606,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_address_offset_of_data_and_local_vars() {
+    fn test_interpreter_host_address_of_data_and_local_variables_extend() {
         //        read-only data section
         //        ======================
         //
@@ -640,59 +638,59 @@ mod tests {
         //
         // () -> (i64,i64,i64,i64, i64,i64, i64,i64)
         //        ---------------- ----------------
-        //        | addr of data   | addr of local vars
+        //        | addr of data   | addr of local variables
         //
-        // read the values of data and local vars through the host address.
+        // read the values of data and local variables through the host address.
 
         // bytecode:
         //
-        // 0x0000  81 01 00 00  23 29 31 37    i64.imm           low:0x37312923  high:0x53474341
+        // 0x0000  41 01 00 00  23 29 31 37    imm_i64           low:0x37312923  high:0x53474341
         //         41 43 47 53
-        // 0x000c  08 02 00 00  00 00 01 00    local.store64     rev:0   off:0x00  idx:1
-        // 0x0014  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x001c  06 0c 00 00  00 00 00 00    host.addr_data_offset  idx:0
-        // 0x0024  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x002c  06 0c 00 00  00 00 00 00    host.addr_data_offset  idx:0
-        // 0x0034  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x003c  06 0c 00 00  01 00 00 00    host.addr_data_offset  idx:1
-        // 0x0044  80 01 00 00  03 00 00 00    i32.imm           0x00000003
-        // 0x004c  06 0c 00 00  01 00 00 00    host.addr_data_offset  idx:1
-        // 0x0054  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x005c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
-        // 0x0064  80 01 00 00  03 00 00 00    i32.imm           0x00000003
-        // 0x006c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
-        // 0x0074  80 01 00 00  06 00 00 00    i32.imm           0x00000006
-        // 0x007c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
-        // 0x0084  80 01 00 00  07 00 00 00    i32.imm           0x00000007
-        // 0x008c  04 0c 00 00  01 00 00 00    host.addr_local_offset  rev:0   idx:1
-        // 0x0094  00 0a                       end
+        // 0x000c  89 01 00 00  00 00 01 00    local_store_i64   rev:0   off:0x00  idx:1
+        // 0x0014  40 01 00 00  00 00 00 00    imm_i32           0x00000000
+        // 0x001c  44 04 00 00  00 00 00 00    host_addr_data_extend  idx:0
+        // 0x0024  40 01 00 00  02 00 00 00    imm_i32           0x00000002
+        // 0x002c  44 04 00 00  00 00 00 00    host_addr_data_extend  idx:0
+        // 0x0034  40 01 00 00  02 00 00 00    imm_i32           0x00000002
+        // 0x003c  44 04 00 00  01 00 00 00    host_addr_data_extend  idx:1
+        // 0x0044  40 01 00 00  03 00 00 00    imm_i32           0x00000003
+        // 0x004c  44 04 00 00  01 00 00 00    host_addr_data_extend  idx:1
+        // 0x0054  40 01 00 00  00 00 00 00    imm_i32           0x00000000
+        // 0x005c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
+        // 0x0064  40 01 00 00  03 00 00 00    imm_i32           0x00000003
+        // 0x006c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
+        // 0x0074  40 01 00 00  06 00 00 00    imm_i32           0x00000006
+        // 0x007c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
+        // 0x0084  40 01 00 00  07 00 00 00    imm_i32           0x00000007
+        // 0x008c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
+        // 0x0094  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x5347434137312923u64)
+            .append_opcode_i64(Opcode::imm_i64, 0x5347434137312923u64)
             .append_opcode_i16_i16_i16(Opcode::local_store_i64, 0, 0, 1)
             //
             .append_opcode_i32(Opcode::imm_i32, 0)
-            .append_opcode_i32(Opcode::host_addr_data_offset, 0)
+            .append_opcode_i32(Opcode::host_addr_data_extend, 0)
             .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode_i32(Opcode::host_addr_data_offset, 0)
+            .append_opcode_i32(Opcode::host_addr_data_extend, 0)
             .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode_i32(Opcode::host_addr_data_offset, 1)
+            .append_opcode_i32(Opcode::host_addr_data_extend, 1)
             .append_opcode_i32(Opcode::imm_i32, 3)
-            .append_opcode_i32(Opcode::host_addr_data_offset, 1)
+            .append_opcode_i32(Opcode::host_addr_data_extend, 1)
             //
             .append_opcode_i32(Opcode::imm_i32, 0)
-            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_extend, 0, 1)
             .append_opcode_i32(Opcode::imm_i32, 3)
-            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_extend, 0, 1)
             .append_opcode_i32(Opcode::imm_i32, 6)
-            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_extend, 0, 1)
             .append_opcode_i32(Opcode::imm_i32, 7)
-            .append_opcode_i16_i32(Opcode::host_addr_local_offset, 0, 1)
+            .append_opcode_i16_i32(Opcode::host_addr_local_extend, 0, 1)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", format_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
@@ -722,23 +720,24 @@ mod tests {
             vec![],           // params
             result_datatypes, // results
             vec![
-                LocalVariableEntry::from_bytes(64, 8), // space
-                LocalVariableEntry::from_bytes(8, 8),
-            ], // local vars
+                LocalVariableEntry::from_raw(64, 8), // space
+                LocalVariableEntry::from_raw(8, 8),
+            ], // local variables
             code0,
             vec![
-                InitedDataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
-                InitedDataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+                InitedDataEntry::from_raw(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                InitedDataEntry::from_raw(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
             ], // init data
             vec![],
             vec![],
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i8(fvs[0]), 0x02);
@@ -774,59 +773,59 @@ mod tests {
 
         // bytecode:
         //
-        // 0x0000  80 01 00 00  01 00 00 00    i32.imm           0x00000001
-        // 0x0008  83 04                       heap.resize
-        // 0x000a  02 01                       drop
-        // 0x000c  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        // 0x0000  40 01 00 00  01 00 00 00    imm_i32           0x00000001
+        // 0x0008  43 02                       heap_resize
+        // 0x000a  00 01                       nop
+        // 0x000c  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
         //         00 00 00 00
-        // 0x0018  80 01 00 00  02 03 05 07    i32.imm           0x07050302
-        // 0x0020  09 04 00 00                 heap.store32      off:0x00
-        // 0x0024  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        // 0x0018  40 01 00 00  02 03 05 07    imm_i32           0x07050302
+        // 0x0020  0a 02 00 00  00 00 00 00    heap_store_i32    off:0x00
+        // 0x0028  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
         //         00 00 00 00
-        // 0x0030  81 01 00 00  11 13 17 19    i64.imm           low:0x19171311  high:0x37312923
+        // 0x0034  41 01 00 00  11 13 17 19    imm_i64           low:0x19171311  high:0x37312923
         //         23 29 31 37
-        // 0x003c  08 04 00 00                 heap.store64      off:0x00
-        // 0x0040  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        // 0x0040  09 02 00 00  00 00 00 00    heap_store_i64    off:0x00
+        // 0x0048  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
         //         00 00 00 00
-        // 0x004c  07 0c 00 00                 host.addr_heap    off:0x00
-        // 0x0050  81 01 00 00  00 01 00 00    i64.imm           low:0x00000100  high:0x00000000
+        // 0x0054  45 04 00 00  00 00 00 00    host_addr_heap    off:0x00
+        // 0x005c  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
         //         00 00 00 00
-        // 0x005c  07 0c 02 00                 host.addr_heap    off:0x02
-        // 0x0060  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        // 0x0068  45 04 00 00  02 00 00 00    host_addr_heap    off:0x02
+        // 0x0070  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
         //         00 00 00 00
-        // 0x006c  07 0c 00 00                 host.addr_heap    off:0x00
-        // 0x0070  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        // 0x007c  45 04 00 00  00 00 00 00    host_addr_heap    off:0x00
+        // 0x0084  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
         //         00 00 00 00
-        // 0x007c  07 0c 04 00                 host.addr_heap    off:0x04
-        // 0x0080  81 01 00 00  00 02 00 00    i64.imm           low:0x00000200  high:0x00000000
+        // 0x0090  45 04 00 00  04 00 00 00    host_addr_heap    off:0x04
+        // 0x0098  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
         //         00 00 00 00
-        // 0x008c  07 0c 07 00                 host.addr_heap    off:0x07
-        // 0x0090  00 0a                       end
+        // 0x00a4  45 04 00 00  07 00 00 00    host_addr_heap    off:0x07
+        // 0x00ac  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::heap_resize)
             // .append_opcode(Opcode::drop)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0x07050302)
-            .append_opcode_i16(Opcode::heap_store32, 0)
+            .append_opcode_i32(Opcode::heap_store_i32, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x3731292319171311)
-            .append_opcode_i16(Opcode::heap_store_i64, 0)
+            .append_opcode_i64(Opcode::imm_i64, 0x200)
+            .append_opcode_i64(Opcode::imm_i64, 0x3731292319171311)
+            .append_opcode_i32(Opcode::heap_store_i64, 0)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::host_addr_heap, 0)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::host_addr_heap, 2)
+            .append_opcode_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::host_addr_heap, 0)
+            .append_opcode_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i32(Opcode::host_addr_heap, 2)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 0)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 4)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 7)
+            .append_opcode_i64(Opcode::imm_i64, 0x200)
+            .append_opcode_i32(Opcode::host_addr_heap, 0)
+            .append_opcode_i64(Opcode::imm_i64, 0x200)
+            .append_opcode_i32(Opcode::host_addr_heap, 4)
+            .append_opcode_i64(Opcode::imm_i64, 0x200)
+            .append_opcode_i32(Opcode::host_addr_heap, 7)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -854,15 +853,16 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],           // params
             result_datatypes, // results
-            vec![],           // local vars
+            vec![],           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x07050302);
@@ -892,14 +892,14 @@ mod tests {
             .append_opcode(Opcode::heap_resize)
             // .append_opcode(Opcode::drop)
             //
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 8)
+            .append_opcode_i64(Opcode::imm_i64, 8)
             .append_opcode(Opcode::host_copy_memory_to_heap)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 8)
+            .append_opcode_i64(Opcode::imm_i64, 0x100)
+            .append_opcode_i64(Opcode::imm_i64, 8)
             .append_opcode(Opcode::host_copy_heap_to_memory)
             //
             .append_opcode(Opcode::end)
@@ -914,10 +914,11 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             param_datatypes, // params
             vec![],          // results
-            vec![],          // local vars
+            vec![],          // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -929,6 +930,7 @@ mod tests {
         let dst_ptr = dst_buf.as_ptr();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -954,18 +956,18 @@ mod tests {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 4, 2) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 4) // length
+            .append_opcode_i64(Opcode::imm_i64, 4) // length
             .append_opcode(Opcode::host_memory_copy)
             //
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
-            .append_opcode_i16(Opcode::i64_inc, 4)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 4) // length
+            .append_opcode_i16(Opcode::add_imm_i64, 4)
+            .append_opcode_i64(Opcode::imm_i64, 4) // length
             .append_opcode(Opcode::host_memory_copy)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // src ptr
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 8) // length
+            .append_opcode_i64(Opcode::imm_i64, 8) // length
             .append_opcode(Opcode::host_memory_copy)
             //
             .append_opcode(Opcode::end)
@@ -980,10 +982,11 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             param_datatypes,                      // params
             vec![],                               // results
-            vec![LocalVariableEntry::from_i64()], // local vars
+            vec![LocalVariableEntry::from_i64()], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -995,6 +998,7 @@ mod tests {
         let dst_ptr = dst_buf.as_ptr();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -1008,6 +1012,7 @@ mod tests {
         assert_eq!(&dst_buf, b"everwhat");
     }
 
+    /*
     #[test]
     fn test_interpreter_host_addr_function_and_callback_function() {
         // C function in "libtest0.so.1"
@@ -1039,7 +1044,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 1
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 2
             //
-            .append_opcode_i32(Opcode::extcall, 0) // call external function, external func index = 0
+            .append_opcode_i32(Opcode::extcall, 0) // call external function, external function index = 0
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -1047,7 +1052,7 @@ mod tests {
         let code1 = BytecodeWriter::new()
             .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
             .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode(Opcode::i32_mul)
+            .append_opcode(Opcode::mul_i32)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -1103,11 +1108,11 @@ mod tests {
         pwd.push("tests");
         let program_source_path = pwd.to_str().unwrap();
 
+        let handler = Handler::new();
         let program_resource0 = InMemoryProgramResource::with_settings(
             vec![binary0],
             &ProgramSettings::new(program_source_path, true, "", ""),
         );
-
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -1127,4 +1132,5 @@ mod tests {
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::U32(211 * 2 + 223)]);
     }
+    */
 }

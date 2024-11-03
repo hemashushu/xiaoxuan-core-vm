@@ -9,9 +9,9 @@ use std::sync::Mutex;
 use ancvm_image::module_image::ModuleImage;
 
 use crate::{
-    external_function_table::ExtenalFunctionTable, heap::Heap, indexed_memory::IndexedMemory,
-    module_index_instance::ModuleIndexInstance, module_common_instance::ModuleCommonInstance,
-    environment::Environment, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
+    environment::Environment, external_function_table::ExtenalFunctionTable, heap::Heap,
+    indexed_memory::IndexedMemory, module_common_instance::ModuleCommonInstance,
+    module_index_instance::ModuleIndexInstance, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
     INIT_STACK_SIZE_IN_BYTES,
 };
 
@@ -269,8 +269,9 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         module_index: usize,
         function_internal_index: usize,
     ) -> (usize, usize, usize, u32) {
-        let function_item =
-            &self.module_common_instances[module_index].function_section.items[function_internal_index];
+        let function_item = &self.module_common_instances[module_index]
+            .function_section
+            .items[function_internal_index];
 
         let type_index = function_item.type_index as usize;
         let local_list_index = function_item.local_list_index as usize;
@@ -278,7 +279,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
 
         let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
-            .lists[local_list_index]
+            .list_items[local_list_index]
             .list_allocate_bytes;
 
         (
@@ -349,11 +350,14 @@ offset in bytes: {}, expect length in bytes: {}.",
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        let (_, function_public_index, _) = module_instance
+        let (internal_index, _) = module_instance
             .function_name_section
-            .get_item_index_and_function_public_index_and_export(function_name)?;
+            .get_item_index_and_export(function_name)?;
 
-        Some((module_index, function_public_index))
+        Some((
+            module_index,
+            internal_index + module_instance.import_function_count,
+        ))
     }
 
     pub fn find_data_public_index_by_name(
@@ -367,11 +371,14 @@ offset in bytes: {}, expect length in bytes: {}.",
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        let (_, data_public_index, _) = module_instance
+        let (internal_index, _) = module_instance
             .data_name_section
-            .get_item_index_and_data_public_index_and_export(data_name)?;
+            .get_item_index_and_export(data_name)?;
 
-        Some((module_index, data_public_index))
+        Some((
+            module_index,
+            internal_index + module_instance.import_data_count,
+        ))
     }
 
     pub fn find_bridge_function(

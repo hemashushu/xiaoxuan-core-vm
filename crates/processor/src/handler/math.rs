@@ -8,61 +8,61 @@ use ancvm_context::thread_context::ThreadContext;
 
 use super::HandleResult;
 
-pub fn i32_abs(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn i32_neg(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn i64_abs(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn i64_neg(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn f32_abs(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.abs());
     HandleResult::Move(2)
 }
 
-pub fn f32_neg(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, -v);
     HandleResult::Move(2)
 }
 
-pub fn f32_ceil(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.ceil());
     HandleResult::Move(2)
 }
 
-pub fn f32_floor(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.floor());
     HandleResult::Move(2)
 }
 
-pub fn f32_round_half_away_from_zero(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn f32_round_half_to_even(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
 
     let toint_32: f32 = 1.0 / f32::EPSILON;
@@ -78,157 +78,157 @@ pub fn f32_round_half_to_even(thread_context: &mut ThreadContext) -> HandleResul
     HandleResult::Move(2)
 }
 
-pub fn f32_trunc(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.trunc());
     HandleResult::Move(2)
 }
 
-pub fn f32_fract(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.fract());
     HandleResult::Move(2)
 }
 
-pub fn f32_sqrt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.sqrt());
     HandleResult::Move(2)
 }
 
-pub fn f32_cbrt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.cbrt());
     HandleResult::Move(2)
 }
 
-pub fn f32_exp(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.exp());
     HandleResult::Move(2)
 }
 
-pub fn f32_exp2(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.exp2());
     HandleResult::Move(2)
 }
 
-pub fn f32_ln(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.ln());
     HandleResult::Move(2)
 }
 
-pub fn f32_log2(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.log2());
     HandleResult::Move(2)
 }
 
-pub fn f32_log10(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.log10());
     HandleResult::Move(2)
 }
 
-pub fn f32_sin(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.sin());
     HandleResult::Move(2)
 }
 
-pub fn f32_cos(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.cos());
     HandleResult::Move(2)
 }
 
-pub fn f32_tan(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.tan());
     HandleResult::Move(2)
 }
 
-pub fn f32_asin(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.asin());
     HandleResult::Move(2)
 }
 
-pub fn f32_acos(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.acos());
     HandleResult::Move(2)
 }
 
-pub fn f32_atan(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.atan());
     HandleResult::Move(2)
 }
 
-pub fn f32_copysign(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (num, sign) = load_operands_f32(thread_context);
     store_f32(thread_context, num.copysign(sign));
     HandleResult::Move(2)
 }
 
-pub fn f32_pow(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, left.powf(right));
     HandleResult::Move(2)
 }
 
-pub fn f32_log(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, left.log(right));
     HandleResult::Move(2)
 }
 
-pub fn f32_min(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, f32::min(left, right));
     HandleResult::Move(2)
 }
 
-pub fn f32_max(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f32(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, f32::max(left, right));
     HandleResult::Move(2)
 }
 
-pub fn f64_abs(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.abs());
     HandleResult::Move(2)
 }
 
-pub fn f64_neg(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, -v);
     HandleResult::Move(2)
 }
 
-pub fn f64_ceil(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.ceil());
     HandleResult::Move(2)
 }
 
-pub fn f64_floor(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.floor());
     HandleResult::Move(2)
 }
 
-pub fn f64_round_half_away_from_zero(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn f64_round_half_to_even(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
 
     let toint_64: f64 = 1.0 / f64::EPSILON;
@@ -244,121 +244,121 @@ pub fn f64_round_half_to_even(thread_context: &mut ThreadContext) -> HandleResul
     HandleResult::Move(2)
 }
 
-pub fn f64_trunc(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.trunc());
     HandleResult::Move(2)
 }
 
-pub fn f64_fract(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.fract());
     HandleResult::Move(2)
 }
 
-pub fn f64_sqrt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.sqrt());
     HandleResult::Move(2)
 }
 
-pub fn f64_cbrt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.cbrt());
     HandleResult::Move(2)
 }
 
-pub fn f64_exp(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.exp());
     HandleResult::Move(2)
 }
 
-pub fn f64_exp2(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.exp2());
     HandleResult::Move(2)
 }
 
-pub fn f64_ln(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.ln());
     HandleResult::Move(2)
 }
 
-pub fn f64_log2(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.log2());
     HandleResult::Move(2)
 }
 
-pub fn f64_log10(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.log10());
     HandleResult::Move(2)
 }
 
-pub fn f64_sin(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.sin());
     HandleResult::Move(2)
 }
 
-pub fn f64_cos(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.cos());
     HandleResult::Move(2)
 }
 
-pub fn f64_tan(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.tan());
     HandleResult::Move(2)
 }
 
-pub fn f64_asin(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.asin());
     HandleResult::Move(2)
 }
 
-pub fn f64_acos(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.acos());
     HandleResult::Move(2)
 }
 
-pub fn f64_atan(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.atan());
     HandleResult::Move(2)
 }
 
-pub fn f64_copysign(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (num, sign) = load_operands_f64(thread_context);
     store_f64(thread_context, num.copysign(sign));
     HandleResult::Move(2)
 }
 
-pub fn f64_pow(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, left.powf(right));
     HandleResult::Move(2)
 }
 
-pub fn f64_log(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, left.log(right));
     HandleResult::Move(2)
 }
 
-pub fn f64_min(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, f64::min(left, right));
     HandleResult::Move(2)
 }
 
-pub fn f64_max(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f64(thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, f64::max(left, right));
     HandleResult::Move(2)
@@ -400,14 +400,15 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 
 #[cfg(test)]
 mod tests {
-        use crate::{
+    use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
-    };
     use ancvm_context::resource::Resource;
-    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
+        utils::helper_build_module_binary_with_single_function,
+    };
+    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
     fn test_interpreter_math_i32() {
@@ -424,29 +425,36 @@ mod tests {
         // (i32 i32) -> (i32 i32 i32 i32)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode(Opcode::i32_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
-            .append_opcode(Opcode::i32_neg)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
-            .append_opcode(Opcode::i32_neg)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 0)
+            .append_opcode(Opcode::abs_i32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode(Opcode::abs_i32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 0)
+            .append_opcode(Opcode::neg_i32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode(Opcode::neg_i32)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![OperandDataType::I32, OperandDataType::I32], // params
-            vec![OperandDataType::I32, OperandDataType::I32, OperandDataType::I32, OperandDataType::I32], // results
-            vec![],                             // local vars
+            vec![
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+                OperandDataType::I32,
+            ], // results
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -479,28 +487,35 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode(Opcode::i64_abs)
+            .append_opcode(Opcode::abs_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_abs)
+            .append_opcode(Opcode::abs_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode(Opcode::i64_neg)
+            .append_opcode(Opcode::neg_i64)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
-            .append_opcode(Opcode::i64_neg)
+            .append_opcode(Opcode::neg_i64)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![OperandDataType::I64, OperandDataType::I64], // params
-            vec![OperandDataType::I64, OperandDataType::I64, OperandDataType::I64, OperandDataType::I64], // results
-            vec![],                             // local vars
+            vec![
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // results
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -572,66 +587,66 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_neg)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_neg)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::abs_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::abs_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::neg_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::neg_f32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .append_opcode(Opcode::f32_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 8)
-            .append_opcode(Opcode::f32_ceil)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode(Opcode::ceil_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::ceil_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::ceil_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode(Opcode::ceil_f32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .append_opcode(Opcode::f32_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 8)
-            .append_opcode(Opcode::f32_floor)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode(Opcode::floor_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::floor_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::floor_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode(Opcode::floor_f32)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 8)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
-            .append_opcode(Opcode::f32_round_half_away_from_zero)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode(Opcode::round_half_away_from_zero_f32)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 8)
-            .append_opcode(Opcode::f32_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
-            .append_opcode(Opcode::f32_round_half_to_even)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode(Opcode::round_half_to_even_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode(Opcode::round_half_to_even_f32)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -683,15 +698,17 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -808,71 +825,71 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_trunc)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 0)
-            .append_opcode(Opcode::f32_fract)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_sqrt)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 2)
-            .append_opcode(Opcode::f32_cbrt)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::trunc_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode(Opcode::fract_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::sqrt_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode(Opcode::cbrt_f32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_exp)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_exp2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 8)
-            .append_opcode(Opcode::f32_ln)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode(Opcode::f32_log2)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 7)
-            .append_opcode(Opcode::f32_log10)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::exp_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::exp2_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode(Opcode::ln_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode(Opcode::log2_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode(Opcode::log10_f32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
-            .append_opcode(Opcode::f32_sin)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
-            .append_opcode(Opcode::f32_cos)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 9)
-            .append_opcode(Opcode::f32_tan)
-            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.5)
-            .append_opcode(Opcode::f32_asin)
-            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.866_025_4)
-            .append_opcode(Opcode::f32_acos)
-            .append_opcode_pesudo_f32(Opcode::imm_f32, 0.577_350_3)
-            .append_opcode(Opcode::f32_atan)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode(Opcode::sin_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode(Opcode::cos_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode(Opcode::tan_f32)
+            .append_opcode_f32(Opcode::imm_f32, 0.5)
+            .append_opcode(Opcode::asin_f32)
+            .append_opcode_f32(Opcode::imm_f32, 0.866_025_4)
+            .append_opcode(Opcode::acos_f32)
+            .append_opcode_f32(Opcode::imm_f32, 0.577_350_3)
+            .append_opcode(Opcode::atan_f32)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_pow)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_log)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::pow_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::log_f32)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode(Opcode::f32_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode(Opcode::f32_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_copysign)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode(Opcode::copysign_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode(Opcode::copysign_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::copysign_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::copysign_f32)
             // group 5
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode(Opcode::f32_min)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode(Opcode::f32_min)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode(Opcode::f32_max)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_f32, 0, 0, 6)
-            .append_opcode(Opcode::f32_max)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode(Opcode::min_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode(Opcode::min_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode(Opcode::max_f32)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode(Opcode::max_f32)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -923,15 +940,17 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -1041,66 +1060,66 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_abs)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_neg)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_neg)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::abs_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::abs_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::neg_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::neg_f64)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 2)
-            .append_opcode(Opcode::f64_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_ceil)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 8)
-            .append_opcode(Opcode::f64_ceil)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode(Opcode::ceil_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::ceil_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::ceil_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode(Opcode::ceil_f64)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 2)
-            .append_opcode(Opcode::f64_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_floor)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 8)
-            .append_opcode(Opcode::f64_floor)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode(Opcode::floor_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::floor_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::floor_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode(Opcode::floor_f64)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 2)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 7)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 8)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
-            .append_opcode(Opcode::f64_round_half_away_from_zero)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode(Opcode::round_half_away_from_zero_f64)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 2)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 7)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 8)
-            .append_opcode(Opcode::f64_round_half_to_even)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
-            .append_opcode(Opcode::f64_round_half_to_even)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode(Opcode::round_half_to_even_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode(Opcode::round_half_to_even_f64)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -1152,15 +1171,17 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -1277,71 +1298,71 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_trunc)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 0)
-            .append_opcode(Opcode::f64_fract)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_sqrt)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 2)
-            .append_opcode(Opcode::f64_cbrt)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::trunc_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode(Opcode::fract_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::sqrt_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode(Opcode::cbrt_f64)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_exp)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_exp2)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 8)
-            .append_opcode(Opcode::f64_ln)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode(Opcode::f64_log2)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 7)
-            .append_opcode(Opcode::f64_log10)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::exp_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::exp2_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode(Opcode::ln_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode(Opcode::log2_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode(Opcode::log10_f64)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
-            .append_opcode(Opcode::f64_sin)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
-            .append_opcode(Opcode::f64_cos)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 9)
-            .append_opcode(Opcode::f64_tan)
-            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.5)
-            .append_opcode(Opcode::f64_asin)
-            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.8660254037844386)
-            .append_opcode(Opcode::f64_acos)
-            .append_opcode_pesudo_f64(Opcode::imm_f64, 0.5773502691896258)
-            .append_opcode(Opcode::f64_atan)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode(Opcode::sin_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode(Opcode::cos_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode(Opcode::tan_f64)
+            .append_opcode_f64(Opcode::imm_f64, 0.5)
+            .append_opcode(Opcode::asin_f64)
+            .append_opcode_f64(Opcode::imm_f64, 0.8660254037844386)
+            .append_opcode(Opcode::acos_f64)
+            .append_opcode_f64(Opcode::imm_f64, 0.5773502691896258)
+            .append_opcode(Opcode::atan_f64)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_pow)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_log)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::pow_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::log_f64)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode(Opcode::f64_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode(Opcode::f64_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_copysign)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_copysign)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode(Opcode::copysign_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode(Opcode::copysign_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::copysign_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::copysign_f64)
             // group 5
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode(Opcode::f64_min)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode(Opcode::f64_min)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode(Opcode::f64_max)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load64_f64, 0, 0, 6)
-            .append_opcode(Opcode::f64_max)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode(Opcode::min_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode(Opcode::min_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode(Opcode::max_f64)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode(Opcode::max_f64)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -1392,15 +1413,17 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,

@@ -19,11 +19,11 @@
 //         | ...                                  |
 //         |--------------------------------------|
 //
-//         |------------------------------------------------------------------------------------|
-//         | external func idx 0 (u32) | unified external func idx 0 (u32) | type index 0 (u32) | <-- table 1
-//         | external func idx 1       | unified external func idx 1       | type index 1       |
-//         | ...                                                                                |
-//         |------------------------------------------------------------------------------------|
+//         |--------------------------------------------------------------------------------------------|
+//         | external function idx 0 (u32) | unified external function idx 0 (u32) | type index 0 (u32) | <-- table 1
+//         | external function idx 1       | unified external function idx 1       | type index 1       |
+//         | ...                                                                                        |
+//         |--------------------------------------------------------------------------------------------|
 
 use crate::{
     entry::ExternalFunctionIndexListEntry, module_image::{ModuleSectionId, RangeItem, SectionEntry}, tableaccess::{
@@ -156,16 +156,16 @@ mod tests {
             2, 0, 0, 0, // offset 1 (item 1)
             1, 0, 0, 0, // count 1
             //
-            2, 0, 0, 0, // external func idx 0, item 0 (little endian)
-            3, 0, 0, 0, // uni external func idx 0
+            2, 0, 0, 0, // external function idx 0, item 0 (little endian)
+            3, 0, 0, 0, // uni external function idx 0
             5, 0, 0, 0, // type index 0
             //
-            7, 0, 0, 0, // external func idx 1, item 1
-            11, 0, 0, 0, // uni external func idx 1
+            7, 0, 0, 0, // external function idx 1, item 1
+            11, 0, 0, 0, // uni external function idx 1
             13, 0, 0, 0, // type index 1
             //
-            17, 0, 0, 0, // external func idx 2, item 2
-            19, 0, 0, 0, // uni external func idx 2
+            17, 0, 0, 0, // external function idx 2, item 2
+            19, 0, 0, 0, // uni external function idx 2
             23, 0, 0, 0, // type index 2
         ];
 
@@ -230,16 +230,16 @@ mod tests {
                 2, 0, 0, 0, // offset 1 (item 1)
                 1, 0, 0, 0, // count 1
                 //
-                2, 0, 0, 0, // external func idx 0, item 0 (little endian)
-                3, 0, 0, 0, // uni external func idx 0
+                2, 0, 0, 0, // external function idx 0, item 0 (little endian)
+                3, 0, 0, 0, // uni external function idx 0
                 5, 0, 0, 0, // type index 0
                 //
-                7, 0, 0, 0, // external func idx 1, item 1
-                11, 0, 0, 0, // uni external func idx 1
+                7, 0, 0, 0, // external function idx 1, item 1
+                11, 0, 0, 0, // uni external function idx 1
                 13, 0, 0, 0, // type index 1
                 //
-                17, 0, 0, 0, // external func idx 2, item 2
-                19, 0, 0, 0, // uni external func idx 2
+                17, 0, 0, 0, // external function idx 2, item 2
+                19, 0, 0, 0, // uni external function idx 2
                 23, 0, 0, 0, // type index 2
             ]
         );

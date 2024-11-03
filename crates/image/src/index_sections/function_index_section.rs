@@ -14,11 +14,11 @@
 //         | ...                                  |
 //         |--------------------------------------|
 //
-//         |------------------------------------------------------------------------------|
-//         | func public idx 0 (u32) | target mod idx 0 (u32) | func internal idx 0 (u32) | <-- table 1
-//         | func public idx 1       | target mod idx 1       | func internal idx 1       |
-//         | ...                                                                          |
-//         |------------------------------------------------------------------------------|
+//         |--------------------------------------------------------------------------------------|
+//         | function public idx 0 (u32) | target mod idx 0 (u32) | function internal idx 0 (u32) | <-- table 1
+//         | function public idx 1       | target mod idx 1       | function internal idx 1       |
+//         | ...                                                                                  |
+//         |--------------------------------------------------------------------------------------|
 
 use crate::{
     entry::FunctionIndexListEntry,
@@ -170,17 +170,17 @@ mod tests {
             2, 0, 0, 0, // offset 1 (item 1)
             1, 0, 0, 0, // count 1
             //
-            1, 0, 0, 0, // func pub idx 0, item 0 (little endian)
+            1, 0, 0, 0, // function pub idx 0, item 0 (little endian)
             2, 0, 0, 0, // target module idx 0
-            3, 0, 0, 0, // func internal idx 0
+            3, 0, 0, 0, // function internal idx 0
             //
-            5, 0, 0, 0, // func pub idx 1, item 1
+            5, 0, 0, 0, // function pub idx 1, item 1
             7, 0, 0, 0, // target module idx 1
-            11, 0, 0, 0, // func internal idx 1
+            11, 0, 0, 0, // function internal idx 1
             //
-            13, 0, 0, 0, // func pub idx 2, item 2
+            13, 0, 0, 0, // function pub idx 2, item 2
             17, 0, 0, 0, // target module idx 2
-            19, 0, 0, 0, // func internal idx 2
+            19, 0, 0, 0, // function internal idx 2
         ];
 
         let section = FunctionIndexSection::load(&section_data);
@@ -244,17 +244,17 @@ mod tests {
                 2, 0, 0, 0, // offset 1 (item 1)
                 1, 0, 0, 0, // count 1
                 //
-                1, 0, 0, 0, // func puc idx 0, item 0 (little endian)
+                1, 0, 0, 0, // function puc idx 0, item 0 (little endian)
                 2, 0, 0, 0, // target module idx 0
-                3, 0, 0, 0, // func internal idx 0
+                3, 0, 0, 0, // function internal idx 0
                 //
-                5, 0, 0, 0, // func puc idx 1, item 1
+                5, 0, 0, 0, // function puc idx 1, item 1
                 7, 0, 0, 0, // target module idx 1
-                11, 0, 0, 0, // func internal idx 1
+                11, 0, 0, 0, // function internal idx 1
                 //
-                13, 0, 0, 0, // func puc idx 2, item 2
+                13, 0, 0, 0, // function puc idx 2, item 2
                 17, 0, 0, 0, // target module idx 2
-                19, 0, 0, 0, // func internal idx 2
+                19, 0, 0, 0, // function internal idx 2
             ]
         );
     }

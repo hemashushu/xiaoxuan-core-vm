@@ -4,11 +4,14 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use crate::common_sections::common_property_section::CommonPropertySection;
 use crate::entry::{
-    ExternalFunctionEntry, ExternalLibraryEntry, FunctionEntry, InitedDataEntry, LocalListEntry,
-    LocalVariableEntry, TypeEntry, UnifiedExternalFunctionEntry, UnifiedExternalLibraryEntry,
-    UninitDataEntry,
+    ExternalFunctionEntry, ExternalLibraryEntry, FunctionEntry, InitedDataEntry,
+    LocalVariableEntry, LocalVariableListEntry, TypeEntry, UnifiedExternalFunctionEntry,
+    UnifiedExternalLibraryEntry, UninitDataEntry,
 };
+use crate::index_sections::index_property_section::IndexPropertySection;
+use crate::BinaryError;
 use ancvm_isa::{
     DataSectionType, ExternalLibraryType, OperandDataType, RUNTIME_MAJOR_VERSION,
     RUNTIME_MINOR_VERSION,
@@ -27,7 +30,6 @@ use crate::index_sections::external_function_index_section::{
     ExternalFunctionIndexItem, ExternalFunctionIndexSection,
 };
 use crate::index_sections::function_index_section::{FunctionIndexItem, FunctionIndexSection};
-use crate::index_sections::property_section::PropertySection;
 use crate::index_sections::unified_external_function_section::UnifiedExternalFunctionSection;
 use crate::index_sections::unified_external_library_section::UnifiedExternalLibrarySection;
 use crate::module_image::{ModuleImage, RangeItem, SectionEntry, MODULE_NAME_BUFFER_LENGTH};
@@ -103,7 +105,7 @@ pub fn helper_build_module_binary_with_single_function_and_data_sections(
     local_variables.extend_from_slice(&params_as_local_variables);
     local_variables.extend_from_slice(&local_variable_entries_without_function_args);
 
-    let local_list_entry = LocalListEntry {
+    let local_list_entry = LocalVariableListEntry {
         local_variable_entries: local_variables,
     };
 
@@ -135,7 +137,7 @@ pub fn helper_build_module_binary_with_single_function_and_blocks(
 
     // although there is no params and no results for the block_nez, but
     // it still is necessary create a 'HelperBlockEntry'.
-    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
+    helper_block_sig_and_local_variables_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
 ) -> Vec<u8> {
     let helper_function_entry = HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
         params: param_datatypes,
@@ -146,23 +148,23 @@ pub fn helper_build_module_binary_with_single_function_and_blocks(
 
     helper_build_module_binary_with_functions_and_blocks(
         vec![helper_function_entry],
-        helper_block_sig_and_local_vars_entries,
+        helper_block_sig_and_local_variables_entries,
     )
 }
 
 /// helper function for unit test
 pub fn helper_build_module_binary_with_functions_and_blocks(
-    helper_function_with_code_and_sig_and_local_vars_entries: Vec<
+    helper_function_with_code_and_sig_and_local_variables_entries: Vec<
         HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
     >,
-    helper_block_sig_and_local_vars_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
+    helper_block_sig_and_local_variables_entries: Vec<HelperBlockSignatureAndLocalVariablesEntry>,
 ) -> Vec<u8> {
     // build type entries
 
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let function_type_entries = helper_function_with_code_and_sig_and_local_vars_entries
+    let function_type_entries = helper_function_with_code_and_sig_and_local_variables_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -170,7 +172,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
         })
         .collect::<Vec<_>>();
 
-    let block_type_entries = helper_block_sig_and_local_vars_entries
+    let block_type_entries = helper_block_sig_and_local_variables_entries
         .iter()
         .map(|entry| TypeEntry {
             params: entry.params.clone(),
@@ -182,12 +184,12 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     type_entries.extend_from_slice(&function_type_entries);
     type_entries.extend_from_slice(&block_type_entries);
 
-    // build local vars list entries
+    // build local variables list entries
 
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let local_list_entries_of_functions = helper_function_with_code_and_sig_and_local_vars_entries
+    let local_list_entries_of_functions = helper_function_with_code_and_sig_and_local_variables_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -200,13 +202,13 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&params_as_local_variables);
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
-            LocalListEntry {
+            LocalVariableListEntry {
                 local_variable_entries: local_variables,
             }
         })
         .collect::<Vec<_>>();
 
-    let local_list_entries_of_blocks = helper_block_sig_and_local_vars_entries
+    let local_list_entries_of_blocks = helper_block_sig_and_local_variables_entries
         .iter()
         .map(|entry| {
             let params_as_local_variables = entry
@@ -219,7 +221,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
             local_variables.extend_from_slice(&params_as_local_variables);
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
-            LocalListEntry {
+            LocalVariableListEntry {
                 local_variable_entries: local_variables,
             }
         })
@@ -229,8 +231,8 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     local_list_entries.extend_from_slice(&local_list_entries_of_functions);
     local_list_entries.extend_from_slice(&local_list_entries_of_blocks);
 
-    // build func entries
-    let function_entries = helper_function_with_code_and_sig_and_local_vars_entries
+    // build function entries
+    let function_entries = helper_function_with_code_and_sig_and_local_variables_entries
         .iter()
         .enumerate()
         .map(|(idx, entry)| FunctionEntry {
@@ -259,7 +261,7 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
 #[allow(clippy::too_many_arguments)]
 pub fn helper_build_module_binary_with_functions_and_external_functions(
     type_entries: Vec<TypeEntry>,
-    helper_function_with_code_and_local_vars_entries: Vec<
+    helper_function_with_code_and_local_variables_entries: Vec<
         HelperFunctionWithCodeAndLocalVariablesEntry,
     >,
     read_only_data_entries: Vec<InitedDataEntry>,
@@ -270,7 +272,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
     let mut function_entries = vec![];
     let mut local_list_entries = vec![];
 
-    helper_function_with_code_and_local_vars_entries
+    helper_function_with_code_and_local_variables_entries
         .iter()
         .enumerate()
         .for_each(|(idx, entry)| {
@@ -284,7 +286,7 @@ pub fn helper_build_module_binary_with_functions_and_external_functions(
             local_variables.extend_from_slice(&params_as_local_variables);
             local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
-            let local_list_entry = LocalListEntry {
+            let local_list_entry = LocalVariableListEntry {
                 local_variable_entries: local_variables,
             };
 
@@ -319,7 +321,7 @@ pub fn helper_build_module_binary(
     read_write_data_entries: Vec<InitedDataEntry>,
     uninit_uninit_data_entries: Vec<UninitDataEntry>,
     type_entries: Vec<TypeEntry>,
-    local_list_entries: Vec<LocalListEntry>, // this local list includes args
+    local_list_entries: Vec<LocalVariableListEntry>, // this local list includes args
     function_entries: Vec<FunctionEntry>,
     helper_external_function_entries: Vec<HelperExternalFunctionEntry>,
     entry_function_public_index: u32,
@@ -335,7 +337,7 @@ pub fn helper_build_module_binary(
     let (local_lists, local_list_data) =
         LocalVariableSection::convert_from_entries(&local_list_entries);
     let local_variable_section = LocalVariableSection {
-        lists: &local_lists,
+        list_items: &local_lists,
         list_data: &local_list_data,
     };
 
@@ -404,6 +406,27 @@ pub fn helper_build_module_binary(
         names_data: &external_function_data,
     };
 
+    // build common property section
+    let name_bytes = name.as_bytes();
+    let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
+
+    unsafe {
+        std::ptr::copy(
+            name_bytes.as_ptr(),
+            module_name_buffer.as_mut_ptr(),
+            name_bytes.len(),
+        )
+    };
+
+    let common_property_section = CommonPropertySection {
+        constructor_function_public_index: u32::MAX,
+        destructor_function_public_index: u32::MAX,
+        import_data_count:0,
+        import_function_count:0,
+        module_name_length: name_bytes.len() as u32,
+        module_name_buffer,
+    };
+
     // build function index
     let function_ranges: Vec<RangeItem> = vec![RangeItem {
         offset: 0,
@@ -420,28 +443,6 @@ pub fn helper_build_module_binary(
     let function_index_section = FunctionIndexSection {
         ranges: &function_ranges,
         items: &function_index_items,
-    };
-
-    let name_bytes = name.as_bytes();
-    let mut module_name_buffer = [0u8; MODULE_NAME_BUFFER_LENGTH];
-
-    unsafe {
-        std::ptr::copy(
-            name_bytes.as_ptr(),
-            module_name_buffer.as_mut_ptr(),
-            name_bytes.len(),
-        )
-    };
-
-    // build property section
-    let property_section = PropertySection {
-        runtime_major_version: RUNTIME_MAJOR_VERSION,
-        runtime_minor_version: RUNTIME_MINOR_VERSION,
-        entry_function_public_index,
-        constructor_function_public_index: u32::MAX,
-        destructor_function_public_index: u32::MAX,
-        module_name_length: name_bytes.len() as u32,
-        module_name_buffer,
     };
 
     // build data index
@@ -541,6 +542,12 @@ pub fn helper_build_module_binary(
         items: &external_function_index_items,
     };
 
+    let index_property_section = IndexPropertySection{
+        entry_function_public_index,
+        runtime_major_version: RUNTIME_MAJOR_VERSION,
+        runtime_minor_version: RUNTIME_MINOR_VERSION
+    };
+
     // build module image
     let section_entries: Vec<&dyn SectionEntry> = vec![
         // common sections
@@ -552,13 +559,14 @@ pub fn helper_build_module_binary(
         &uninit_data_section,
         &external_library_section,
         &external_function_section,
+        &common_property_section,
         // index sections
         &function_index_section,
-        &property_section,
         &unified_external_library_section,
         &unified_external_function_section,
         &external_function_index_section,
         &data_index_section,
+        &index_property_section
     ];
 
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);
@@ -572,6 +580,33 @@ pub fn helper_build_module_binary(
     module_image.save(&mut image_data).unwrap();
 
     image_data
+}
+
+pub fn helper_load_modules_from_binaries(
+    module_binaries: Vec<&[u8]>,
+) -> Result<Vec<ModuleImage>, BinaryError> {
+    let mut module_images: Vec<ModuleImage> = Vec::new();
+    for binary in module_binaries {
+        let module_image = ModuleImage::load(binary)?;
+
+        //         let property_section = module_image.get_property_section();
+        //         let require_runtime_version = ((property_section.runtime_major_version as u32) << 16)
+        //             | (property_section.runtime_minor_version as u32);
+        //         let supported_runtime_version =
+        //             ((RUNTIME_MAJOR_VERSION as u32) << 16) | (RUNTIME_MINOR_VERSION as u32);
+        //
+        //         // a module will only run if its required major and minor
+        //         // versions match the current runtime version 100%.
+        //         if require_runtime_version != supported_runtime_version {
+        //             return Err(BinaryError::new(
+        //                 "The module requires a different version runtime to run.",
+        //             ));
+        //         }
+
+        module_images.push(module_image);
+    }
+
+    Ok(module_images)
 }
 
 fn helper_new_local_variable_entry(operand_data_type: OperandDataType) -> LocalVariableEntry {
@@ -595,12 +630,12 @@ mod tests {
             external_function_index_section::ExternalFunctionIndexItem,
             function_index_section::FunctionIndexItem,
         },
-        load_modules_from_binaries,
         module_image::RangeItem,
         utils::{
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
+            helper_load_modules_from_binaries, HelperExternalFunctionEntry,
+            HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
 
@@ -615,7 +650,7 @@ mod tests {
                 InitedDataEntry::from_i32(0x11),
                 InitedDataEntry::from_i64(0x13),
             ],
-            vec![InitedDataEntry::from_bytes(
+            vec![InitedDataEntry::from_raw(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],
@@ -627,7 +662,7 @@ mod tests {
         );
 
         // load module
-        let module_images = load_modules_from_binaries(vec![&binary]).unwrap();
+        let module_images = helper_load_modules_from_binaries(vec![&binary]).unwrap();
         assert_eq!(module_images.len(), 1);
 
         // check module image
@@ -722,7 +757,7 @@ mod tests {
             )
         );
 
-        // check func section
+        // check function section
         let function_section = module_image.get_function_section();
         assert_eq!(function_section.items.len(), 1);
 
@@ -733,7 +768,7 @@ mod tests {
 
         // check local variable section
         let local_variable_section = module_image.get_local_variable_section();
-        assert_eq!(local_variable_section.lists.len(), 1);
+        assert_eq!(local_variable_section.list_items.len(), 1);
         assert_eq!(
             local_variable_section.get_local_list(0),
             &[
@@ -815,7 +850,7 @@ mod tests {
         );
 
         // load module
-        let module_images = load_modules_from_binaries(vec![&binary]).unwrap();
+        let module_images = helper_load_modules_from_binaries(vec![&binary]).unwrap();
         assert_eq!(module_images.len(), 1);
 
         let module_image = &module_images[0];

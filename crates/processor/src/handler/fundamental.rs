@@ -132,7 +132,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![OperandDataType::I32], // params
             vec![OperandDataType::I32], // results
-            vec![],                     // local vars
+            vec![],                     // local variables
             code0,
         );
 
@@ -163,7 +163,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I32], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -190,7 +190,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I32], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -214,7 +214,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
             vec![OperandDataType::I32, OperandDataType::I32], // results
-            vec![],                             // local vars
+            vec![],                             // local variables
             code0,
         );
 
@@ -242,7 +242,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                             // params
             vec![OperandDataType::I32, OperandDataType::I32], // results
-            vec![],                             // local vars
+            vec![],                             // local variables
             code0,
         );
 
@@ -273,7 +273,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I32], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -299,7 +299,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],              // params
             vec![OperandDataType::I32], // results
-            vec![],              // local vars
+            vec![],              // local variables
             code0,
         );
 
@@ -341,7 +341,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I64,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
@@ -391,7 +391,7 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F64,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 

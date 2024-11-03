@@ -92,7 +92,7 @@ pub fn envcall(thread_context: &mut ThreadContext) -> HandleResult {
     // (param env_func_num:i32)
 
     let env_func_num = thread_context.get_param_i32();
-    let func = unsafe { &HANDLERS[env_func_num as usize] };
-    func(thread_context);
+    let function = unsafe { &HANDLERS[env_func_num as usize] };
+    function(thread_context);
     HandleResult::Move(8)
 }

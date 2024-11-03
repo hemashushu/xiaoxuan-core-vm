@@ -235,8 +235,8 @@ mod tests {
     #[test]
     fn test_interpreter_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriterHelper::new()
-            // .append_opcode_i32(Opcode::imm_i32, 0) // 0 is the external func index
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // 0 is the external function index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -284,10 +284,10 @@ mod tests {
     #[test]
     fn test_interpreter_extcall_with_system_libc_getenv() {
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external func param 0
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external function param 0
             //
-            // .append_opcode_i32(Opcode::imm_i32, 0) // external func index
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // external function index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -343,11 +343,11 @@ mod tests {
         // 'int add(int, int)'
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 0
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 1
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external function param 0
+            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external function param 1
             //
-            // .append_opcode_i32(Opcode::imm_i32, 0) // external func index
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external func index
+            // .append_opcode_i32(Opcode::imm_i32, 0) // external function index
+            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
             //
             .append_opcode(Opcode::end)
             .to_bytes();

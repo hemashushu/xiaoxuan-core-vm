@@ -249,7 +249,7 @@ mod tests {
                 OperandDataType::I64,
                 OperandDataType::I64,
             ], // results
-            vec![], // local vars
+            vec![], // local variables
             code0,
         );
 
@@ -390,7 +390,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local vars
+            vec![],                                           // local variables
             code0,
         );
 
