@@ -10,62 +10,20 @@ use syscall_util::call::{
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
 
-use super::HandleResult;
+use crate::handler::Handler;
 
-type SysCallHandlerFunc = fn(&mut ThreadContext, usize) -> Result<usize, usize>;
+pub type SysCallHandlerFunc = fn(
+    &Handler,
+    &mut ThreadContext,
+    /* call_number */ usize,
+) -> Result</* err_no */ usize, /* ret value */ usize>;
 
-const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6; // 1 no args + 6 types with args
-static mut HANDLERS: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
-    [unreachable; MAX_SYSCALL_TYPE_NUMBER];
+// 1 type no args + 6 types with args = 7 types
+pub const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6;
 
-pub fn syscall(thread_context: &mut ThreadContext) -> HandleResult {
-    // (operand args..., syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
-    //
-    // the syscall arguments should be pushed on the stack first, e.g.
-    //
-    // | params_count   |
-    // | syscall_num    |
-    // | arg6           |
-    // | arg5           |
-    // | arg4           |
-    // | arg3           |
-    // | arg2           |                  | error no       |
-    // | arg1           |     return -->   | return value   |
-    // | ...            |                  | ...            |
-    // \----------------/ <-- stack start  \----------------/
-    //
-    // when a syscall complete, the return value is store into the 'rax' register,
-    // if the operation fails, the value is a negative value (rax < 0).
-    // there is no 'errno' if invoke syscall by assembly directly.
-
-    let params_count = thread_context.stack.pop_i32_u();
-    let syscall_num = thread_context.stack.pop_i32_u();
-
-    let handler = unsafe { &HANDLERS[params_count as usize] };
-    let result = handler(thread_context, syscall_num as usize);
-
-    // push the result on the stack
-
-    match result {
-        Ok(value) => {
-            thread_context.stack.push_i64_u(value as u64);
-            thread_context.stack.push_i32_u(0);
-        }
-        Err(error_no) => {
-            thread_context.stack.push_i64_u(0);
-            thread_context.stack.push_i32_u(error_no as u32);
-        }
-    }
-
-    HandleResult::Move(2)
-}
-
-// note:
-//
-// ensure this initialization is only called once
-pub fn init_syscall_handlers() {
-    let handlers = unsafe { &mut HANDLERS };
-
+pub fn generate_syscall_handlers() -> [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] {
+    let mut handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
+        [syscall_unreachable_handler; MAX_SYSCALL_TYPE_NUMBER];
     handlers[0] = handle_syscall_without_args;
     handlers[1] = handle_syscall_with_1_arg;
     handlers[2] = handle_syscall_with_2_args;
@@ -73,13 +31,19 @@ pub fn init_syscall_handlers() {
     handlers[4] = handle_syscall_with_4_args;
     handlers[5] = handle_syscall_with_5_args;
     handlers[6] = handle_syscall_with_6_args;
+    handlers
 }
 
-fn unreachable(_thread_context: &mut ThreadContext, _number: usize) -> Result<usize, usize> {
+fn syscall_unreachable_handler(
+    _handler: &Handler,
+    _thread_context: &mut ThreadContext,
+    _number: usize,
+) -> Result<usize, usize> {
     unreachable!()
 }
 
 fn handle_syscall_without_args(
+    _handler: &Handler,
     _thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -87,6 +51,7 @@ fn handle_syscall_without_args(
 }
 
 fn handle_syscall_with_1_arg(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -97,6 +62,7 @@ fn handle_syscall_with_1_arg(
 }
 
 fn handle_syscall_with_2_args(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -107,6 +73,7 @@ fn handle_syscall_with_2_args(
 }
 
 fn handle_syscall_with_3_args(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -117,6 +84,7 @@ fn handle_syscall_with_3_args(
 }
 
 fn handle_syscall_with_4_args(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -127,6 +95,7 @@ fn handle_syscall_with_4_args(
 }
 
 fn handle_syscall_with_5_args(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -137,6 +106,7 @@ fn handle_syscall_with_5_args(
 }
 
 fn handle_syscall_with_6_args(
+    _handler: &Handler,
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -148,14 +118,15 @@ fn handle_syscall_with_6_args(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
-    };
     use ancvm_context::resource::Resource;
+    use ancvm_image::{
+        bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
+        utils::helper_build_module_binary_with_single_function,
+    };
+    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
     use syscall_util::{errno::Errno, number::SysCallNum};
-    use ancvm_isa::{opcode::Opcode, OperandDataType, ForeignValue};
 
-        use crate::{
+    use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
 
@@ -168,10 +139,10 @@ mod tests {
 
         // bytecode:
         //
-        // 0x0000  80 01 00 00  27 00 00 00    i32.imm           0x00000027
-        // 0x0008  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x0010  03 0b                       syscall
-        // 0x0012  00 0a                       end
+        // 0x0000  40 01 00 00  27 00 00 00    imm_i32           0x00000027
+        // 0x0008  40 01 00 00  00 00 00 00    imm_i32           0x00000000
+        // 0x0010  03 04                       syscall
+        // 0x0012  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6
@@ -185,20 +156,21 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", format_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                             // params
+            vec![],                                           // params
             vec![OperandDataType::I64, OperandDataType::I32], // results
-            vec![],                             // local variables
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         let result_values0 = result0.unwrap();
 
         let pid = std::process::id();
@@ -216,17 +188,17 @@ mod tests {
 
         // bytecode:
         //
-        // 0x0000  00 02 00 00  00 00 00 00    local.load64_i64  rev:0   off:0x00  idx:0
-        // 0x0008  02 02 00 00  00 00 01 00    local.load32_i32  rev:0   off:0x00  idx:1
-        // 0x0010  80 01 00 00  4f 00 00 00    i32.imm           0x0000004f
-        // 0x0018  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x0020  03 0b                       syscall
-        // 0x0022  00 0a                       end
+        // 0x0000  80 01 00 00  00 00 00 00    local_load_64     rev:0   off:0x00  idx:0
+        // 0x0008  82 01 00 00  00 00 01 00    local_load_i32_u  rev:0   off:0x00  idx:1
+        // 0x0010  40 01 00 00  4f 00 00 00    imm_i32           0x0000004f
+        // 0x0018  40 01 00 00  02 00 00 00    imm_i32           0x00000002
+        // 0x0020  03 04                       syscall
+        // 0x0022  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1)
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             // prepare syscall
             .append_opcode_i32(Opcode::imm_i32, SysCallNum::getcwd as u32) // syscall num
             .append_opcode_i32(Opcode::imm_i32, 2) // the amount of syscall args
@@ -236,15 +208,16 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", format_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![OperandDataType::I64, OperandDataType::I64], // params
             vec![OperandDataType::I64, OperandDataType::I32], // results
-            vec![],                             // local variables
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -254,13 +227,11 @@ mod tests {
         let buf_addr = buf.as_ptr() as u64;
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
-            &[
-                ForeignValue::U64(buf_addr),
-                ForeignValue::U32(BUF_LENGTH),
-            ],
+            &[ForeignValue::U64(buf_addr), ForeignValue::U32(BUF_LENGTH)],
         );
 
         let results0 = result0.unwrap();
@@ -272,9 +243,7 @@ mod tests {
 
         let null_pos = buf.iter().position(|u| *u == 0).unwrap();
 
-        assert!(
-            matches!(results0[0], ForeignValue::U64(value) if value == (null_pos + 1) as u64)
-        );
+        assert!(matches!(results0[0], ForeignValue::U64(value) if value == (null_pos + 1) as u64));
         assert_eq!(results0[1], ForeignValue::U32(0));
 
         let path0 = String::from_utf8_lossy(&buf[0..null_pos]);
@@ -292,12 +261,12 @@ mod tests {
 
         // bytecode:
         //
-        // 0x0000  00 02 00 00  00 00 00 00    local.load64_i64  rev:0   off:0x00  idx:0
-        // 0x0008  80 01 00 00  00 00 00 00    i32.imm           0x00000000
-        // 0x0010  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x0018  80 01 00 00  02 00 00 00    i32.imm           0x00000002
-        // 0x0020  03 0b                       syscall
-        // 0x0022  00 0a                       end
+        // 0x0000  80 01 00 00  00 00 00 00    local_load_64     rev:0   off:0x00  idx:0
+        // 0x0008  40 01 00 00  00 00 00 00    imm_i32           0x00000000
+        // 0x0010  40 01 00 00  02 00 00 00    imm_i32           0x00000002
+        // 0x0018  40 01 00 00  02 00 00 00    imm_i32           0x00000002
+        // 0x0020  03 04                       syscall
+        // 0x0022  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6
@@ -312,15 +281,16 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", format_bytecode_as_text(&code0));
+        println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I64],                // params
+            vec![OperandDataType::I64],                       // params
             vec![OperandDataType::I64, OperandDataType::I32], // results
-            vec![],                             // local variables
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -332,6 +302,7 @@ mod tests {
         let file_path_addr1 = file_path1.as_ptr() as usize;
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -348,6 +319,7 @@ mod tests {
         );
 
         let result1 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,

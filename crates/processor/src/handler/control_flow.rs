@@ -8,19 +8,19 @@ use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
 
 use crate::process::{EXIT_CURRENT_HANDLER_LOOP_BIT, EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT};
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
 /// note that both instruction 'end' and 'break' can end
 /// a function or a block, they are the same actually except
 /// the 'break' instruction can specify the 'reversed_index'
 /// and 'next_inst_offset'.
 // thus `end` == `break reversed_index=0 next_inst_offset=2`
-pub fn end(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn end(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     const INSTRUCTION_END_LENGTH: u32 = 2;
     do_break(thread_context, 0, INSTRUCTION_END_LENGTH)
 }
 
-pub fn block(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param type_index:i32, local_list_index:i32)
     let (type_index, local_list_index) = thread_context.get_param_i32_i32();
 
@@ -44,7 +44,7 @@ pub fn block(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(12)
 }
 
-pub fn block_alt(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
     let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
@@ -74,7 +74,7 @@ pub fn block_alt(thread_context: &mut ThreadContext) -> HandleResult {
     }
 }
 
-pub fn block_nez(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param local_list_index:i32, next_inst_offset:i32)
 
     let condition = thread_context.stack.pop_i32_u();
@@ -110,12 +110,12 @@ pub fn block_nez(thread_context: &mut ThreadContext) -> HandleResult {
 /// the 'break' instruction can specify the 'reversed_index'
 /// and 'next_inst_offset'.
 // thus `end` == `break reversed_index=0 next_inst_offset=2`
-pub fn break_(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn break_(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (reversed_index, next_inst_offset) = thread_context.get_param_i16_i32();
     do_break(thread_context, reversed_index, next_inst_offset)
 }
 
-pub fn break_nez(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn break_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let condition = thread_context.stack.pop_i32_u();
     let (reversed_index, next_inst_offset) = thread_context.get_param_i16_i32();
 
@@ -161,12 +161,12 @@ fn do_break(
     }
 }
 
-pub fn recur(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn recur(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (reversed_index, start_inst_offset) = thread_context.get_param_i16_i32();
     do_recur(thread_context, reversed_index, start_inst_offset)
 }
 
-pub fn recur_nez(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn recur_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let condition = thread_context.stack.pop_i32_u();
     let (reversed_index, start_inst_offset) = thread_context.get_param_i16_i32();
 

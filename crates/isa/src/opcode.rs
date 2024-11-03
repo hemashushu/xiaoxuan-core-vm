@@ -1459,7 +1459,7 @@ pub enum Opcode {
     // 'amount of imported functions' + 'function internal index'
     //
     // environment call
-    // (param env_func_num:i32) -> (...)
+    // (param envcall_num:i32) -> (...)
     envcall,
 
     // the syscall arguments should be pushed on the stack first, e.g.

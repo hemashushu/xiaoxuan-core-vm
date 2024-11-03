@@ -41,9 +41,9 @@
 
 use ancvm_context::{memory::Memory, thread_context::ThreadContext};
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn panic(thread: &mut ThreadContext) -> HandleResult {
+pub fn panic(_handler: &Handler, thread: &mut ThreadContext) -> HandleResult {
     let code = thread.get_param_i32();
     HandleResult::Panic(code)
 }
@@ -58,7 +58,7 @@ pub fn panic(thread: &mut ThreadContext) -> HandleResult {
 //     HandleResult::Debug(code)
 // }
 
-pub fn host_addr_local(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_local(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
     let (reversed_index, offset_bytes, local_variable_index) =
         thread_context.get_param_i16_i16_i16();
@@ -70,7 +70,10 @@ pub fn host_addr_local(thread_context: &mut ThreadContext) -> HandleResult {
     )
 }
 
-pub fn host_addr_local_extend(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_local_extend(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32) -> i64
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
@@ -100,7 +103,7 @@ fn do_host_addr_local(
     HandleResult::Move(8)
 }
 
-pub fn host_addr_data(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_data(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i64
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_host_addr_data(
@@ -110,7 +113,10 @@ pub fn host_addr_data(thread_context: &mut ThreadContext) -> HandleResult {
     )
 }
 
-pub fn host_addr_data_extend(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_data_extend(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i32_u();
@@ -140,7 +146,7 @@ fn do_host_addr_data(
     HandleResult::Move(8)
 }
 
-pub fn host_addr_heap(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_heap(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let heap_address = thread_context.stack.pop_i64_u();
@@ -151,7 +157,10 @@ pub fn host_addr_heap(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn host_copy_heap_to_memory(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_copy_heap_to_memory(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // copy data from VM heap to host memory
     // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
 
@@ -171,7 +180,10 @@ pub fn host_copy_heap_to_memory(thread_context: &mut ThreadContext) -> HandleRes
     HandleResult::Move(2)
 }
 
-pub fn host_copy_memory_to_heap(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_copy_memory_to_heap(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // copy data from host memory to VM heap
     // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
 
@@ -191,7 +203,7 @@ pub fn host_copy_memory_to_heap(thread_context: &mut ThreadContext) -> HandleRes
     HandleResult::Move(2)
 }
 
-pub fn host_memory_copy(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // copy data between host memory
     // (operand dst_pointer:i64 src_pointer:i64 length_in_bytes:i64)
 
@@ -225,7 +237,7 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
 }
 
 /*
-pub fn host_addr_function(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> i64/i32
 
     let function_public_index = thread_context.get_param_i32() as usize;

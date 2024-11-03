@@ -7,12 +7,9 @@
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
-pub enum EnvCallCode {
-    //
-    // runtime functions
-    //
+pub enum EnvCallNum {
 
-    // runtime info
+    // runtime
     runtime_name = 0x0100,       // get the VM runtime code name
                                 // `fn (buf_ptr: i64) -> name_len:i32`
 
@@ -25,7 +22,7 @@ pub enum EnvCallCode {
                                 //        |    |minor
                                 //        |major
 
-    // todo
+
     // runtime_features,           // get name list of the runtime features, separated by commas, e.g.
                                 // "syscall,extcall"
                                 //
@@ -33,21 +30,8 @@ pub enum EnvCallCode {
 
     // runtime_feature_check,      // `fn (name_ptr:i64, name_len:i32) -> bool`
 
-    // // initialization
-    // count_start_function = 0x110,   // get the amount of the constructor functions
-    //                                 // `fn () -> i32`
-    // count_exit_function,            // get the amount of the destructor functions
-    //                                 // `fn () -> i32`
-    // get_start_function_item,        // get 'the public index of constructor function ' by index
-    //                                 // `fn (index:i32) -> i32`
-    //                                 // panic if out of index.
-    // get_exit_function_item,         // get 'the public index of destructor function ' by index
-    //                                 // `fn (index:i32) -> i32`
-    //                                 // panic if out of index.
 
-    // host info
-    // todo
-
+    // host
     // host_info_arch = 0x110,      // x86_64/aarch64/riscv64 ...
     // host_info_os,                // linux/macos/windows/freebsd/android/ios ...
     // host_info_family,            // unix/windows ...
@@ -264,4 +248,4 @@ pub enum EnvCallCode {
     regex_remove,
 }
 
-pub const MAX_ECALLCODE_NUMBER: usize = 0x0200;
+pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0200;

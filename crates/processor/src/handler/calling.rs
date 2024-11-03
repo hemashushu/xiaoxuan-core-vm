@@ -6,14 +6,14 @@
 
 use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn call(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let function_public_index = thread_context.get_param_i32();
     do_call(thread_context, function_public_index, 8)
 }
 
-pub fn dyncall(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn dyncall(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let function_public_index = thread_context.stack.pop_i32_u();
     do_call(thread_context, function_public_index, 2)
 }
@@ -69,6 +69,56 @@ fn do_call(
     };
 
     HandleResult::Jump(target_pc)
+}
+
+pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    // (operand args..., syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
+    //
+    // the syscall arguments should be pushed on the stack first, e.g.
+    //
+    // | params_count   |
+    // | syscall_num    |
+    // | arg6           |
+    // | arg5           |
+    // | arg4           |
+    // | arg3           |
+    // | arg2           |                  | error no       |
+    // | arg1           |     return -->   | return value   |
+    // | ...            |                  | ...            |
+    // \----------------/ <-- stack start  \----------------/
+    //
+    // when a syscall complete, the return value is store into the 'rax' register,
+    // if the operation fails, the value is a negative value (rax < 0).
+    // there is no 'errno' if invoke syscall by assembly directly.
+
+    let params_count = thread_context.stack.pop_i32_u();
+    let syscall_num = thread_context.stack.pop_i32_u();
+
+    let syscall_handler = handler.syscall_handlers[params_count as usize];
+    let result = syscall_handler(handler, thread_context, syscall_num as usize);
+
+    // push the result on the stack
+
+    match result {
+        Ok(ret_value) => {
+            thread_context.stack.push_i64_u(ret_value as u64);
+            thread_context.stack.push_i32_u(0);
+        }
+        Err(error_no) => {
+            thread_context.stack.push_i64_u(0);
+            thread_context.stack.push_i32_u(error_no as u32);
+        }
+    }
+
+    HandleResult::Move(2)
+}
+
+pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    // (param envcall_num:i32)
+    let envcall_num = thread_context.get_param_i32();
+    let envcall_handler = handler.envcall_handlers[envcall_num as usize];
+    envcall_handler(handler, thread_context);
+    HandleResult::Move(8)
 }
 
 #[cfg(test)]

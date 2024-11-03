@@ -8,9 +8,9 @@ use ancvm_context::{
     memory::Memory, resizeable_memory::ResizeableMemory, thread_context::ThreadContext,
 };
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn heap_load_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -22,7 +22,7 @@ pub fn heap_load_i64(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -34,7 +34,7 @@ pub fn heap_load_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -46,7 +46,7 @@ pub fn heap_load_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i16_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -58,7 +58,7 @@ pub fn heap_load_i16_s(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i16_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -70,7 +70,7 @@ pub fn heap_load_i16_u(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i8_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -82,7 +82,7 @@ pub fn heap_load_i8_s(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_i8_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -94,7 +94,7 @@ pub fn heap_load_i8_u(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -106,7 +106,7 @@ pub fn heap_load_f64(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_load_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i32();
     let address = thread_context.stack.pop_i64_u();
@@ -118,7 +118,7 @@ pub fn heap_load_f32(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_store_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i32();
 
@@ -130,7 +130,7 @@ pub fn heap_store_i64(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_store_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i32();
 
@@ -142,7 +142,7 @@ pub fn heap_store_i32(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_store_i16(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i32();
 
@@ -154,7 +154,7 @@ pub fn heap_store_i16(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_store_i8(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i32) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i32();
 
@@ -166,7 +166,7 @@ pub fn heap_store_i8(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn heap_capacity(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_capacity(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () -> pages:i64
     let pages = thread_context.heap.get_capacity_in_pages();
     thread_context.stack.push_i64_u(pages as u64);
@@ -174,7 +174,7 @@ pub fn heap_capacity(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-pub fn heap_resize(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_resize(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand pages:i64) -> new_pages:i64
     let pages = thread_context.stack.pop_i64_u();
     let new_pages = thread_context.heap.resize(pages as usize);
@@ -183,7 +183,7 @@ pub fn heap_resize(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-pub fn heap_fill(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_fill(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand address:i64, value:i8, count:i64) -> ()
     let count = thread_context.stack.pop_i64_u() as usize;
     let value = thread_context.stack.pop_i32_u() as u8;
@@ -194,7 +194,7 @@ pub fn heap_fill(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-pub fn heap_copy(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn heap_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand dst_address:i64, src_address:i64, length_in_bytes:i64) -> ()
     let length_in_bytes = thread_context.stack.pop_i64_u() as usize;
     let src_address = thread_context.stack.pop_i64_u() as usize;

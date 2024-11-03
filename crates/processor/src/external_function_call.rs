@@ -11,9 +11,9 @@ use crate::jit_util::build_vm_to_external_function;
 use ancvm_context::thread_context::ThreadContext;
 use ancvm_isa::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn extcall(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (operand external_function_index:i32) -> void/i32/i64/f32/f64
     //
     // the 'external_function_index' is the index within a specific module, it is not

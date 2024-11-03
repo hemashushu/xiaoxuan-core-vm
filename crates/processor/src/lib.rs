@@ -4,13 +4,16 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-pub mod envcallcode;
+pub mod envcall_num;
 pub mod jit_util;
 // pub mod delegate;
 pub mod handler;
 pub mod in_memory_resource;
 // pub mod multithread_program;
 pub mod process;
+
+mod syscall_handler;
+mod envcall_handler;
 
 use std::{
     cell::RefCell,

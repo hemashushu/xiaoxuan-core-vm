@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
@@ -7,9 +7,11 @@
 use ancvm_context::thread_context::ThreadContext;
 use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
+use crate::handler::Handler;
+
 // ref:
 // https://linux.die.net/man/3/clock_gettime
-pub fn time_now(thread_context: &mut ThreadContext) {
+pub fn time_now(_handler: &Handler, thread_context: &mut ThreadContext) {
     // `fn () -> (seconds:u64, nano_seconds:u32)`
 
     let mut t = timespec {
@@ -29,15 +31,17 @@ pub fn time_now(thread_context: &mut ThreadContext) {
 mod tests {
     use std::time::Duration;
 
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter, utils::helper_build_module_binary_with_single_function,
-    };
     use ancvm_context::resource::Resource;
-    use ancvm_isa::{envcallcode::EnvCallCode, opcode::Opcode, OperandDataType};
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
+        utils::helper_build_module_binary_with_single_function,
+    };
+    use ancvm_isa::{opcode::Opcode, OperandDataType};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
-        use crate::{
-        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+    use crate::{
+        envcall_num::EnvCallNum, handler::Handler, in_memory_resource::InMemoryResource,
+        process::process_function,
     };
 
     #[test]
@@ -45,26 +49,27 @@ mod tests {
         // () -> (i64, i32)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::time_now as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::time_now as u32)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                             // params
+            vec![],                                           // params
             vec![OperandDataType::I64, OperandDataType::I32], // results
-            vec![],                             // local variables
+            vec![],                                           // local variables
             code0,
         );
 
+        let handler = Handler::new();
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
 
-        let secs = results0[0].as_u64().unwrap();
-        let nanos = results0[1].as_u32().unwrap();
+        let secs = results0[0].as_u64();
+        let nanos = results0[1].as_u32();
         let dur_before = Duration::new(secs, nanos);
 
         let mut t: timespec = timespec {

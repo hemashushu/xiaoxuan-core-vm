@@ -6,38 +6,38 @@
 
 use ancvm_context::thread_context::ThreadContext;
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
 // demote i64 to i32
 // discard the high 32 bits of an i64 number directly
-pub fn truncate_i64_to_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn truncate_i64_to_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
 // promote i32 to i64
-pub fn extend_i32_s_to_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extend_i32_s_to_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn extend_i32_u_to_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extend_i32_u_to_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
 // demote f64 to f32
-pub fn demote_f64_to_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn demote_f64_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
 // promote f32 to f64
-pub fn promote_f32_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn promote_f32_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
@@ -45,98 +45,98 @@ pub fn promote_f32_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
 
 // convert float to int
 // truncate fractional part
-pub fn convert_f32_to_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i32_s(value as i32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i32_s(value as i32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
 // convert int to float
-pub fn convert_i32_s_to_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_s_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_u_to_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_u_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_s_to_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_s_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_u_to_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_u_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_s_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_s_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_u_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_u_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_s_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_s_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_u_to_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_u_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)

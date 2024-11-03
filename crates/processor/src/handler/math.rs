@@ -6,63 +6,63 @@
 
 use ancvm_context::thread_context::ThreadContext;
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn abs_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn abs_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn abs_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, -v);
     HandleResult::Move(2)
 }
 
-pub fn ceil_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.ceil());
     HandleResult::Move(2)
 }
 
-pub fn floor_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.floor());
     HandleResult::Move(2)
 }
 
-pub fn round_half_away_from_zero_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn round_half_to_even_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
 
     let toint_32: f32 = 1.0 / f32::EPSILON;
@@ -78,157 +78,157 @@ pub fn round_half_to_even_f32(thread_context: &mut ThreadContext) -> HandleResul
     HandleResult::Move(2)
 }
 
-pub fn trunc_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.trunc());
     HandleResult::Move(2)
 }
 
-pub fn fract_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.fract());
     HandleResult::Move(2)
 }
 
-pub fn sqrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.sqrt());
     HandleResult::Move(2)
 }
 
-pub fn cbrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.cbrt());
     HandleResult::Move(2)
 }
 
-pub fn exp_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.exp());
     HandleResult::Move(2)
 }
 
-pub fn exp2_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.exp2());
     HandleResult::Move(2)
 }
 
-pub fn ln_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.ln());
     HandleResult::Move(2)
 }
 
-pub fn log2_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.log2());
     HandleResult::Move(2)
 }
 
-pub fn log10_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.log10());
     HandleResult::Move(2)
 }
 
-pub fn sin_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.sin());
     HandleResult::Move(2)
 }
 
-pub fn cos_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.cos());
     HandleResult::Move(2)
 }
 
-pub fn tan_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.tan());
     HandleResult::Move(2)
 }
 
-pub fn asin_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.asin());
     HandleResult::Move(2)
 }
 
-pub fn acos_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.acos());
     HandleResult::Move(2)
 }
 
-pub fn atan_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.atan());
     HandleResult::Move(2)
 }
 
-pub fn copysign_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (num, sign) = load_operands_f32(thread_context);
     store_f32(thread_context, num.copysign(sign));
     HandleResult::Move(2)
 }
 
-pub fn pow_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, left.powf(right));
     HandleResult::Move(2)
 }
 
-pub fn log_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, left.log(right));
     HandleResult::Move(2)
 }
 
-pub fn min_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, f32::min(left, right));
     HandleResult::Move(2)
 }
 
-pub fn max_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f32(thread_context);
     store_f32(thread_context, f32::max(left, right));
     HandleResult::Move(2)
 }
 
-pub fn abs_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, -v);
     HandleResult::Move(2)
 }
 
-pub fn ceil_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.ceil());
     HandleResult::Move(2)
 }
 
-pub fn floor_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.floor());
     HandleResult::Move(2)
 }
 
-pub fn round_half_away_from_zero_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn round_half_to_even_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
 
     let toint_64: f64 = 1.0 / f64::EPSILON;
@@ -244,121 +244,121 @@ pub fn round_half_to_even_f64(thread_context: &mut ThreadContext) -> HandleResul
     HandleResult::Move(2)
 }
 
-pub fn trunc_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.trunc());
     HandleResult::Move(2)
 }
 
-pub fn fract_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.fract());
     HandleResult::Move(2)
 }
 
-pub fn sqrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.sqrt());
     HandleResult::Move(2)
 }
 
-pub fn cbrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.cbrt());
     HandleResult::Move(2)
 }
 
-pub fn exp_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.exp());
     HandleResult::Move(2)
 }
 
-pub fn exp2_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.exp2());
     HandleResult::Move(2)
 }
 
-pub fn ln_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.ln());
     HandleResult::Move(2)
 }
 
-pub fn log2_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.log2());
     HandleResult::Move(2)
 }
 
-pub fn log10_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.log10());
     HandleResult::Move(2)
 }
 
-pub fn sin_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.sin());
     HandleResult::Move(2)
 }
 
-pub fn cos_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.cos());
     HandleResult::Move(2)
 }
 
-pub fn tan_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.tan());
     HandleResult::Move(2)
 }
 
-pub fn asin_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.asin());
     HandleResult::Move(2)
 }
 
-pub fn acos_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.acos());
     HandleResult::Move(2)
 }
 
-pub fn atan_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.atan());
     HandleResult::Move(2)
 }
 
-pub fn copysign_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (num, sign) = load_operands_f64(thread_context);
     store_f64(thread_context, num.copysign(sign));
     HandleResult::Move(2)
 }
 
-pub fn pow_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, left.powf(right));
     HandleResult::Move(2)
 }
 
-pub fn log_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, left.log(right));
     HandleResult::Move(2)
 }
 
-pub fn min_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, f64::min(left, right));
     HandleResult::Move(2)
 }
 
-pub fn max_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_f64(thread_context);
     store_f64(thread_context, f64::max(left, right));
     HandleResult::Move(2)

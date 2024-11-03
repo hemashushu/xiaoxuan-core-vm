@@ -7,13 +7,16 @@
 use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
-use crate::{handler::{HandleResult, Handler}, InterpreterError, InterpreterErrorType};
+use crate::{
+    handler::{HandleResult, Handler},
+    InterpreterError, InterpreterErrorType,
+};
 
 // when the function call is a nested (in a callback function loop),
 // then the current handler-loop should be ended when this
 // bit is encountered.
-pub const EXIT_CURRENT_HANDLER_LOOP_BIT:usize = 0x8000_0000;
-pub const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT:usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
+pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
+pub const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT: usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
 
 // note:
 // 'function public index' includes the imported functions, it equals to
@@ -190,11 +193,8 @@ pub fn process_continuous_instructions(
     }
 }
 
-pub fn process_instruction(
-    handler: &Handler,
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn process_instruction(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let opcode_num = thread_context.get_opcode_num();
     let function = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
-    function(thread_context)
+    function(handler, thread_context)
 }

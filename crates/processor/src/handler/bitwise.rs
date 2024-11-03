@@ -6,168 +6,168 @@
 
 use ancvm_context::thread_context::ThreadContext;
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn and(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn and(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left & right);
     HandleResult::Move(2)
 }
 
-pub fn or(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn or(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left | right);
     HandleResult::Move(2)
 }
 
-pub fn xor(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn xor(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left ^ right);
     HandleResult::Move(2)
 }
 
-pub fn not(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn not(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, !v);
     HandleResult::Move(2)
 }
 
-// pub fn i32_and(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn i32_and(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     let (left, right) = load_operands_i32_u(thread_context);
 //     store_i32_u(thread_context, left & right);
 //     HandleResult::Move(2)
 // }
 //
-// pub fn i32_or(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn i32_or(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     let (left, right) = load_operands_i32_u(thread_context);
 //     store_i32_u(thread_context, left | right);
 //     HandleResult::Move(2)
 // }
 //
-// pub fn i32_xor(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn i32_xor(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     let (left, right) = load_operands_i32_u(thread_context);
 //     store_i32_u(thread_context, left ^ right);
 //     HandleResult::Move(2)
 // }
 //
-// pub fn i32_not(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn i32_not(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     let v = load_operand_i32_u(thread_context);
 //     store_i32_u(thread_context, !v);
 //     HandleResult::Move(2)
 // }
 
-pub fn count_leading_zeros_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_zeros_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.leading_zeros());
     HandleResult::Move(2)
 }
 
-pub fn count_leading_ones_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_ones_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.leading_ones());
     HandleResult::Move(2)
 }
 
-pub fn count_trailing_zeros_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_trailing_zeros_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.trailing_zeros());
     HandleResult::Move(2)
 }
 
-pub fn count_ones_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_ones_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.count_ones());
     HandleResult::Move(2)
 }
 
-pub fn shift_left_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_left_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context);
     let number = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, number << bits);
     HandleResult::Move(2)
 }
 
-pub fn shift_right_i32_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_right_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context);
     let number = load_operand_i32_s(thread_context);
     store_i32_s(thread_context, number >> bits);
     HandleResult::Move(2)
 }
 
-pub fn shift_right_i32_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_right_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context);
     let number = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, number >> bits);
     HandleResult::Move(2)
 }
 
-pub fn rotate_left_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rotate_left_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context);
     let number = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, number.rotate_left(bits));
     HandleResult::Move(2)
 }
 
-pub fn rotate_right_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rotate_right_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context);
     let number = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, number.rotate_right(bits));
     HandleResult::Move(2)
 }
 
-pub fn count_leading_zeros_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_zeros_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.leading_zeros()); // the result of 'clz' is u32
     HandleResult::Move(2)
 }
 
-pub fn count_leading_ones_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_ones_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.leading_ones()); // the result of 'cls' is u32
     HandleResult::Move(2)
 }
 
-pub fn count_trailing_zeros_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_trailing_zeros_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.trailing_zeros()); // the result of 'ctz' is u32
     HandleResult::Move(2)
 }
 
-pub fn count_ones_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_ones_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.count_ones()); // the result of 'popcnt' is u32
     HandleResult::Move(2)
 }
 
-pub fn shift_left_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_left_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context); // the type of 'bits' is u32
     let number = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, number << bits);
     HandleResult::Move(2)
 }
 
-pub fn shift_right_i64_s(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_right_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context); // the type of 'bits' is u32
     let number = load_operand_i64_s(thread_context);
     store_i64_s(thread_context, number >> bits);
     HandleResult::Move(2)
 }
 
-pub fn shift_right_i64_u(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn shift_right_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context); // the type of 'bits' is u32
     let number = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, number >> bits);
     HandleResult::Move(2)
 }
 
-pub fn rotate_left_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rotate_left_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context); // the type of 'bits' is u32
     let number = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, number.rotate_left(bits));
     HandleResult::Move(2)
 }
 
-pub fn rotate_right_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rotate_right_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let bits = load_operand_i32_u(thread_context); // the type of 'bits' is u32
     let number = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, number.rotate_right(bits));

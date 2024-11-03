@@ -8,21 +8,24 @@ use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
 use ancvm_image::bytecode_reader::format_bytecode_as_text;
 use ancvm_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
 
-type HandleFunc = fn(&mut ThreadContext) -> HandleResult;
+use crate::{envcall_num::MAX_ENVCALL_CODE_NUMBER, envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc}, syscall_handler::{
+    generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER,
+}};
+
+pub type HandleFunc = fn(&Handler, &mut ThreadContext) -> HandleResult;
 
 mod arithmetic;
 mod bitwise;
 mod comparison;
-mod conversion;
-mod funcall;
 mod control_flow;
+mod conversion;
 mod data;
+mod calling;
 mod fundamental;
 mod heap;
 mod host;
 mod local;
 mod math;
-// mod syscall;
 
 // mod envcall;
 // mod extcall;
@@ -61,7 +64,7 @@ pub enum HandleResult {
     // Debug(u32),
 }
 
-fn unreachable_handler(thread_context: &mut ThreadContext) -> HandleResult {
+fn unreachable_handler(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let pc = &thread_context.pc;
     let function_item = &thread_context.module_common_instances[pc.module_index]
         .function_section
@@ -106,16 +109,12 @@ Bytecode:
 
 pub struct Handler {
     pub handlers: [HandleFunc; MAX_OPCODE_NUMBER],
+    pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
+    pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER]
 }
 
 impl Handler {
     pub fn new() -> Self {
-        // todo
-        // // other initializations
-        // init_ecall_handlers();
-        // init_syscall_handlers();
-
-        // let interpreters = unsafe { &mut INTERPRETERS };
         let mut handlers: [HandleFunc; MAX_OPCODE_NUMBER] =
             [unreachable_handler; MAX_OPCODE_NUMBER];
 
@@ -414,13 +413,13 @@ impl Handler {
         handlers[Opcode::recur_nez as usize] = control_flow::recur_nez;
 
         // function call
-        handlers[Opcode::call as usize] = funcall::call;
-        handlers[Opcode::dyncall as usize] = funcall::dyncall;
+        handlers[Opcode::call as usize] = calling::call;
+        handlers[Opcode::dyncall as usize] = calling::dyncall;
 
         // other calling
-        // handlers[Opcode::syscall as usize] = syscall::syscall;
-        // handlers[Opcode::envcall as usize] = envcall::envcall;
-        // handlers[Opcode::extcall as usize] = extcall::extcall;
+        handlers[Opcode::syscall as usize] = calling::syscall;
+        handlers[Opcode::envcall as usize] = calling::envcall;
+        // handlers[Opcode::extcall as usize] = calling::extcall;
 
         // host
         handlers[Opcode::panic as usize] = host::panic;
@@ -436,6 +435,10 @@ impl Handler {
         handlers[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
         handlers[Opcode::host_memory_copy as usize] = host::host_memory_copy;
 
-        Handler { handlers }
+        Handler {
+            handlers,
+            syscall_handlers: generate_syscall_handlers(),
+            envcall_handlers: generate_envcall_handlers()
+        }
     }
 }

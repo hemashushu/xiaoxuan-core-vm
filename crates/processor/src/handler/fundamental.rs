@@ -6,29 +6,29 @@
 
 use ancvm_context::thread_context::ThreadContext;
 
-use super::HandleResult;
+use super::{HandleResult, Handler};
 
-pub fn nop(_thread: &mut ThreadContext) -> HandleResult {
+pub fn nop(_handler: &Handler, _thread: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-// pub fn zero(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn zero(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     thread_context.stack.push_i64_u(0);
 //     HandleResult::Move(2)
 // }
 
 /*
-pub fn drop_(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn drop_(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     thread_context.stack.drop_();
     HandleResult::Move(2)
 }
 
-pub fn duplicate(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn duplicate(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     thread_context.stack.duplicate();
     HandleResult::Move(2)
 }
 
-pub fn swap(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn swap(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let a = thread_context.stack.pop_i64_u();
     let b = thread_context.stack.pop_i64_u();
     thread_context.stack.push_i64_u(a);
@@ -37,7 +37,7 @@ pub fn swap(thread_context: &mut ThreadContext) -> HandleResult {
 }
 */
 
-// pub fn select_nez(thread_context: &mut ThreadContext) -> HandleResult {
+// pub fn select_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
 //     // (operand when_true:any when_false:any test:i32) -> any
 //     //
 //     // | test    | a
@@ -59,7 +59,7 @@ pub fn swap(thread_context: &mut ThreadContext) -> HandleResult {
 //     HandleResult::Move(2)
 // }
 
-pub fn imm_i32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // note:
     // all i32 will be signed-extended to i64
     let value = thread_context.get_param_i32();
@@ -67,7 +67,7 @@ pub fn imm_i32(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn imm_i64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (low, high) = thread_context.get_param_i32_i32();
     let mut value: u64 = high as u64;
     value <<= 32;
@@ -77,7 +77,7 @@ pub fn imm_i64(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(12)
 }
 
-pub fn imm_f32(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let i32_value = thread_context.get_param_i32();
     let value = f32::from_bits(i32_value);
 
@@ -85,7 +85,7 @@ pub fn imm_f32(thread_context: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(8)
 }
 
-pub fn imm_f64(thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (low, high) = thread_context.get_param_i32_i32();
 
     let mut bytes = [0u8; 8];
@@ -104,8 +104,7 @@ pub fn imm_f64(thread_context: &mut ThreadContext) -> HandleResult {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_resource::InMemoryResource,
-        process::process_function,
+        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
     use ancvm_context::resource::Resource;
     use ancvm_image::{
