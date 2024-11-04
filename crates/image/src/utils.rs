@@ -5,10 +5,12 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use crate::common_sections::common_property_section::CommonPropertySection;
+use crate::common_sections::data_name_section::DataNameSection;
+use crate::common_sections::function_name_section::FunctionNameSection;
 use crate::entry::{
-    ExternalFunctionEntry, ExternalLibraryEntry, FunctionEntry, InitedDataEntry,
-    LocalVariableEntry, LocalVariableListEntry, TypeEntry, UnifiedExternalFunctionEntry,
-    UnifiedExternalLibraryEntry, UninitDataEntry,
+    DataNameEntry, ExternalFunctionEntry, ExternalLibraryEntry, FunctionEntry, FunctionNameEntry,
+    InitedDataEntry, LocalVariableEntry, LocalVariableListEntry, TypeEntry,
+    UnifiedExternalFunctionEntry, UnifiedExternalLibraryEntry, UninitDataEntry,
 };
 use crate::index_sections::index_property_section::IndexPropertySection;
 use crate::BinaryError;
@@ -189,24 +191,25 @@ pub fn helper_build_module_binary_with_functions_and_blocks(
     // note:
     // for simplicity, duplicate items are not merged here.
 
-    let local_list_entries_of_functions = helper_function_with_code_and_sig_and_local_variables_entries
-        .iter()
-        .map(|entry| {
-            let params_as_local_variables = entry
-                .params
-                .iter()
-                .map(|data_type| helper_new_local_variable_entry(*data_type))
-                .collect::<Vec<_>>();
+    let local_list_entries_of_functions =
+        helper_function_with_code_and_sig_and_local_variables_entries
+            .iter()
+            .map(|entry| {
+                let params_as_local_variables = entry
+                    .params
+                    .iter()
+                    .map(|data_type| helper_new_local_variable_entry(*data_type))
+                    .collect::<Vec<_>>();
 
-            let mut local_variables = Vec::new();
-            local_variables.extend_from_slice(&params_as_local_variables);
-            local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
+                let mut local_variables = Vec::new();
+                local_variables.extend_from_slice(&params_as_local_variables);
+                local_variables.extend_from_slice(&entry.local_variable_item_entries_without_args);
 
-            LocalVariableListEntry {
-                local_variable_entries: local_variables,
-            }
-        })
-        .collect::<Vec<_>>();
+                LocalVariableListEntry {
+                    local_variable_entries: local_variables,
+                }
+            })
+            .collect::<Vec<_>>();
 
     let local_list_entries_of_blocks = helper_block_sig_and_local_variables_entries
         .iter()
@@ -421,8 +424,8 @@ pub fn helper_build_module_binary(
     let common_property_section = CommonPropertySection {
         constructor_function_public_index: u32::MAX,
         destructor_function_public_index: u32::MAX,
-        import_data_count:0,
-        import_function_count:0,
+        import_data_count: 0,
+        import_function_count: 0,
         module_name_length: name_bytes.len() as u32,
         module_name_buffer,
     };
@@ -489,6 +492,26 @@ pub fn helper_build_module_binary(
         items: &data_index_items,
     };
 
+    // function names
+    let (function_name_items, function_name_data) = FunctionNameSection::convert_from_entries(&[
+        FunctionNameEntry::new("func0".to_owned(), true),
+        FunctionNameEntry::new("func1".to_owned(), true),
+    ]);
+    let function_name_section = FunctionNameSection {
+        items: &function_name_items,
+        names_data: &function_name_data,
+    };
+
+    // data names
+    let (data_name_items, data_name_data) = DataNameSection::convert_from_entries(&[
+        DataNameEntry::new("data0".to_owned(), true),
+        DataNameEntry::new("data1".to_owned(), true),
+    ]);
+    let data_name_section = DataNameSection {
+        items: &data_name_items,
+        names_data: &data_name_data,
+    };
+
     // build unified external library section
     // it's 1:1 to the external_library_entries
     let unified_external_library_entries = external_library_entries
@@ -542,10 +565,10 @@ pub fn helper_build_module_binary(
         items: &external_function_index_items,
     };
 
-    let index_property_section = IndexPropertySection{
+    let index_property_section = IndexPropertySection {
         entry_function_public_index,
         runtime_major_version: RUNTIME_MAJOR_VERSION,
-        runtime_minor_version: RUNTIME_MINOR_VERSION
+        runtime_minor_version: RUNTIME_MINOR_VERSION,
     };
 
     // build module image
@@ -559,6 +582,8 @@ pub fn helper_build_module_binary(
         &uninit_data_section,
         &external_library_section,
         &external_function_section,
+        &function_name_section,
+        &data_name_section,
         &common_property_section,
         // index sections
         &function_index_section,
@@ -566,7 +591,7 @@ pub fn helper_build_module_binary(
         &unified_external_function_section,
         &external_function_index_section,
         &data_index_section,
-        &index_property_section
+        &index_property_section,
     ];
 
     let (section_items, sections_data) = ModuleImage::convert_from_entries(&section_entries);

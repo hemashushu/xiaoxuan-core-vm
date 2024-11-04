@@ -13,12 +13,17 @@ pub struct Environment {
     // the `~/.anc` of
     // `~/.anc/1.0/modules/foo/1.0.1/{src,target}` and
     // `~/.anc/1.0/libraries/bar/1.0.2/{lib,include}`
-    // note the this path does not includes the runtime version.
+    //
+    // note the this path SHOULD NOT include the version number.
+    //
+    // multiple path is allowed
     pub share_path: String,
 
     // the runtime's path, e.g.
     // the `/usr/lib/anc/` of
     // `/usr/lib/anc/1.0/modules/http-client/1.0.1/{src, target}`
+    //
+    // note the this path SHOULD NOT include the version number.
     pub runtime_path: String,
 }
 

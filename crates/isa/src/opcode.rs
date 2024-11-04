@@ -1521,72 +1521,14 @@ pub enum Opcode {
     host_addr_data_extend,  // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
     host_addr_heap,         // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
 
-    // create a new host function and map it to a VM function.
-    // this host function named 'bridge funcion'
-    //
-    // return the existing bridge function if the bridge function corresponding
-    // to the specified VM function has already been created.
-
-    // it's commonly used for creating a callback function pointer for external C function.
+    // this instruction is used for creating a callback function pointer
+    // for external C function.
     //
     // note:
-    // - a bridge function (host function) will be created when `create_host_function` is executed,
-    //   as well as the specified VM function will be appended to the "host function bridge table" to
+    // - a bridge callback function (host function) will be created when `host_addr_function` is executed,
+    //   as well as the specified VM function will be appended to the "bridge callback function table" to
     //   prevent duplicate creation.
-    // - a bridge function is refered to a (module idx, function idx) tuple.
-    // - the bridge function is created via JIT codegen.
-    // - when the external C function calls the bridge function, a new thread is created.
-    //
-    // when the XiaoXUan Core VM is embed into a C or Rust application as a library, the C or Rust application
-    // can call the VM function through the bridge function as if it calls a native function.
-    //
-    // call bridge functon from Rust application example:
-    //
-    // ref:
-    // https://doc.rust-lang.org/nomicon/ffi.html
-    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
-    // https://doc.rust-lang.org/stable/reference/items/functions.html
-    //
-    // ```rust
-    // fn main() {
-    //     let func_ptr = ... (pointer of the bridge function)
-    //     let func_addr = ... (virtual memory address of the bridge function)
-    //
-    //     /*
-    //      * mock pointer and address
-    //      * let func_ptr = cb_func as *const extern "C" fn(usize, usize);
-    //      * let func_ptr = cb_func as *const u8;
-    //      * let func_addr = func_ptr as usize;
-    //      * */
-    //
-    //     println!("{:p}", func_ptr);
-    //     println!("0x{:x}", func_addr);
-    //
-    //     let func_from_ptr: fn(usize, usize) = unsafe { std::mem::transmute(func_ptr) };
-    //     (func_from_ptr)(11, 13);
-    //
-    //     let ptr_from_addr = func_addr as *const ();
-    //     let func_from_addr: fn(usize, usize) = unsafe { std::mem::transmute(ptr_from_addr) };
-    //     (func_from_addr)(17, 19);
-    // }
-    //
-    // #[no_mangle]
-    // pub extern "C" fn cb_func(a1: usize, a2: usize) {
-    //     println!("numbers: {},{}", a1, a2);
-    // }
-    // ```
-    //
-    // call bridge functon from C application example:
-    //
-    // ```c
-    // int main(void)
-    // {
-    //     void *func_ptr = ...
-    //     int (*func_from_ptr)(int, int) = (int (*)(int, int))func_ptr;
-    //     printf("1+2=%d\n", (*func_from_ptr)(1, 2));
-    //     exit(EXIT_SUCCESS);
-    // }
-    // ```
+    // - the body of bridge callback function is created via JIT codegen.
     //
     // (param function_public_index:i32) -> i64/i32
     host_addr_function,

@@ -430,7 +430,7 @@ impl Handler {
         handlers[Opcode::host_addr_data as usize] = host::host_addr_data;
         handlers[Opcode::host_addr_data_extend as usize] = host::host_addr_data_extend;
         handlers[Opcode::host_addr_heap as usize] = host::host_addr_heap;
-        // handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
+        handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
         handlers[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;
         handlers[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
         handlers[Opcode::host_memory_copy as usize] = host::host_memory_copy;

@@ -4,12 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use std::path::PathBuf;
-
 use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_isa::{ExternalLibraryType, OPERAND_SIZE_IN_BYTES};
+use ancvm_isa::OPERAND_SIZE_IN_BYTES;
 
-use crate::extcall_handler::add_external_function;
+use crate::{
+    extcall_handler::get_or_create_external_function, PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE,
+};
 
 use super::{HandleResult, Handler};
 
@@ -135,74 +135,14 @@ pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     let external_function_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
-    // get the unified external function index
-    let (unified_external_function_index, type_index) = thread_context
-        .module_index_instance
-        .external_function_index_section
-        .get_item_unified_external_function_index_and_type_index(
-            module_index,
-            external_function_index,
-        );
-
-    // get the data types of "params and results" of the external function
-    let (param_datatypes, result_datatypes) = thread_context.module_common_instances[module_index]
-        .type_section
-        .get_item_params_and_results(type_index);
-
-    let opt_func_pointer_and_wrapper = {
-        let table = thread_context.external_function_table.lock().unwrap();
-        table.get_external_function_pointer_and_wrapper_function(unified_external_function_index)
-    };
-
-    let func_pointer_and_wrapper = opt_func_pointer_and_wrapper.unwrap_or_else(|| {
-        // get the name of the external function and
-        // the index of the unified external library
-        let (external_function_name, unified_external_library_index) = thread_context
-            .module_index_instance
-            .unified_external_function_section
-            .get_item_name_and_unified_external_library_index(unified_external_function_index);
-
-        // get the file path or name of the external library
-        let (external_library_name, external_library_type) = thread_context
-            .module_index_instance
-            .unified_external_library_section
-            .get_item_name_and_external_library_type(unified_external_library_index);
-
-        let external_library_file_path_or_name = match external_library_type {
-            ExternalLibraryType::User => {
-                let mut path_buf = PathBuf::from(&thread_context.environment.source_path);
-                if !thread_context.environment.is_directory {
-                    path_buf.pop();
-                }
-                path_buf.push("lib");
-                path_buf.push(external_library_name);
-                path_buf.as_os_str().to_string_lossy().to_string()
-            }
-            ExternalLibraryType::Share => {
-                // thread_context.environment.runtime_path is an array
-                todo!()
-            }
-            ExternalLibraryType::Runtime => {
-                let mut path_buf = PathBuf::from(&thread_context.environment.runtime_path);
-                path_buf.push("lib");
-                path_buf.push(external_library_name);
-                path_buf.as_os_str().to_string_lossy().to_string()
-            }
-            ExternalLibraryType::System => external_library_name.to_owned(),
+    let (external_function_pointer, wrapper_function, params_count, has_return_value) =
+        if let Ok(pwr) =
+            get_or_create_external_function(thread_context, module_index, external_function_index)
+        {
+            pwr
+        } else {
+            return HandleResult::Panic(PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE);
         };
-
-        let mut table = thread_context.external_function_table.lock().unwrap();
-        add_external_function(
-            &mut table,
-            unified_external_function_index,
-            unified_external_library_index,
-            &external_library_file_path_or_name,
-            external_function_name,
-            param_datatypes,
-            result_datatypes,
-        )
-        .unwrap()
-    });
 
     // call the wrapper function:
     //
@@ -214,20 +154,17 @@ pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     // );
     // ```
 
-    let params = thread_context.stack.pop_operands(param_datatypes.len());
+    let params = thread_context.stack.pop_operands(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
-    (func_pointer_and_wrapper.1)(
-        func_pointer_and_wrapper.0,
+    wrapper_function(
+        external_function_pointer,
         params.as_ptr(),
         results.as_mut_ptr(),
     );
 
     // push the result on the stack
-    //
-    // note that for the compatible 'C' function call convention, only
-    // one or zero result is allowed.
-    if !result_datatypes.is_empty() {
+    if has_return_value {
         let dst = thread_context.stack.push_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }

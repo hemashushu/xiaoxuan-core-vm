@@ -6,7 +6,9 @@
 
 use std::sync::{Mutex, MutexGuard, Once};
 
-use cranelift_codegen::settings;
+use ancvm_isa::OperandDataType;
+use cranelift_codegen::ir::types;
+use cranelift_codegen::{ir::Type, settings};
 use cranelift_codegen::settings::Configurable;
 use cranelift_frontend::FunctionBuilderContext;
 use cranelift_jit::{JITBuilder, JITModule};
@@ -30,6 +32,7 @@ pub struct JITUtil {
     // function builder context, for reusing across multiple FunctionBuilder.
     pub function_builder_context: FunctionBuilderContext,
 
+    #[allow(dead_code)]
     // data description for functions.
     pub data_description: DataDescription,
 
@@ -85,6 +88,15 @@ impl JITUtil {
             data_description: DataDescription::new(),
             module: jit_module,
         }
+    }
+}
+
+pub fn convert_vm_operand_data_type_to_jit_type(dt: OperandDataType) -> Type {
+    match dt {
+        OperandDataType::I32 => types::I32,
+        OperandDataType::I64 => types::I64,
+        OperandDataType::F32 => types::F32,
+        OperandDataType::F64 => types::F64,
     }
 }
 

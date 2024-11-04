@@ -19,6 +19,7 @@ pub struct InMemoryResource {
 }
 
 impl InMemoryResource {
+    #[allow(dead_code)]
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
             module_binaries,
@@ -27,6 +28,7 @@ impl InMemoryResource {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_settings(module_binaries: Vec<Vec<u8>>, environment: &Environment) -> Self {
         Self {
             module_binaries,

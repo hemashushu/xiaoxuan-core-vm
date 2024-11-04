@@ -119,7 +119,7 @@ pub struct ThreadContext<'a> {
 
     // runtime generated entries
     pub bridge_function_module_items: Vec<DelegateFunctionModuleItem>,
-    pub callback_function_module_items: Vec<DelegateFunctionModuleItem>,
+    pub bridge_callback_function_module_items: Vec<DelegateFunctionModuleItem>,
     pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
 
     // program modules
@@ -190,7 +190,7 @@ impl<'a> ThreadContext<'a> {
             heap,
             pc,
             bridge_function_module_items: vec![],
-            callback_function_module_items: vec![],
+            bridge_callback_function_module_items: vec![],
             external_function_table,
             module_index_instance,
             module_common_instances,
@@ -393,13 +393,13 @@ offset in bytes: {}, expect length in bytes: {}.",
         )
     }
 
-    pub fn find_callback_function(
+    pub fn find_bridge_callback_function(
         &self,
         target_module_index: usize,
         function_internal_index: usize,
     ) -> Option<*const u8> {
         find_delegate_function(
-            &self.callback_function_module_items,
+            &self.bridge_callback_function_module_items,
             target_module_index,
             function_internal_index,
         )
@@ -426,7 +426,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         bridge_function_ptr: *const u8,
     ) {
         insert_delegate_function(
-            &mut self.callback_function_module_items,
+            &mut self.bridge_callback_function_module_items,
             target_module_index,
             function_internal_index,
             bridge_function_ptr,
@@ -577,8 +577,8 @@ fn insert_delegate_function(
 
     // note:
     //
-    // there is no checking here to see if the specified function already
-    // exists, so make sure don't add a function duplicated.
+    // there is no validation here to check if the function specified
+    // already exists, so make sure you don't add a duplicate function.
     module_item
         .birdge_function_items
         .push(DelegateFunctionItem {

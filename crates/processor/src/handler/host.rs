@@ -4,42 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-// about the callback function
-//
-// on the XiaoXuan Core application, pass VM function as a callback function to the external C library.
-//
-//                                      runtime (native)
-//                                   /------------------------\
-//                                   |                        |
-//                                   | external func list     |
-//                                   | |--------------------| |
-//                                   | | idx | lib  | name  | |
-//                              /--> | | 0   | ".." | ".."  | |
-//                              |    | |--------------------| |
-//                              |    |                        |
-//                              |    | wrapper func code 0    |
-//  XiaoXuan core application   |    | 0x0000 0xb8, 0x34,     |
-// /------------------------\   |    | 0x000a 0x12, 0x00...   | --\
-// |                        |   |    |                        |   |
-// | fn $demo () -> ()      |   |    |                        |   |
-// |   extcall do_something | --/    | callback func table    |   |
-// | end                    |        | |--------------------| |   |
-// |                        |        | | mod idx | func idx | |   |      libxyz.so
-// | fn $callback () -> ()  | <----- | | 0       | 0        | |   |    /----------------------\
-// |   ...                  |        | | ...     | ...      | |   \--> | void do_something (  |
-// | end                    |        | |--------------------| |        |     void* () cb) {   |
-// |                        |        |                        |        |     ...              |
-// \------------------------/        | bridge func code 0     | <----- |     (cb)(11, 13)     |
-//                                   | 0x0000 0xb8, 0x34,     |        | }                    |
-//                                   | 0x000a 0x12, 0x00...   |        |                      |
-//                                   |                        |        \----------------------/
-//                                   | bridge func code 1     |
-//                                   | ...                    |
-//                                   |                        |
-//                                   \------------------------/
-//
-
 use ancvm_context::{memory::Memory, thread_context::ThreadContext};
+
+use crate::{
+    bridge_handler::get_or_create_bridge_callback_function,
+    PANIC_CODE_BRIDGE_FUNCTION_CREATE_FAILURE,
+};
 
 use super::{HandleResult, Handler};
 
@@ -236,41 +206,44 @@ fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *cons
     }
 }
 
-/*
-pub fn host_addr_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> i64/i32
 
     let function_public_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
-    if let Ok(callback_function_ptr) =
-        build_callback_function(thread_context, module_index, function_public_index)
-    {
+    if let Ok(callback_function_ptr) = get_or_create_bridge_callback_function(
+        handler,
+        thread_context,
+        module_index,
+        function_public_index,
+    ) {
         store_pointer_to_operand_stack(thread_context, callback_function_ptr);
         HandleResult::Move(8)
     } else {
-        HandleResult::Panic
+        HandleResult::Panic(PANIC_CODE_BRIDGE_FUNCTION_CREATE_FAILURE)
     }
 }
-*/
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
+    use ancvm_context::{environment::Environment, resource::Resource};
     use ancvm_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
-        entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
+        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
         utils::{
+            helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
             helper_build_module_binary_with_single_function_and_data_sections,
+            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use ancvm_isa::{opcode::Opcode, ExternalLibraryType, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
-        HandlerError, HandleErrorType,
+        HandleErrorType, HandlerError,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
@@ -1024,45 +997,52 @@ mod tests {
         assert_eq!(&dst_buf, b"everwhat");
     }
 
-    /*
     #[test]
     fn test_interpreter_host_addr_function_and_callback_function() {
-        // C function in "libtest0.so.1"
-        // ===============================
-        // int do_something(int (*callback_func)(int), int a, int b)
+        // the external function (a C function) in "libtest0.so.1":
+        //
+        // int do_something(int (*callback_function)(int), int a, int b)
         // {
-        //     int s = (callback_func)(a);
+        //     int s = (callback_function)(a);
         //     return s + b;
         // }
         //
         // VM functions
-        // ============
         //
-        // fn func0 (a:i32, b:i32)->i32 {
-        //     do_something(func1, a, b)
+        // ;; entry function
+        // fn function0 (a:i32, b:i32)->i32 {
+        //     do_something(function1, a, b)
         // }
         //
         // ;; used as callback function for external function 'do_something'
-        // fn func1 (a:i32) -> i32 {
+        // fn function1 (a:i32) -> i32 {
         //     a*2
         // }
         //
         // calling path:
-        // (11,13) -> func0(VM) -> do_something(C) -> func1(VM) -> do_something(C) -> func0(VM) -> (11*2+13)
+        // (11,13) ->
+        //   function(VM) ->
+        //     do_something (external function) ->
+        //       function1(VM funcation as callback function) ->
+        //     return to do_something ->
+        //   return to function0 ->
+        // return (11*2+13)
 
+        // VM function 0
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::host_addr_function, 1) // get host address of the func1
             //
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0) // external func param 1
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 1) // external func param 2
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0) // external func param 1
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1) // external func param 2
             //
             .append_opcode_i32(Opcode::extcall, 0) // call external function, external function index = 0
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code1 = BytecodeWriter::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load32_i32, 0, 0, 0)
+        // VM function 1
+        let code1 = BytecodeWriterHelper::new()
+            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode_i32(Opcode::imm_i32, 2)
             .append_opcode(Opcode::mul_i32)
             //
@@ -1072,7 +1052,11 @@ mod tests {
         let binary0 = helper_build_module_binary_with_functions_and_external_functions(
             vec![
                 TypeEntry {
-                    params: vec![OperandDataType::I64, OperandDataType::I32, OperandDataType::I32],
+                    params: vec![
+                        OperandDataType::I64,
+                        OperandDataType::I32,
+                        OperandDataType::I32,
+                    ],
                     results: vec![OperandDataType::I32],
                 }, // do_something
                 TypeEntry {
@@ -1108,27 +1092,29 @@ mod tests {
         );
 
         let mut pwd = std::env::current_dir().unwrap();
-        let pkg_name = env!("CARGO_PKG_NAME");
-        if !pwd.ends_with(pkg_name) {
+        // let pkg_name = env!("CARGO_PKG_NAME");
+        let crate_folder_name = "processor";
+        if !pwd.ends_with(crate_folder_name) {
             // in the VSCode `Debug` environment, the `current_dir()`
             // the project root folder.
             // while in both `$ cargo test` and VSCode `Run Test` environment
             // the `current_dir()` return the current crate path.
             pwd.push("crates");
-            pwd.push(pkg_name);
+            pwd.push(crate_folder_name);
         }
         pwd.push("tests");
         let program_source_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
-        let program_resource0 = InMemoryProgramResource::with_settings(
+        let resource0 = InMemoryResource::with_settings(
             vec![binary0],
-            &ProgramSettings::new(program_source_path, true, "", ""),
+            &Environment::new(program_source_path, true, "", ""),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -1137,6 +1123,7 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11 * 2 + 13)]);
 
         let result1 = process_function(
+            &handler,
             &mut thread_context0,
             0,
             0,
@@ -1144,5 +1131,4 @@ mod tests {
         );
         assert_eq!(result1.unwrap(), vec![ForeignValue::U32(211 * 2 + 223)]);
     }
-    */
 }

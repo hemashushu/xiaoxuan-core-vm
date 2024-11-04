@@ -25,21 +25,122 @@
 // \----------------------------------------------/
 //
 
-use std::{ffi::c_void, sync::Mutex};
+use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
-use ancvm_context::external_function_table::{
-    ExtenalFunctionTable, UnifiedExternalFunctionPointerItem, UnifiedExternalLibraryPointerItem,
-    WrapperFunction, WrapperFunctionItem,
+use ancvm_context::{
+    external_function_table::{
+        ExtenalFunctionTable, UnifiedExternalFunctionPointerItem,
+        UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
+    },
+    thread_context::ThreadContext,
 };
-use ancvm_isa::{OperandDataType, OPERAND_SIZE_IN_BYTES};
-use cranelift_codegen::ir::{types, AbiParam, Function, InstBuilder, MemFlags, Type, UserFuncName};
+use ancvm_isa::{ExternalLibraryType, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 
-use crate::jit_util::get_jit_util_without_imported_symbols;
+use crate::{
+    jit_util::{convert_vm_operand_data_type_to_jit_type, get_jit_util_without_imported_symbols},
+    HandleErrorType, HandlerError,
+};
 
 static mut LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
+
+pub fn get_or_create_external_function(
+    thread_context: &mut ThreadContext,
+    module_index: usize,
+    external_function_index: usize,
+) -> Result<(*mut c_void, WrapperFunction, usize, bool), HandlerError> {
+    // get the unified external function index
+    let (unified_external_function_index, type_index) = thread_context
+        .module_index_instance
+        .external_function_index_section
+        .get_item_unified_external_function_index_and_type_index(
+            module_index,
+            external_function_index,
+        );
+
+    // get the data types of "params and results" of the external function
+    let (param_datatypes, result_datatypes) = thread_context.module_common_instances[module_index]
+        .type_section
+        .get_item_params_and_results(type_index);
+
+    let param_count = param_datatypes.len();
+
+    // note that for the compatible 'C' function call convention, only
+    // one or zero result is allowed.
+    let has_return_value = !result_datatypes.is_empty();
+
+    let opt_func_pointer_and_wrapper = {
+        let table = thread_context.external_function_table.lock().unwrap();
+        table.get_external_function_pointer_and_wrapper_function(unified_external_function_index)
+    };
+
+    if let Some((external_function_pointer, wrapper_function)) = opt_func_pointer_and_wrapper {
+        return Ok((
+            external_function_pointer,
+            wrapper_function,
+            param_count,
+            has_return_value,
+        ));
+    }
+
+    // get the name of the external function and
+    // the index of the unified external library
+    let (external_function_name, unified_external_library_index) = thread_context
+        .module_index_instance
+        .unified_external_function_section
+        .get_item_name_and_unified_external_library_index(unified_external_function_index);
+
+    // get the file path or name of the external library
+    let (external_library_name, external_library_type) = thread_context
+        .module_index_instance
+        .unified_external_library_section
+        .get_item_name_and_external_library_type(unified_external_library_index);
+
+    let external_library_file_path_or_name = match external_library_type {
+        ExternalLibraryType::User => {
+            let mut path_buf = PathBuf::from(&thread_context.environment.source_path);
+            if !thread_context.environment.is_directory {
+                path_buf.pop();
+            }
+            path_buf.push("lib");
+            path_buf.push(external_library_name);
+            path_buf.as_os_str().to_string_lossy().to_string()
+        }
+        ExternalLibraryType::Share => {
+            // thread_context.environment.runtime_path is an array
+            todo!()
+        }
+        ExternalLibraryType::Runtime => {
+            let mut path_buf = PathBuf::from(&thread_context.environment.runtime_path);
+            path_buf.push("lib");
+            path_buf.push(external_library_name);
+            path_buf.as_os_str().to_string_lossy().to_string()
+        }
+        ExternalLibraryType::System => external_library_name.to_owned(),
+    };
+
+    let mut table = thread_context.external_function_table.lock().unwrap();
+
+    let (external_function_pointer, wrapper_function) = add_external_function(
+        &mut table,
+        unified_external_function_index,
+        unified_external_library_index,
+        &external_library_file_path_or_name,
+        external_function_name,
+        param_datatypes,
+        result_datatypes,
+    )?;
+
+    Ok((
+        external_function_pointer,
+        wrapper_function,
+        param_count,
+        has_return_value,
+    ))
+}
 
 pub fn add_external_function(
     external_function_table: &mut ExtenalFunctionTable,
@@ -49,9 +150,12 @@ pub fn add_external_function(
     external_function_name: &str,
     param_datatypes: &[OperandDataType],
     result_datatypes: &[OperandDataType],
-) -> Result<(*mut c_void, WrapperFunction), &'static str> {
+) -> Result<(*mut c_void, WrapperFunction), HandlerError> {
     if result_datatypes.len() > 1 {
-        return Err("The specified function has more than 1 return value.");
+        // The specified function has more than 1 return value.
+        return Err(HandlerError {
+            error_type: HandleErrorType::ResultsAmountMissmatch,
+        });
     }
 
     // find external library pointer
@@ -69,7 +173,13 @@ pub fn add_external_function(
     };
 
     // find external function pointer
-    let function_pointer = load_symbol(library_pointer, external_function_name)?;
+    let function_pointer = if let Ok(p) = load_symbol(library_pointer, external_function_name) {
+        p
+    } else {
+        return Err(HandlerError {
+            error_type: HandleErrorType::ItemNotFound,
+        });
+    };
 
     // find wrapper function index
     //
@@ -106,8 +216,15 @@ fn add_external_library(
     external_function_table: &mut ExtenalFunctionTable,
     unified_external_library_index: usize,
     external_library_file_path_or_name: &str,
-) -> Result<*mut c_void, &'static str> {
-    let library_pointer = load_library(external_library_file_path_or_name)?;
+) -> Result<*mut c_void, HandlerError> {
+    let library_pointer = if let Ok(p) = load_library(external_library_file_path_or_name) {
+        p
+    } else {
+        return Err(HandlerError {
+            error_type: HandleErrorType::ItemNotFound,
+        });
+    };
+
     external_function_table.unified_external_library_pointer_list[unified_external_library_index] =
         Some(UnifiedExternalLibraryPointerItem {
             address: library_pointer as usize,
@@ -277,13 +394,4 @@ pub fn build_wrapper_function(
 
     // get func_bridge ptr
     jit_helper.module.get_finalized_function(func_wrapper_id)
-}
-
-fn convert_vm_operand_data_type_to_jit_type(dt: OperandDataType) -> Type {
-    match dt {
-        OperandDataType::I32 => types::I32,
-        OperandDataType::I64 => types::I64,
-        OperandDataType::F32 => types::F32,
-        OperandDataType::F64 => types::F64,
-    }
 }

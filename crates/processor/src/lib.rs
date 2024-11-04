@@ -6,19 +6,22 @@
 
 use std::fmt::Display;
 
-// pub mod bridge_process;
+mod bridge_handler;
+mod envcall_handler;
+mod extcall_handler;
+mod handler;
+mod in_memory_resource;
+mod jit_util;
+mod multithread_handler;
+mod syscall_handler;
+
+pub mod bridge_process;
 pub mod envcall_num;
-pub mod handler;
-pub mod in_memory_resource;
-pub mod jit_util;
-pub mod multithread_handler;
 pub mod multithread_process;
 pub mod process;
 
-// mod bridge_handler;
-mod envcall_handler;
-mod extcall_handler;
-mod syscall_handler;
+pub const PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE: u32 = 0x1000_0001;
+pub const PANIC_CODE_BRIDGE_FUNCTION_CREATE_FAILURE: u32 = 0x1000_0002;
 
 #[derive(Debug)]
 pub struct HandlerError {
@@ -62,7 +65,7 @@ impl Display for HandlerError {
             HandleErrorType::ItemNotFound => f.write_str("Item not found."),
             HandleErrorType::Panic(code) => write!(
                 f,
-                "VM was terminated by instruction \"panic\", code: {}.",
+                "XiaoXuan Core VM was terminated by instruction \"panic\", code: {}.",
                 code
             ),
         }
