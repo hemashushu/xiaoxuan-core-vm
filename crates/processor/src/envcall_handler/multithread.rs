@@ -405,6 +405,22 @@ mod tests {
         multithread_process::start_with_multiple_thread,
     };
 
+    // note::
+    // unit tests for following functions would be too complicated
+    // if written directly in bytecode, so leave these unit tests to
+    // to done in project 'xiaoxuan-core-assembly'.
+    //
+    // - thread_start_data_length
+    // - thread_start_data_read
+    // - thread_running_status
+    // - thread_drop
+    // - thread_receive_msg_from_parent
+    // - thread_send_msg_to_parent
+    // - thread_receive_msg
+    // - thread_send_msg
+    // - thread_msg_length
+    // - thread_msg_read
+
     #[test]
     fn test_envcall_multithread_thread_id() {
         // the signature of 'thread start function' must be
@@ -512,20 +528,4 @@ mod tests {
         let ms = duration.as_millis() as u64;
         assert!(ms > 500);
     }
-
-    // note::
-    // the unit tests for following functions would be too complicated to
-    // write directly in bytecode, so leave these unit tests to
-    // the project 'xiaoxuan-core-assembly'.
-    //
-    // - thread_start_data_length
-    // - thread_start_data_read
-    // - thread_running_status
-    // - thread_drop
-    // - thread_receive_msg_from_parent
-    // - thread_send_msg_to_parent
-    // - thread_receive_msg
-    // - thread_send_msg
-    // - thread_msg_length
-    // - thread_msg_read
 }

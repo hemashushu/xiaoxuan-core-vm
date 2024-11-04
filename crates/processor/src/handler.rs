@@ -419,7 +419,7 @@ impl Handler {
         // other calling
         handlers[Opcode::syscall as usize] = calling::syscall;
         handlers[Opcode::envcall as usize] = calling::envcall;
-        // handlers[Opcode::extcall as usize] = calling::extcall;
+        handlers[Opcode::extcall as usize] = calling::extcall;
 
         // host
         handlers[Opcode::panic as usize] = host::panic;
@@ -440,5 +440,11 @@ impl Handler {
             syscall_handlers: generate_syscall_handlers(),
             envcall_handlers: generate_envcall_handlers()
         }
+    }
+}
+
+impl Default for Handler {
+    fn default() -> Self {
+        Self::new()
     }
 }

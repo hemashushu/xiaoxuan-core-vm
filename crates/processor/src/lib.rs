@@ -6,6 +6,7 @@
 
 use std::fmt::Display;
 
+// pub mod bridge_process;
 pub mod envcall_num;
 pub mod handler;
 pub mod in_memory_resource;
@@ -14,7 +15,9 @@ pub mod multithread_handler;
 pub mod multithread_process;
 pub mod process;
 
+// mod bridge_handler;
 mod envcall_handler;
+mod extcall_handler;
 mod syscall_handler;
 
 #[derive(Debug)]
@@ -46,28 +49,16 @@ impl HandlerError {
 impl Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.error_type {
-            HandleErrorType::ParametersAmountMissmatch => write!(
-                f,
-                "Handler error: {}",
-                "The number of parameters doesn't match"
-            ),
-            HandleErrorType::ResultsAmountMissmatch => write!(
-                f,
-                "Handler error: {}",
-                "The number of results doesn't match"
-            ),
-            HandleErrorType::DataTypeMissmatch => {
-                write!(f, "Handler error: {}", "Data type missmatch")
+            HandleErrorType::ParametersAmountMissmatch => {
+                f.write_str("Handler error: the number of parameters doesn't match")
             }
-            HandleErrorType::InvalidOperation => {
-                write!(f, "Handler error: {}", "Invalid operation")
+            HandleErrorType::ResultsAmountMissmatch => {
+                f.write_str("Handler error: the number of results doesn't match")
             }
-            HandleErrorType::IndexNotFound => {
-                write!(f, "Handler error: {}", "Index not found")
-            }
-            HandleErrorType::OutOfBoundary => {
-                write!(f, "Handler error: {}", "Out of boundary")
-            }
+            HandleErrorType::DataTypeMissmatch => f.write_str("Handler error: data type missmatch"),
+            HandleErrorType::InvalidOperation => f.write_str("Handler error: invalid operation"),
+            HandleErrorType::IndexNotFound => f.write_str("Handler error: index not found"),
+            HandleErrorType::OutOfBoundary => f.write_str("Handler error: out of boundary"),
             HandleErrorType::ItemNotFound => f.write_str("Item not found."),
             HandleErrorType::Panic(code) => write!(
                 f,

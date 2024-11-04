@@ -100,7 +100,7 @@ pub fn process_function(
 
             // set MSB of 'return module index' to '1' to indicate that it's the END of the
             // current function call.
-            module_index: 0 | EXIT_CURRENT_HANDLER_LOOP_BIT,
+            module_index: EXIT_CURRENT_HANDLER_LOOP_BIT,
         }),
     );
 

@@ -193,11 +193,15 @@ pub enum EnvCallNum {
                                 // `fn () -> (seconds:u64, nano_seconds:u32)`
                                 // valid values of 'nano_seconds' are [0, 999_999_999]
 
+    // random
+    random_init = 0x01c0,
+    random_int,
+
     // regex
-    regex_create = 0x01c0,       // ref: https://github.com/rust-lang/regex
+    regex_create = 0x0200,       // ref: https://github.com/rust-lang/regex
     regex_match,
     regex_test,
     regex_remove,
 }
 
-pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0200;
+pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0240;

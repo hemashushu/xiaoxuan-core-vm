@@ -331,6 +331,12 @@ impl BytecodeWriterHelper {
     }
 }
 
+impl Default for BytecodeWriterHelper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ancvm_isa::opcode::Opcode;

@@ -27,8 +27,8 @@ use ancvm_isa::OperandDataType;
 // the signature of the wrapper function
 pub type WrapperFunction = extern "C" fn(
     external_function_pointer: *const c_void,
-    params_ptr: *const u8,
-    results_ptr: *mut u8,
+    params_ptr: *const u8, // pointer to a range of bytes
+    results_ptr: *mut u8, // pointer to a range of bytes
 );
 
 /// the external function pointer table
@@ -40,6 +40,13 @@ pub struct ExtenalFunctionTable {
     // "unified external functioa section"  1:1
     pub unified_external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
 
+    // wrapper function list
+    //
+    // note that not every external function has a corresponding wrapper function,
+    // in fact, as long as the functions are of the same type (i.e., have the same
+    // parameters and return values), they will share a wrapper function.
+    //
+    // external functions (N) <--> wrapper function (1)
     pub wrapper_function_list: Vec<WrapperFunctionItem>,
 }
 

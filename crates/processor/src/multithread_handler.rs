@@ -25,8 +25,8 @@ thread_local! {
     // pub static MT_SOURCE_TYPE: RefCell<ResourceType> = RefCell::new(ResourceType::InMemory);
 
     // pointer to the "process context" and "handler" objects
-    pub static PROCESS_CONTEXT_ADDRESS: RefCell<usize> = RefCell::new(0);
-    pub static HANDLER_ADDRESS: RefCell<usize> = RefCell::new(0);
+    pub static PROCESS_CONTEXT_ADDRESS: RefCell<usize> = const{ RefCell::new(0) };
+    pub static HANDLER_ADDRESS: RefCell<usize> =  const{  RefCell::new(0) };
 }
 
 // the Tx and Rx
@@ -42,31 +42,31 @@ thread_local! {
 // - (the address of) a closure function
 thread_local! {
     // the collection of child threads
-    pub static CHILD_THREADS:RefCell<BTreeMap<u32, ChildThread>> = RefCell::new(BTreeMap::new());
+    pub static CHILD_THREADS:RefCell<BTreeMap<u32, ChildThread>> = const {RefCell::new(BTreeMap::new())};
 
     // an incremented only integer that is used to generate the child thread id.
-    pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = RefCell::new(0);
+    pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = const {RefCell::new(0)};
 
-    pub static CURRENT_THREAD_ID:RefCell<u32> = RefCell::new(0);
+    pub static CURRENT_THREAD_ID:RefCell<u32> = const {RefCell::new(0)};
 
     // the receiver that connects to the parent thread
     //
     // note:
     // "parent thread" is the creator of the current thread
-    pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = RefCell::new(None);
+    pub static RX:RefCell<Option<Receiver<Vec<u8>>>> =const { RefCell::new(None)};
 
     // the sender that connect to the parent thread
-    pub static TX:RefCell<Option<Sender<Vec<u8>>>> = RefCell::new(None);
+    pub static TX:RefCell<Option<Sender<Vec<u8>>>> = const {RefCell::new(None)};
 
     // the data (an u8 array) that comes from the parent thread
-    pub static THREAD_START_DATA:RefCell<Vec<u8>> = RefCell::new(vec![]);
+    pub static THREAD_START_DATA:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 
     // the message that comes from other threads
     //
     // the data comes from other thread (includes the parent thread and child threads) is
     // temporary stored in LAST_MESSAGE each time the function 'thread_receive_msg' or
     // 'thread_receive_msg_from_parent' is called.
-    pub static LAST_THREAD_MESSAGE:RefCell<Vec<u8>> = RefCell::new(vec![]);
+    pub static LAST_THREAD_MESSAGE:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 }
 
 pub struct ChildThread {
@@ -218,7 +218,7 @@ pub fn create_thread(
             };
 
             let result_foreign_values = process_function(
-                &handler,
+                handler,
                 &mut thread_context,
                 module_index,
                 function_public_index,

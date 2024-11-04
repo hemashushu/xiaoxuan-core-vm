@@ -160,57 +160,6 @@ pub fn start_with_single_thread(
     }
 }
 
-// pub fn call_function(
-//     thread_context: &mut ThreadContext,
-//     module_index: usize,
-//     function_public_index: usize,
-//     arguments: &[ForeignValue],
-// ) -> Result<Vec<ForeignValue>, HandlerError> {
-//     process_function(
-//         thread_context,
-//         module_index,
-//         function_public_index,
-//         arguments,
-//     )
-// }
-
-// pub fn get_bridge_function<T>(
-//     thread_context: &mut ThreadContext,
-//     module_name: &str,
-//     function_name: &str,
-// ) -> Result<T, HandlerError> {
-//     let (module_index, function_public_index) = thread_context
-//         .find_function_public_index_by_name(module_name, function_name)
-//         .ok_or(HandlerError::new(HandlerErrorType::ItemNotFound))?;
-//
-//     let function_ptr = build_bridge_function(thread_context, module_index, function_public_index)?;
-//     let function = unsafe { std::mem::transmute_copy(&function_ptr) };
-//     Ok(function)
-// }
-//
-// pub fn get_bridge_data<T>(
-//     thread_context: &mut ThreadContext,
-//     module_name: &str,
-//     data_name: &str,
-// ) -> Result<*const T, HandlerError>
-// where
-//     T: Sized,
-// {
-//     let (module_index, data_public_index) = thread_context
-//         .find_data_public_index_by_name(module_name, data_name)
-//         .ok_or(HandlerError::new(HandlerErrorType::ItemNotFound))?;
-//
-//     let data_ptr = build_bridge_data(
-//         thread_context,
-//         module_index,
-//         data_public_index,
-//         0,
-//         std::mem::size_of::<T>(),
-//     )?;
-//
-//     Ok(data_ptr as *const T)
-// }
-
 #[cfg(test)]
 mod tests {
     use ancvm_context::resource::Resource;
