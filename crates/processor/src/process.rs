@@ -9,7 +9,7 @@ use ancvm_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
     handler::{HandleResult, Handler},
-    InterpreterError, InterpreterErrorType,
+    HandlerError, HandleErrorType,
 };
 
 // when the function call is a nested (in a callback function loop),
@@ -27,7 +27,7 @@ pub fn process_function(
     module_index: usize,
     function_public_index: usize,
     arguments: &[ForeignValue],
-) -> Result<Vec<ForeignValue>, InterpreterError> {
+) -> Result<Vec<ForeignValue>, HandlerError> {
     // reset the statck
     thread_context.stack.reset();
 
@@ -50,8 +50,8 @@ pub fn process_function(
 
     // the number of arguments does not match the specified funcion.
     if arguments.len() != params.len() {
-        return Err(InterpreterError::new(
-            InterpreterErrorType::ParametersAmountMissmatch,
+        return Err(HandlerError::new(
+            HandleErrorType::ParametersAmountMissmatch,
         ));
     }
 
@@ -157,7 +157,7 @@ pub fn process_function(
 pub fn process_continuous_instructions(
     handler: &Handler,
     thread_context: &mut ThreadContext,
-) -> Result<(), InterpreterError> {
+) -> Result<(), HandlerError> {
     loop {
         let result = process_instruction(handler, thread_context);
         match result {
@@ -180,7 +180,7 @@ pub fn process_continuous_instructions(
                 break Ok(());
             }
             HandleResult::Panic(code) => {
-                break Err(InterpreterError::new(InterpreterErrorType::Panic(code)))
+                break Err(HandlerError::new(HandleErrorType::Panic(code)))
             } // HandleResult::Unreachable(code) => {
               //     break Err(InterpreterError::new(InterpreterErrorType::Unreachable(
               //         code,

@@ -1537,7 +1537,7 @@ pub enum Opcode {
     // - the bridge function is created via JIT codegen.
     // - when the external C function calls the bridge function, a new thread is created.
     //
-    // when the XiaoXUan VM is embed into a C or Rust application as a library, the C or Rust application
+    // when the XiaoXUan Core VM is embed into a C or Rust application as a library, the C or Rust application
     // can call the VM function through the bridge function as if it calls a native function.
     //
     // call bridge functon from Rust application example:

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-// mod multithread;
+mod multithread;
 mod runtime_info;
 mod timer;
 
@@ -55,24 +55,24 @@ pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMB
     // timer
     handlers[EnvCallNum::time_now as usize] = timer::time_now;
 
-    //     // multiple thread
-    //     handlers[EnvCallCode::thread_id as usize] = multithread::thread_id;
-    //     handlers[EnvCallCode::thread_start_data_length as usize] =
-    //         multithread::thread_start_data_length;
-    //     handlers[EnvCallCode::thread_start_data_read as usize] = multithread::thread_start_data_read;
-    //     handlers[EnvCallCode::thread_create as usize] = multithread::thread_create;
-    //     handlers[EnvCallCode::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
-    //     handlers[EnvCallCode::thread_running_status as usize] = multithread::thread_running_status;
-    //     handlers[EnvCallCode::thread_terminate as usize] = multithread::thread_terminate;
-    //     handlers[EnvCallCode::thread_receive_msg_from_parent as usize] =
-    //         multithread::thread_receive_msg_from_parent;
-    //     handlers[EnvCallCode::thread_send_msg_to_parent as usize] =
-    //         multithread::thread_send_msg_to_parent;
-    //     handlers[EnvCallCode::thread_receive_msg as usize] = multithread::thread_receive_msg;
-    //     handlers[EnvCallCode::thread_send_msg as usize] = multithread::thread_send_msg;
-    //     handlers[EnvCallCode::thread_msg_length as usize] = multithread::thread_msg_length;
-    //     handlers[EnvCallCode::thread_msg_read as usize] = multithread::thread_msg_read;
-    //     handlers[EnvCallCode::thread_sleep as usize] = multithread::time_sleep;
+    // multiple thread
+    handlers[EnvCallNum::thread_id as usize] = multithread::thread_id;
+    handlers[EnvCallNum::thread_start_data_length as usize] =
+        multithread::thread_start_data_length;
+    handlers[EnvCallNum::thread_start_data_read as usize] = multithread::thread_start_data_read;
+    handlers[EnvCallNum::thread_create as usize] = multithread::thread_create;
+    handlers[EnvCallNum::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
+    handlers[EnvCallNum::thread_running_status as usize] = multithread::thread_running_status;
+    handlers[EnvCallNum::thread_terminate as usize] = multithread::thread_terminate;
+    handlers[EnvCallNum::thread_receive_msg_from_parent as usize] =
+        multithread::thread_receive_msg_from_parent;
+    handlers[EnvCallNum::thread_send_msg_to_parent as usize] =
+        multithread::thread_send_msg_to_parent;
+    handlers[EnvCallNum::thread_receive_msg as usize] = multithread::thread_receive_msg;
+    handlers[EnvCallNum::thread_send_msg as usize] = multithread::thread_send_msg;
+    handlers[EnvCallNum::thread_msg_length as usize] = multithread::thread_msg_length;
+    handlers[EnvCallNum::thread_msg_read as usize] = multithread::thread_msg_read;
+    handlers[EnvCallNum::thread_sleep as usize] = multithread::thread_sleep;
 
     handlers
 }

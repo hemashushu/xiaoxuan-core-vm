@@ -270,7 +270,7 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
-        InterpreterError, InterpreterErrorType,
+        HandlerError, HandleErrorType,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
@@ -366,8 +366,8 @@ mod tests {
 
         assert!(matches!(
             result0,
-            Err(InterpreterError {
-                error_type: InterpreterErrorType::Panic(0x101)
+            Err(HandlerError {
+                error_type: HandleErrorType::Panic(0x101)
             })
         ));
     }

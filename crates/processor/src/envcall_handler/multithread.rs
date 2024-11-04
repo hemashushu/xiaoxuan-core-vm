@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
@@ -6,15 +6,14 @@
 
 use std::{thread, time::Duration};
 
-use ancvm_context::{thread_context::ThreadContext, ProgramResourceType};
+use ancvm_context::thread_context::ThreadContext;
 
 use crate::{
-    in_memory_program_resource::InMemoryProgramResource,
-    multithread_program::{
-        create_thread, MultithreadProgram, ThreadStartFunctionItem, MT_PROGRAM_OBJECT_ADDRESS,
-        MT_PROGRAM_SOURCE_TYPE,
+    handler::Handler,
+    multithread_handler::{
+        create_thread, ThreadStartFunction, CHILD_THREADS, CURRENT_THREAD_ID, LAST_THREAD_MESSAGE,
+        RX, THREAD_START_DATA, TX,
     },
-    CHILD_THREADS, CURRENT_THREAD_ID, LAST_MESSAGE, RX, THREAD_START_DATA, TX,
 };
 
 pub const THREAD_RESULT_SUCCESS: u32 = 0;
@@ -23,7 +22,7 @@ pub const THREAD_RESULT_FAILURE: u32 = 1;
 pub const THREAD_RUNNING_STATUS_RUNNING: u32 = 0;
 pub const THREAD_RUNNING_STATUS_FINISH: u32 = 1;
 
-pub fn thread_id(thread_context: &mut ThreadContext) {
+pub fn thread_id(_handler: &Handler, thread_context: &mut ThreadContext) {
     // `fn () -> thread_id:u64`
 
     // the Rust std function `thread::id()` is unstable, ref:
@@ -41,30 +40,30 @@ pub fn thread_id(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_create(thread_context: &mut ThreadContext) {
+pub fn thread_create(_handler: &Handler, thread_context: &mut ThreadContext) {
     // ```
     // fn (function_public_index:u32,
     //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
     // ```
 
-    let mt_program_object_address: usize =
-        MT_PROGRAM_OBJECT_ADDRESS.with(|addr_cell| *addr_cell.borrow());
+    // DEPRECATED
+    /*
+    let mt_object_address: usize = MT_OBJECT_ADDRESS.with(|addr_cell| *addr_cell.borrow());
 
-    let mt_program_source_type: ProgramResourceType =
-        MT_PROGRAM_SOURCE_TYPE.with(|source_type_cell| *source_type_cell.borrow());
+    let mt_source_type: ResourceType =
+        MT_SOURCE_TYPE.with(|source_type_cell| *source_type_cell.borrow());
 
-    // get the 'MultithreadProgram' ref
-    let mt_program_object_ptr = match mt_program_source_type {
-        ancvm_context::ProgramResourceType::InMemory => {
-            mt_program_object_address as *const u8
-                as *const MultithreadProgram<InMemoryProgramResource>
+    // get the 'Multithread' ref
+    let mt_object_ptr = match mt_source_type {
+        ancvm_context::ResourceType::InMemory => {
+            mt_object_address as *const u8 as *const Multithread<InMemoryResource>
         }
-        ancvm_context::ProgramResourceType::File => {
+        ancvm_context::ResourceType::File => {
             // TODO::
-            todo!()
         }
     };
-    let mt_program = unsafe { &*mt_program_object_ptr };
+    let mt_program = unsafe { &*mt_object_ptr };
+     */
 
     // get arguments
     let thread_start_data_length = thread_context.stack.pop_i32_u() as usize;
@@ -80,13 +79,13 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
         .load_data(thread_start_data_address, thread_start_data_length)
         .to_vec();
 
-    let thread_start_function_item = ThreadStartFunctionItem {
+    let thread_start_function_item = ThreadStartFunction {
         module_index,
         function_public_index,
     };
 
     let child_thread_id = create_thread(
-        mt_program,
+        // mt_program,
         Some(thread_start_function_item),
         thread_start_data,
     );
@@ -94,7 +93,7 @@ pub fn thread_create(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(child_thread_id);
 }
 
-pub fn thread_start_data_length(thread_context: &mut ThreadContext) {
+pub fn thread_start_data_length(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
 
     let data_length = THREAD_START_DATA.with(|data_cell| {
@@ -105,7 +104,7 @@ pub fn thread_start_data_length(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(data_length as u32);
 }
 
-pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
+pub fn thread_start_data_read(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
 
     let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
@@ -132,7 +131,7 @@ pub fn thread_start_data_read(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(actual_read_length as u32);
 }
 
-pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
+pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (thread_exit_code:u64, thread_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -159,7 +158,7 @@ pub fn thread_wait_and_collect(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(thread_result);
 }
 
-pub fn thread_running_status(thread_context: &mut ThreadContext) {
+pub fn thread_running_status(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -186,7 +185,7 @@ pub fn thread_running_status(thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(thread_result);
 }
 
-pub fn thread_terminate(thread_context: &mut ThreadContext) {
+pub fn thread_terminate(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> ()'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -212,7 +211,7 @@ pub fn thread_terminate(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_receive_msg_from_parent(thread_context: &mut ThreadContext) {
+pub fn thread_receive_msg_from_parent(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
     RX.with(|rx_refcell| {
         let rx_ref = rx_refcell.borrow();
@@ -222,7 +221,7 @@ pub fn thread_receive_msg_from_parent(thread_context: &mut ThreadContext) {
                 match rx.recv() {
                     Ok(data) => {
                         // store the received data
-                        LAST_MESSAGE.with(|msg_refcell| {
+                        LAST_THREAD_MESSAGE.with(|msg_refcell| {
                             let length = data.len();
                             msg_refcell.replace(data);
 
@@ -245,7 +244,7 @@ pub fn thread_receive_msg_from_parent(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_send_msg_to_parent(thread_context: &mut ThreadContext) {
+pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
@@ -274,7 +273,7 @@ pub fn thread_send_msg_to_parent(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_receive_msg(thread_context: &mut ThreadContext) {
+pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (length:u32, thread_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -288,7 +287,7 @@ pub fn thread_receive_msg(thread_context: &mut ThreadContext) {
                 match child_thread.rx.recv() {
                     Ok(data) => {
                         // store the received data
-                        LAST_MESSAGE.with(|msg_refcell| {
+                        LAST_THREAD_MESSAGE.with(|msg_refcell| {
                             let length = data.len();
                             msg_refcell.replace(data);
                             (length, THREAD_RESULT_SUCCESS)
@@ -306,7 +305,7 @@ pub fn thread_receive_msg(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_send_msg(thread_context: &mut ThreadContext) {
+pub fn thread_send_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> thread_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
@@ -336,10 +335,10 @@ pub fn thread_send_msg(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_msg_length(thread_context: &mut ThreadContext) {
+pub fn thread_msg_length(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
 
-    LAST_MESSAGE.with(|msg_refcell| {
+    LAST_THREAD_MESSAGE.with(|msg_refcell| {
         let msg_ref = msg_refcell.borrow();
         let length = msg_ref.len();
 
@@ -348,14 +347,14 @@ pub fn thread_msg_length(thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_msg_read(thread_context: &mut ThreadContext) {
+pub fn thread_msg_read(_handler: &Handler, thread_context: &mut ThreadContext) {
     // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> actual_read_length:u32'
 
     let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
     let length = thread_context.stack.pop_i32_u() as usize;
     let offset = thread_context.stack.pop_i32_u() as usize;
 
-    let actual_read_length = LAST_MESSAGE.with(|msg_refcell| {
+    let actual_read_length = LAST_THREAD_MESSAGE.with(|msg_refcell| {
         let msg_ref = msg_refcell.borrow();
         let msg_length = msg_ref.len();
         let actual_read_length = if offset + length > msg_length {
@@ -378,7 +377,7 @@ pub fn thread_msg_read(thread_context: &mut ThreadContext) {
 
 // ref:
 // https://linux.die.net/man/2/nanosleep
-pub fn time_sleep(thread_context: &mut ThreadContext) {
+pub fn thread_sleep(_handler: &Handler, thread_context: &mut ThreadContext) {
     // `fn (milliseconds:u64) -> ()`
 
     let milliseconds = thread_context.stack.pop_i64_u();
@@ -389,45 +388,22 @@ pub fn time_sleep(thread_context: &mut ThreadContext) {
 mod tests {
     use std::time::Instant;
 
-    use ancvm_binary::{
-        bytecode_writer::BytecodeWriter,
+    use ancvm_context::resource::Resource;
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
+        entry::LocalVariableEntry,
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_single_function,
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{
-        entry::LocalVariableEntry, envcallcode::EnvCallCode, opcode::Opcode, OperandDataType,
-    };
+    use ancvm_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
-        in_memory_program_resource::InMemoryProgramResource, process::start_program_in_multithread,
+        envcall_num::EnvCallNum, in_memory_resource::InMemoryResource,
+        multithread_process::start_with_multiple_thread,
     };
-
-    #[test]
-    fn test_envcall_multithread_run_program_in_multithread() {
-        // the signature of 'thread start function' must be
-        // () -> (i64)
-
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x11)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![OperandDataType::I64], // results
-            vec![],              // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let result0 = start_program_in_multithread(program_resource0, vec![]);
-
-        const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
-        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
-    }
 
     #[test]
     fn test_envcall_multithread_thread_id() {
@@ -435,20 +411,21 @@ mod tests {
         // () -> (i64)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_id as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_id as u32)
             .append_opcode(Opcode::extend_i32_u_to_i64)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
+            vec![],                     // params
             vec![OperandDataType::I64], // results
-            vec![],              // local variables
+            vec![],                     // local variables
             code0,
         );
 
         let resource0 = InMemoryResource::new(vec![binary0]);
-        let result0 = start_program_in_multithread(program_resource0, vec![]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let result0 = start_with_multiple_thread(&process_context0, vec![]);
 
         const FIRST_CHILD_THREAD_ID: u64 = 1;
         assert_eq!(result0.unwrap(), FIRST_CHILD_THREAD_ID);
@@ -464,33 +441,33 @@ mod tests {
             .append_opcode_i32(Opcode::imm_i32, 1) // function_public_index
             .append_opcode_i32(Opcode::imm_i32, 0) // thread_start_data_address, no start data
             .append_opcode_i32(Opcode::imm_i32, 0) // thread_start_data_length, no start data
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_create as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_create as u32)
             // now the operand(s) on the top of stack is: (child thread id)
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_wait_and_collect as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_wait_and_collect as u32)
             // now the operand(s) on the top of stack is: (child thread exit code, thread result)
             // .append_opcode(Opcode::drop)
-            .append_opcode_i16_i16_i16(Opcode::local_store32, 0, 0, 0)
+            .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 0)
             // now the operand(s) on the top of stack is: (child thread exit code)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let code1 = BytecodeWriter::new()
+        let code1 = BytecodeWriterHelper::new()
             // set the thread exit code
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x13)
+            .append_opcode_i64(Opcode::imm_i64, 0x13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
-                    params: vec![],               // params
+                    params: vec![],                      // params
                     results: vec![OperandDataType::I64], // results
                     local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local variables (for dropping operands)
                     code: code0,
                 },
                 HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
                     params: vec![],                                   // params
-                    results: vec![OperandDataType::I64],                     // results
+                    results: vec![OperandDataType::I64],              // results
                     local_variable_item_entries_without_args: vec![], // local variables
                     code: code1,
                 },
@@ -499,7 +476,8 @@ mod tests {
         );
 
         let resource0 = InMemoryResource::new(vec![binary0]);
-        let result0 = start_program_in_multithread(program_resource0, vec![]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let result0 = start_with_multiple_thread(&process_context0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
     }
 
@@ -509,27 +487,27 @@ mod tests {
         // () -> (i64)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 1000)
-            .append_opcode_i32(Opcode::envcall, EnvCallCode::thread_sleep as u32)
-            .append_opcode_pesudo_i64(Opcode::imm_i64, 0x13)
+            .append_opcode_i64(Opcode::imm_i64, 1000)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_sleep as u32)
+            .append_opcode_i64(Opcode::imm_i64, 0x13)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
+            vec![],                     // params
             vec![OperandDataType::I64], // results
-            vec![],              // local variables
+            vec![],                     // local variables
             code0,
         );
 
         let resource0 = InMemoryResource::new(vec![binary0]);
-        let before = Instant::now();
+        let process_context0 = resource0.create_process_context().unwrap();
 
-        let result0 = start_program_in_multithread(program_resource0, vec![]);
+        let before = Instant::now();
+        let result0 = start_with_multiple_thread(&process_context0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
 
         let after = Instant::now();
-
         let duration = after.duration_since(before);
         let ms = duration.as_millis() as u64;
         assert!(ms > 500);

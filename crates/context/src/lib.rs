@@ -27,9 +27,9 @@ pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
 
-#[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ProgramResourceType {
-    InMemory = 0x0,
-    File,
-}
+// #[repr(u8)]
+// #[derive(Debug, PartialEq, Clone, Copy)]
+// pub enum ResourceType {
+//     InMemory = 0x0,
+//     File,
+// }

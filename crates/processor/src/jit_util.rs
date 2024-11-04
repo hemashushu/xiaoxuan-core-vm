@@ -494,7 +494,7 @@ mod tests {
             // about stack slots:
             //
             // a sequence memory area in the stack, it is equivalent to
-            // the XiaoXuan VM function's local variables area).
+            // the XiaoXuan Core VM function's local variables area).
             //
             // func.create_sized_stack_slot(StackSlotData::new(StackSlotKind::ExplicitSlot, 8));
             // function_builder.ins().stack_load(Mem, SS, Offset);

@@ -4,27 +4,90 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{program_resource::ProgramResource, thread_context::ThreadContext};
+// the XiaoXuan Core VM thread model:
+//
+//     child thread                              pipe         parent thread
+//   /--------------------------------\      /-----------\    /----------\
+//   |                                |-\    |  receive  |    |          |
+//   |                           RX <---------------------------- TX     |
+//   |                           TX ----------------------------> RX     |
+//   |                                | |    |  send     |    |          |
+//   |                                | |    \-----------/    \----------/
+//   |  /------\  /-------\           | |
+//   |  | heap |  | stack |           | |
+//   |  \------/  \-------/           | |
+//   |                                | |
+//   |  /-----------------\           | |
+//   |  | SP, FP, PC      |           | |
+//   |  \-----------------/           | |
+//   |                                | |
+//   |    module image                | |
+//   |  /-----------------------\     | |
+//   |  | read-write data       |-\   | |
+//   |  | uninit. data          | |   | |
+//   |  |-----------------------| |   | |
+//   |  | read-only data (ref)  | |   | |
+//   |  | types (ref)           | |   | |
+//   |  | functions (ref)       | |   | |
+//   |  | local variables (ref) | |   | |
+//   |  \-----------------------/ |   | |
+//   |    \----------------------/    | |
+//   |       module images            | |
+//   |                                | |
+//   \--------------------------------/ |
+//     \--------------------------------/
+//        child threads
+//
+// note that the heap, stack, data sections are all thread-local,
+// by default the XiaoXuan has no 'global' data or variables.
+// threads can only comunicate through PIPE.
+//
+// in the XiaoXuan Core VM, all 'objects' are thread-safe.
+
+// the message pipe
+// ----------------
+//
+// threads communicate through message pipe, the raw type of message is u8 array,
+// so the message can be:
+// - primitive data
+// - a struct
+// - an array
+// - (the address of) a function
+// - (the address of) a closure function
+
+use ancvm_context::process_context::ProcessContext;
 use ancvm_isa::{ForeignValue, GenericError};
 
 use crate::{
-    delegate::{build_bridge_data, build_bridge_function},
-    interpreter::process_function,
-    multithread_program::{create_thread, MultithreadProgram},
-    InterpreterError, InterpreterErrorType, CHILD_THREADS, THREAD_START_DATA,
+    handler::Handler,
+    multithread_handler::{
+        create_thread, CHILD_THREADS, HANDLER_ADDRESS, PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA,
+    },
+    process::process_function,
+    HandleErrorType, HandlerError,
 };
 
-// process_function
-
-pub fn start_program_in_multithread<T>(
-    program_resource: T,
+// pub fn start_with_multi_thread<T>(resource: T, thread_start_data: Vec<u8>) -> Result<u64, GenericError>
+// where
+//     T: Resource + std::marker::Send + std::marker::Sync + 'static,
+pub fn start_with_multiple_thread(
+    process_context: &ProcessContext,
     thread_start_data: Vec<u8>,
-) -> Result<u64, GenericError>
-where
-    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
-{
-    let multithread_program = MultithreadProgram::new(program_resource);
-    let main_thread_id = create_thread(&multithread_program, None, thread_start_data);
+) -> Result<u64, GenericError> {
+    let handler = Handler::new();
+    let handler_address = &handler as *const Handler as *const u8 as usize;
+    let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
+
+    HANDLER_ADDRESS.with(|data| {
+        *data.borrow_mut() = handler_address;
+    });
+
+    PROCESS_CONTEXT_ADDRESS.with(|data| {
+        *data.borrow_mut() = process_context_address;
+    });
+
+    // let multithread_instance = Multithread::new(resource);
+    let main_thread_id = create_thread(None, thread_start_data);
 
     CHILD_THREADS.with(|child_threads_cell| {
         let mut child_threads = child_threads_cell.borrow_mut();
@@ -34,31 +97,44 @@ where
     })
 }
 
-pub fn start_program_in_single_thread<T>(
-    program_resource: T,
+// pub fn start_with_single_thread<T>(resource: T, thread_start_data: Vec<u8>) -> Result<u64, GenericError>
+// where
+//     T: Resource + std::marker::Send + std::marker::Sync + 'static,
+pub fn start_with_single_thread(
+    process_context: &ProcessContext,
     thread_start_data: Vec<u8>,
-) -> Result<u64, GenericError>
-where
-    T: ProgramResource + std::marker::Send + std::marker::Sync + 'static,
-{
+) -> Result<u64, GenericError> {
+    let handler = Handler::new();
+    let handler_address = &handler as *const Handler as *const u8 as usize;
+    let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
+
+    HANDLER_ADDRESS.with(|data| {
+        *data.borrow_mut() = handler_address;
+    });
+
+    PROCESS_CONTEXT_ADDRESS.with(|data| {
+        *data.borrow_mut() = process_context_address;
+    });
+
     THREAD_START_DATA.with(|data| {
         data.replace(thread_start_data);
     });
 
-    let process_context = program_resource.create_process_context().unwrap();
+    // let process_context = resource.create_process_context().unwrap();
     let mut thread_context = process_context.create_thread_context();
 
     // use the function 'entry' as the startup function
     const MAIN_MODULE_INDEX: usize = 0;
     let entry_function_public_index = thread_context
         .module_index_instance
-        .property_section
+        .index_property_section
         .entry_function_public_index as usize;
 
     // the signature of the 'entry function' must be:
     // 'fn () -> exit_code:u64'
 
     let result_foreign_values = process_function(
+        &handler,
         &mut thread_context,
         MAIN_MODULE_INDEX,
         entry_function_public_index,
@@ -68,75 +144,134 @@ where
     match result_foreign_values {
         Ok(foreign_values) => {
             if foreign_values.len() != 1 {
-                return Err(Box::new(InterpreterError::new(
-                    InterpreterErrorType::ResultsAmountMissmatch,
-                )) as GenericError);
+                return Err(
+                    Box::new(HandlerError::new(HandleErrorType::ResultsAmountMissmatch))
+                        as GenericError,
+                );
             }
 
             if let ForeignValue::U64(exit_code) = foreign_values[0] {
                 Ok(exit_code)
             } else {
-                Err(Box::new(InterpreterError::new(
-                    InterpreterErrorType::DataTypeMissmatch,
-                )) as GenericError)
+                Err(Box::new(HandlerError::new(HandleErrorType::DataTypeMissmatch)) as GenericError)
             }
         }
         Err(e) => Err(Box::new(e) as GenericError),
     }
 }
 
-pub fn call_function(
-    thread_context: &mut ThreadContext,
-    module_index: usize,
-    function_public_index: usize,
-    arguments: &[ForeignValue],
-) -> Result<Vec<ForeignValue>, InterpreterError> {
-    process_function(
-        thread_context,
-        module_index,
-        function_public_index,
-        arguments,
-    )
-}
+// pub fn call_function(
+//     thread_context: &mut ThreadContext,
+//     module_index: usize,
+//     function_public_index: usize,
+//     arguments: &[ForeignValue],
+// ) -> Result<Vec<ForeignValue>, HandlerError> {
+//     process_function(
+//         thread_context,
+//         module_index,
+//         function_public_index,
+//         arguments,
+//     )
+// }
 
-pub fn get_bridge_function<T>(
-    thread_context: &mut ThreadContext,
-    module_name: &str,
-    function_name: &str,
-) -> Result<T, InterpreterError> {
-    let (module_index, function_public_index) = thread_context
-        .find_function_public_index_by_name(module_name, function_name)
-        .ok_or(InterpreterError::new(InterpreterErrorType::ItemNotFound))?;
-
-    let function_ptr = build_bridge_function(thread_context, module_index, function_public_index)?;
-    let function = unsafe { std::mem::transmute_copy(&function_ptr) };
-    Ok(function)
-}
-
-pub fn get_bridge_data<T>(
-    thread_context: &mut ThreadContext,
-    module_name: &str,
-    data_name: &str,
-) -> Result<*const T, InterpreterError>
-where
-    T: Sized,
-{
-    let (module_index, data_public_index) = thread_context
-        .find_data_public_index_by_name(module_name, data_name)
-        .ok_or(InterpreterError::new(InterpreterErrorType::ItemNotFound))?;
-
-    let data_ptr = build_bridge_data(
-        thread_context,
-        module_index,
-        data_public_index,
-        0,
-        std::mem::size_of::<T>(),
-    )?;
-
-    Ok(data_ptr as *const T)
-}
+// pub fn get_bridge_function<T>(
+//     thread_context: &mut ThreadContext,
+//     module_name: &str,
+//     function_name: &str,
+// ) -> Result<T, HandlerError> {
+//     let (module_index, function_public_index) = thread_context
+//         .find_function_public_index_by_name(module_name, function_name)
+//         .ok_or(HandlerError::new(HandlerErrorType::ItemNotFound))?;
+//
+//     let function_ptr = build_bridge_function(thread_context, module_index, function_public_index)?;
+//     let function = unsafe { std::mem::transmute_copy(&function_ptr) };
+//     Ok(function)
+// }
+//
+// pub fn get_bridge_data<T>(
+//     thread_context: &mut ThreadContext,
+//     module_name: &str,
+//     data_name: &str,
+// ) -> Result<*const T, HandlerError>
+// where
+//     T: Sized,
+// {
+//     let (module_index, data_public_index) = thread_context
+//         .find_data_public_index_by_name(module_name, data_name)
+//         .ok_or(HandlerError::new(HandlerErrorType::ItemNotFound))?;
+//
+//     let data_ptr = build_bridge_data(
+//         thread_context,
+//         module_index,
+//         data_public_index,
+//         0,
+//         std::mem::size_of::<T>(),
+//     )?;
+//
+//     Ok(data_ptr as *const T)
+// }
 
 #[cfg(test)]
 mod tests {
-    // todo
+    use ancvm_context::resource::Resource;
+    use ancvm_image::{
+        bytecode_writer::BytecodeWriterHelper,
+        utils::helper_build_module_binary_with_single_function,
+    };
+    use ancvm_isa::{opcode::Opcode, OperandDataType};
+
+    use crate::{
+        in_memory_resource::InMemoryResource,
+        multithread_process::{start_with_multiple_thread, start_with_single_thread},
+    };
+
+    #[test]
+    fn test_envcall_multithread_start_with_multithread() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
+        let code0 = BytecodeWriterHelper::new()
+            .append_opcode_i64(Opcode::imm_i64, 0x11)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![],                     // params
+            vec![OperandDataType::I64], // results
+            vec![],                     // local variables
+            code0,
+        );
+
+        let resource0 = InMemoryResource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let result0 = start_with_multiple_thread(&process_context0, vec![]);
+
+        const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
+        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
+    }
+
+    #[test]
+    fn test_envcall_multithread_start_with_single_thread() {
+        // the signature of 'thread start function' must be
+        // () -> (i64)
+
+        let code0 = BytecodeWriterHelper::new()
+            .append_opcode_i64(Opcode::imm_i64, 0x11)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            vec![],                     // params
+            vec![OperandDataType::I64], // results
+            vec![],                     // local variables
+            code0,
+        );
+
+        let resource0 = InMemoryResource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let result0 = start_with_single_thread(&process_context0, vec![]);
+
+        const EXPECT_THREAD_EXIT_CODE: u64 = 0x11;
+        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
+    }
 }

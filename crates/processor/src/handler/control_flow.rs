@@ -217,7 +217,7 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
-        InterpreterError, InterpreterErrorType,
+        HandlerError, HandleErrorType,
     };
     use ancvm_context::resource::Resource;
 
@@ -1639,8 +1639,8 @@ mod tests {
         );
         assert!(matches!(
             result2,
-            Err(InterpreterError {
-                error_type: InterpreterErrorType::Panic(0x100)
+            Err(HandlerError {
+                error_type: HandleErrorType::Panic(0x100)
             })
         ));
 
@@ -1653,8 +1653,8 @@ mod tests {
         );
         assert!(matches!(
             result3,
-            Err(InterpreterError {
-                error_type: InterpreterErrorType::Panic(0x100)
+            Err(HandlerError {
+                error_type: HandleErrorType::Panic(0x100)
             })
         ));
     }

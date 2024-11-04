@@ -16,7 +16,7 @@ use crate::{InterpreterError, InterpreterErrorType};
 //
 //
 //    C/Rust application                  runtime (native)
-// /------------------------\          /------------------------\          XiaoXuan VM module
+// /------------------------\          /------------------------\          XiaoXuan Core VM module
 // |                        |          | bridge func table      |       /------------------------\
 // | int (*add)(int,int)=.. |          | |--------------------| |       |                        |
 // | int c = add(11,13);    | ---\     | | mod idx | func idx | | ----> | fn (i32, i32) -> (i32) |

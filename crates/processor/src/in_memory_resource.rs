@@ -7,8 +7,8 @@
 use std::sync::Mutex;
 
 use ancvm_context::{
-    external_function_table::ExtenalFunctionTable, process_context::ProcessContext,
-    resource::Resource, environment::Environment, ProgramResourceType,
+    environment::Environment, external_function_table::ExtenalFunctionTable,
+    process_context::ProcessContext, resource::Resource,
 };
 use ancvm_image::utils::helper_load_modules_from_binaries;
 
@@ -27,10 +27,7 @@ impl InMemoryResource {
         }
     }
 
-    pub fn with_settings(
-        module_binaries: Vec<Vec<u8>>,
-        environment: &Environment,
-    ) -> Self {
+    pub fn with_settings(module_binaries: Vec<Vec<u8>>, environment: &Environment) -> Self {
         Self {
             module_binaries,
             environment: environment.clone(),
@@ -56,16 +53,16 @@ impl Resource for InMemoryResource {
         ))
     }
 
-    fn get_type(&self) -> ProgramResourceType {
-        ProgramResourceType::InMemory
-    }
+    // fn get_type(&self) -> ResourceType {
+    //     ResourceType::InMemory
+    // }
 }
 
 #[cfg(test)]
 mod tests {
     use ancvm_context::{
-        resource::Resource, resizeable_memory::ResizeableMemory,
-        thread_context::ProgramCounter, INIT_HEAP_SIZE_IN_PAGES,
+        resizeable_memory::ResizeableMemory, resource::Resource, thread_context::ProgramCounter,
+        INIT_HEAP_SIZE_IN_PAGES,
     };
     use ancvm_image::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},

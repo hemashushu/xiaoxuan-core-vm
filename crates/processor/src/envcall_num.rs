@@ -43,54 +43,6 @@ pub enum EnvCallNum {
 
     // thread
 
-    // the XiaoXuan VM thread model:
-    //
-    //     thread                                             pipe              upstrem thread
-    //   /--------------------------------------\          /-----------\      /----------\
-    //   |                                      |-\        |  receive  |      |          |
-    //   |                                 RX <---------------------------------- TX     |
-    //   |                                 TX ----------------------------------> RX     |
-    //   |                                      | |        |  send     |      |          |
-    //   |                                      | |        \-----------/      \----------/
-    //   |  /----------\  /------\  /-------\   | |
-    //   |  | backpack |  | heap |  | stack |   | |
-    //   |  \----------/  \------/  \-------/   | |
-    //   |                                      | |
-    //   |  /-----------------\                 | |
-    //   |  | SP, FP, PC      |                 | |          runtime
-    //   |  \-----------------/                 | |        /-------------\
-    //   |                                      | | -----> | interpreter |
-    //   |    module image                      | | <----- |             |
-    //   |  /-----------------------\           | |        \-------------/
-    //   |  | read-write data       |-\         | |
-    //   |  | uninit. data          | |         | |         a set of stateless
-    //   |  |-----------------------| |         | |         functions
-    //   |  | read-only data (ref)  | |         | |
-    //   |  | types (ref)           | |         | |
-    //   |  | functions (ref)       | |         | |
-    //   |  | local variables (ref)      | |         | |
-    //   |  \-----------------------/ |         | |
-    //   |    \----------------------/          | |
-    //   |       module images                  | |
-    //   |                                      | |
-    //   \--------------------------------------/ |
-    //     \--------------------------------------/
-    //        threads
-    //
-    // note that the heap, stack, data sections, backpack and messagebox are all thread-local,
-    // by default the XiaoXuan has no 'global' data or variables.
-    // threads can only comunicate through PIPE.
-    //
-    // in the XiaoXuan VM, all 'objects' are thread-safe.
-
-    // about the message pipe:
-    //
-    // threads communicate through message pipe, the raw type of message is u8 array, so it can be:
-    // - primitive data
-    // - a struct
-    // - an array
-    // - (the address of) a function
-    // - (the address of) a closure function
     thread_id = 0x0140,          // get the current thread id
                                 // 'fn () -> thread_id:u32'
 

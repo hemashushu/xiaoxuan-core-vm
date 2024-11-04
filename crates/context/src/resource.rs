@@ -6,11 +6,11 @@
 
 use ancvm_image::BinaryError;
 
-use crate::{process_context::ProcessContext, ProgramResourceType};
+use crate::process_context::ProcessContext;
 
 // all asserts needed for a program to run.
 // includes settings, module images and other essential objects.
 pub trait Resource {
     fn create_process_context(&self) -> Result<ProcessContext, BinaryError>;
-    fn get_type(&self) -> ProgramResourceType;
+    // fn get_type(&self) -> ResourceType;
 }

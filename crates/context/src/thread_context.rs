@@ -105,7 +105,7 @@ pub struct ThreadContext<'a> {
     // it is recommended that keep the function return only one value.
     pub stack: Stack,
 
-    // in XiaoXuan VM, the data sections (read-only, read-write, uninit) are all thread-local,
+    // in XiaoXuan Core VM, the data sections (read-only, read-write, uninit) are all thread-local,
     // and the heap is thread-local also.
     // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
     //
@@ -135,7 +135,7 @@ pub struct ThreadContext<'a> {
 /// by a single number -- program counter (PC) or instruction pointer (IP).
 /// XiaoXuan application is consisted of several modules, each module contains its data and code,
 /// and code are seperated into several piece which called 'function'.
-/// so the PC in XiaoXuan VM is represented by a tuple of
+/// so the PC in XiaoXuan Core VM is represented by a tuple of
 /// (module index, function index, instruction address)
 ///
 /// note that in the default VM implementation, the code of functions are join together,
