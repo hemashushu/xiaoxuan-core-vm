@@ -18,7 +18,7 @@
 //              | ...                                                                                                                 |
 //              |---------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::ModuleShareType;
+use ancvm_isa::ModuleDependentType;
 
 use crate::{
     entry::ImportModuleEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
@@ -35,7 +35,7 @@ pub struct ImportModuleSection<'a> {
 pub struct ImportModuleItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
-    pub module_share_type: ModuleShareType, // u8
+    pub module_dependent_type: ModuleDependentType, // u8
     _padding0: [u8; 3],
     pub version_major: u16,
     pub version_minor: u16,
@@ -45,14 +45,14 @@ impl ImportModuleItem {
     pub fn new(
         name_offset: u32,
         name_length: u32,
-        module_share_type: ModuleShareType,
+        module_dependent_type: ModuleDependentType,
         version_major: u16,
         version_minor: u16,
     ) -> Self {
         Self {
             name_offset,
             name_length,
-            module_share_type,
+            module_dependent_type,
             _padding0: [0; 3],
             version_major,
             version_minor,
@@ -77,10 +77,10 @@ impl<'a> SectionEntry<'a> for ImportModuleSection<'a> {
 }
 
 impl<'a> ImportModuleSection<'a> {
-    pub fn get_item_name_and_module_share_type_and_version(
+    pub fn get_item_name_and_module_dependent_type_and_version(
         &'a self,
         idx: usize,
-    ) -> (&'a str, ModuleShareType, u16, u16) {
+    ) -> (&'a str, ModuleDependentType, u16, u16) {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -90,7 +90,7 @@ impl<'a> ImportModuleSection<'a> {
 
         (
             std::str::from_utf8(name_data).unwrap(),
-            item.module_share_type,
+            item.module_dependent_type,
             item.version_major,
             item.version_minor,
         )
@@ -115,7 +115,7 @@ impl<'a> ImportModuleSection<'a> {
                 ImportModuleItem::new(
                     name_offset,
                     name_length,
-                    entry.module_share_type,
+                    entry.module_dependent_type,
                     entry.module_version.major,
                     entry.module_version.minor,
                 )
@@ -134,7 +134,7 @@ impl<'a> ImportModuleSection<'a> {
 #[cfg(test)]
 mod tests {
 
-    use ancvm_isa::{EffectiveVersion, ModuleShareType};
+    use ancvm_isa::{EffectiveVersion, ModuleDependentType};
 
     use crate::{common_sections::import_module_section::{ImportModuleItem, ImportModuleSection}, entry::ImportModuleEntry, module_image::SectionEntry};
 
@@ -167,11 +167,11 @@ mod tests {
         assert_eq!(section.items.len(), 2);
         assert_eq!(
             section.items[0],
-            ImportModuleItem::new(0, 3, ModuleShareType::User, 11, 13)
+            ImportModuleItem::new(0, 3, ModuleDependentType::Local, 11, 13)
         );
         assert_eq!(
             section.items[1],
-            ImportModuleItem::new(3, 5, ModuleShareType::Share, 17, 19)
+            ImportModuleItem::new(3, 5, ModuleDependentType::Share, 17, 19)
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
@@ -179,8 +179,8 @@ mod tests {
     #[test]
     fn test_save_section() {
         let items = vec![
-            ImportModuleItem::new(0, 3, ModuleShareType::User, 11, 13),
-            ImportModuleItem::new(3, 5, ModuleShareType::Share, 17, 19),
+            ImportModuleItem::new(0, 3, ModuleDependentType::Local, 11, 13),
+            ImportModuleItem::new(3, 5, ModuleDependentType::Share, 17, 19),
         ];
 
         let section = ImportModuleSection {
@@ -221,12 +221,12 @@ mod tests {
         let entries = vec![
             ImportModuleEntry::new(
                 "foobar".to_string(),
-                ModuleShareType::User,
+                ModuleDependentType::Local,
                 EffectiveVersion::new(23, 29),
             ),
             ImportModuleEntry::new(
                 "helloworld".to_string(),
-                ModuleShareType::Share,
+                ModuleDependentType::Share,
                 EffectiveVersion::new(31, 37),
             ),
         ];
@@ -238,13 +238,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_item_name_and_module_share_type_and_version(0),
-            ("foobar", ModuleShareType::User, 23, 29)
+            section.get_item_name_and_module_dependent_type_and_version(0),
+            ("foobar", ModuleDependentType::Local, 23, 29)
         );
 
         assert_eq!(
-            section.get_item_name_and_module_share_type_and_version(1),
-            ("helloworld", ModuleShareType::Share, 31, 37)
+            section.get_item_name_and_module_dependent_type_and_version(1),
+            ("helloworld", ModuleDependentType::Share, 31, 37)
         );
     }
 }

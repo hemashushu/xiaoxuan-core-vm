@@ -7,7 +7,7 @@
 use std::sync::Mutex;
 
 use ancvm_context::{
-    environment::Environment, external_function_table::ExtenalFunctionTable,
+    environment::Environment, external_function_table::ExternalFunctionTable,
     process_context::ProcessContext, resource::Resource,
 };
 use ancvm_image::utils::helper_load_modules_from_binaries;
@@ -15,7 +15,7 @@ use ancvm_image::utils::helper_load_modules_from_binaries;
 pub struct InMemoryResource {
     environment: Environment,
     module_binaries: Vec<Vec<u8>>,
-    extenal_function_table: Mutex<ExtenalFunctionTable>,
+    external_function_table: Mutex<ExternalFunctionTable>,
 }
 
 impl InMemoryResource {
@@ -24,7 +24,7 @@ impl InMemoryResource {
         Self {
             module_binaries,
             environment: Environment::default(),
-            extenal_function_table: Mutex::new(ExtenalFunctionTable::default()),
+            external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 
@@ -33,7 +33,7 @@ impl InMemoryResource {
         Self {
             module_binaries,
             environment: environment.clone(),
-            extenal_function_table: Mutex::new(ExtenalFunctionTable::default()),
+            external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 }
@@ -50,7 +50,7 @@ impl Resource for InMemoryResource {
 
         Ok(ProcessContext::new(
             &self.environment,
-            &self.extenal_function_table,
+            &self.external_function_table,
             module_images,
         ))
     }

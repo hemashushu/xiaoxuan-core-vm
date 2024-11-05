@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use ancvm_image::module_image::ModuleImage;
 
 use crate::{
-    environment::Environment, external_function_table::ExtenalFunctionTable, heap::Heap,
+    environment::Environment, external_function_table::ExternalFunctionTable, heap::Heap,
     indexed_memory::IndexedMemory, module_common_instance::ModuleCommonInstance,
     module_index_instance::ModuleIndexInstance, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
     INIT_STACK_SIZE_IN_BYTES,
@@ -120,7 +120,7 @@ pub struct ThreadContext<'a> {
     // runtime generated entries
     pub bridge_function_module_items: Vec<DelegateFunctionModuleItem>,
     pub bridge_callback_function_module_items: Vec<DelegateFunctionModuleItem>,
-    pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
+    pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 
     // program modules
     pub module_index_instance: ModuleIndexInstance<'a>,
@@ -168,7 +168,7 @@ impl<'a> ThreadContext<'a> {
     pub fn new(
         environment: &'a Environment,
         module_images: &'a [ModuleImage<'a>],
-        external_function_table: &'a Mutex<ExtenalFunctionTable>,
+        external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
         let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);

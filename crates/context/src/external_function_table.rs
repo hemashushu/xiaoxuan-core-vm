@@ -33,7 +33,7 @@ pub type WrapperFunction = extern "C" fn(
 
 /// the external function pointer table
 #[derive(Default)]
-pub struct ExtenalFunctionTable {
+pub struct ExternalFunctionTable {
     // "unified external library section"  1:1
     pub unified_external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
 
@@ -69,7 +69,7 @@ pub struct WrapperFunctionItem {
 
 static INIT: Once = Once::new();
 
-impl ExtenalFunctionTable {
+impl ExternalFunctionTable {
     pub fn init(
         &mut self,
         unified_external_library_count: usize,

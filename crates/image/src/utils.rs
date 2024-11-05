@@ -15,7 +15,7 @@ use crate::entry::{
 use crate::index_sections::index_property_section::IndexPropertySection;
 use crate::BinaryError;
 use ancvm_isa::{
-    DataSectionType, ExternalLibraryType, OperandDataType, RUNTIME_MAJOR_VERSION,
+    DataSectionType, ExternalLibraryDependentType, OperandDataType, RUNTIME_MAJOR_VERSION,
     RUNTIME_MINOR_VERSION,
 };
 
@@ -59,7 +59,7 @@ pub struct HelperBlockSignatureAndLocalVariablesEntry {
 
 /// helper object for unit test
 pub struct HelperExternalFunctionEntry {
-    pub external_library_type: ExternalLibraryType,
+    pub external_library_dependent_type: ExternalLibraryDependentType,
     pub library_name: String,
     pub function_name: String,
     pub type_index: usize,
@@ -374,7 +374,7 @@ pub fn helper_build_module_binary(
     // build external library section
     let mut external_library_entries = helper_external_function_entries
         .iter()
-        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_type))
+        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_dependent_type))
         .collect::<Vec<_>>();
     external_library_entries.sort_by(|left, right| left.name.cmp(&right.name));
     external_library_entries.dedup_by(|left, right| left.name == right.name);
@@ -518,7 +518,7 @@ pub fn helper_build_module_binary(
         .iter()
         .map(|e| UnifiedExternalLibraryEntry {
             name: e.name.clone(),
-            external_library_type: e.external_library_type,
+            external_library_dependent_type: e.external_library_dependent_type,
         })
         .collect::<Vec<_>>();
 
@@ -645,7 +645,7 @@ fn helper_new_local_variable_entry(operand_data_type: OperandDataType) -> LocalV
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{DataSectionType, ExternalLibraryType, MemoryDataType, OperandDataType};
+    use ancvm_isa::{DataSectionType, ExternalLibraryDependentType, MemoryDataType, OperandDataType};
 
     use crate::{
         common_sections::{data_section::DataItem, local_variable_section::LocalVariableItem},
@@ -836,37 +836,37 @@ mod tests {
             vec![],
             vec![
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::System,
+                    external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "getuid".to_string(),
                     type_index: 1,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::System,
+                    external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "getenv".to_string(),
                     type_index: 2,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::Share,
+                    external_library_dependent_type: ExternalLibraryDependentType::Share,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_open".to_string(), // magic_load
                     type_index: 2,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::User,
+                    external_library_dependent_type: ExternalLibraryDependentType::Local,
                     library_name: "libz.so".to_string(),
                     function_name: "inflate".to_string(), // inflateInit/inflateEnd
                     type_index: 1,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::System,
+                    external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
                     function_name: "fopen".to_string(),
                     type_index: 0,
                 },
                 HelperExternalFunctionEntry {
-                    external_library_type: ExternalLibraryType::Share,
+                    external_library_dependent_type: ExternalLibraryDependentType::Share,
                     library_name: "libmagic.so".to_string(),
                     function_name: "magic_file".to_string(), // magic_close
                     type_index: 2,
@@ -885,16 +885,16 @@ mod tests {
             .get_optional_unified_external_library_section()
             .unwrap();
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_type(0),
-            ("libc.so", ExternalLibraryType::System)
+            unified_external_library_section.get_item_name_and_external_library_dependent_type(0),
+            ("libc.so", ExternalLibraryDependentType::System)
         );
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_type(1),
-            ("libmagic.so", ExternalLibraryType::Share)
+            unified_external_library_section.get_item_name_and_external_library_dependent_type(1),
+            ("libmagic.so", ExternalLibraryDependentType::Share)
         );
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_type(2),
-            ("libz.so", ExternalLibraryType::User)
+            unified_external_library_section.get_item_name_and_external_library_dependent_type(2),
+            ("libz.so", ExternalLibraryDependentType::Local)
         );
 
         // check unified external function section
@@ -955,16 +955,16 @@ mod tests {
             .get_optional_external_library_section()
             .unwrap();
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_type(0),
-            ("libc.so", ExternalLibraryType::System)
+            external_library_section.get_item_name_and_external_library_dependent_type(0),
+            ("libc.so", ExternalLibraryDependentType::System)
         );
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_type(1),
-            ("libmagic.so", ExternalLibraryType::Share)
+            external_library_section.get_item_name_and_external_library_dependent_type(1),
+            ("libmagic.so", ExternalLibraryDependentType::Share)
         );
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_type(2),
-            ("libz.so", ExternalLibraryType::User)
+            external_library_section.get_item_name_and_external_library_dependent_type(2),
+            ("libz.so", ExternalLibraryDependentType::Local)
         );
 
         // check external function section

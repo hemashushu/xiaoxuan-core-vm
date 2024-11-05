@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use ancvm_image::module_image::ModuleImage;
 
 use crate::{
-    external_function_table::ExtenalFunctionTable, environment::Environment,
+    external_function_table::ExternalFunctionTable, environment::Environment,
     thread_context::ThreadContext,
 };
 
@@ -22,13 +22,13 @@ pub struct ProcessContext<'a> {
 
     // since the 'loadlibrary' is process-scope, the external function (pointer) table
     // should be placed at the 'Program' instead of 'ThreadContext'
-    pub external_function_table: &'a Mutex<ExtenalFunctionTable>,
+    pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 }
 
 impl<'a> ProcessContext<'a> {
     pub fn new(
         environment: &'a Environment,
-        external_function_table: &'a Mutex<ExtenalFunctionTable>,
+        external_function_table: &'a Mutex<ExternalFunctionTable>,
         module_images: Vec<ModuleImage<'a>>,
     ) -> Self {
         let unified_external_library_count = module_images[0]

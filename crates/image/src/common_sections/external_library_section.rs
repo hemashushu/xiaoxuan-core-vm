@@ -18,7 +18,7 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::ExternalLibraryType;
+use ancvm_isa::ExternalLibraryDependentType;
 
 use crate::{
     entry::ExternalLibraryEntry,
@@ -37,7 +37,7 @@ pub struct ExternalLibrarySection<'a> {
 pub struct ExternalLibraryItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
-    pub external_library_type: ExternalLibraryType, // u8
+    pub external_library_dependent_type: ExternalLibraryDependentType, // u8
     _padding0: [u8; 3],
 }
 
@@ -45,12 +45,12 @@ impl ExternalLibraryItem {
     pub fn new(
         name_offset: u32,
         name_length: u32,
-        external_library_type: ExternalLibraryType,
+        external_library_dependent_type: ExternalLibraryDependentType,
     ) -> Self {
         Self {
             name_offset,
             name_length,
-            external_library_type,
+            external_library_dependent_type,
             _padding0: [0; 3],
         }
     }
@@ -73,10 +73,10 @@ impl<'a> SectionEntry<'a> for ExternalLibrarySection<'a> {
 }
 
 impl<'a> ExternalLibrarySection<'a> {
-    pub fn get_item_name_and_external_library_type(
+    pub fn get_item_name_and_external_library_dependent_type(
         &'a self,
         idx: usize,
-    ) -> (&'a str, ExternalLibraryType) {
+    ) -> (&'a str, ExternalLibraryDependentType) {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -86,7 +86,7 @@ impl<'a> ExternalLibrarySection<'a> {
 
         (
             std::str::from_utf8(name_data).unwrap(),
-            item.external_library_type,
+            item.external_library_dependent_type,
         )
     }
 
@@ -108,7 +108,7 @@ impl<'a> ExternalLibrarySection<'a> {
                 let name_length = name_bytes[idx].len() as u32;
                 next_offset += name_length; // for next offset
 
-                ExternalLibraryItem::new(name_offset, name_length, entry.external_library_type)
+                ExternalLibraryItem::new(name_offset, name_length, entry.external_library_dependent_type)
             })
             .collect::<Vec<ExternalLibraryItem>>();
 
@@ -123,7 +123,7 @@ impl<'a> ExternalLibrarySection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::ExternalLibraryType;
+    use ancvm_isa::ExternalLibraryDependentType;
 
     use crate::{
         common_sections::external_library_section::{
@@ -157,11 +157,11 @@ mod tests {
         assert_eq!(section.items.len(), 2);
         assert_eq!(
             section.items[0],
-            ExternalLibraryItem::new(0, 3, ExternalLibraryType::User,)
+            ExternalLibraryItem::new(0, 3, ExternalLibraryDependentType::Local,)
         );
         assert_eq!(
             section.items[1],
-            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Share,)
+            ExternalLibraryItem::new(3, 5, ExternalLibraryDependentType::Share,)
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
@@ -169,8 +169,8 @@ mod tests {
     #[test]
     fn test_save_section() {
         let items = vec![
-            ExternalLibraryItem::new(0, 3, ExternalLibraryType::User),
-            ExternalLibraryItem::new(3, 5, ExternalLibraryType::Share),
+            ExternalLibraryItem::new(0, 3, ExternalLibraryDependentType::Local),
+            ExternalLibraryItem::new(3, 5, ExternalLibraryDependentType::Share),
         ];
 
         let section = ExternalLibrarySection {
@@ -205,8 +205,8 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            ExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryType::User),
-            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Share),
+            ExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryDependentType::Local),
+            ExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryDependentType::Share),
         ];
 
         let (items, names_data) = ExternalLibrarySection::convert_from_entries(&entries);
@@ -216,13 +216,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_item_name_and_external_library_type(0),
-            ("foobar", ExternalLibraryType::User,)
+            section.get_item_name_and_external_library_dependent_type(0),
+            ("foobar", ExternalLibraryDependentType::Local,)
         );
 
         assert_eq!(
-            section.get_item_name_and_external_library_type(1),
-            ("helloworld", ExternalLibraryType::Share,)
+            section.get_item_name_and_external_library_dependent_type(1),
+            ("helloworld", ExternalLibraryDependentType::Share,)
         );
     }
 }

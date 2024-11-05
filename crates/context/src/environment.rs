@@ -6,24 +6,41 @@
 
 #[derive(Default, Clone)]
 pub struct Environment {
-    pub source_path: String, // the application source path, e.g. `~/projects/hello-world`, or `~/scripts/hello-world.anc`
-    pub is_directory: bool, // to indicate the source path is a directory
+    // the application source path, e.g.
+    // - `~/projects/hello-world`
+    // - `~/scripts/hello-world.anc`
+    pub source_path: String,
 
-    // the user's share library and module repo, e.g.
-    // the `~/.anc` of
-    // `~/.anc/1.0/modules/foo/1.0.1/{src,target}` and
-    // `~/.anc/1.0/libraries/bar/1.0.2/{lib,include}`
+    // to indicate the source path is a directory
+    pub is_directory: bool,
+
+    // the cache folder for the remote shared modules and libraries, e.g.
+    // `~/.cache/.anc`
+    pub remote_cache_path: String,
+
+    // the local folder for storing the shared modules and libraries which
+    // comes from repository, e.g.
     //
-    // note the this path SHOULD NOT include the version number.
+    // `~/.anc`
+    //
+    // note the this path SHOULD NOT include the runtime version number.
+    //
+    // thus the computed shared module and libraries path are:
+    // - `~/.anc/1.0/modules/foo/1.0.1/{src,target}`
+    // - `~/.anc/1.0/libraries/bar/1.0.2/{lib,include}`
     //
     // multiple path is allowed
-    pub share_path: String,
+    pub share_paths: Vec<String>,
 
     // the runtime's path, e.g.
-    // the `/usr/lib/anc/` of
-    // `/usr/lib/anc/1.0/modules/http-client/1.0.1/{src, target}`
     //
-    // note the this path SHOULD NOT include the version number.
+    // `/usr/lib/anc/`
+    //
+    // note the this path SHOULD NOT include the runtime version number.
+    //
+    // thus the computed bulitin modules and libraries path are:
+    // - `/usr/lib/anc/1.0/runtime/modules/http-client/{src, target}`
+    // - `/usr/lib/anc/1.0/runtime/libraries/lz4/{lib, include}`
     pub runtime_path: String,
 }
 
@@ -31,13 +48,15 @@ impl Environment {
     pub fn new(
         source_path: &str,
         is_directory: bool,
-        share_path: &str,
+        remote_cache_path: &str,
+        share_paths: &[&str],
         runtime_path: &str,
     ) -> Self {
         Self {
             source_path: source_path.to_owned(),
             is_directory,
-            share_path: share_path.to_owned(),
+            remote_cache_path: remote_cache_path.to_owned(),
+            share_paths: share_paths.iter().map(|p| p.to_string()).collect(),
             runtime_path: runtime_path.to_owned(),
         }
     }

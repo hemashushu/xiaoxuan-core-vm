@@ -8,10 +8,13 @@ pub mod opcode;
 
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
 pub const IMAGE_FILE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename = "version")]
 pub struct EffectiveVersion {
     pub major: u16,
     pub minor: u16,
@@ -20,6 +23,12 @@ pub struct EffectiveVersion {
 impl EffectiveVersion {
     pub fn new(major: u16, minor: u16) -> Self {
         Self { major, minor }
+    }
+}
+
+impl Display for EffectiveVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }
 
@@ -36,51 +45,57 @@ pub const RUNTIME_PATCH_VERSION: u16 = 0;
 pub const IMAGE_FORMAT_MAJOR_VERSION: u16 = 1;
 pub const IMAGE_FORMAT_MINOR_VERSION: u16 = 0;
 
-// the relationship between the version of programs, shared modules and runtime
+// the relationship between the version of application, shared modules and runtime
 // ----------------------------------------------------------------------------
 //
-// for programs:
+// for applications:
 //
-// every program (source code) declares a desired runtime version, which can only be run
-// if the major and minor versions are identical. in short:
+// every application declares a desired runtime version, which can only be run
+// when the major and minor versions are identical. in short:
 //
-// - app major == runtime major
-// - app minor == runtime minor
-// - app patch == any
+// - app required runtime version major == runtime version major
+// - app required runtime version minor == runtime version minor
 //
-// for shared module:
+// for shared modules:
 //
-// every shared module (source code) also declares a desired runtime version, since it is
-// not a standalone executable module, when it is referenced (as dependency) by other
-// programs, it will be compiled to the same runtime version as the main module requires.
-// however, if the major version required by the shared module does not match that of
-// the main module, compilation will be rejected. in short:
+// shared modules do not declare desired runtime version, since it is
+// not a standalone executable module.
+// when a shared module is referenced (as dependency) by other
+// application, it will be compiled to the same runtime version as the main module requires.
 //
-// - shared module major == runtime major
-// - shared module minor == any
-// - shared module patch == any
+// - shared module compiled version major == app required runtime version major
+// - shared module compiled version minor == app required runtime version minor
 //
 // dependencies
 // ------------
 //
-// a program (or shared module) may depend on one or more shared modules,
-// when a program references a shared module, it is necessary to declare the major and minor version.
-// unlike many other language, 'XiaoXuan Core' program requires the version of the dependencies
+// a application (or shared module) may depend on one or more other shared modules,
+// when a application references a shared module, it is necessary to declare the
+// major and minor version of the shared module.
+// unlike many other language, 'XiaoXuan Core' application requires the version of the dependencies
 // (shared modules) must be strictly consistent with the declaration, that is to say:
 //
-// - dependency declare major == shared module major
-// - dependency declare minor == shared module minor
-// - dependency declare patch, shared module patch == any
+// - dependency declare version major == shared module version major
+// - dependency declare version minor == shared module version minor
 //
 // version conflicts
 // -----------------
 //
-// if a shared module is duplicate in the dependency tree with different version, the version
-// of the program require is selected, or the max minor version is selected.
+// if a shared module is duplicated in the dependency tree with different versions,
+// and the major version is different, the compiler will complain. otherwise,
+// the version required by the application is preferred, or the maximum minor version
+// is selected.
 //
-// for the author of a shared module, it is important to note that the
-// public interface (i.e., functions and data) of a module MUST BE KEPT UNCHANGED
-// throughout the major version.
+// for the local and remote shared modules and libraries (i.e. file base dependencies),
+// because they lack version information, the file required by
+// the application is preferred, or the first declear is selected.
+//
+// note to the author of shared module:
+// it is important to note that the public interface (i.e., API) of
+// a module MUST REMAIN UNCHANGED throughout the major release. for example,
+// the API of version 1.9 and 1.1 should be the same (the newer may add
+// interfaces, but the existing interfaces should NOT be changed or removed),
+// but version 2.0 and 1.9 may be different.
 
 /// the raw data type of operands
 pub type Operand = [u8; 8];
@@ -123,6 +138,7 @@ pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 /// let a = OperandDataType::F32 as u8;
 /// assert_eq!(a, 2);
 /// ```
+///
 #[repr(u8)]
 // https://doc.rust-lang.org/nomicon/other-reprs.html
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -135,7 +151,7 @@ pub enum OperandDataType {
 
 /// the data type of
 /// - local variables
-/// - data in the DATA sections
+/// - data in the DATA sections and heap
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MemoryDataType {
@@ -149,9 +165,9 @@ pub enum MemoryDataType {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum DataSectionType {
-    ReadOnly = 0x0,
-    ReadWrite,
-    Uninit,
+    ReadOnly = 0x0, // .rodata
+    ReadWrite,      // .data
+    Uninit,         // .bss
 }
 
 impl Display for DataSectionType {
@@ -165,8 +181,9 @@ impl Display for DataSectionType {
     }
 }
 
-// for foreign function interface (FFI)
-// that is, for calling function (in a module of the VM) from the outside,
+// values for foreign function interface (FFI)
+//
+// it is used for calling VM functions from the outside,
 // or returning values to the foreign caller.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ForeignValue {
@@ -177,51 +194,6 @@ pub enum ForeignValue {
 }
 
 impl ForeignValue {
-    // pub fn as_u32(&self) -> Option<u32> {
-    //     if let ForeignValue::U32(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-    //
-    // pub fn as_u64(&self) -> Option<u64> {
-    //     if let ForeignValue::U64(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-    // pub fn as_i32(&self) -> Option<i32> {
-    //     if let ForeignValue::I32(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-    // pub fn as_i64(&self) -> Option<i64> {
-    //     if let ForeignValue::I64(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-    // pub fn as_f32(&self) -> Option<f32> {
-    //     if let ForeignValue::F32(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    // pub fn as_f64(&self) -> Option<f64> {
-    //     if let ForeignValue::F64(v) = self {
-    //         Some(*v)
-    //     } else {
-    //         None
-    //     }
-    // }
-
     pub fn as_u32(&self) -> u32 {
         if let ForeignValue::U32(v) = self {
             *v
@@ -237,22 +209,6 @@ impl ForeignValue {
             panic!("Not an u64.")
         }
     }
-
-//     pub fn as_i32(&self) -> i32 {
-//         if let ForeignValue::I32(v) = self {
-//             *v
-//         } else {
-//             panic!("Not an i32.")
-//         }
-//     }
-//
-//     pub fn as_i64(&self) -> i64 {
-//         if let ForeignValue::I64(v) = self {
-//             *v
-//         } else {
-//             panic!("Not an i64.")
-//         }
-//     }
 
     pub fn as_f32(&self) -> f32 {
         if let ForeignValue::F32(v) = self {
@@ -271,97 +227,330 @@ impl ForeignValue {
     }
 }
 
+/// the type of dependent shared modules
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ModuleShareType {
-    // module from local file system, e.g. `~/myprojects/hello`
-    // it's also possible a remote GIT resource, e.g.
-    // {url:`https://github.com/hemashushu/xiaoxuan-core-vm.git`, commit="...", path="..."}
-    // the remote resource will be download first and cached in a local folder.
-    // the user specified module path can be multiple, e.g.
-    // [local_file_folder1, local_file_folder2, remote_1, remote_2, ...]
-    // the value of this type is `[(LOCAL|REMOTE), ...]`
-    User = 0x0,
+pub enum ModuleDependentType {
+    // module from local file system
+    //
+    // the value of this type is a path to a folder, e.g.
+    //
+    // {
+    //   name: "..."
+    //   value: Local("~/myprojects/hello")
+    // }
+    //
+    // because of the lack of version information on the local file system,
+    // this type of dependency can only be used as local development and testing.
+    // DO NOT distribute modules containing this type of dependency to the
+    // central repository, actually the compiler and runtime will
+    // refuse to compile when a project tries to add a module containing
+    // a local dependency via "Remote" and "Share".
+    Local = 0x0,
 
-    // module from the user share repository, e.g.
-    // `{/usr/lib, ~/.local/lib}/anc/VER/modules/modname/VER`
-    // it can be multiple pathes.
-    // the value of this type is `{NAME, VER}`
+    // module from a remote GIT repository
+    //
+    // the value of this type contains the Git repository url, commit
+    // and path, e.g.
+    //
+    // {
+    //   name: "..."
+    //   value: Remote(
+    //     {
+    //       url:"https://github.com/hemashushu/xiaoxuan-core-extension.git",
+    //       revision="commit/tag",
+    //       path="/modules/sha2"
+    //     })
+    // }
+    //
+    // when a project is compiled or run, the remote resource is
+    // downloaded first, and then cached in a local directory.
+    //
+    // note that the normal HTTP web service is not suitable for
+    // remote modules bacause of the lack of version information.
+    Remote,
+
+    // module from the central repository
+    //
+    // the runtime specifies a default location as the
+    // "shared modules repository", which is a Git repo
+    // that provides the module index.
+    // users can also customize a different location or add
+    // multiple repository in the runtime settings.
+    //
+    // the value of this type is:
+    // {
+    //   name: "..."
+    //   value: Share(
+    //     {
+    //       repository_name: "...",
+    //       version: {major:M, minor:N}
+    //     })
+    // }
+    //
+    //
+    // this type of module is downloaded and cached to a local directory, e.g.
+    //
+    // "{/usr/lib, ~/.local/lib}/anc/VER/modules/modname/VER"
+    //
     Share,
 
-    // module from the runtime, e.g.
-    // `{/usr/lib, C:/Program Fiels}/anc/VER/modules/modname/VER`
-    // the value of this type is `{NAME, VER}`
+    // module that comes with the runtime
+    //
+    // this type of module is located locally in a directory, e.g.
+    //
+    // "{/usr/lib, C:/Program Fiels}/anc/VER/runtime/modules/modname"
+    //
+    // the value of this type is:
+    //
+    // {
+    //   name: "..."
+    //   value: Runtime
+    // }
     Runtime,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename = "value")]
+pub enum ModuleDependentValue {
+    Local(String),
+    Remote(Box<DependentRemote>),
+    Share(Box<DependentShare>),
+    Runtime,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename = "value")]
+pub enum ExternalLibraryDependentValue {
+    Local(String),
+    Remote(Box<DependentRemote>),
+    Share(Box<DependentShare>),
+    Runtime,
+    System(String),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename = "remote")]
+pub struct DependentRemote {
+    pub url: String,
+    pub reversion: String, // commit or tag
+    pub path: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename = "share")]
+pub struct DependentShare {
+    pub repository_name: String,
+    pub version: Box<EffectiveVersion>,
+}
+
+/// the type of dependent libraries
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ExternalLibraryType {
-    // library from the local file system, e.g. `~/myprojects/workd/lib/libworld.so`
-    // it's also possible a remote GIT resource, e.g.
-    // {url:`https://github.com/hemashushu/xiaoxuan-core-vm.git`, commit="...", path="..."}
-    // the remote resource will be download first and cached in a local folder.
-    // the user specified module path can be multiple, e.g.
-    // [local_file_folder1, local_file_folder2, remote_1, remote_2, ...]
-    // the value of this type is `[(LOCAL|REMOTE), ...]`
-    User = 0x0,
+pub enum ExternalLibraryDependentType {
+    // library from the local file system
+    //
+    // the value of this type is a path to a file (with library so-name), e.g.
+    //
+    // {
+    //   name: "world"
+    //   value: Local("~/myprojects/hello/lib/libworld.so.1")
+    // }
+    //
+    // see also `ModuleDependentType::Local`
+    Local = 0x0,
 
-    // library from the user share repository, e.g.
-    // `{/usr/lib, ~/.local/lib, C:/Program Data}/anc/VER/libraries/libname/VER/libfile.so`
-    // the value of this type is `{NAME, VER}`
+    // library from a remote GIT repository
+    //
+    // e.g.
+    //
+    // {
+    //   name: "lz4"
+    //   value: Remote(
+    //     {
+    //       url:"https://github.com/hemashushu/xiaoxuan-core-extension.git",
+    //       revision="commit/tag",
+    //       path="/libraries/lz4/lib/liblz4.so.1"
+    //     })
+    // }
+    //
+    // see also `ModuleDependentType::Remote`
+    Remote,
+
+    // library from the central repository
+    //
+    // the value of this type is:
+    // {
+    //   name: "zlib"
+    //   value: Share(
+    //     {
+    //       repository_name: "...",
+    //       version: {major:M, minor:N}
+    //     })
+    // }
+    //
+    // this type of library is downloaded and cached to a local directory, e.g.
+    // "{/usr/lib, ~/.local/lib}/anc/VER/libraries/libname/VER"
     Share,
 
-    // library from the runtime, e.g.
-    // `{/usr/lib, C:/Program Fiels}/anc/VER/libraries/libname/VER/libfile.so`
-    // the value of this type is `{NAME, VER}`
+    // library that comes with the runtime
+    //
+    // this type of module is located locally in a directory, e.g.
+    //
+    // "{/usr/lib, C:/Program Fiels}/anc/VER/libraries/libname/lib/libfile.so"
+    //
+    // {
+    //   name: "zstd"
+    //   value: Runtime
+    // }
     Runtime,
 
     // library from system
-    // the value of this type is `{NAME}`
+    //
+    // the value of this type is `LIB_SO_NAME`
+    //
+    // e.g.
+    // {
+    //   name: "lz4"
+    //   value: System("liblz4.so.1")
+    // }
     System,
 }
 
-impl Display for ExternalLibraryType {
+impl Display for ExternalLibraryDependentType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExternalLibraryType::User => f.write_str("file"),
-            ExternalLibraryType::Share => f.write_str("share"),
-            ExternalLibraryType::Runtime => f.write_str("runtime"),
-            ExternalLibraryType::System => f.write_str("system"),
+            ExternalLibraryDependentType::Local => f.write_str("local"),
+            ExternalLibraryDependentType::Remote => f.write_str("remote"),
+            ExternalLibraryDependentType::Share => f.write_str("share"),
+            ExternalLibraryDependentType::Runtime => f.write_str("runtime"),
+            ExternalLibraryDependentType::System => f.write_str("system"),
         }
     }
 }
 
-/// sometimes you may want to get a specified type from 'dyn RuntimeError',
-/// there is a approach to downcast the 'dyn RuntimeError' object to a specified type, e.g.
-///
-/// let some_error:T = unsafe {
-///     &*(runtime_error as *const dyn RuntimeError as *const T)
-/// };
-///
-/// the 'runtime_error' is a 'fat' pointer, it consists of a pointer to the data and
-/// a another pointer to the 'vtable'. the slice object is also a 'fat' pointer, e.g.
-///
-/// let v:Vec<u8> = vec![1,2,3];
-/// let p_fat = &v[..] as *const _;     // this is a fat pointer
-/// let p_thin = p_fat as *const ();    // obtains the first pointer and discard the second pointer
-/// let addr = p_thin as usize;         // check the address in memory
-///
-/// for simplicity, 'RuntimeError' provides function 'as_any' for downcasing, e.g.
-///
-/// let some_error = runtime_error
-///     .as_any
-///     .downcast_ref::<T>()
-///     .expect("...");
-///
-/// ref:
-/// - https://alschwalm.com/blog/static/2017/03/07/exploring-dynamic-dispatch-in-rust/
-/// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
-/// - https://doc.rust-lang.org/std/any/
-/// - https://bennett.dev/rust/downcast-trait-object/
-// pub trait VMError: Debug + Display + Send + Sync + 'static {
+// the error in Rust
+// -----------------
+//
+// sometimes you may want to get a specified type from 'dyn RuntimeError',
+// there is a approach to downcast the 'dyn RuntimeError' object to a specified type, e.g.
+//
+// let some_error:T = unsafe {
+//     &*(runtime_error as *const dyn RuntimeError as *const T)
+// };
+//
+// the 'runtime_error' is a 'fat' pointer, it consists of a pointer to the data and
+// a another pointer to the 'vtable'.
+//
+// BTW, the slice object is also a 'fat' pointer, e.g.
+//
+// let v:Vec<u8> = vec![1,2,3];
+// let p_fat = &v[..] as *const _;     // this is a fat pointer
+// let p_thin = p_fat as *const ();    // obtains the first pointer and discard the second pointer
+// let addr = p_thin as usize;         // check the address in memory
+//
+// for simplicity, 'RuntimeError' may provides function 'as_any' for downcasing, e.g.
+//
+// let some_error = runtime_error
+//     .as_any
+//     .downcast_ref::<T>()
+//     .expect("...");
+//
+// ref:
+// - https://alschwalm.com/blog/static/2017/03/07/exploring-dynamic-dispatch-in-rust/
+// - https://geo-ant.github.io/blog/2023/rust-dyn-trait-objects-fat-pointers/
+// - https://doc.rust-lang.org/std/any/
+// - https://bennett.dev/rust/downcast-trait-object/
+//
+// pub trait SomeError: Debug + Display + Send + Sync + 'static {
 //     fn as_any(&self) -> &dyn Any;
 // }
 
 pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use crate::{
+        DependentRemote, DependentShare, EffectiveVersion, ExternalLibraryDependentValue,
+        ModuleDependentValue,
+    };
+
+    #[test]
+    fn test_serialize_module_dependent_value() {
+        assert_eq!(
+            ason::to_string(&ModuleDependentValue::Local(
+                "~/myprojects/hello".to_owned()
+            ))
+            .unwrap(),
+            r#"value::Local("~/myprojects/hello")"#
+        );
+
+        assert_eq!(
+            ason::to_string(&ModuleDependentValue::Remote(Box::new(DependentRemote {
+                url: "https://github.com/hemashushu/xiaoxuan-core-extension.git".to_owned(),
+                reversion: "v1.0.0".to_owned(),
+                path: "/modules/sha2".to_owned()
+            })))
+            .unwrap(),
+            r#"value::Remote({
+    url: "https://github.com/hemashushu/xiaoxuan-core-extension.git"
+    reversion: "v1.0.0"
+    path: "/modules/sha2"
+})"#
+        );
+
+        assert_eq!(
+            ason::to_string(&ModuleDependentValue::Share(Box::new(DependentShare {
+                repository_name: "default".to_owned(),
+                version: Box::new(EffectiveVersion::new(11, 13))
+            })))
+            .unwrap(),
+            r#"value::Share({
+    repository_name: "default"
+    version: {
+        major: 11_u16
+        minor: 13_u16
+    }
+})"#
+        );
+
+        assert_eq!(
+            ason::to_string(&ModuleDependentValue::Runtime).unwrap(),
+            r#"value::Runtime"#
+        );
+    }
+
+    #[test]
+    fn test_deserialize_external_library_dependent_value() {
+        let s0 = r#"value::Share({
+            repository_name: "default"
+            version: {major: 17_u16, minor: 19_u16}
+        })"#;
+
+        let v0: ExternalLibraryDependentValue = ason::from_str(s0).unwrap();
+        assert_eq!(
+            v0,
+            ExternalLibraryDependentValue::Share(Box::new(DependentShare {
+                repository_name: "default".to_owned(),
+                version: Box::new(EffectiveVersion::new(17, 19))
+            }))
+        );
+
+        let s1 = r#"value::Remote({
+            url: "https://github.com/hemashushu/xiaoxuan-core-extension.git"
+            reversion: "v1.0.0"
+            path: "/libraries/lz4/lib/liblz4.so.1"
+        })"#;
+        let v1: ExternalLibraryDependentValue = ason::from_str(s1).unwrap();
+        assert_eq!(
+            v1,
+            ExternalLibraryDependentValue::Remote(Box::new(DependentRemote {
+                url: "https://github.com/hemashushu/xiaoxuan-core-extension.git".to_owned(),
+                reversion: "v1.0.0".to_owned(),
+                path: "/libraries/lz4/lib/liblz4.so.1".to_owned()
+            }))
+        );
+    }
+}

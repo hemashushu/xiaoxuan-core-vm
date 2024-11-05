@@ -29,12 +29,12 @@ use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
 use ancvm_context::{
     external_function_table::{
-        ExtenalFunctionTable, UnifiedExternalFunctionPointerItem,
+        ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
     thread_context::ThreadContext,
 };
-use ancvm_isa::{ExternalLibraryType, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_isa::{ExternalLibraryDependentType, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};
@@ -94,32 +94,60 @@ pub fn get_or_create_external_function(
         .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
     // get the file path or name of the external library
-    let (external_library_name, external_library_type) = thread_context
+    let (external_library_name, external_library_dependent_type) = thread_context
         .module_index_instance
         .unified_external_library_section
-        .get_item_name_and_external_library_type(unified_external_library_index);
+        .get_item_name_and_external_library_dependent_type(unified_external_library_index);
 
-    let external_library_file_path_or_name = match external_library_type {
-        ExternalLibraryType::User => {
+    let external_library_file_path_or_name = match external_library_dependent_type {
+        ExternalLibraryDependentType::Local => {
+            // if external_library_name is relate path {
             let mut path_buf = PathBuf::from(&thread_context.environment.source_path);
             if !thread_context.environment.is_directory {
                 path_buf.pop();
             }
-            path_buf.push("lib");
             path_buf.push(external_library_name);
             path_buf.as_os_str().to_string_lossy().to_string()
+            // } else {
+            //
+            // todo
+            //
+            // }
         }
-        ExternalLibraryType::Share => {
-            // thread_context.environment.runtime_path is an array
+        ExternalLibraryDependentType::Remote => {
             todo!()
         }
-        ExternalLibraryType::Runtime => {
-            let mut path_buf = PathBuf::from(&thread_context.environment.runtime_path);
-            path_buf.push("lib");
-            path_buf.push(external_library_name);
-            path_buf.as_os_str().to_string_lossy().to_string()
+        ExternalLibraryDependentType::Share => {
+            // the local folder for storing the shared modules and libraries which
+            // comes from repository, e.g.
+            //
+            // `~/.anc`
+            //
+            // note the this path SHOULD NOT include the runtime version number.
+            //
+            // thus the computed shared module and libraries path are:
+            // - `~/.anc/1.0/modules/foo/1.0.1/{src,target}`
+            // - `~/.anc/1.0/libraries/bar/1.0.2/{lib,include}`
+            todo!()
+
+            // check that each file exists
         }
-        ExternalLibraryType::System => external_library_name.to_owned(),
+        ExternalLibraryDependentType::Runtime => {
+            // the runtime's path, e.g.
+            //
+            // `/usr/lib/anc/`
+            //
+            // note the this path SHOULD NOT include the runtime version number.
+            //
+            // thus the computed bulitin modules and libraries path are:
+            // - `/usr/lib/anc/1.0/runtime/modules/http-client/{src, target}`
+            // - `/usr/lib/anc/1.0/runtime/libraries/lz4/{lib, include}`
+
+            todo!()
+
+            // thread_context.environment.runtime_path
+        }
+        ExternalLibraryDependentType::System => external_library_name.to_owned(),
     };
 
     let mut table = thread_context.external_function_table.lock().unwrap();
@@ -143,7 +171,7 @@ pub fn get_or_create_external_function(
 }
 
 pub fn add_external_function(
-    external_function_table: &mut ExtenalFunctionTable,
+    external_function_table: &mut ExternalFunctionTable,
     unified_external_function_index: usize,
     unified_external_library_index: usize,
     external_library_file_path_or_name: &str, // `/path/to/library/libabc.so` or `libc.so`
@@ -213,7 +241,7 @@ pub fn add_external_function(
 }
 
 fn add_external_library(
-    external_function_table: &mut ExtenalFunctionTable,
+    external_function_table: &mut ExternalFunctionTable,
     unified_external_library_index: usize,
     external_library_file_path_or_name: &str,
 ) -> Result<*mut c_void, HandlerError> {
@@ -233,7 +261,7 @@ fn add_external_library(
 }
 
 fn add_wrapper_function(
-    external_function_table: &mut ExtenalFunctionTable,
+    external_function_table: &mut ExternalFunctionTable,
     param_types: &[OperandDataType],
     result_types: &[OperandDataType],
 ) -> usize {

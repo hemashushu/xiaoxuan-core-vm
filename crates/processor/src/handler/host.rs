@@ -239,7 +239,7 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{opcode::Opcode, ExternalLibraryType, ForeignValue, OperandDataType};
+    use ancvm_isa::{opcode::Opcode, ExternalLibraryDependentType, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
@@ -1084,7 +1084,7 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                external_library_type: ExternalLibraryType::User,
+                external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
                 function_name: "do_something".to_string(),
                 type_index: 0,
@@ -1108,7 +1108,7 @@ mod tests {
         let handler = Handler::new();
         let resource0 = InMemoryResource::with_settings(
             vec![binary0],
-            &Environment::new(program_source_path, true, "", ""),
+            &Environment::new(program_source_path, true, "", &[""], ""),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();

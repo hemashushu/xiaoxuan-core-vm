@@ -18,7 +18,7 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::ExternalLibraryType;
+use ancvm_isa::ExternalLibraryDependentType;
 
 use crate::{
     entry::UnifiedExternalLibraryEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
@@ -35,7 +35,7 @@ pub struct UnifiedExternalLibrarySection<'a> {
 pub struct UnifiedExternalLibraryItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
-    pub external_library_type: ExternalLibraryType, // u8
+    pub external_library_dependent_type: ExternalLibraryDependentType, // u8
     _padding0: [u8; 3],
 }
 
@@ -43,12 +43,12 @@ impl UnifiedExternalLibraryItem {
     pub fn new(
         name_offset: u32,
         name_length: u32,
-        external_library_type: ExternalLibraryType,
+        external_library_dependent_type: ExternalLibraryDependentType,
     ) -> Self {
         Self {
             name_offset,
             name_length,
-            external_library_type,
+            external_library_dependent_type,
             _padding0: [0; 3],
         }
     }
@@ -71,10 +71,10 @@ impl<'a> SectionEntry<'a> for UnifiedExternalLibrarySection<'a> {
 }
 
 impl<'a> UnifiedExternalLibrarySection<'a> {
-    pub fn get_item_name_and_external_library_type(
+    pub fn get_item_name_and_external_library_dependent_type(
         &'a self,
         idx: usize,
-    ) -> (&'a str, ExternalLibraryType) {
+    ) -> (&'a str, ExternalLibraryDependentType) {
         let items = self.items;
         let names_data = self.names_data;
 
@@ -84,7 +84,7 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
 
         (
             std::str::from_utf8(name_data).unwrap(),
-            item.external_library_type,
+            item.external_library_dependent_type,
         )
     }
 
@@ -109,7 +109,7 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
                 UnifiedExternalLibraryItem::new(
                     name_offset,
                     name_length,
-                    entry.external_library_type,
+                    entry.external_library_dependent_type,
                 )
             })
             .collect::<Vec<UnifiedExternalLibraryItem>>();
@@ -125,7 +125,7 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::ExternalLibraryType;
+    use ancvm_isa::ExternalLibraryDependentType;
 
     use crate::{
         index_sections::unified_external_library_section::{
@@ -159,11 +159,11 @@ mod tests {
         assert_eq!(section.items.len(), 2);
         assert_eq!(
             section.items[0],
-            UnifiedExternalLibraryItem::new(0, 3, ExternalLibraryType::User,)
+            UnifiedExternalLibraryItem::new(0, 3, ExternalLibraryDependentType::Local,)
         );
         assert_eq!(
             section.items[1],
-            UnifiedExternalLibraryItem::new(3, 5, ExternalLibraryType::Share,)
+            UnifiedExternalLibraryItem::new(3, 5, ExternalLibraryDependentType::Share,)
         );
         assert_eq!(section.names_data, "foohello".as_bytes())
     }
@@ -171,8 +171,8 @@ mod tests {
     #[test]
     fn test_save_section() {
         let items = vec![
-            UnifiedExternalLibraryItem::new(0, 3, ExternalLibraryType::User),
-            UnifiedExternalLibraryItem::new(3, 5, ExternalLibraryType::Share),
+            UnifiedExternalLibraryItem::new(0, 3, ExternalLibraryDependentType::Local),
+            UnifiedExternalLibraryItem::new(3, 5, ExternalLibraryDependentType::Share),
         ];
 
         let section = UnifiedExternalLibrarySection {
@@ -207,8 +207,8 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            UnifiedExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryType::User),
-            UnifiedExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryType::Share),
+            UnifiedExternalLibraryEntry::new("foobar".to_string(), ExternalLibraryDependentType::Local),
+            UnifiedExternalLibraryEntry::new("helloworld".to_string(), ExternalLibraryDependentType::Share),
         ];
 
         let (items, names_data) = UnifiedExternalLibrarySection::convert_from_entries(&entries);
@@ -218,13 +218,13 @@ mod tests {
         };
 
         assert_eq!(
-            section.get_item_name_and_external_library_type(0),
-            ("foobar", ExternalLibraryType::User,)
+            section.get_item_name_and_external_library_dependent_type(0),
+            ("foobar", ExternalLibraryDependentType::Local,)
         );
 
         assert_eq!(
-            section.get_item_name_and_external_library_type(1),
-            ("helloworld", ExternalLibraryType::Share,)
+            section.get_item_name_and_external_library_dependent_type(1),
+            ("helloworld", ExternalLibraryDependentType::Share,)
         );
     }
 }

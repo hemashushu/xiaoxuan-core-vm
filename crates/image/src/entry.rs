@@ -13,7 +13,7 @@
 //! at runtime, which accesses the binary image directly.
 
 use ancvm_isa::{
-    DataSectionType, EffectiveVersion, ExternalLibraryType, MemoryDataType, ModuleShareType,
+    DataSectionType, EffectiveVersion, ExternalLibraryDependentType, MemoryDataType, ModuleDependentType,
     OperandDataType,
 };
 
@@ -278,14 +278,14 @@ impl UninitDataEntry {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExternalLibraryEntry {
     pub name: String,
-    pub external_library_type: ExternalLibraryType,
+    pub external_library_dependent_type: ExternalLibraryDependentType,
 }
 
 impl ExternalLibraryEntry {
-    pub fn new(name: String, external_library_type: ExternalLibraryType) -> Self {
+    pub fn new(name: String, external_library_dependent_type: ExternalLibraryDependentType) -> Self {
         Self {
             name,
-            external_library_type,
+            external_library_dependent_type,
         }
     }
 }
@@ -310,19 +310,19 @@ impl ExternalFunctionEntry {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportModuleEntry {
     pub name: String,
-    pub module_share_type: ModuleShareType,
+    pub module_dependent_type: ModuleDependentType,
     pub module_version: EffectiveVersion,
 }
 
 impl ImportModuleEntry {
     pub fn new(
         name: String,
-        module_share_type: ModuleShareType,
+        module_dependent_type: ModuleDependentType,
         module_version: EffectiveVersion,
     ) -> Self {
         Self {
             name,
-            module_share_type,
+            module_dependent_type,
             module_version,
         }
     }
@@ -497,14 +497,14 @@ impl DataIndexListEntry {
 #[derive(Debug, PartialEq)]
 pub struct UnifiedExternalLibraryEntry {
     pub name: String,
-    pub external_library_type: ExternalLibraryType,
+    pub external_library_dependent_type: ExternalLibraryDependentType,
 }
 
 impl UnifiedExternalLibraryEntry {
-    pub fn new(name: String, external_library_type: ExternalLibraryType) -> Self {
+    pub fn new(name: String, external_library_dependent_type: ExternalLibraryDependentType) -> Self {
         Self {
             name,
-            external_library_type,
+            external_library_dependent_type,
         }
     }
 }
