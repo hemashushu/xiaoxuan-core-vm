@@ -246,6 +246,8 @@ pub enum ModuleDependentType {
     // central repository, actually the compiler and runtime will
     // refuse to compile when a project tries to add a module containing
     // a local dependency via "Remote" and "Share".
+    //
+    // It's worth noting that the local module is recompiled at EVERY compilation.
     Local = 0x0,
 
     // module from a remote GIT repository
@@ -275,6 +277,7 @@ pub enum ModuleDependentType {
     // the runtime specifies a default location as the
     // "shared modules repository", which is a Git repo
     // that provides the module index.
+    //
     // users can also customize a different location or add
     // multiple repository in the runtime settings.
     //
@@ -288,11 +291,13 @@ pub enum ModuleDependentType {
     //     })
     // }
     //
-    //
     // this type of module is downloaded and cached to a local directory, e.g.
     //
     // "{/usr/lib, ~/.local/lib}/anc/VER/modules/modname/VER"
     //
+    // by default there are 2 central repositories:
+    // - default
+    // - default-mirror
     Share,
 
     // module that comes with the runtime
@@ -308,40 +313,6 @@ pub enum ModuleDependentType {
     //   value: Runtime
     // }
     Runtime,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "value")]
-pub enum ModuleDependentValue {
-    Local(String),
-    Remote(Box<DependentRemote>),
-    Share(Box<DependentShare>),
-    Runtime,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "value")]
-pub enum ExternalLibraryDependentValue {
-    Local(String),
-    Remote(Box<DependentRemote>),
-    Share(Box<DependentShare>),
-    Runtime,
-    System(String),
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "remote")]
-pub struct DependentRemote {
-    pub url: String,
-    pub reversion: String, // commit or tag
-    pub path: String,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "share")]
-pub struct DependentShare {
-    pub repository_name: String,
-    pub version: Box<EffectiveVersion>,
 }
 
 /// the type of dependent libraries
@@ -415,6 +386,40 @@ pub enum ExternalLibraryDependentType {
     //   value: System("liblz4.so.1")
     // }
     System,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename = "value")]
+pub enum ModuleDependentValue {
+    Local(String),
+    Remote(Box<DependentRemote>),
+    Share(Box<DependentShare>),
+    Runtime,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename = "value")]
+pub enum ExternalLibraryDependentValue {
+    Local(/* library soname path */ String),
+    Remote(Box<DependentRemote>),
+    Share(Box<DependentShare>),
+    Runtime,
+    System(/* library soname */ String),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename = "remote")]
+pub struct DependentRemote {
+    pub url: String,
+    pub reversion: String, // commit or tag
+    pub path: String,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename = "share")]
+pub struct DependentShare {
+    pub repository_name: String,
+    pub version: Box<EffectiveVersion>,
 }
 
 impl Display for ExternalLibraryDependentType {

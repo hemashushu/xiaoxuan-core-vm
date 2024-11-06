@@ -4,18 +4,15 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-//! this section is the same as 'ExternalLibrarySection' except for the section id,
-//! the source comes from 'ExternalLibrarySection'.
-
-// "unified external library section" binary layout
+// "import module section" binary layout
 //
 //              |-----------------------------------------------------------------------------|
 //              | item count (u32) | (4 bytes padding)                                        |
 //              |-----------------------------------------------------------------------------|
-//  item 0 -->  | lib name off 0 (u32) | lib name len 0 (u32)                                 | <-- table
-//              | value offset 0 (u32) | value length 0 (u32) | lib type 0 (u8) | pad 3 bytes |
-//  item 1 -->  | lib name off 1       | lib name len 1                                       |
-//              | value offset 0 (u32) | value length 0 (u32) | lib type 0 (u8) | pad 3 bytes |
+//  item 0 -->  | mod name off 0 (u32) | mod name len 0 (u32)                                 |  <-- table
+//              | val offset (u32)     | val length 0 (u32)   | mod type 0 (u8) | pad 3 bytes |
+//  item 1 -->  | mod name off 1       | mod name len 1                                       |
+//              | val offset           | val offset 1         | mod type 1      |             |
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 // offset 0 --> | name string 0 (UTF-8) | value string 0 (UTF-8)                              | <-- data area
@@ -23,55 +20,55 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::ExternalLibraryDependentType;
+use ancvm_isa::ModuleDependentType;
 
 use crate::{
-    entry::UnifiedExternalLibraryEntry,
+    entry::ImportModuleEntry,
     module_image::{ModuleSectionId, SectionEntry},
     tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area},
 };
 
-#[derive(Debug, PartialEq, Default)]
-pub struct UnifiedExternalLibrarySection<'a> {
-    pub items: &'a [UnifiedExternalLibraryItem],
+#[derive(Debug, PartialEq)]
+pub struct ModuleListSection<'a> {
+    pub items: &'a [ModuleListItem],
     pub items_data: &'a [u8],
 }
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub struct UnifiedExternalLibraryItem {
+pub struct ModuleListItem {
     pub name_offset: u32, // the offset of the name string in data area
     pub name_length: u32, // the length (in bytes) of the name string in data area
     pub value_offset: u32,
     pub value_length: u32,
-    pub external_library_dependent_type: ExternalLibraryDependentType, // u8
+    pub module_dependent_type: ModuleDependentType, // u8
     _padding0: [u8; 3],
 }
 
-impl UnifiedExternalLibraryItem {
+impl ModuleListItem {
     pub fn new(
         name_offset: u32,
         name_length: u32,
         value_offset: u32,
         value_length: u32,
-        external_library_dependent_type: ExternalLibraryDependentType,
+        module_dependent_type: ModuleDependentType,
     ) -> Self {
         Self {
             name_offset,
             name_length,
             value_offset,
             value_length,
-            external_library_dependent_type,
+            module_dependent_type,
             _padding0: [0; 3],
         }
     }
 }
 
-impl<'a> SectionEntry<'a> for UnifiedExternalLibrarySection<'a> {
+impl<'a> SectionEntry<'a> for ModuleListSection<'a> {
     fn load(section_data: &'a [u8]) -> Self {
         let (items, names_data) =
-            load_section_with_table_and_data_area::<UnifiedExternalLibraryItem>(section_data);
-        UnifiedExternalLibrarySection {
+            load_section_with_table_and_data_area::<ModuleListItem>(section_data);
+        ModuleListSection {
             items,
             items_data: names_data,
         }
@@ -82,15 +79,15 @@ impl<'a> SectionEntry<'a> for UnifiedExternalLibrarySection<'a> {
     }
 
     fn id(&'a self) -> ModuleSectionId {
-        ModuleSectionId::UnifiedExternalLibrary
+        ModuleSectionId::ModuleList
     }
 }
 
-impl<'a> UnifiedExternalLibrarySection<'a> {
-    pub fn get_item_name_and_external_library_dependent_type_and_value(
+impl<'a> ModuleListSection<'a> {
+    pub fn get_item_name_and_module_dependent_type_and_value(
         &'a self,
         idx: usize,
-    ) -> (&'a str, ExternalLibraryDependentType, &'a [u8]) {
+    ) -> (&'a str, ModuleDependentType, &'a [u8]) {
         let items = self.items;
         let items_data = self.items_data;
 
@@ -102,14 +99,12 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
 
         (
             std::str::from_utf8(name_data).unwrap(),
-            item.external_library_dependent_type,
+            item.module_dependent_type,
             value_data,
         )
     }
 
-    pub fn convert_from_entries(
-        entries: &[UnifiedExternalLibraryEntry],
-    ) -> (Vec<UnifiedExternalLibraryItem>, Vec<u8>) {
+    pub fn convert_from_entries(entries: &[ImportModuleEntry]) -> (Vec<ModuleListItem>, Vec<u8>) {
         let mut name_bytes = entries
             .iter()
             .map(|entry| entry.name.as_bytes().to_vec())
@@ -136,15 +131,15 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
                 let value_offset = name_offset + name_length;
                 next_offset = value_offset + value_length; // for next offset
 
-                UnifiedExternalLibraryItem::new(
+                ModuleListItem::new(
                     name_offset,
                     name_length,
                     value_offset,
                     value_length,
-                    entry.external_library_dependent_type,
+                    entry.module_dependent_type,
                 )
             })
-            .collect::<Vec<UnifiedExternalLibraryItem>>();
+            .collect::<Vec<ModuleListItem>>();
 
         let items_data = name_bytes
             .iter_mut()
@@ -161,14 +156,14 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
 
 #[cfg(test)]
 mod tests {
+
     use core::str;
 
-    use ancvm_isa::{DependentRemote, ExternalLibraryDependentType, ExternalLibraryDependentValue};
+    use ancvm_isa::{DependentRemote, ModuleDependentType, ModuleDependentValue};
 
     use crate::{
-        index_sections::unified_external_library_section::{
-            UnifiedExternalLibraryEntry, UnifiedExternalLibraryItem, UnifiedExternalLibrarySection,
-        },
+        entry::ImportModuleEntry,
+        index_sections::module_list_section::{ModuleListItem, ModuleListSection},
         module_image::SectionEntry,
     };
 
@@ -182,14 +177,14 @@ mod tests {
             3, 0, 0, 0, // name length
             3, 0, 0, 0, // value offset
             5, 0, 0, 0, // value length
-            0, // library dependent type
+            0, // module dependent type
             0, 0, 0, // padding
             //
             8, 0, 0, 0, // name offset (item 1)
             4, 0, 0, 0, // name length
             12, 0, 0, 0, // value offset
             6, 0, 0, 0, // value length
-            1, // library dependent type
+            1, // module dependent type
             0, 0, 0, // padding
         ];
 
@@ -198,16 +193,16 @@ mod tests {
         section_data.extend_from_slice(b".bar");
         section_data.extend_from_slice(b".world");
 
-        let section = UnifiedExternalLibrarySection::load(&section_data);
+        let section = ModuleListSection::load(&section_data);
 
         assert_eq!(section.items.len(), 2);
         assert_eq!(
             section.items[0],
-            UnifiedExternalLibraryItem::new(0, 3, 3, 5, ExternalLibraryDependentType::Local)
+            ModuleListItem::new(0, 3, 3, 5, ModuleDependentType::Local)
         );
         assert_eq!(
             section.items[1],
-            UnifiedExternalLibraryItem::new(8, 4, 12, 6, ExternalLibraryDependentType::Remote)
+            ModuleListItem::new(8, 4, 12, 6, ModuleDependentType::Remote,)
         );
         assert_eq!(section.items_data, "foohello.bar.world".as_bytes())
     }
@@ -215,11 +210,11 @@ mod tests {
     #[test]
     fn test_save_section() {
         let items = vec![
-            UnifiedExternalLibraryItem::new(0, 3, 3, 5, ExternalLibraryDependentType::Local),
-            UnifiedExternalLibraryItem::new(8, 4, 12, 6, ExternalLibraryDependentType::Remote),
+            ModuleListItem::new(0, 3, 3, 5, ModuleDependentType::Local),
+            ModuleListItem::new(8, 4, 12, 6, ModuleDependentType::Remote),
         ];
 
-        let section = UnifiedExternalLibrarySection {
+        let section = ModuleListSection {
             items: &items,
             items_data: b"foohello.bar.world",
         };
@@ -235,14 +230,14 @@ mod tests {
             3, 0, 0, 0, // name length
             3, 0, 0, 0, // value offset
             5, 0, 0, 0, // value length
-            0, // library dependent type
+            0, // module dependent type
             0, 0, 0, // padding
             //
             8, 0, 0, 0, // name offset (item 1)
             4, 0, 0, 0, // name length
             12, 0, 0, 0, // value offset
             6, 0, 0, 0, // value length
-            1, // library dependent type
+            1, // module dependent type
             0, 0, 0, // padding
         ];
 
@@ -251,8 +246,7 @@ mod tests {
         expect_data.extend_from_slice(b".bar");
         expect_data.extend_from_slice(b".world");
 
-        // append padding which is inserted by function 'save()' for 4-byte align
-        expect_data.extend_from_slice(&[0, 0]);
+        expect_data.extend_from_slice(&[0, 0]); // padding for 4-byte align
 
         assert_eq!(section_data, expect_data);
     }
@@ -260,51 +254,39 @@ mod tests {
     #[test]
     fn test_convert() {
         let entries = vec![
-            UnifiedExternalLibraryEntry::new(
+            ImportModuleEntry::new(
                 "foobar".to_owned(),
-                Box::new(ExternalLibraryDependentValue::Local(
-                    "hello.so.1".to_owned(),
-                )),
-                ExternalLibraryDependentType::Local,
+                Box::new(ModuleDependentValue::Local("hello".to_owned())),
+                ModuleDependentType::Local,
             ),
-            UnifiedExternalLibraryEntry::new(
+            ImportModuleEntry::new(
                 "helloworld".to_owned(),
-                Box::new(ExternalLibraryDependentValue::Remote(Box::new(
-                    DependentRemote {
-                        url: "http://a.b/c".to_owned(),
-                        reversion: "v1.0.1".to_owned(),
-                        path: "/xyz.so.2".to_owned(),
-                    },
-                ))),
-                ExternalLibraryDependentType::Remote,
+                Box::new(ModuleDependentValue::Remote(Box::new(DependentRemote {
+                    url: "http://a.b/c".to_owned(),
+                    reversion: "v1.0.1".to_owned(),
+                    path: "/xyz".to_owned(),
+                }))),
+                ModuleDependentType::Remote,
             ),
         ];
 
-        let (items, items_data) = UnifiedExternalLibrarySection::convert_from_entries(&entries);
-        let section = UnifiedExternalLibrarySection {
+        let (items, items_data) = ModuleListSection::convert_from_entries(&entries);
+        let section = ModuleListSection {
             items: &items,
             items_data: &items_data,
         };
 
-        let (name0, type0, value0) =
-            section.get_item_name_and_external_library_dependent_type_and_value(0);
-        let (name1, type1, value1) =
-            section.get_item_name_and_external_library_dependent_type_and_value(1);
+        let (name0, type0, value0) = section.get_item_name_and_module_dependent_type_and_value(0);
+        let (name1, type1, value1) = section.get_item_name_and_module_dependent_type_and_value(1);
 
-        assert_eq!(
-            (name0, type0),
-            ("foobar", ExternalLibraryDependentType::Local)
-        );
-        assert_eq!(
-            (name1, type1),
-            ("helloworld", ExternalLibraryDependentType::Remote)
-        );
+        assert_eq!((name0, type0), ("foobar", ModuleDependentType::Local));
+        assert_eq!((name1, type1), ("helloworld", ModuleDependentType::Remote));
 
-        let v0: ExternalLibraryDependentValue =
+        let v0: ModuleDependentValue =
             ason::from_str(unsafe { str::from_utf8_unchecked(value0) }).unwrap();
         assert_eq!(&v0, entries[0].value.as_ref());
 
-        let v1: ExternalLibraryDependentValue =
+        let v1: ModuleDependentValue =
             ason::from_str(unsafe { str::from_utf8_unchecked(value1) }).unwrap();
         assert_eq!(&v1, entries[1].value.as_ref());
     }

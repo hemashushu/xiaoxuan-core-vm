@@ -227,6 +227,8 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use ancvm_context::{environment::Environment, resource::Resource};
     use ancvm_image::{
         bytecode_reader::format_bytecode_as_text,
@@ -239,7 +241,10 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{opcode::Opcode, ExternalLibraryDependentType, ForeignValue, OperandDataType};
+    use ancvm_isa::{
+        opcode::Opcode, ExternalLibraryDependentType, ExternalLibraryDependentValue, ForeignValue,
+        OperandDataType,
+    };
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
@@ -1086,6 +1091,9 @@ mod tests {
             vec![HelperExternalFunctionEntry {
                 external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
+                library_value: Box::new(ExternalLibraryDependentValue::Local(
+                    "lib/libtest0.so.1".to_owned(),
+                )),
                 function_name: "do_something".to_string(),
                 type_index: 0,
             }],
@@ -1103,12 +1111,19 @@ mod tests {
             pwd.push(crate_folder_name);
         }
         pwd.push("tests");
-        let program_source_path = pwd.to_str().unwrap();
+        let application_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::with_settings(
+        let resource0 = InMemoryResource::with_environment(
             vec![binary0],
-            &Environment::new(program_source_path, true, "", &[""], ""),
+            &Environment::new(
+                application_path,
+                true,
+                "",
+                &[""],
+                "",
+                HashMap::<String, String>::new(),
+            ),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();

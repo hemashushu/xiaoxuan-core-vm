@@ -10,3 +10,4 @@ pub mod function_index_section;
 pub mod index_property_section;
 pub mod unified_external_function_section;
 pub mod unified_external_library_section;
+pub mod module_list_section;

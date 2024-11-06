@@ -15,8 +15,8 @@ use crate::entry::{
 use crate::index_sections::index_property_section::IndexPropertySection;
 use crate::BinaryError;
 use ancvm_isa::{
-    DataSectionType, ExternalLibraryDependentType, OperandDataType, RUNTIME_MAJOR_VERSION,
-    RUNTIME_MINOR_VERSION,
+    DataSectionType, ExternalLibraryDependentType, ExternalLibraryDependentValue, OperandDataType,
+    RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
 };
 
 use crate::common_sections::data_section::{
@@ -61,6 +61,7 @@ pub struct HelperBlockSignatureAndLocalVariablesEntry {
 pub struct HelperExternalFunctionEntry {
     pub external_library_dependent_type: ExternalLibraryDependentType,
     pub library_name: String,
+    pub library_value: Box<ExternalLibraryDependentValue>,
     pub function_name: String,
     pub type_index: usize,
 }
@@ -374,15 +375,21 @@ pub fn helper_build_module_binary(
     // build external library section
     let mut external_library_entries = helper_external_function_entries
         .iter()
-        .map(|e| ExternalLibraryEntry::new(e.library_name.clone(), e.external_library_dependent_type))
+        .map(|e| {
+            ExternalLibraryEntry::new(
+                e.library_name.clone(),
+                e.library_value.clone(),
+                e.external_library_dependent_type,
+            )
+        })
         .collect::<Vec<_>>();
     external_library_entries.sort_by(|left, right| left.name.cmp(&right.name));
-    external_library_entries.dedup_by(|left, right| left.name == right.name);
+    external_library_entries.dedup_by(|left, right| left.value == right.value);
     let (external_library_items, external_library_data) =
         ExternalLibrarySection::convert_from_entries(&external_library_entries);
     let external_library_section = ExternalLibrarySection {
         items: &external_library_items,
-        names_data: &external_library_data,
+        items_data: &external_library_data,
     };
 
     // build external function section
@@ -518,6 +525,7 @@ pub fn helper_build_module_binary(
         .iter()
         .map(|e| UnifiedExternalLibraryEntry {
             name: e.name.clone(),
+            value: e.value.clone(),
             external_library_dependent_type: e.external_library_dependent_type,
         })
         .collect::<Vec<_>>();
@@ -526,7 +534,7 @@ pub fn helper_build_module_binary(
         UnifiedExternalLibrarySection::convert_from_entries(&unified_external_library_entries);
     let unified_external_library_section = UnifiedExternalLibrarySection {
         items: &unified_external_library_items,
-        names_data: &unified_external_library_data,
+        items_data: &unified_external_library_data,
     };
 
     // build unified external function section
@@ -645,7 +653,12 @@ fn helper_new_local_variable_entry(operand_data_type: OperandDataType) -> LocalV
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{DataSectionType, ExternalLibraryDependentType, MemoryDataType, OperandDataType};
+    use core::str;
+
+    use ancvm_isa::{
+        DataSectionType, DependentShare, EffectiveVersion, ExternalLibraryDependentType,
+        ExternalLibraryDependentValue, MemoryDataType, OperandDataType,
+    };
 
     use crate::{
         common_sections::{data_section::DataItem, local_variable_section::LocalVariableItem},
@@ -838,36 +851,60 @@ mod tests {
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::System(
+                        "libc.so.1".to_owned(),
+                    )),
                     function_name: "getuid".to_string(),
                     type_index: 1,
                 },
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::System(
+                        "libc.so.1".to_owned(),
+                    )),
                     function_name: "getenv".to_string(),
                     type_index: 2,
                 },
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::Share,
                     library_name: "libmagic.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::Share(Box::new(
+                        DependentShare {
+                            repository_name: "default".to_owned(),
+                            version: Box::new(EffectiveVersion::new(1, 2)),
+                        },
+                    ))),
                     function_name: "magic_open".to_string(), // magic_load
                     type_index: 2,
                 },
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::Local,
                     library_name: "libz.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::Local(
+                        "libz.so.1".to_owned(),
+                    )),
                     function_name: "inflate".to_string(), // inflateInit/inflateEnd
                     type_index: 1,
                 },
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::System,
                     library_name: "libc.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::System(
+                        "libc.so.1".to_owned(),
+                    )),
                     function_name: "fopen".to_string(),
                     type_index: 0,
                 },
                 HelperExternalFunctionEntry {
                     external_library_dependent_type: ExternalLibraryDependentType::Share,
                     library_name: "libmagic.so".to_string(),
+                    library_value: Box::new(ExternalLibraryDependentValue::Share(Box::new(
+                        DependentShare {
+                            repository_name: "default".to_owned(),
+                            version: Box::new(EffectiveVersion::new(1, 2)),
+                        },
+                    ))),
                     function_name: "magic_file".to_string(), // magic_close
                     type_index: 2,
                 },
@@ -884,17 +921,62 @@ mod tests {
         let unified_external_library_section = module_image
             .get_optional_unified_external_library_section()
             .unwrap();
+
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_dependent_type(0),
-            ("libc.so", ExternalLibraryDependentType::System)
+            {
+                let vv = unified_external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(0);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libc.so",
+                ExternalLibraryDependentType::System,
+                ExternalLibraryDependentValue::System("libc.so.1".to_owned(),)
+            )
         );
+
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_dependent_type(1),
-            ("libmagic.so", ExternalLibraryDependentType::Share)
+            {
+                let vv = unified_external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(1);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libmagic.so",
+                ExternalLibraryDependentType::Share,
+                ExternalLibraryDependentValue::Share(Box::new(DependentShare {
+                    repository_name: "default".to_owned(),
+                    version: Box::new(EffectiveVersion::new(1, 2)),
+                },))
+            )
         );
+
         assert_eq!(
-            unified_external_library_section.get_item_name_and_external_library_dependent_type(2),
-            ("libz.so", ExternalLibraryDependentType::Local)
+            {
+                let vv = unified_external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(2);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libz.so",
+                ExternalLibraryDependentType::Local,
+                ExternalLibraryDependentValue::Local("libz.so.1".to_owned(),)
+            )
         );
 
         // check unified external function section
@@ -954,17 +1036,62 @@ mod tests {
         let external_library_section = module_image
             .get_optional_external_library_section()
             .unwrap();
+
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_dependent_type(0),
-            ("libc.so", ExternalLibraryDependentType::System)
+            {
+                let vv = external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(0);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libc.so",
+                ExternalLibraryDependentType::System,
+                ExternalLibraryDependentValue::System("libc.so.1".to_owned(),)
+            )
         );
+
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_dependent_type(1),
-            ("libmagic.so", ExternalLibraryDependentType::Share)
+            {
+                let vv = external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(1);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libmagic.so",
+                ExternalLibraryDependentType::Share,
+                ExternalLibraryDependentValue::Share(Box::new(DependentShare {
+                    repository_name: "default".to_owned(),
+                    version: Box::new(EffectiveVersion::new(1, 2)),
+                },))
+            )
         );
+
         assert_eq!(
-            external_library_section.get_item_name_and_external_library_dependent_type(2),
-            ("libz.so", ExternalLibraryDependentType::Local)
+            {
+                let vv = external_library_section
+                    .get_item_name_and_external_library_dependent_type_and_value(2);
+                let s = unsafe { str::from_utf8_unchecked(vv.2) };
+                (
+                    vv.0,
+                    vv.1,
+                    ason::from_str::<ExternalLibraryDependentValue>(s).unwrap(),
+                )
+            },
+            (
+                "libz.so",
+                ExternalLibraryDependentType::Local,
+                ExternalLibraryDependentValue::Local("libz.so.1".to_owned(),)
+            )
         );
 
         // check external function section

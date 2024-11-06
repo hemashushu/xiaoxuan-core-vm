@@ -69,6 +69,7 @@
 // - external function index section
 // - unified external library section
 // - unified external functon section
+// - module list section
 
 // the design of module
 // --------------------
@@ -118,6 +119,7 @@ use crate::{
         data_index_section::DataIndexSection,
         external_function_index_section::ExternalFunctionIndexSection,
         function_index_section::FunctionIndexSection, index_property_section::IndexPropertySection,
+        module_list_section::ModuleListSection,
         unified_external_function_section::UnifiedExternalFunctionSection,
         unified_external_library_section::UnifiedExternalLibrarySection,
     },
@@ -215,7 +217,8 @@ pub enum ModuleSectionId {
     // 'external function' to 'unified external function')
     ExternalFunctionIndex, // 0x93
 
-    ImageIndex = 0x00a0, // 0xa0
+    // this section is used by the module loader
+    ModuleList = 0x00a0, // 0xa0
 }
 
 // `RangeItem` is used for data index section and function index section
@@ -522,6 +525,12 @@ impl<'a> ModuleImage<'a> {
     ) -> Option<ExternalFunctionIndexSection<'a>> {
         self.get_section_data_by_id(ModuleSectionId::ExternalFunctionIndex)
             .map(ExternalFunctionIndexSection::load)
+    }
+
+    // optional section (application only)
+    pub fn get_optional_module_list_section(&'a self) -> Option<ModuleListSection<'a>> {
+        self.get_section_data_by_id(ModuleSectionId::ModuleList)
+            .map(ModuleListSection::load)
     }
 }
 

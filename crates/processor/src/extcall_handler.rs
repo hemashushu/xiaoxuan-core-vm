@@ -25,6 +25,7 @@
 // \----------------------------------------------/
 //
 
+use core::str;
 use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
 use ancvm_context::{
@@ -34,7 +35,7 @@ use ancvm_context::{
     },
     thread_context::ThreadContext,
 };
-use ancvm_isa::{ExternalLibraryDependentType, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use ancvm_isa::{ExternalLibraryDependentValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};
@@ -94,30 +95,35 @@ pub fn get_or_create_external_function(
         .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
     // get the file path or name of the external library
-    let (external_library_name, external_library_dependent_type) = thread_context
-        .module_index_instance
-        .unified_external_library_section
-        .get_item_name_and_external_library_dependent_type(unified_external_library_index);
+    let (_, _, external_library_value) =
+        thread_context
+            .module_index_instance
+            .unified_external_library_section
+            .get_item_name_and_external_library_dependent_type_and_value(
+                unified_external_library_index,
+            );
 
-    let external_library_file_path_or_name = match external_library_dependent_type {
-        ExternalLibraryDependentType::Local => {
-            // if external_library_name is relate path {
-            let mut path_buf = PathBuf::from(&thread_context.environment.source_path);
-            if !thread_context.environment.is_directory {
+    let value_str = unsafe { str::from_utf8_unchecked(external_library_value) };
+
+    let value: ExternalLibraryDependentValue = ason::from_str(value_str).unwrap();
+
+    let external_library_file_path_or_file_name = match value {
+        ExternalLibraryDependentValue::Local(file_path) => {
+            // todo
+            // if p.startsWith('~') ...
+            // if p.isAbsolutePath() ...
+            // if external_library_name is relate path ...
+            let mut path_buf = PathBuf::from(&thread_context.environment.application_path);
+            if !thread_context.environment.is_module {
                 path_buf.pop();
             }
-            path_buf.push(external_library_name);
+            path_buf.push(file_path);
             path_buf.as_os_str().to_string_lossy().to_string()
-            // } else {
-            //
-            // todo
-            //
-            // }
         }
-        ExternalLibraryDependentType::Remote => {
+        ExternalLibraryDependentValue::Remote(_) => {
             todo!()
         }
-        ExternalLibraryDependentType::Share => {
+        ExternalLibraryDependentValue::Share(_) => {
             // the local folder for storing the shared modules and libraries which
             // comes from repository, e.g.
             //
@@ -132,7 +138,7 @@ pub fn get_or_create_external_function(
 
             // check that each file exists
         }
-        ExternalLibraryDependentType::Runtime => {
+        ExternalLibraryDependentValue::Runtime => {
             // the runtime's path, e.g.
             //
             // `/usr/lib/anc/`
@@ -147,7 +153,7 @@ pub fn get_or_create_external_function(
 
             // thread_context.environment.runtime_path
         }
-        ExternalLibraryDependentType::System => external_library_name.to_owned(),
+        ExternalLibraryDependentValue::System(file_name) => file_name.to_owned(),
     };
 
     let mut table = thread_context.external_function_table.lock().unwrap();
@@ -156,7 +162,7 @@ pub fn get_or_create_external_function(
         &mut table,
         unified_external_function_index,
         unified_external_library_index,
-        &external_library_file_path_or_name,
+        &external_library_file_path_or_file_name,
         external_function_name,
         param_datatypes,
         result_datatypes,

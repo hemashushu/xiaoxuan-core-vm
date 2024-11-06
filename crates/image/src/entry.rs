@@ -13,8 +13,8 @@
 //! at runtime, which accesses the binary image directly.
 
 use ancvm_isa::{
-    DataSectionType, EffectiveVersion, ExternalLibraryDependentType, MemoryDataType, ModuleDependentType,
-    OperandDataType,
+    DataSectionType, EffectiveVersion, ExternalLibraryDependentType, ExternalLibraryDependentValue,
+    MemoryDataType, ModuleDependentType, ModuleDependentValue, OperandDataType,
 };
 
 #[derive(Debug)]
@@ -278,13 +278,19 @@ impl UninitDataEntry {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExternalLibraryEntry {
     pub name: String,
+    pub value: Box<ExternalLibraryDependentValue>,
     pub external_library_dependent_type: ExternalLibraryDependentType,
 }
 
 impl ExternalLibraryEntry {
-    pub fn new(name: String, external_library_dependent_type: ExternalLibraryDependentType) -> Self {
+    pub fn new(
+        name: String,
+        value: Box<ExternalLibraryDependentValue>,
+        external_library_dependent_type: ExternalLibraryDependentType,
+    ) -> Self {
         Self {
             name,
+            value,
             external_library_dependent_type,
         }
     }
@@ -310,20 +316,21 @@ impl ExternalFunctionEntry {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportModuleEntry {
     pub name: String,
+    pub value: Box<ModuleDependentValue>,
     pub module_dependent_type: ModuleDependentType,
-    pub module_version: EffectiveVersion,
+    // pub module_version: EffectiveVersion,
 }
 
 impl ImportModuleEntry {
     pub fn new(
         name: String,
+        value: Box<ModuleDependentValue>,
         module_dependent_type: ModuleDependentType,
-        module_version: EffectiveVersion,
     ) -> Self {
         Self {
             name,
+            value,
             module_dependent_type,
-            module_version,
         }
     }
 }
@@ -497,13 +504,19 @@ impl DataIndexListEntry {
 #[derive(Debug, PartialEq)]
 pub struct UnifiedExternalLibraryEntry {
     pub name: String,
+    pub value: Box<ExternalLibraryDependentValue>,
     pub external_library_dependent_type: ExternalLibraryDependentType,
 }
 
 impl UnifiedExternalLibraryEntry {
-    pub fn new(name: String, external_library_dependent_type: ExternalLibraryDependentType) -> Self {
+    pub fn new(
+        name: String,
+        value: Box<ExternalLibraryDependentValue>,
+        external_library_dependent_type: ExternalLibraryDependentType,
+    ) -> Self {
         Self {
             name,
+            value,
             external_library_dependent_type,
         }
     }

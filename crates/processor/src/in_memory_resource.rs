@@ -12,6 +12,7 @@ use ancvm_context::{
 };
 use ancvm_image::utils::helper_load_modules_from_binaries;
 
+/// An implement of 'Resource' for unit testing
 pub struct InMemoryResource {
     environment: Environment,
     module_binaries: Vec<Vec<u8>>,
@@ -29,7 +30,7 @@ impl InMemoryResource {
     }
 
     #[allow(dead_code)]
-    pub fn with_settings(module_binaries: Vec<Vec<u8>>, environment: &Environment) -> Self {
+    pub fn with_environment(module_binaries: Vec<Vec<u8>>, environment: &Environment) -> Self {
         Self {
             module_binaries,
             environment: environment.clone(),
