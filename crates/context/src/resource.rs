@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
@@ -8,9 +8,7 @@ use ancvm_image::BinaryError;
 
 use crate::process_context::ProcessContext;
 
-// all asserts needed for a program to run.
-// includes settings, module images and other essential objects.
+/// `ProcessContext` is produced by `Resource`.
 pub trait Resource {
     fn create_process_context(&self) -> Result<ProcessContext, BinaryError>;
-    // fn get_type(&self) -> ResourceType;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
 // the Mozilla Public License version 2.0 and additional exceptions,
@@ -15,10 +15,10 @@ use crate::{
     INIT_STACK_SIZE_IN_BYTES,
 };
 
-/// one ThreadContext per thread.
+/// the thread context of the VM.
 ///
-/// the ThreadContext is NOT thread safe, do NOT call functions of ThreadContext
-/// from multiple threads.
+/// `ThreadContext` is NOT thread safe, do NOT call functions of `ThreadContext`
+/// from multiple-threads.
 pub struct ThreadContext<'a> {
     // operand stack also includes the function/block frame info
     // when call a function or enter a block,
@@ -122,11 +122,11 @@ pub struct ThreadContext<'a> {
     pub bridge_callback_function_module_items: Vec<DelegateFunctionModuleItem>,
     pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 
-    // program modules
+    // application modules
     pub module_index_instance: ModuleIndexInstance<'a>,
     pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
-    // program settings
+    // application environment
     pub environment: &'a Environment,
 }
 
