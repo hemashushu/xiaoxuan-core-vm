@@ -656,7 +656,7 @@ mod tests {
     use core::str;
 
     use ancvm_isa::{
-        DataSectionType, DependentShare, EffectiveVersion, ExternalLibraryDependentType,
+        DataSectionType, DependentShare, ExternalLibraryDependentType,
         ExternalLibraryDependentValue, MemoryDataType, OperandDataType,
     };
 
@@ -871,8 +871,8 @@ mod tests {
                     library_name: "libmagic.so".to_string(),
                     library_value: Box::new(ExternalLibraryDependentValue::Share(Box::new(
                         DependentShare {
-                            repository_name: "default".to_owned(),
-                            version: Box::new(EffectiveVersion::new(1, 2)),
+                            repository: Option::Some("default".to_owned()),
+                            version: "1.2".to_owned(),
                         },
                     ))),
                     function_name: "magic_open".to_string(), // magic_load
@@ -901,8 +901,8 @@ mod tests {
                     library_name: "libmagic.so".to_string(),
                     library_value: Box::new(ExternalLibraryDependentValue::Share(Box::new(
                         DependentShare {
-                            repository_name: "default".to_owned(),
-                            version: Box::new(EffectiveVersion::new(1, 2)),
+                            repository: Option::Some("default".to_owned()),
+                            version: "1.2".to_owned(),
                         },
                     ))),
                     function_name: "magic_file".to_string(), // magic_close
@@ -955,8 +955,8 @@ mod tests {
                 "libmagic.so",
                 ExternalLibraryDependentType::Share,
                 ExternalLibraryDependentValue::Share(Box::new(DependentShare {
-                    repository_name: "default".to_owned(),
-                    version: Box::new(EffectiveVersion::new(1, 2)),
+                    repository: Option::Some("default".to_owned()),
+                    version: "1.2".to_owned(),
                 },))
             )
         );
@@ -1070,8 +1070,8 @@ mod tests {
                 "libmagic.so",
                 ExternalLibraryDependentType::Share,
                 ExternalLibraryDependentValue::Share(Box::new(DependentShare {
-                    repository_name: "default".to_owned(),
-                    version: Box::new(EffectiveVersion::new(1, 2)),
+                    repository: Option::Some("default".to_owned()),
+                    version: "1.2".to_owned(),
                 },))
             )
         );

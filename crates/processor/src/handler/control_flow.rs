@@ -4,7 +4,10 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
+use ancvm_context::{
+    thread_context::{ProgramCounter, ThreadContext},
+    LOCAL_LIST_INDEX_NOT_EXIST,
+};
 
 use crate::process::{EXIT_CURRENT_HANDLER_LOOP_BIT, EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT};
 
@@ -45,9 +48,10 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
 }
 
 pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param type_index:i32, local_list_index:i32, alt_inst_offset:i32)
+    // // (param type_index:i32, local_list_index:i32, next_inst_offset:i32)
+    // (param type_index:i32, next_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_list_index, alt_inst_offset) = thread_context.get_param_i32_i32_i32();
+    let (type_index, next_inst_offset) = thread_context.get_param_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
@@ -56,21 +60,22 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     } = thread_context.pc;
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
-    let local_variables_allocate_bytes =
-        module.local_variable_section.list_items[local_list_index as usize].list_allocate_bytes;
+
+    // let local_variables_allocate_bytes =
+    //     module.local_variable_section.list_items[local_list_index as usize].list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index,
-        local_variables_allocate_bytes,
+        LOCAL_LIST_INDEX_NOT_EXIST, //local_list_index,
+        0,                          //local_variables_allocate_bytes,
         None,
     );
 
     if condition == 0 {
-        HandleResult::Move(alt_inst_offset as isize)
+        HandleResult::Move(next_inst_offset as isize)
     } else {
-        HandleResult::Move(16)
+        HandleResult::Move(12) // inst length = 12 bytes
     }
 }
 
@@ -113,6 +118,12 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
 pub fn break_(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let (reversed_index, next_inst_offset) = thread_context.get_param_i16_i32();
     do_break(thread_context, reversed_index, next_inst_offset)
+}
+
+// `break_alt next` == `break 0 next`
+pub fn break_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    let next_inst_offset = thread_context.get_param_i32();
+    do_break(thread_context, 0, next_inst_offset)
 }
 
 pub fn break_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -217,7 +228,7 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
-        HandlerError, HandleErrorType,
+        HandleErrorType, HandlerError,
     };
     use ancvm_context::resource::Resource;
 
@@ -1040,9 +1051,9 @@ mod tests {
         //     (local_load32 0 0)
         //     (local_load32 0 1)
         //     gt_i32_u
-        //     (block_alt 1 1) ()->(i32)
+        //     (block_alt #0) ()->(i32)
         //         (local_load32 1 0)
-        //     (break 0)
+        //     (break_alt)
         //         (local_load32 1 1)
         //     end
         // end
@@ -1056,21 +1067,21 @@ mod tests {
         // 0x0008  82 01 00 00  00 00 01 00    local_load_i32_u  rev:0   off:0x00  idx:1
         // 0x0010  c7 02                       gt_i32_u
         // 0x0012  00 01                       nop
-        // 0x0014  c5 03 00 00  01 00 00 00    block_alt         type:1   local:1   off:0x20
-        //         01 00 00 00  20 00 00 00
-        // 0x0024  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x002c  c2 03 00 00  12 00 00 00    break             rev:0   off:0x12
-        // 0x0034  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
-        // 0x003c  c0 03                       end
-        // 0x003e  c0 03                       end
+        // 0x0014  c4 03 00 00  01 00 00 00    block_alt         type:1   off:0x1c
+        //         1c 00 00 00
+        // 0x0020  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x0028  c5 03 00 00  12 00 00 00    break_alt         off:0x12
+        // 0x0030  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
+        // 0x0038  c0 03                       end
+        // 0x003a  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::gt_i32_u)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt, 1, 0x1c)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x12)
+            .append_opcode_i32(Opcode::break_alt, 0x12)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
@@ -1120,21 +1131,21 @@ mod tests {
         //     (local_load32 0 0)
         //     (imm_i32 85)
         //     gt_i32_u
-        //     (block_alt 1 1) ()->(i32)            ;; block 1 1
+        //     (block_alt #0) ()->(i32)            ;; block 1 1
         //         (imm_i32 65)                     ;; 'A' (85, 100]
-        //     (break 0)
+        //     (break_alt)
         //         (local_load32 1 0)
         //         (imm_i32 70)
         //         gt_i32_u
-        //         (block_alt 2 2) ()->(i32)        ;; block 2 2
+        //         (block_alt #1) ()->(i32)        ;; block 2 2
         //             (imm_i32 66)                 ;; 'B' (70,85]
-        //         (break 0)
+        //         (break_alt)
         //             (local_load32 2 0)
         //             (imm_i32 55)
         //             gt_i32_u
-        //             (block_alt 3 3) ()->(i32)    ;; block 3 3
+        //             (block_alt #2) ()->(i32)    ;; block 3 3
         //                 (imm_i32 67)             ;; 'C' (55, 70]
-        //             (break 0)
+        //             (break_alt)
         //                 (imm_i32 68)             ;; 'D' [0, 55]
         //             end
         //         end
@@ -1154,51 +1165,51 @@ mod tests {
         // 0x0008  40 01 00 00  55 00 00 00    imm_i32           0x00000055
         // 0x0010  c7 02                       gt_i32_u
         // 0x0012  00 01                       nop
-        // 0x0014  c5 03 00 00  01 00 00 00    block_alt         type:1   local:1   off:0x20
-        //         01 00 00 00  20 00 00 00
-        // 0x0024  40 01 00 00  41 00 00 00    imm_i32           0x00000041
-        // 0x002c  c2 03 00 00  7e 00 00 00    break             rev:0   off:0x7e
-        // 0x0034  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x003c  40 01 00 00  46 00 00 00    imm_i32           0x00000046
-        // 0x0044  c7 02                       gt_i32_u
-        // 0x0046  00 01                       nop
-        // 0x0048  c5 03 00 00  02 00 00 00    block_alt         type:2   local:2   off:0x20
-        //         02 00 00 00  20 00 00 00
-        // 0x0058  40 01 00 00  42 00 00 00    imm_i32           0x00000042
-        // 0x0060  c2 03 00 00  48 00 00 00    break             rev:0   off:0x48
-        // 0x0068  82 01 02 00  00 00 00 00    local_load_i32_u  rev:2   off:0x00  idx:0
-        // 0x0070  40 01 00 00  37 00 00 00    imm_i32           0x00000037
-        // 0x0078  c7 02                       gt_i32_u
-        // 0x007a  00 01                       nop
-        // 0x007c  c5 03 00 00  03 00 00 00    block_alt         type:3   local:3   off:0x20
-        //         03 00 00 00  20 00 00 00
-        // 0x008c  40 01 00 00  43 00 00 00    imm_i32           0x00000043
-        // 0x0094  c2 03 00 00  12 00 00 00    break             rev:0   off:0x12
-        // 0x009c  40 01 00 00  44 00 00 00    imm_i32           0x00000044
-        // 0x00a4  c0 03                       end
-        // 0x00a6  c0 03                       end
-        // 0x00a8  c0 03                       end
-        // 0x00aa  c0 03                       end
+        // 0x0014  c4 03 00 00  01 00 00 00    block_alt         type:1   off:0x1c
+        //         1c 00 00 00
+        // 0x0020  40 01 00 00  41 00 00 00    imm_i32           0x00000041
+        // 0x0028  c5 03 00 00  76 00 00 00    break_alt         off:0x76
+        // 0x0030  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x0038  40 01 00 00  46 00 00 00    imm_i32           0x00000046
+        // 0x0040  c7 02                       gt_i32_u
+        // 0x0042  00 01                       nop
+        // 0x0044  c4 03 00 00  02 00 00 00    block_alt         type:2   off:0x1c
+        //         1c 00 00 00
+        // 0x0050  40 01 00 00  42 00 00 00    imm_i32           0x00000042
+        // 0x0058  c5 03 00 00  44 00 00 00    break_alt         off:0x44
+        // 0x0060  82 01 02 00  00 00 00 00    local_load_i32_u  rev:2   off:0x00  idx:0
+        // 0x0068  40 01 00 00  37 00 00 00    imm_i32           0x00000037
+        // 0x0070  c7 02                       gt_i32_u
+        // 0x0072  00 01                       nop
+        // 0x0074  c4 03 00 00  03 00 00 00    block_alt         type:3   off:0x1c
+        //         1c 00 00 00
+        // 0x0080  40 01 00 00  43 00 00 00    imm_i32           0x00000043
+        // 0x0088  c5 03 00 00  12 00 00 00    break_alt         off:0x12
+        // 0x0090  40 01 00 00  44 00 00 00    imm_i32           0x00000044
+        // 0x0098  c0 03                       end
+        // 0x009a  c0 03                       end
+        // 0x009c  c0 03                       end
+        // 0x009e  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode_i32(Opcode::imm_i32, 85)
             .append_opcode(Opcode::gt_i32_u)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt, 1, 0x1c)
             .append_opcode_i32(Opcode::imm_i32, 65)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x7e)
+            .append_opcode_i32(Opcode::break_alt, 0x76)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i32(Opcode::imm_i32, 70)
             .append_opcode(Opcode::gt_i32_u)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt, 2, 0x1c)
             .append_opcode_i32(Opcode::imm_i32, 66)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x48)
+            .append_opcode_i32(Opcode::break_alt, 0x44)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 2, 0, 0)
             .append_opcode_i32(Opcode::imm_i32, 55)
             .append_opcode(Opcode::gt_i32_u)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 3, 3, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt, 3, 0x1c)
             .append_opcode_i32(Opcode::imm_i32, 67)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x12)
+            .append_opcode_i32(Opcode::break_alt, 0x12)
             .append_opcode_i32(Opcode::imm_i32, 68)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
@@ -1215,17 +1226,17 @@ mod tests {
             code0,
             vec![
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![], // 'block_alt' has no PARAMS
+                    params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![], // 'block_alt' has no PARAMS
+                    params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
                 HelperBlockSignatureAndLocalVariablesEntry {
-                    params: vec![], // 'block_alt' has no PARAMS
+                    params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
@@ -2025,14 +2036,14 @@ mod tests {
         // fn $accu (count/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; count
-        //     (block 1 1) (sum/0:i32, n/1:i32)->(i32)
+        //     (block #0) (sum/0:i32, n/1:i32)->(i32)
         //                              ;; if n==0
         //         (local_load32 0 1)
         //         eqz_i32
-        //         (block_alt)
+        //         (block_alt #1)
         //             (local_load32 0 1)
         //             (break 1)
-        //         (break 0)
+        //         (break_alt)
         //                              ;; sum + n
         //             (local_load32 0 0)
         //             (local_load32 0 1)
@@ -2041,7 +2052,7 @@ mod tests {
         //             (local_load32 0 1)
         //             (sub_imm_i32 1)
         //                              ;; recur
-        //             (recur 0)
+        //             (recur 1)
         //         end
         //     end
         // end
@@ -2057,21 +2068,21 @@ mod tests {
         // 0x001c  82 01 00 00  00 00 01 00    local_load_i32_u  rev:0   off:0x00  idx:1
         // 0x0024  c0 02                       eqz_i32
         // 0x0026  00 01                       nop
-        // 0x0028  c5 03 00 00  02 00 00 00    block_alt         type:2   local:2   off:0x28
-        //         02 00 00 00  28 00 00 00
-        // 0x0038  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x0040  c2 03 01 00  3c 00 00 00    break             rev:1   off:0x3c
-        // 0x0048  c2 03 00 00  32 00 00 00    break             rev:0   off:0x32
-        // 0x0050  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x0058  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
-        // 0x0060  00 03                       add_i32
-        // 0x0062  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
-        // 0x006a  03 03 01 00                 sub_imm_i32       1
-        // 0x006e  00 01                       nop
-        // 0x0070  c3 03 01 00  54 00 00 00    recur             rev:1   off:0x54
+        // 0x0028  c4 03 00 00  02 00 00 00    block_alt         type:2   off:0x24
+        //         24 00 00 00
+        // 0x0034  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x003c  c2 03 01 00  3c 00 00 00    break             rev:1   off:0x3c
+        // 0x0044  c5 03 00 00  32 00 00 00    break_alt         off:0x32
+        // 0x004c  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x0054  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
+        // 0x005c  00 03                       add_i32
+        // 0x005e  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
+        // 0x0066  03 03 01 00                 sub_imm_i32       1
+        // 0x006a  00 01                       nop
+        // 0x006c  c3 03 01 00  50 00 00 00    recur             rev:1   off:0x50
+        // 0x0074  c0 03                       end
+        // 0x0076  c0 03                       end
         // 0x0078  c0 03                       end
-        // 0x007a  c0 03                       end
-        // 0x007c  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // .append_opcode(Opcode::zero)
@@ -2082,12 +2093,12 @@ mod tests {
             // if
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x28)
+            .append_opcode_i32_i32(Opcode::block_alt, 2, 0x24)
             // then
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i32(Opcode::break_, 1, 0x3c)
             // else
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x32)
+            .append_opcode_i32(Opcode::break_alt, 0x32)
             // sum + n
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
@@ -2095,7 +2106,7 @@ mod tests {
             // n - 1
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-            .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
+            .append_opcode_i16_i32(Opcode::recur, 1, 0x50)
             // end if
             .append_opcode(Opcode::end)
             // block end
@@ -2269,7 +2280,7 @@ mod tests {
         //     eqz_i32
         //     (block_alt 1 1) () -> (i32)      ;; if n == 0
         //         (local_load32 1 0)           ;; then sum
-        //     (break 0)                        ;; else
+        //     (break_alt)                      ;; else
         //                                      ;; sum + n
         //         (local_load32 1 0)
         //         (local_load32 1 1)
@@ -2289,28 +2300,28 @@ mod tests {
         // 0x0000  82 01 00 00  00 00 01 00    local_load_i32_u  rev:0   off:0x00  idx:1
         // 0x0008  c0 02                       eqz_i32
         // 0x000a  00 01                       nop
-        // 0x000c  c5 03 00 00  01 00 00 00    block_alt         type:1   local:1   off:0x20
-        //         01 00 00 00  20 00 00 00
-        // 0x001c  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x0024  c2 03 00 00  32 00 00 00    break             rev:0   off:0x32
-        // 0x002c  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
-        // 0x0034  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
-        // 0x003c  00 03                       add_i32
-        // 0x003e  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
-        // 0x0046  03 03 01 00                 sub_imm_i32       1
-        // 0x004a  00 01                       nop
-        // 0x004c  c3 03 01 00  00 00 00 00    recur             rev:1   off:0x00
-        // 0x0054  c0 03                       end
-        // 0x0056  c0 03                       end
+        // 0x000c  c4 03 00 00  01 00 00 00    block_alt         type:1   off:0x1c
+        //         1c 00 00 00
+        // 0x0018  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x0020  c5 03 00 00  32 00 00 00    break_alt         off:0x32
+        // 0x0028  82 01 01 00  00 00 00 00    local_load_i32_u  rev:1   off:0x00  idx:0
+        // 0x0030  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
+        // 0x0038  00 03                       add_i32
+        // 0x003a  82 01 01 00  00 00 01 00    local_load_i32_u  rev:1   off:0x00  idx:1
+        // 0x0042  03 03 01 00                 sub_imm_i32       1
+        // 0x0046  00 01                       nop
+        // 0x0048  c3 03 01 00  00 00 00 00    recur             rev:1   off:0x00
+        // 0x0050  c0 03                       end
+        // 0x0052  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt, 1, 0x1c)
             // then
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x32)
+            .append_opcode_i32(Opcode::break_alt, 0x32)
             // else
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)

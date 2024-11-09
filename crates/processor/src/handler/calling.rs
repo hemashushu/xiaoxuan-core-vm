@@ -210,13 +210,13 @@ mod tests {
         // fn $sum_square (count/1:i32) -> (i32)
         //     zero
         //     (local_load32 0 0)
-        //     (block 3 3) (sum/0:i32, n/1:i32) -> (i32)
+        //     (block #0) (sum/0:i32, n/1:i32) -> (i32)
         //                                  ;; if n == 0
         //         (local_load32 0 1)
         //         eqz_i32
-        //         (block_alt 4 4) () -> (i32)
+        //         (block_alt #1) () -> (i32)
         //             (local_load32 1 0)   ;; then sum
-        //             (break 0)            ;; else
+        //         (break_alt)              ;; else
         //                                  ;; sum + n^2
         //             (local_load32 1 0)
         //             (local_load32 1 1)
@@ -252,10 +252,10 @@ mod tests {
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
+            .append_opcode_i32_i32(Opcode::block_alt,  4, 0x1c)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-            .append_opcode_i16_i32(Opcode::break_, 0, 0x3a)
+            .append_opcode_i32(Opcode::break_alt,  0x3a)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
@@ -265,7 +265,7 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
             .append_opcode_i16(Opcode::sub_imm_i32, 1)
             //
-            .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
+            .append_opcode_i16_i32(Opcode::recur, 1, 0x50)
             //
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)

@@ -12,7 +12,7 @@ use crate::{
     environment::Environment, external_function_table::ExternalFunctionTable, heap::Heap,
     indexed_memory::IndexedMemory, module_common_instance::ModuleCommonInstance,
     module_index_instance::ModuleIndexInstance, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
-    INIT_STACK_SIZE_IN_BYTES,
+    INIT_STACK_SIZE_IN_BYTES, LOCAL_LIST_INDEX_NOT_EXIST,
 };
 
 /// the thread context of the VM.
@@ -309,6 +309,22 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             (frame_pack.address, frame_pack.frame_info.local_list_index)
         };
 
+        if local_list_index == LOCAL_LIST_INDEX_NOT_EXIST {
+            panic!(
+                "An attempt to access a local variable that does not exist.
+module index: {}, function internal index: {}, instruction address: {},
+block reversed index: {}, local variable index: {},
+offset in bytes: {}, expect length in bytes: {}.",
+                module_index,
+                function_internal_index,
+                instruction_address,
+                reversed_index,
+                local_variable_index,
+                offset_bytes,
+                expect_data_length_in_bytes,
+            );
+        }
+
         let variable_item = &self.module_common_instances[module_index]
             .local_variable_section
             .get_local_list(local_list_index as usize)[local_variable_index];
@@ -499,18 +515,19 @@ offset in bytes: {}, expect length in bytes: {}.",
         }
     }
 
-    /// 128 bits instruction
-    /// [opcode + padding + i32 + i32 + i32]
-    pub fn get_param_i32_i32_i32(&self) -> (u32, u32, u32) {
-        let data = self.get_instruction(4, 12);
-
-        unsafe {
-            let p0 = std::ptr::read(data.as_ptr() as *const u32);
-            let p1 = std::ptr::read(data[4..8].as_ptr() as *const u32);
-            let p2 = std::ptr::read(data[8..].as_ptr() as *const u32);
-            (p0, p1, p2)
-        }
-    }
+//     DEPRECATED
+//     /// 128 bits instruction
+//     /// [opcode + padding + i32 + i32 + i32]
+//     pub fn get_param_i32_i32_i32(&self) -> (u32, u32, u32) {
+//         let data = self.get_instruction(4, 12);
+//
+//         unsafe {
+//             let p0 = std::ptr::read(data.as_ptr() as *const u32);
+//             let p1 = std::ptr::read(data[4..8].as_ptr() as *const u32);
+//             let p2 = std::ptr::read(data[8..].as_ptr() as *const u32);
+//             (p0, p1, p2)
+//         }
+//     }
 
     #[inline]
     pub fn get_instruction(&self, offset: usize, len_in_bytes: usize) -> &[u8] {

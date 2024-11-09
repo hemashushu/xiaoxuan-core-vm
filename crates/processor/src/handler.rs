@@ -408,6 +408,7 @@ impl Handler {
         handlers[Opcode::break_ as usize] = control_flow::break_;
         handlers[Opcode::recur as usize] = control_flow::recur;
         handlers[Opcode::block_alt as usize] = control_flow::block_alt;
+        handlers[Opcode::break_alt as usize] = control_flow::break_alt;
         handlers[Opcode::block_nez as usize] = control_flow::block_nez;
         handlers[Opcode::break_nez as usize] = control_flow::break_nez;
         handlers[Opcode::recur_nez as usize] = control_flow::recur_nez;

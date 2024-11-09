@@ -13,8 +13,7 @@ use serde::{Deserialize, Serialize};
 pub const RUNTIME_CODE_NAME: &[u8; 6] = b"Selina"; // is also my lovely daughter's name (XiaoXuan for zh-Hans) :D
 pub const IMAGE_FILE_MAGIC_NUMBER: &[u8; 8] = b"ancmod\0\0"; // the abbr of "XiaoXuan Core Module"
 
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename = "version")]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct EffectiveVersion {
     pub major: u16,
     pub minor: u16,
@@ -389,7 +388,7 @@ pub enum ExternalLibraryDependentType {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-#[serde(rename = "value")]
+#[serde(rename = "module")]
 pub enum ModuleDependentValue {
     Local(String),
     Remote(Box<DependentRemote>),
@@ -398,7 +397,7 @@ pub enum ModuleDependentValue {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-#[serde(rename = "value")]
+#[serde(rename = "library")]
 pub enum ExternalLibraryDependentValue {
     Local(/* library soname path */ String),
     Remote(Box<DependentRemote>),
@@ -413,13 +412,15 @@ pub struct DependentRemote {
     pub url: String,
     pub reversion: String, // commit or tag
     pub path: String,
+    // properties: Vec<...>
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(rename = "share")]
 pub struct DependentShare {
-    pub repository_name: String,
-    pub version: Box<EffectiveVersion>,
+    pub repository: Option<String>, // the name of repository
+    pub version: String,            // e.g. "1.0"
+    // properties: Vec<...>
 }
 
 impl Display for ExternalLibraryDependentType {
@@ -478,8 +479,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        DependentRemote, DependentShare, EffectiveVersion, ExternalLibraryDependentValue,
-        ModuleDependentValue,
+        DependentRemote, DependentShare, ExternalLibraryDependentValue, ModuleDependentValue,
     };
 
     #[test]
@@ -489,7 +489,7 @@ mod tests {
                 "~/myprojects/hello".to_owned()
             ))
             .unwrap(),
-            r#"value::Local("~/myprojects/hello")"#
+            r#"module::Local("~/myprojects/hello")"#
         );
 
         assert_eq!(
@@ -499,7 +499,7 @@ mod tests {
                 path: "/modules/sha2".to_owned()
             })))
             .unwrap(),
-            r#"value::Remote({
+            r#"module::Remote({
     url: "https://github.com/hemashushu/xiaoxuan-core-extension.git"
     reversion: "v1.0.0"
     path: "/modules/sha2"
@@ -508,42 +508,39 @@ mod tests {
 
         assert_eq!(
             ason::to_string(&ModuleDependentValue::Share(Box::new(DependentShare {
-                repository_name: "default".to_owned(),
-                version: Box::new(EffectiveVersion::new(11, 13))
+                repository: Option::Some("default".to_owned()),
+                version: "11.13".to_owned()
             })))
             .unwrap(),
-            r#"value::Share({
-    repository_name: "default"
-    version: {
-        major: 11_u16
-        minor: 13_u16
-    }
+            r#"module::Share({
+    repository: Option::Some("default")
+    version: "11.13"
 })"#
         );
 
         assert_eq!(
             ason::to_string(&ModuleDependentValue::Runtime).unwrap(),
-            r#"value::Runtime"#
+            r#"module::Runtime"#
         );
     }
 
     #[test]
     fn test_deserialize_external_library_dependent_value() {
-        let s0 = r#"value::Share({
-            repository_name: "default"
-            version: {major: 17_u16, minor: 19_u16}
+        let s0 = r#"library::Share({
+            repository: Option::Some("default")
+            version: "17.19"
         })"#;
 
         let v0: ExternalLibraryDependentValue = ason::from_str(s0).unwrap();
         assert_eq!(
             v0,
             ExternalLibraryDependentValue::Share(Box::new(DependentShare {
-                repository_name: "default".to_owned(),
-                version: Box::new(EffectiveVersion::new(17, 19))
+                repository: Option::Some("default".to_owned()),
+                version: "17.19".to_owned()
             }))
         );
 
-        let s1 = r#"value::Remote({
+        let s1 = r#"library::Remote({
             url: "https://github.com/hemashushu/xiaoxuan-core-extension.git"
             reversion: "v1.0.0"
             path: "/libraries/lz4/lib/liblz4.so.1"
