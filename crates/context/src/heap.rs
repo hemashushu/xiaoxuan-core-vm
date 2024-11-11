@@ -47,7 +47,7 @@ impl Heap {
         self.data[address..(address + count)].fill(value);
     }
 
-    pub fn copy(&mut self, dst_address: usize, src_address: usize, length_in_bytes: usize) {
+    pub fn copy(&mut self, dst_address: usize, src_address: usize, count: usize) {
         let (src, dst) = self.data.split_at_mut(dst_address);
 
         // depending on the location of src_offset and dst_offset, there are 2 situations:
@@ -61,10 +61,10 @@ impl Heap {
         //            dst   |     src (the value of index 'src' has been changed)
 
         if src_address < dst_address {
-            dst.copy_from_slice(&src[src_address..(src_address + length_in_bytes)]);
+            dst.copy_from_slice(&src[src_address..(src_address + count)]);
         } else {
             let offset = src_address - dst_address;
-            dst.copy_from_slice(&src[offset..(offset + length_in_bytes)]);
+            dst.copy_from_slice(&src[offset..(offset + count)]);
         }
     }
 

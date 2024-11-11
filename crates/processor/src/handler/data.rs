@@ -26,7 +26,7 @@ pub fn data_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> 
 pub fn data_load_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i64(
         thread_context,
         data_public_index as usize,
@@ -65,7 +65,7 @@ pub fn data_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn data_load_extend_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i32_s(
         thread_context,
         data_public_index as usize,
@@ -104,7 +104,7 @@ pub fn data_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn data_load_extend_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i32_u(
         thread_context,
         data_public_index as usize,
@@ -143,7 +143,7 @@ pub fn data_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn data_load_extend_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i16_s(
         thread_context,
         data_public_index as usize,
@@ -182,7 +182,7 @@ pub fn data_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn data_load_extend_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i16_u(
         thread_context,
         data_public_index as usize,
@@ -221,7 +221,7 @@ pub fn data_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn data_load_extend_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i8_s(
         thread_context,
         data_public_index as usize,
@@ -260,7 +260,7 @@ pub fn data_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn data_load_extend_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_i8_u(
         thread_context,
         data_public_index as usize,
@@ -299,7 +299,7 @@ pub fn data_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> 
 pub fn data_load_extend_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_f32(
         thread_context,
         data_public_index as usize,
@@ -338,7 +338,7 @@ pub fn data_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> 
 pub fn data_load_extend_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_load_f64(
         thread_context,
         data_public_index as usize,
@@ -380,7 +380,7 @@ pub fn data_store_extend_i64(_handler: &Handler, thread_context: &mut ThreadCont
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_store_i64(
         thread_context,
         data_public_index as usize,
@@ -423,7 +423,7 @@ pub fn data_store_extend_i32(_handler: &Handler, thread_context: &mut ThreadCont
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_store_i32(
         thread_context,
         data_public_index as usize,
@@ -466,7 +466,7 @@ pub fn data_store_extend_i16(_handler: &Handler, thread_context: &mut ThreadCont
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_store_i16(
         thread_context,
         data_public_index as usize,
@@ -509,7 +509,7 @@ pub fn data_store_extend_i8(_handler: &Handler, thread_context: &mut ThreadConte
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_data_store_i8(
         thread_context,
         data_public_index as usize,

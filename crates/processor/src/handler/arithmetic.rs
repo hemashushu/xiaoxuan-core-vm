@@ -22,16 +22,16 @@ pub fn sub_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 }
 
 pub fn add_imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let amount = thread_context.get_param_i16();
+    let imm = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
-    store_i32_u(thread_context, value.wrapping_add(amount as u32));
+    store_i32_u(thread_context, value.wrapping_add(imm as u32));
     HandleResult::Move(4)
 }
 
 pub fn sub_imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let amount = thread_context.get_param_i16();
+    let imm = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
-    store_i32_u(thread_context, value.wrapping_sub(amount as u32));
+    store_i32_u(thread_context, value.wrapping_sub(imm as u32));
     HandleResult::Move(4)
 }
 
@@ -78,16 +78,16 @@ pub fn sub_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 }
 
 pub fn add_imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let amount = thread_context.get_param_i16();
+    let imm = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
-    store_i64_u(thread_context, value.wrapping_add(amount as u64));
+    store_i64_u(thread_context, value.wrapping_add(imm as u64));
     HandleResult::Move(4)
 }
 
 pub fn sub_imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let amount = thread_context.get_param_i16();
+    let imm = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
-    store_i64_u(thread_context, value.wrapping_sub(amount as u64));
+    store_i64_u(thread_context, value.wrapping_sub(imm as u64));
     HandleResult::Move(4)
 }
 
@@ -286,10 +286,10 @@ mod tests {
         //   - rem_u 2 1      -> 38
         //
         //   group 2:
-        //   - inc   0 amount:3     -> 14
-        //   - dec   0 amount:3     -> 8
-        //   - inc   2 amount:3     -> -10
-        //   - dec   2 amount:3     -> -16
+        //   - inc   0 imm:3     -> 14
+        //   - dec   0 imm:3     -> 8
+        //   - inc   2 imm:3     -> -10
+        //   - dec   2 imm:3     -> -16
         //
         //   group 3:
         //   - add 0xffff_ffff 0x2  -> 0x1                  ;; -1 + 2 = 1
@@ -464,10 +464,10 @@ mod tests {
         //   - rem_u 2 1      -> 56
         //
         //   group 2:
-        //   - inc   0 amount:3     -> 14
-        //   - dec   0 amount:3     -> 8
-        //   - inc   2 amount:3     -> -10
-        //   - dec   2 amount:3     -> -16
+        //   - inc   0 imm:3     -> 14
+        //   - dec   0 imm:3     -> 8
+        //   - inc   2 imm:3     -> -10
+        //   - dec   2 imm:3     -> -16
         //
         //   group 3:
         //   - add 0xffff_ffff_ffff_ffff 0x2  -> 0x1    ;; -1 + 2 = 1

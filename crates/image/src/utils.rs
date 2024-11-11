@@ -873,6 +873,7 @@ mod tests {
                         DependentShare {
                             repository: Option::Some("default".to_owned()),
                             version: "1.2".to_owned(),
+                            properties: None,
                         },
                     ))),
                     function_name: "magic_open".to_string(), // magic_load
@@ -903,6 +904,7 @@ mod tests {
                         DependentShare {
                             repository: Option::Some("default".to_owned()),
                             version: "1.2".to_owned(),
+                            properties: None,
                         },
                     ))),
                     function_name: "magic_file".to_string(), // magic_close
@@ -957,6 +959,7 @@ mod tests {
                 ExternalLibraryDependentValue::Share(Box::new(DependentShare {
                     repository: Option::Some("default".to_owned()),
                     version: "1.2".to_owned(),
+                    properties: None,
                 },))
             )
         );
@@ -1072,6 +1075,7 @@ mod tests {
                 ExternalLibraryDependentValue::Share(Box::new(DependentShare {
                     repository: Option::Some("default".to_owned()),
                     version: "1.2".to_owned(),
+                    properties: None,
                 },))
             )
         );

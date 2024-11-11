@@ -271,6 +271,7 @@ mod tests {
                         url: "http://a.b/c".to_owned(),
                         reversion: "v1.0.1".to_owned(),
                         path: "/xyz.so.2".to_owned(),
+                        properties: None,
                     },
                 ))),
                 ExternalLibraryDependentType::Remote,

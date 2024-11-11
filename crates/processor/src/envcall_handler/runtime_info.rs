@@ -64,11 +64,6 @@ mod tests {
     fn test_envcall_runtime_version() {
         // () -> (i64)
 
-        // bytecode:
-        //
-        // 0x0000  02 04 00 00  01 01 00 00    envcall           idx:257
-        // 0x0008  c0 03                       end
-
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_version as u32)
             .append_opcode(Opcode::end)
@@ -106,13 +101,6 @@ mod tests {
         //        ^    ^
         //        |    |name buffer (8 bytes)
         //        |name length
-
-        // bytecode:
-        //
-        // 0x0000  41 04 00 00  00 00 00 00    host_addr_local   rev:0   off:0x00  idx:0
-        // 0x0008  02 04 00 00  00 01 00 00    envcall           idx:256
-        // 0x0010  80 01 00 00  00 00 00 00    local_load_64     rev:0   off:0x00  idx:0
-        // 0x0018  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 0)

@@ -463,13 +463,6 @@ mod tests {
         // syscall:
         // `pid_t getpid(void);`
 
-        // bytecode:
-        //
-        // 0x0000  40 01 00 00  27 00 00 00    imm_i32           0x00000027
-        // 0x0008  40 01 00 00  00 00 00 00    imm_i32           0x00000000
-        // 0x0010  03 04                       syscall
-        // 0x0012  c0 03                       end
-
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6
             // -none-
@@ -511,15 +504,6 @@ mod tests {
 
         // syscall:
         // `char *getcwd(char buf[.size], size_t size);`
-
-        // bytecode:
-        //
-        // 0x0000  80 01 00 00  00 00 00 00    local_load_64     rev:0   off:0x00  idx:0
-        // 0x0008  82 01 00 00  00 00 01 00    local_load_i32_u  rev:0   off:0x00  idx:1
-        // 0x0010  40 01 00 00  4f 00 00 00    imm_i32           0x0000004f
-        // 0x0018  40 01 00 00  02 00 00 00    imm_i32           0x00000002
-        // 0x0020  03 04                       syscall
-        // 0x0022  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6
@@ -584,15 +568,6 @@ mod tests {
 
         // syscall:
         // `int open(const char *pathname, int flags)`
-
-        // bytecode:
-        //
-        // 0x0000  80 01 00 00  00 00 00 00    local_load_64     rev:0   off:0x00  idx:0
-        // 0x0008  40 01 00 00  00 00 00 00    imm_i32           0x00000000
-        // 0x0010  40 01 00 00  02 00 00 00    imm_i32           0x00000002
-        // 0x0018  40 01 00 00  02 00 00 00    imm_i32           0x00000002
-        // 0x0020  03 04                       syscall
-        // 0x0022  c0 03                       end
 
         let code0 = BytecodeWriterHelper::new()
             // push syscall args from 1 to 6

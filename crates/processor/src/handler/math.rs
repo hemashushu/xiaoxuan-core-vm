@@ -175,14 +175,14 @@ pub fn copysign_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> H
 }
 
 pub fn pow_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f32(thread_context);
-    store_f32(thread_context, left.powf(right));
+    let (base, exponent) = load_operands_f32(thread_context);
+    store_f32(thread_context, base.powf(exponent));
     HandleResult::Move(2)
 }
 
 pub fn log_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f32(thread_context);
-    store_f32(thread_context, left.log(right));
+    let (number, base) = load_operands_f32(thread_context);
+    store_f32(thread_context, number.log(base));
     HandleResult::Move(2)
 }
 
@@ -341,14 +341,14 @@ pub fn copysign_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> H
 }
 
 pub fn pow_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f64(thread_context);
-    store_f64(thread_context, left.powf(right));
+    let (base, exponent) = load_operands_f64(thread_context);
+    store_f64(thread_context, base.powf(exponent));
     HandleResult::Move(2)
 }
 
 pub fn log_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f64(thread_context);
-    store_f64(thread_context, left.log(right));
+    let (number, base) = load_operands_f64(thread_context);
+    store_f64(thread_context, number.log(base));
     HandleResult::Move(2)
 }
 

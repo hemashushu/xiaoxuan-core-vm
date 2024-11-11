@@ -268,8 +268,8 @@ fn load_operands_f64(thread_context: &mut ThreadContext) -> (f64, f64) {
 
 #[inline]
 fn store_bool(thread_context: &mut ThreadContext, b: bool) {
-    let v = if b { 1u32 } else { 0u32 };
-    thread_context.stack.push_i32_u(v);
+    let v = if b { 1u64 } else { 0u64 };
+    thread_context.stack.push_i64_u(v);
 }
 
 #[cfg(test)]

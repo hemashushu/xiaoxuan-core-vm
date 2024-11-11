@@ -178,7 +178,7 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
             | Opcode::heap_store_i8
             | Opcode::heap_store_f64
             | Opcode::heap_store_f32 => {
-                let (offset_next, offset) = continue_read_param_i32(codes, offset_param);
+                let (offset_next, offset) = continue_read_param_i16(codes, offset_param);
                 (offset_next, format!("off:0x{:02x}", offset))
             }
             // heap memory
@@ -437,7 +437,7 @@ pub fn format_bytecode_as_text(codes: &[u8]) -> String {
                 (offset_next, format!("idx:{}", idx))
             }
             Opcode::host_addr_heap => {
-                let (offset_next, offset) = continue_read_param_i32(codes, offset_param);
+                let (offset_next, offset) = continue_read_param_i16(codes, offset_param);
                 (offset_next, format!("off:0x{:02x}", offset))
             }
             Opcode::host_addr_function => {

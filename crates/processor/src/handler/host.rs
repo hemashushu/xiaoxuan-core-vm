@@ -117,14 +117,14 @@ fn do_host_addr_data(
 }
 
 pub fn host_addr_heap(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i32) (operand heap_addr:i64) -> i64
-    let offset_bytes = thread_context.get_param_i32();
+    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    let offset_bytes = thread_context.get_param_i16();
     let heap_address = thread_context.stack.pop_i64_u();
 
     let total_offset = heap_address as usize + offset_bytes as usize;
     let ptr = thread_context.heap.get_ptr(total_offset);
     store_pointer_to_operand_stack(thread_context, ptr);
-    HandleResult::Move(8)
+    HandleResult::Move(4)
 }
 
 pub fn host_copy_heap_to_memory(
@@ -132,9 +132,9 @@ pub fn host_copy_heap_to_memory(
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // copy data from VM heap to host memory
-    // (operand dst_pointer:i64 src_offset:i64 length_in_bytes:i64) -> ()
+    // () (operand dst_pointer:i64 src_addr:i64 count:i64) -> ()
 
-    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let count = thread_context.stack.pop_i64_u();
     let src_heap_address = thread_context.stack.pop_i64_u();
     let dst_host_ptr = thread_context.stack.pop_i64_u();
 
@@ -143,7 +143,7 @@ pub fn host_copy_heap_to_memory(
         std::ptr::copy(
             src_heap_ptr,
             dst_host_ptr as *mut u8,
-            length_in_bytes as usize,
+            count as usize,
         )
     };
 
@@ -155,9 +155,9 @@ pub fn host_copy_memory_to_heap(
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // copy data from host memory to VM heap
-    // (operand dst_offset:i64 src_pointer:i64 length_in_bytes:i64)
+    // () (operand dst_addr:i64 src_pointer:i64 count:i64) -> ()
 
-    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let count = thread_context.stack.pop_i64_u();
     let src_host_ptr = thread_context.stack.pop_i64_u();
     let dst_heap_address = thread_context.stack.pop_i64_u();
 
@@ -166,7 +166,7 @@ pub fn host_copy_memory_to_heap(
         std::ptr::copy(
             src_host_ptr as *const u8,
             dst_heap_ptr,
-            length_in_bytes as usize,
+            count as usize,
         )
     };
 
@@ -175,9 +175,9 @@ pub fn host_copy_memory_to_heap(
 
 pub fn host_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // copy data between host memory
-    // (operand dst_pointer:i64 src_pointer:i64 length_in_bytes:i64)
+    // (operand dst_pointer:i64 src_pointer:i64 count:i64)
 
-    let length_in_bytes = thread_context.stack.pop_i64_u();
+    let count = thread_context.stack.pop_i64_u();
     let src_host_ptr = thread_context.stack.pop_i64_u();
     let dst_host_ptr = thread_context.stack.pop_i64_u();
 
@@ -185,7 +185,7 @@ pub fn host_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) 
         std::ptr::copy(
             src_host_ptr as *const u8,
             dst_host_ptr as *mut u8,
-            length_in_bytes as usize,
+            count as usize,
         )
     };
 
@@ -467,32 +467,6 @@ mod tests {
         //
         // read the values of data and local variables through the host address.
 
-        // bytecode:
-        //
-        // 0x0000  41 01 00 00  17 00 00 00    imm_i64           low:0x00000017  high:0x00000000
-        //         00 00 00 00
-        // 0x000c  c9 01 00 00  02 00 00 00    data_store_i64    off:0x00  idx:2
-        // 0x0014  40 01 00 00  19 00 00 00    imm_i32           0x00000019
-        // 0x001c  ca 01 00 00  03 00 00 00    data_store_i32    off:0x00  idx:3
-        // 0x0024  40 01 00 00  23 00 00 00    imm_i32           0x00000023
-        // 0x002c  ca 01 00 00  04 00 00 00    data_store_i32    off:0x00  idx:4
-        // 0x0034  41 01 00 00  29 00 00 00    imm_i64           low:0x00000029  high:0x00000000
-        //         00 00 00 00
-        // 0x0040  c9 01 00 00  05 00 00 00    data_store_i64    off:0x00  idx:5
-        // 0x0048  40 01 00 00  31 00 00 00    imm_i32           0x00000031
-        // 0x0050  8a 01 00 00  00 00 01 00    local_store_i32   rev:0   off:0x00  idx:1
-        // 0x0058  40 01 00 00  37 00 00 00    imm_i32           0x00000037
-        // 0x0060  8a 01 00 00  00 00 02 00    local_store_i32   rev:0   off:0x00  idx:2
-        // 0x0068  43 04 00 00  00 00 00 00    host_addr_data    off:0x00  idx:0
-        // 0x0070  43 04 00 00  01 00 00 00    host_addr_data    off:0x00  idx:1
-        // 0x0078  43 04 00 00  02 00 00 00    host_addr_data    off:0x00  idx:2
-        // 0x0080  43 04 00 00  03 00 00 00    host_addr_data    off:0x00  idx:3
-        // 0x0088  43 04 00 00  04 00 00 00    host_addr_data    off:0x00  idx:4
-        // 0x0090  43 04 00 00  05 00 00 00    host_addr_data    off:0x00  idx:5
-        // 0x0098  41 04 00 00  00 00 01 00    host_addr_local   rev:0   off:0x00  idx:1
-        // 0x00a0  41 04 00 00  00 00 02 00    host_addr_local   rev:0   off:0x00  idx:2
-        // 0x00a8  c0 03                       end
-
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i64(Opcode::imm_i64, 0x17)
             .append_opcode_i16_i32(Opcode::data_store_i64, 0, 2)
@@ -632,29 +606,6 @@ mod tests {
         //
         // read the values of data and local variables through the host address.
 
-        // bytecode:
-        //
-        // 0x0000  41 01 00 00  23 29 31 37    imm_i64           low:0x37312923  high:0x53474341
-        //         41 43 47 53
-        // 0x000c  89 01 00 00  00 00 01 00    local_store_i64   rev:0   off:0x00  idx:1
-        // 0x0014  40 01 00 00  00 00 00 00    imm_i32           0x00000000
-        // 0x001c  44 04 00 00  00 00 00 00    host_addr_data_extend  idx:0
-        // 0x0024  40 01 00 00  02 00 00 00    imm_i32           0x00000002
-        // 0x002c  44 04 00 00  00 00 00 00    host_addr_data_extend  idx:0
-        // 0x0034  40 01 00 00  02 00 00 00    imm_i32           0x00000002
-        // 0x003c  44 04 00 00  01 00 00 00    host_addr_data_extend  idx:1
-        // 0x0044  40 01 00 00  03 00 00 00    imm_i32           0x00000003
-        // 0x004c  44 04 00 00  01 00 00 00    host_addr_data_extend  idx:1
-        // 0x0054  40 01 00 00  00 00 00 00    imm_i32           0x00000000
-        // 0x005c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
-        // 0x0064  40 01 00 00  03 00 00 00    imm_i32           0x00000003
-        // 0x006c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
-        // 0x0074  40 01 00 00  06 00 00 00    imm_i32           0x00000006
-        // 0x007c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
-        // 0x0084  40 01 00 00  07 00 00 00    imm_i32           0x00000007
-        // 0x008c  42 04 00 00  01 00 00 00    host_addr_local_extend  rev:0   idx:1
-        // 0x0094  c0 03                       end
-
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i64(Opcode::imm_i64, 0x5347434137312923u64)
             .append_opcode_i16_i16_i16(Opcode::local_store_i64, 0, 0, 1)
@@ -761,37 +712,6 @@ mod tests {
         //
         // () -> (i64,i64,i64,i64,i64)
 
-        // bytecode:
-        //
-        // 0x0000  40 01 00 00  01 00 00 00    imm_i32           0x00000001
-        // 0x0008  43 02                       heap_resize
-        // 0x000a  00 01                       nop
-        // 0x000c  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
-        //         00 00 00 00
-        // 0x0018  40 01 00 00  02 03 05 07    imm_i32           0x07050302
-        // 0x0020  0a 02 00 00  00 00 00 00    heap_store_i32    off:0x00
-        // 0x0028  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
-        //         00 00 00 00
-        // 0x0034  41 01 00 00  11 13 17 19    imm_i64           low:0x19171311  high:0x37312923
-        //         23 29 31 37
-        // 0x0040  09 02 00 00  00 00 00 00    heap_store_i64    off:0x00
-        // 0x0048  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
-        //         00 00 00 00
-        // 0x0054  45 04 00 00  00 00 00 00    host_addr_heap    off:0x00
-        // 0x005c  41 01 00 00  00 01 00 00    imm_i64           low:0x00000100  high:0x00000000
-        //         00 00 00 00
-        // 0x0068  45 04 00 00  02 00 00 00    host_addr_heap    off:0x02
-        // 0x0070  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
-        //         00 00 00 00
-        // 0x007c  45 04 00 00  00 00 00 00    host_addr_heap    off:0x00
-        // 0x0084  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
-        //         00 00 00 00
-        // 0x0090  45 04 00 00  04 00 00 00    host_addr_heap    off:0x04
-        // 0x0098  41 01 00 00  00 02 00 00    imm_i64           low:0x00000200  high:0x00000000
-        //         00 00 00 00
-        // 0x00a4  45 04 00 00  07 00 00 00    host_addr_heap    off:0x07
-        // 0x00ac  c0 03                       end
-
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 1)
             .append_opcode(Opcode::heap_resize)
@@ -799,23 +719,23 @@ mod tests {
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0x07050302)
-            .append_opcode_i32(Opcode::heap_store_i32, 0)
+            .append_opcode_i16(Opcode::heap_store_i32, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x200)
             .append_opcode_i64(Opcode::imm_i64, 0x3731292319171311)
-            .append_opcode_i32(Opcode::heap_store_i64, 0)
+            .append_opcode_i16(Opcode::heap_store_i64, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i32(Opcode::host_addr_heap, 0)
+            .append_opcode_i16(Opcode::host_addr_heap, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i32(Opcode::host_addr_heap, 2)
+            .append_opcode_i16(Opcode::host_addr_heap, 2)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i32(Opcode::host_addr_heap, 0)
+            .append_opcode_i16(Opcode::host_addr_heap, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i32(Opcode::host_addr_heap, 4)
+            .append_opcode_i16(Opcode::host_addr_heap, 4)
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i32(Opcode::host_addr_heap, 7)
+            .append_opcode_i16(Opcode::host_addr_heap, 7)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

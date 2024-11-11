@@ -28,7 +28,7 @@ pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_load_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i64(
         thread_context,
         reversed_index,
@@ -84,7 +84,7 @@ pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_extend_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i32_s(
         thread_context,
         reversed_index,
@@ -127,7 +127,7 @@ pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_extend_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i32_u(
         thread_context,
         reversed_index,
@@ -170,7 +170,7 @@ pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_extend_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i16_s(
         thread_context,
         reversed_index,
@@ -213,7 +213,7 @@ pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_extend_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i16_u(
         thread_context,
         reversed_index,
@@ -256,7 +256,7 @@ pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_load_extend_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i8_s(
         thread_context,
         reversed_index,
@@ -299,7 +299,7 @@ pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_load_extend_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_i8_u(
         thread_context,
         reversed_index,
@@ -342,7 +342,7 @@ pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_load_extend_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_f32(
         thread_context,
         reversed_index,
@@ -385,7 +385,7 @@ pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_load_extend_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_load_f64(
         thread_context,
         reversed_index,
@@ -431,7 +431,7 @@ pub fn local_store_extend_i64(_handler: &Handler, thread_context: &mut ThreadCon
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_store_i64(
         thread_context,
         reversed_index,
@@ -478,7 +478,7 @@ pub fn local_store_extend_i32(_handler: &Handler, thread_context: &mut ThreadCon
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_store_i32(
         thread_context,
         reversed_index,
@@ -525,7 +525,7 @@ pub fn local_store_extend_i16(_handler: &Handler, thread_context: &mut ThreadCon
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_store_i16(
         thread_context,
         reversed_index,
@@ -572,7 +572,7 @@ pub fn local_store_extend_i8(_handler: &Handler, thread_context: &mut ThreadCont
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
-    let offset_bytes = thread_context.stack.pop_i32_u();
+    let offset_bytes = thread_context.stack.pop_i64_u();
     do_local_store_i8(
         thread_context,
         reversed_index,

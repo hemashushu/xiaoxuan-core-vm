@@ -265,6 +265,7 @@ mod tests {
                     url: "http://a.b/c".to_owned(),
                     reversion: "v1.0.1".to_owned(),
                     path: "/xyz".to_owned(),
+                    properties: None,
                 }))),
                 ModuleDependentType::Remote,
             ),
