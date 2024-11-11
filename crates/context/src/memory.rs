@@ -5,9 +5,9 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 /// in XiaoXuan Core VM, there are several objects belong to the memory class,
-/// includes the local variable area, (thread-local) data sections, stack, (thread-local) heap.
-/// this trait provides the ability of data loading and storing to memory,
-/// but does not involve the primitive data reading and writing.
+/// includes the local variable area, (thread-local) data sections, stack,
+/// (thread-local) heap. this trait provides the ability of data loading and
+/// storing in memory, but does not include the primitive data reading and writing.
 ///
 /// |---------------|
 /// | ReadOnlyData  |

@@ -16,22 +16,20 @@ use crate::{
 };
 
 /// the thread context of the VM.
-///
-/// `ThreadContext` is NOT thread safe, do NOT call functions of `ThreadContext`
-/// from multiple-threads.
 pub struct ThreadContext<'a> {
-    // operand stack also includes the function/block frame info
-    // when call a function or enter a block,
+    // the operand stack also contains the function/block frame information
+    // when a function is called or a block is entered,
     //
     // the default stack capacity is 32 KiB, when a new stack frame is created, the
-    // VM will check the capacity of the stack and ensure there is at lease 32 KiB
+    // VM checks the stack capacity and makes sure there is at least 32 KiB
     // for the current frame.
-    // the capacity of stack will be incremented in 32 KiB, i.e. the capacity will be
+    // the stack capacity is incremented in 32 KiB increments, i.e. the capacity will be
     // 32, 64, 96, 128 KiB and so on.
     //
-    // the following diagram demostrates the stack changing when entering or leaving a function/block.
+    // the following diagram shows how the stack changs when a function/block
+    // is entered or exited.
     //
-    // 1. function 1 is going to call function 2, the arguments are ready.
+    // 1. function 1 will call function 2, the arguments are ready.
     //
     // |         |
     // |         |
@@ -61,7 +59,7 @@ pub struct ThreadContext<'a> {
     // |   ...   |
     // \---------/
     //
-    // 3. function 2 is going to return function 1 with two results
+    // 3. function 2 will return function 1 with two results
     //
     // |         |
     // | resul 1 |
@@ -84,7 +82,7 @@ pub struct ThreadContext<'a> {
     // |   ...   |
     // \---------/
     //
-    // 4. returned
+    // 4. returns
     //
     // |         |     the results are copied to the position immediately following the
     // | resul 1 | <-- function 1 operands, all data between the results and FP 2 will be removed or overwrited.
@@ -95,11 +93,12 @@ pub struct ThreadContext<'a> {
     // |   ...   |
     // \---------/
     //
-    // returning multiple values:
+    // returns multiple values
+    // -----------------------
     //
-    // on most architecture, only one value can be returned in a function, or two values (e.g.
-    // rax/rdx on x86_64, x0/x1 on aarch64, a0/a1 on riscv), but the XiaoXuan ISA allows
-    // return multiple values in a function or a block, this is a kind of convenience when building
+    // on most architectures, only one value or two values can be returned in a function (e.g.
+    // rax/rdx on x86_64, x0/x1 on aarch64, a0/a1 on riscv), but the XiaoXuan Core VM allows
+    // returning multiple values in a function or a block, this is a kind of convenience when building
     // functions or control flow blocks.
     // however, when a XiaoXuan program need to interact with other programs built with other languages,
     // it is recommended that keep the function return only one value.
@@ -130,23 +129,26 @@ pub struct ThreadContext<'a> {
     pub environment: &'a Environment,
 }
 
-/// unlike the ELF and Linux runting environment, which all data and code of execuatable binary
+/// the PC
+/// ------
+///
+/// unlike the ELF and Linux running environment, which all data and code of executable binary
 /// are loaded into one memory space, and the execution state of instruction can be represented
 /// by a single number -- program counter (PC) or instruction pointer (IP).
-/// XiaoXuan application is consisted of several modules, each module contains its data and code,
-/// and code are seperated into several piece which called 'function'.
+/// XiaoXuan application is composed of several modules, each module contains its data and code,
+/// and code are separated into several pieces which called 'function'.
 /// so the PC in XiaoXuan Core VM is represented by a tuple of
 /// (module index, function index, instruction address)
 ///
-/// note that in the default VM implementation, the code of functions are join together,
-/// so the address of first instruction of a function is not always start with 0.
-/// for example, the 'instruction address' of the first function in a moudle is of course 0,
-/// the second will be N if the length of the first function's code is N, and
-/// the third will be N+M if the length of the second function's code is M, and so on.
+/// note that in the default VM implementation, the code of functions are joined together,
+/// so the address of the first instruction of a function does not always start with 0.
+/// for example, the 'instruction address' of the first function in a module is naturally 0,
+/// the second will be N if the length of the code of the first function is N, and
+/// the third will be N+M if the length of the code of the second function, and so on.
 ///
-/// on the other hand, a PC can only consists of 'module index' and 'instruction address', because
-/// the 'instruction address' implies the code starting position of a function, but for the sake
-/// of clarity, the field 'function index' is preserved here.
+/// on the other hand, a PC can only consist of 'module index' and 'instruction address', because
+/// the 'instruction address' implies the code start position of a function, but for the sake
+/// of clarity the 'function index' field is kept here.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
     pub instruction_address: usize,     // the address of instruction

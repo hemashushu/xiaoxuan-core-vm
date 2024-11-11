@@ -5,20 +5,20 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 // a module consists of two parts, data and code (i.e., instructions), which
-// are spread out in the several sections:
+// are divided into several sections:
 //
 // - type section
 //   the signature of a function, the types are also applied to the code blocks and external functions.
-// - local variable section
-//   a function is consists of a type, a local variable list, and instructions
+// - local variables section
+//   a function is consists of a type, a list of local variables, and instructions
 // - function section
 // - data sections
-//   there are 3 kinds of data section:
+//   there are 3 types of data sections:
 //   - read-only
 //   - read-write
 //   - uninit(uninitialized)
-//   all data are thread-local, so the read-write section will be cloned and the
-//   uninitialized section will be re-allocated when a new thread is created.
+//   all data is thread-local, so the read-write section will be cloned and the
+//   uninitialized section will be reallocated when a new thread is created.
 // - import module section
 // - import function section
 // - import data section
@@ -28,7 +28,7 @@
 // - external function section
 // - common property section
 //
-// a minimal module requires only 4 sections:
+// a minimal module needs only 4 sections:
 //
 // - type section
 // - local variable section
@@ -41,8 +41,8 @@
 // - read-write data section
 // - uninitialized data section
 //
-// other sections are not required during the runtime,
-// they are used for debug and linking:
+// other sections are not needed at the runtime,
+// they are used for debugging and linking:
 //
 // - function name section
 // - data name section
@@ -52,41 +52,41 @@
 // - external library section
 // - external function section
 //
-// note that when the 'bridge function' feature is enable, the
-// function name section and data name section are required.
+// note that if the 'bridge function feature' is enable, the
+// function name section and the data name section are required.
 
-// an application is consisted of one or more modules,
-// the main module and other modules will be linked,
-// all imports data and functions are resolved and
+// an application consists of one or more modules,
+// when the main module and other modules are linked,
+// all import data and functions are resolved and
 // stored in the following sections:
 //
 // - function index section
 // - index property section
 //
-// there are also several optional sections:
+// there are also some optional sections:
 //
 // - data index section
 // - external function index section
 // - unified external library section
-// - unified external functon section
+// - unified external function section
 // - module list section
 
-// the design of module
-// --------------------
+// the design of the module
+// ------------------------
 //
-// the loading and startup of XiaoXuan Core modules are extremely fast, because:
-// - there is no parsing process and copy overhead, the loading process actually does only two things:
-//   maps the module image file into memory, and
-//   locates the start and end positions of each sections.
-// - instructions are executed directly on the bytecode.
+// loading and starting XiaoXuan Core modules is extremely fast, because:
+// - there is no parsing process and copying overhead, the load process actually
+//   does only two things: maps the module image file into memory, and
+//   locates the start and end positions of each section.
+// - the instructions are executed directly on the bytecode.
 //
-// these allow the XiaoXuan Core applications to have almost no startup delay time.
+// this allows the XiaoXuan Core applications to have almost no startup delay.
 //
-// since XiaoXuan Core application starts up almost instantly, it is suitable for
-// using as 'function' in other applications.
+// since the XiaoXuan Core application starts almost instantly, it is suitable for
+// use as a 'function' in other applications.
 
-// the data type of image section fields
-// -------------------------------------
+// the data type of section fields
+// -------------------------------
 //
 // - u8
 //   data type, data section type, module share type
@@ -96,7 +96,7 @@
 // - u32
 //   section id, syscall number, env call number,
 //   module index, function type index, data index, local (variable list) index,
-//   function index, dynamic function index, c function index
+//   function index, dynamic function index, external function index
 
 use ancvm_isa::{IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMAT_MINOR_VERSION};
 

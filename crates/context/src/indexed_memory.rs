@@ -6,12 +6,12 @@
 
 use crate::memory::Memory;
 
-/// in the XiaoXuam Core VM, local variable memory and data memory is access
+/// in the XiaoXuam Core VM, local variable memory and data memory are accessed
 /// by the index instead of the "memory address (pointer)".
 ///
-/// this mechanism makes data access by (higher-level) programs more safe, and
-/// also makes high-level programming languages more efficient by eliminating
-/// the need to check boundaries over and over again when accessing an array
+/// this mechanism makes data access by (higher-level) programs more safer, and
+/// also makes high-level programming languages more efficient, since there is
+/// no need to repeatedly check boundaries when accessing an array
 /// using an index.
 ///
 /// e.g.

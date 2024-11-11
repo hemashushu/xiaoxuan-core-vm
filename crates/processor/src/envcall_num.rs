@@ -51,108 +51,16 @@ pub enum EnvCallNum {
     // 'fn () -> thread_id:u32'
     thread_id = 0x0140,
 
-    // craete a new thread and run the specified function (named 'thread start function')
-    // in the current module.
+    // thread model
+    // ------------
     //
-    // ```
-    // fn (function_public_index:u32,
-    //    thread_start_data_address_in_heap:u32,
-    //    thread_start_data_length:u32) -> child_thread_id:u32
-    // ```
-    //
-    // the value of 'thread_start_data_address' is the address of a data block in the heap, these
-    // data will be copied to the new thread (temporary on the VM host thread-local memory).
-    // the new thread can read the data through the function 'thread_start_data_read'.
-    //
-    // the signature of the 'thread start function' MUST exactly be:
-    // 'fn () -> exit_code:u64'
-    //
-    // it's similar to the 'int main(int argc, char* argv[])'
-    //
-    // the meaning of the 'exit_code' is defined by user,
-    // but in general convention, the 'exit_code' of the 'entry' function is defined as
-    // 0=thread exit with success, 1=thread exit with failure
-    thread_create,
-
-    // get the length of the thread start data
-    // 'fn () -> length:u32'
-    thread_start_data_length,
-
-    // read/copy the 'thread start data' from the host temporary memory to 'local variable'/data/'VM heap'
-    // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
-    //
-    // results:
-    // - actual_read_length: the length of data that actually read
-    thread_start_data_read,
-
-    // wait for the specified (child) thread to finish and collect resources of child thread,
-    // return the exit code of the 'thread start function'.
-    //
-    // 'fn (child_thread_id:u32) -> (thread_exit_code:u64/u32, thread_result:u32)'
-    //
-    // returns:
-    // - thread_exit_code: the meaning of the 'exit_code' is defined by user, the data type
-    //   of 'thread_exit_code' is platform dependent, e.g. u32 on 32-bit platforms,
-    //   u64 on 64-bit platforms.
-    // - thread_result: 0=success, 1=failure (or thread_not_found)
-    //
-    // the caller will be blocked if the child thread is running, when the child thread finish,
-    // the 'thread_wait_and_collect' gets the (thread_exit_code, thread_result), and the child thread
-    // will be removed from the 'child thread collection'.
-    //
-    // note that if the child thread is finish before the parent thread calls the
-    // function 'thread_wait_and_collect', in which case the resource of child thread
-    // will NOT be released, and it is store in the 'child thread collection' until
-    // the parent thread call 'thread_wait_and_collect'.
-    //
-    // in the other word, 'thread_wait_and_collect' is equivaent to the function 'thread.join()'
-    // in the other programming language, it is used to wait for child thread to stop or
-    // to collect the resources of the child thread.
-    thread_wait_and_collect,
-
-    // check whether the specified (child) thread is finish
-    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
-    //
-    // returns:
-    // - running_status:  0=running, 1=finish
-    // - thread_result: 0=success, 1=failure (thread_not_found)
-    thread_running_status,
-
-    // drop the specified (child) thread
-    // 'fn (child_thread_id:u32) -> ()'
-    thread_terminate,
-
-    // receive message from the upstream (parent) thread,
-    // the length (in bytes) of new message is return.
-    // 'fn () -> length:u32'
-    //
-    // this function will always block the current thread if there is no data available.
-    //
-    // when the pipe is closed, the child thread will be terminated as well,
-    // the child thread will be removed from the parent's 'child thread collection'
-    // automatically.
-    //
-    // so this function does not return 'thread_result' but just ignore errors,
-    // because the error means that the current thread
-    // is being terminated, there is no longer any sense in
-    // dealing with errors.
-    thread_receive_msg_from_parent,
-
-    // send message (from heap) to the upstream (parent) thread.
-    // this method will never block the current thread.
-    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
-    //
-    // returns:
-    // - thread_result: 0=success, 1=failed.
-    thread_send_msg_to_parent,
-
-    // the first start thread called the 'main thread', a thread
-    // can create one or more new threads, these threads called 'child thread's,
-    // and the creator called 'parent thread'.
-    // when the parent thread exit, all its 'child thread's will exit also.
+    // the first start thread is called the 'main thread', a thread
+    // can create one or more new threads, these threads are called 'child threads',
+    // and the creator is called 'parent thread'.
+    // when the parent thread exits, all its 'child threads' will also exit.
     //
     // a PIPE is created between the parent thread and child thread, they can
-    // comunicates through 'thread_msg_recive/thread_msg_send' and
+    // comunicate through 'thread_msg_recive/thread_msg_send' and
     // 'thread_msg_receive_from/thread_msg_send_to'. however, there is no direct PIPE
     // between child threads.
     //
@@ -168,7 +76,102 @@ pub enum EnvCallNum {
     //   |
     //   |-- child thread 1
     //   |
+
+
+    // create a new thread and execute the specified function (called a 'thread start function')
+    // in the current module.
     //
+    // ```
+    // fn (function_public_index:u32,
+    //    thread_start_data_address_in_heap:u32,
+    //    thread_start_data_length:u32) -> child_thread_id:u32
+    // ```
+    //
+    // the value of 'thread_start_data_address' is the address of a data block in the heap, this
+    // data is copied to the new thread (temporarily on the VM host thread-local memory).
+    // the new thread can read the data using the function 'thread_start_data_read'.
+    //
+    // the signature of the 'thread start function' MUST be exactly:
+    // 'fn () -> exit_code:u64'
+    //
+    // it's similar to the 'int main(int argc, char* argv[])'
+    //
+    // the meaning of the 'exit_code' is defined by the user,
+    // but by general convention, the 'exit_code' of the 'entry' function is defined as:
+    // - 0, thread exit on success
+    // - 1, thread exit on failure
+    thread_create,
+
+    // get the length of the thread start data
+    // 'fn () -> length:u32'
+    thread_start_data_length,
+
+    // read/copy the 'thread start data' from the host temporary memory to 'local variable'/data/'VM heap'
+    // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
+    //
+    // results:
+    // - actual_read_length: the length of data that actually read
+    thread_start_data_read,
+
+    // wait for the specified child thread to finish and collect resources from the child thread,
+    // return the exit code of the 'thread start function'.
+    //
+    // 'fn (child_thread_id:u32) -> (thread_exit_code:u64/u32, thread_result:u32)'
+    //
+    // returns:
+    // - thread_exit_code: the meaning of the 'exit_code' is user defined, the datatype
+    //   of 'thread_exit_code' is platform-dependent, e.g. u32 on 32-bit platforms,
+    //   u64 on 64-bit platforms.
+    // - thread_result: 0=success, 1=failure (or thread_not_found)
+    //
+    // the caller will be blocked if the child thread is running, when the child thread finishes,
+    // the 'thread_wait_and_collect' will get the (thread_exit_code, thread_result), and the child thread
+    // will be removed from the 'child thread collection'.
+    //
+    // note that if the child thread is finished before the parent thread calls the
+    // function 'thread_wait_and_collect', in this case the resource of the child thread
+    // will NOT be released, and it will be store in the 'child thread collection' until
+    // the parent thread calls 'thread_wait_and_collect'.
+    //
+    // in the other word, 'thread_wait_and_collect' is equivalent to the function 'thread.join()'
+    // in the other programming language, it is used to wait for the child thread to stop or
+    // to collect the resources of the child thread.
+    thread_wait_and_collect,
+
+    // check whether the specified (child) thread is finish
+    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
+    //
+    // returns:
+    // - running_status:  0=running, 1=finish
+    // - thread_result: 0=success, 1=failure (thread_not_found)
+    thread_running_status,
+
+    // drop the specified (child) thread
+    // 'fn (child_thread_id:u32) -> ()'
+    thread_terminate,
+
+    // receives a message from the parent thread,
+    // it returns the length (in bytes) of the new message.
+    //
+    // 'fn () -> length:u32'
+    //
+    // this function will always block the current thread if there is no data available.
+    //
+    // when the pipe is closed, the child thread is also closed,
+    // the child thread is automatically removed from the parent's 'child thread collection'.
+    // so this function does not return 'thread_result', it simply ignores errors,
+    // because the error means that the current thread will be terminated,
+    // there is no point in dealing with errors anymore.
+    thread_receive_msg_from_parent,
+
+    // send message (from heap) to the parent thread.
+    // this method will never block the current thread.
+    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
+    //
+    // returns:
+    // - thread_result: 0=success, 1=failed.
+    thread_send_msg_to_parent,
+
     // receive message from the specified (child) thread.
     // this function will always block the current thread if there is no data available.
     // the 'thread_result' will be '1=failure' when the PIPE (or the child thread) is close or

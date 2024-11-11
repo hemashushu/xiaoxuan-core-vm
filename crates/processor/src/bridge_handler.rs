@@ -7,8 +7,8 @@
 // the bridge function
 // -------------------
 //
-// on C/Rust application, embeds the XiaoXuan Core VM and script as a library
-// and calls VM function as if it is a native C/Rust function.
+// the bridge function allows a C/Rust application to embed the XiaoXuan Core VM and
+// image as a library and call the VM function as if it were a native C/Rust function.
 //
 //
 //    C/Rust application                  runtime (native)
@@ -30,13 +30,13 @@
 //                                     \------------------------/
 //
 
-// 'bridge function' is actually a native function which is created at runtime (it is similar to JIT),
-// the principle of building native funtion at runtime is quite simple:
+// 'bridge function' is actually a native function that is built at runtime (it is similar to JIT),
+// the principle of building native function at runtime is quite simple:
 //
-// 1. allocates a block/region of memeory (posix_memalign/mmap, VirtualAlloc(windows))
-// 2. set the memory permission to READ+WRITE (optional, vecause this is the default permissions)
-// 3. copy the native code of function to the memory
-// 4. set the memory permission to READ+EXEC (by function `mprotect`, `VirtualProtect(windows)`)
+// 1. allocate a block/region of memory (posix_memalign/mmap, VirtualAlloc(windows))
+// 2. set the memory permissions to READ+WRITE (optional, vecause this is the default permissions)
+// 3. copy the native code of the function to the memory
+// 4. set the memory permission to READ+EXEC (using the function `mprotect` or `VirtualProtect(windows)`)
 //
 // the following is a snippet for creating a simple native function:
 //
@@ -110,7 +110,7 @@
 //     println!("function return: 0x{:x}", val);
 // }
 //
-// however, to build native functions on various platforms is a boring job,
+// however, to build native functions on different platforms is a boring job,
 // to make life easy, this module uses crate 'cranelift-jit' to build the bridge functions :D.
 
 // the bridge callback function

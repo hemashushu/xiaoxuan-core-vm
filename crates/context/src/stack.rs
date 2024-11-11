@@ -16,19 +16,20 @@ use crate::{
 pub struct Stack {
     data: Vec<u8>,
 
-    // a temporary storage.
+    // a temporary memory.
     //
-    // when creating a new stack frame:
+    // when a new stack frame is created:
     //
-    // 1. the arguments (i.e. the operands on the top of stack) are moved from stack to swap first,
+    // 1. the arguments (i.e. the operands at the top of the stack) are first moved
+    //    from stack to swap,
     // 2. then the frame information is created,
-    // 3. as well as allocating local variables area,
-    // 4. finnaly the arguments are restored from the swap to stack.
+    // 3. the local variable area is allocated.
+    // 4. finally, the arguments are restored from the swap to stack.
     //
     // when exiting a stack frame:
     //
-    // 1. the results (i.e. the operands on the top of stack) are also moved to swap,
-    // 2. then remove frame and all operands that follows this frame
+    // 1. the results (i.e. the operands at the top of the stack) are also moved to swap,
+    // 2. then remove the frame and all operands that follow this frame.
     // 3. the results are restored from the swap.
     swap: Vec<u8>,
 
