@@ -29,18 +29,6 @@
 //              | ...                                                                                                  |
 //              |------------------------------------------------------------------------------------------------------|
 //
-// data size and alignment
-//
-// | type  | size | alignment |
-// |-------|------|-----------|
-// | i32   | 4    | 4         |
-// | i64   | 8    | 8         |
-// | f32   | 4    | 4         |
-// | f64   | 8    | 8         |
-// | raw   | -    | -         |
-//
-// when storing "struct" data, the data type "byte" should be used, as well as
-// the alignment should be speicified.
 
 use ancvm_isa::MemoryDataType;
 
@@ -81,10 +69,21 @@ pub struct DataItem {
 
     // the align field is not necessary for data loading and storing at runtime,
     // because the value of 'data_offset' is implied the 'align' at compilation time,
-    // but it is also needed when copying data into other memory, such as
-    // copying a struct from data section into heap.
+    // but it is also necessary in this table, because when data is copied into other memory, such as
+    // copied a struct from data section into heap, the alignment is needed.
     //
-    // the value of this field should not be '0'
+    // the value of this field depeonds the data type, and it should never be '0'
+    //
+    // | type  | size | alignment |
+    // |-------|------|-----------|
+    // | i32   | 4    | 4         |
+    // | i64   | 8    | 8         |
+    // | f32   | 4    | 4         |
+    // | f64   | 8    | 8         |
+    // | raw   | -    | -         |
+    //
+    // if the content of data is "struct", the data type "byte" should be used, and
+    // the alignment should be speicified.
     pub data_align: u16,
 }
 

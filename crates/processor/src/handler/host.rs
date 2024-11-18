@@ -139,13 +139,7 @@ pub fn host_copy_heap_to_memory(
     let dst_host_ptr = thread_context.stack.pop_i64_u();
 
     let src_heap_ptr = thread_context.heap.get_ptr(src_heap_address as usize);
-    unsafe {
-        std::ptr::copy(
-            src_heap_ptr,
-            dst_host_ptr as *mut u8,
-            count as usize,
-        )
-    };
+    unsafe { std::ptr::copy(src_heap_ptr, dst_host_ptr as *mut u8, count as usize) };
 
     HandleResult::Move(2)
 }
@@ -162,13 +156,7 @@ pub fn host_copy_memory_to_heap(
     let dst_heap_address = thread_context.stack.pop_i64_u();
 
     let dst_heap_ptr = thread_context.heap.get_mut_ptr(dst_heap_address as usize);
-    unsafe {
-        std::ptr::copy(
-            src_host_ptr as *const u8,
-            dst_heap_ptr,
-            count as usize,
-        )
-    };
+    unsafe { std::ptr::copy(src_host_ptr as *const u8, dst_heap_ptr, count as usize) };
 
     HandleResult::Move(2)
 }
@@ -534,14 +522,17 @@ mod tests {
             ], // local variables
             code0,
             vec![
-                InitedDataEntry::from_i32(0x11),
-                InitedDataEntry::from_i32(0x13),
+                InitedDataEntry::from_i32(0x11), // ro, data idx: 0
+                InitedDataEntry::from_i32(0x13), // ro, data idx: 1
             ],
             vec![
-                InitedDataEntry::from_i64(0xee), // init data
-                InitedDataEntry::from_i32(0xff), // init data
+                InitedDataEntry::from_i64(0xee), // rw, data idx: 2
+                InitedDataEntry::from_i32(0xff), // rw, data idx: 3
             ],
-            vec![UninitDataEntry::from_i32(), UninitDataEntry::from_i64()],
+            vec![
+                UninitDataEntry::from_i32(), // bss, data idx: 4
+                UninitDataEntry::from_i64(), // bss, data idx: 5
+            ],
         );
 
         let handler = Handler::new();

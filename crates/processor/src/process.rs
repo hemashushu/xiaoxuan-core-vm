@@ -9,7 +9,7 @@ use ancvm_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
     handler::{HandleResult, Handler},
-    HandlerError, HandleErrorType,
+    HandleErrorType, HandlerError,
 };
 
 // when the function call is a nested (in a callback function loop),
@@ -193,7 +193,8 @@ pub fn process_continuous_instructions(
     }
 }
 
-pub fn process_instruction(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+#[inline]
+fn process_instruction(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let opcode_num = thread_context.get_opcode_num();
     let function = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
     function(handler, thread_context)

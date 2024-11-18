@@ -76,7 +76,55 @@ pub enum EnvCallNum {
     //   |
     //   |-- child thread 1
     //   |
-
+    //
+    //     child thread                              pipe         parent thread
+    //   /--------------------------------\      /-----------\    /----------\
+    //   |                                |-\    |  receive  |    |          |
+    //   |                           RX <---------------------------- TX     |
+    //   |                           TX ----------------------------> RX     |
+    //   |                                | |    |  send     |    |          |
+    //   |                                | |    \-----------/    \----------/
+    //   |  /------\  /-------\           | |
+    //   |  | heap |  | stack |           | |
+    //   |  \------/  \-------/           | |
+    //   |                                | |
+    //   |  /-----------------\           | |
+    //   |  | SP, FP, PC      |           | |
+    //   |  \-----------------/           | |
+    //   |                                | |
+    //   |    module image                | |
+    //   |  /-----------------------\     | |
+    //   |  | read-write data       |-\   | |
+    //   |  | uninit. data          | |   | |
+    //   |  |-----------------------| |   | |
+    //   |  | read-only data (ref)  | |   | |
+    //   |  | types (ref)           | |   | |
+    //   |  | functions (ref)       | |   | |
+    //   |  | local variables (ref) | |   | |
+    //   |  \-----------------------/ |   | |
+    //   |    \----------------------/    | |
+    //   |       module images            | |
+    //   |                                | |
+    //   \--------------------------------/ |
+    //     \--------------------------------/
+    //        child threads
+    //
+    // note that the heap, stack, data sections are all thread-local,
+    // by default the XiaoXuan has no 'global' data or variables.
+    // threads can only comunicate through PIPE.
+    //
+    // in the XiaoXuan Core VM, all 'objects' are thread-safe.
+    //
+    // the message pipe
+    // ----------------
+    //
+    // threads communicate through message pipe, the raw type of message is u8 array,
+    // so the message can be:
+    // - primitive data
+    // - a struct
+    // - an array
+    // - (the address of) a function
+    // - (the address of) a closure function
 
     // create a new thread and execute the specified function (called a 'thread start function')
     // in the current module.

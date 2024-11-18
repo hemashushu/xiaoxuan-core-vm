@@ -97,8 +97,8 @@ pub struct LocalVariableItem {
     // but it is needed for copying data into other memory, such as
     // copying a struct from local variables area to heap.
     //
-    // if the data is a byte array (includes string), the value should be 1,
-    // if the data is a struct, the value should be the max one of the length of its fields.
+    // if the content of data is a byte array (includes string), the value should be 1,
+    // if the content of data is a struct, the value should be the max one of the length of its fields.
     // currently the MAX value of align is 8, MIN value is 1.
     pub var_align: u16,
 }

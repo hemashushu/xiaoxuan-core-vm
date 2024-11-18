@@ -39,8 +39,6 @@ pub enum HandleErrorType {
     OutOfBoundary,    // out of boundary
     ItemNotFound,     // the specified item (module, function or data) does not found.
     Panic(u32),
-    // Debug(u32),
-    // Unreachable(u32),
 }
 
 impl HandlerError {
