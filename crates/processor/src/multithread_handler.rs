@@ -12,9 +12,11 @@ use std::{
 };
 
 use anc_context::process_context::ProcessContext;
-use anc_isa::{ForeignValue, GenericError};
+use anc_isa::ForeignValue;
 
-use crate::{handler::Handler, process::process_function, HandleErrorType, HandlerError};
+use crate::{
+    handler::Handler, process::process_function, GenericError, HandleErrorType, HandlerError,
+};
 
 // these values should be 'process global', but the unit test
 // runs on parallel and overwrite these values each thread.

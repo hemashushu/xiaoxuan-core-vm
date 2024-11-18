@@ -1,14 +1,13 @@
 [package]
 name = "anc-context"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anc-isa = { path = "../isa" }
-anc-image = { path = "../image" }
-
+anc-isa = { path = "../../../xiaoxuan-core-isa" }
+anc-image = { path = "../../../xiaoxuan-core-image" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

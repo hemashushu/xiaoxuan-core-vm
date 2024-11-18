@@ -1,7 +1,5 @@
 [workspace]
 members = [
-    "crates/isa",
-    "crates/image",
     "crates/context",
     "crates/processor",
 ]

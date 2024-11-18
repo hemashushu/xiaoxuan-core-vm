@@ -71,3 +71,5 @@ impl Display for HandlerError {
 }
 
 impl std::error::Error for HandlerError {}
+
+pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
