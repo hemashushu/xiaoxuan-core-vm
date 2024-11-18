@@ -6,7 +6,7 @@
 
 use std::sync::Mutex;
 
-use ancvm_image::module_image::ModuleImage;
+use anc_image::module_image::ModuleImage;
 
 use crate::{
     environment::Environment, external_function_table::ExternalFunctionTable, heap::Heap,

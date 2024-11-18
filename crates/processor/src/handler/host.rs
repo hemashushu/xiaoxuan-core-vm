@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{memory::Memory, thread_context::ThreadContext};
+use anc_context::{memory::Memory, thread_context::ThreadContext};
 
 use crate::{
     bridge_handler::get_or_create_bridge_callback_function,
@@ -217,8 +217,8 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
 mod tests {
     use std::collections::HashMap;
 
-    use ancvm_context::{environment::Environment, resource::Resource};
-    use ancvm_image::{
+    use anc_context::{environment::Environment, resource::Resource};
+    use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
         entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
@@ -229,7 +229,7 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{
+    use anc_isa::{
         opcode::Opcode, ExternalLibraryDependentType, ExternalLibraryDependentValue, ForeignValue,
         OperandDataType,
     };
@@ -308,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_panic() {
+    fn test_handler_host_panic() {
         // () -> ()
         let code0 = BytecodeWriterHelper::new()
             .append_opcode(Opcode::nop)
@@ -340,7 +340,7 @@ mod tests {
 
     /*
     #[test]
-    fn test_interpreter_host_debug() {
+    fn test_handler_host_debug() {
         // () -> ()
 
         let code0 = BytecodeWriterHelper::new()
@@ -371,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_unreachable() {
+    fn test_handler_host_unreachable() {
         // () -> ()
 
         let code0 = BytecodeWriterHelper::new()
@@ -403,7 +403,7 @@ mod tests {
     */
 
     #[test]
-    fn test_interpreter_host_address_of_data_and_local_variables() {
+    fn test_handler_host_address_of_data_and_local_variables() {
         //        read-only data section
         //        ======================
         //
@@ -561,7 +561,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_address_of_data_and_local_variables_extend() {
+    fn test_handler_host_address_of_data_and_local_variables_extend() {
         //        read-only data section
         //        ======================
         //
@@ -690,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_address_heap() {
+    fn test_handler_host_address_heap() {
         //        heap
         //       |low address                high addr|
         //       |                                    |
@@ -774,7 +774,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_heap_copy() {
+    fn test_handler_host_heap_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> VM heap 0x100 with 8 bytes
@@ -846,7 +846,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_memory_copy() {
+    fn test_handler_host_memory_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> dst_ptr
@@ -914,7 +914,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_host_addr_function_and_callback_function() {
+    fn test_handler_host_addr_function_and_callback_function() {
         // the external function (a C function) in "libtest0.so.1":
         //
         // int do_something(int (*callback_function)(int), int a, int b)

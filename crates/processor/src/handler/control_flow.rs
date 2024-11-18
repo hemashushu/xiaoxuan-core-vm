@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{
+use anc_context::{
     thread_context::{ProgramCounter, ThreadContext},
     LOCAL_LIST_INDEX_NOT_EXIST,
 };
@@ -215,7 +215,7 @@ fn do_recur(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_image::{
+    use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry,
@@ -224,16 +224,16 @@ mod tests {
             HelperBlockSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
         HandleErrorType, HandlerError,
     };
-    use ancvm_context::resource::Resource;
+    use anc_context::resource::Resource;
 
     #[test]
-    fn test_interpreter_control_flow_block() {
+    fn test_handler_control_flow_block() {
         // fn () -> (i32, i32, i32, i32)
         //     (imm_i32 11)
         //     (imm_i32 13)
@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_block_with_args_and_results() {
+    fn test_handler_control_flow_block_with_args_and_results() {
         // fn () -> (i32, i32, i32)
         //     (imm_i32 11)
         //     (imm_i32 13)
@@ -384,7 +384,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_block_with_local_variables() {
+    fn test_handler_control_flow_block_with_local_variables() {
         // fn (a/0:i32, b/1:i32) -> (i32,i32,i32,i32,i32,i32,i32,i32)
         //     (local c/2:i32, d/3:i32)
         //     ;; c=a+1                     ;; 20
@@ -599,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_function() {
+    fn test_handler_control_flow_break_function() {
         // fn () -> (i32, i32)
         //     (imm_i32 11)
         //     (imm_i32 13)
@@ -651,7 +651,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_block() {
+    fn test_handler_control_flow_break_block() {
         // fn () -> (i32, i32, i32, i32)
         //     (imm_i32 11)
         //     (imm_i32 13)
@@ -737,7 +737,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_block_to_function() {
+    fn test_handler_control_flow_break_block_to_function() {
         // fn () -> (i32, i32)
         //     (imm_i32 11)
         //     (imm_i32 13)
@@ -813,7 +813,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_when() {
+    fn test_handler_control_flow_structure_when() {
         // fn $max (i32, i32) -> (i32)
         //     (local $ret/2 i32)
         //
@@ -904,7 +904,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_break_block_crossing() {
+    fn test_handler_control_flow_break_block_crossing() {
         // cross block breaking
         //
         // fn (i32) -> (i32 i32 i32 i32)
@@ -1046,7 +1046,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_if() {
+    fn test_handler_control_flow_structure_if() {
         // fn $max (i32, i32) -> (i32)
         //     (local_load32 0 0)
         //     (local_load32 0 1)
@@ -1126,7 +1126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_if_nested() {
+    fn test_handler_control_flow_structure_if_nested() {
         // fn $level (i32) -> (i32)
         //     (local_load32 0 0)
         //     (imm_i32 85)
@@ -1304,7 +1304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_branch() {
+    fn test_handler_control_flow_structure_branch() {
         // fn $level (i32) -> (i32)
         //     (block 1 1) ()->(i32)        ;; block 1 1
         //                                  ;; case 1
@@ -1507,7 +1507,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_branch_without_default_arm() {
+    fn test_handler_control_flow_structure_branch_without_default_arm() {
         // note
         // this test requires the instruction 'panic'
 
@@ -1671,7 +1671,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_loop() {
+    fn test_handler_control_flow_structure_loop() {
         // fn $accu (n/0:i32) -> (i32)
         //     (local sum/1:i32)
         //     (block 1 1) ;; ()->()
@@ -1794,7 +1794,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_loop_with_block_parameters() {
+    fn test_handler_control_flow_structure_loop_with_block_parameters() {
         // fn $accu (count/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; count
@@ -1920,7 +1920,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_loop_with_optimized_inst_break_nez() {
+    fn test_handler_control_flow_structure_loop_with_optimized_inst_break_nez() {
         // fn $accu_optimized (i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; count
@@ -2032,7 +2032,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_structure_loop_with_if() {
+    fn test_handler_control_flow_structure_loop_with_if() {
         // fn $accu (count/0:i32) -> (i32)
         //     zero                     ;; sum
         //     (local_load32 0 0)       ;; count
@@ -2161,7 +2161,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_function_tail_call() {
+    fn test_handler_control_flow_function_tail_call() {
         // fn $accu (sum/0:i32, n/1:i32) -> (i32)
         //                              ;; sum = sum + n
         //     (local_load32 0 0)
@@ -2274,7 +2274,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_function_tail_call_with_if() {
+    fn test_handler_control_flow_function_tail_call_with_if() {
         // fn $accu (sum:i32, n:i32) -> (i32)
         //     (local_load32 0 1)               ;; load n
         //     eqz_i32
@@ -2376,7 +2376,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_control_flow_function_tco_with_optimized_inst_recur_nez() {
+    fn test_handler_control_flow_function_tco_with_optimized_inst_recur_nez() {
         // fn $accu_opti (sum:i32, n:i32) -> (i32)
         //                          ;; sum + n
         //     (local_load32 0)

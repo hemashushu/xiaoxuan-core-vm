@@ -14,7 +14,7 @@
 // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
 // https://doc.rust-lang.org/stable/reference/items/functions.html
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use crate::{
     bridge_handler::{get_or_create_bridge_data, get_or_create_bridge_function},
@@ -94,8 +94,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::InitedDataEntry,
         utils::{
@@ -103,7 +103,7 @@ mod tests {
             helper_build_module_binary_with_single_function_and_data_sections,
         },
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
         bridge_process::{get_data, get_data_mut, get_function},

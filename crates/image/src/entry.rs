@@ -12,7 +12,7 @@
 //! access Sections through Entries, but Entries are not need
 //! at runtime, which accesses the binary image directly.
 
-use ancvm_isa::{
+use anc_isa::{
     DataSectionType, EffectiveVersion, ExternalLibraryDependentType, ExternalLibraryDependentValue,
     MemoryDataType, ModuleDependentType, ModuleDependentValue, OperandDataType,
 };

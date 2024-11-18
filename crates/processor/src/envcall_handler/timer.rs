@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
 use crate::handler::Handler;
@@ -31,12 +31,12 @@ pub fn time_now(_handler: &Handler, thread_context: &mut ThreadContext) {
 mod tests {
     use std::time::Duration;
 
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, OperandDataType};
+    use anc_isa::{opcode::Opcode, OperandDataType};
     use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
     use crate::{

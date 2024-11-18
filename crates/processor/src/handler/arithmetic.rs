@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use super::{HandleResult, Handler};
 
@@ -256,15 +256,15 @@ mod tests {
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
-    fn test_interpreter_arithmetic_i32() {
+    fn test_handler_arithmetic_i32() {
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -442,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_arithmetic_i64() {
+    fn test_handler_arithmetic_i64() {
         // numbers:
         //   - 0: 11
         //   - 1: 211
@@ -620,7 +620,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_arithmetic_f32() {
+    fn test_handler_arithmetic_f32() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123
@@ -686,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_arithmetic_f64() {
+    fn test_handler_arithmetic_f64() {
         // numbers:
         //   - 0: 1.414
         //   - 1: 4.123

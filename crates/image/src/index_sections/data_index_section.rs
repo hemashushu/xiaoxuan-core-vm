@@ -20,7 +20,7 @@
 //         | ...                                                                                                                            |
 //         |--------------------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::DataSectionType;
+use anc_isa::DataSectionType;
 
 use crate::{
     entry::DataIndexListEntry, module_image::{ModuleSectionId, RangeItem, SectionEntry}, tableaccess::{
@@ -169,7 +169,7 @@ impl<'a> DataIndexSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::DataSectionType;
+    use anc_isa::DataSectionType;
 
     use crate::{
         entry::DataIndexEntry, index_sections::data_index_section::{DataIndexItem, DataIndexSection, RangeItem}, module_image::SectionEntry

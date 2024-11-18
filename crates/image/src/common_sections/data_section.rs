@@ -30,7 +30,7 @@
 //              |------------------------------------------------------------------------------------------------------|
 //
 
-use ancvm_isa::MemoryDataType;
+use anc_isa::MemoryDataType;
 
 use crate::{
     entry::{InitedDataEntry, UninitDataEntry}, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{
@@ -284,7 +284,7 @@ impl UninitDataSection<'_> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::MemoryDataType;
+    use anc_isa::MemoryDataType;
 
     use crate::{
         common_sections::data_section::{

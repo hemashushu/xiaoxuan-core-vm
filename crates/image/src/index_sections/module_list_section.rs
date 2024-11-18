@@ -20,7 +20,7 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::ModuleDependentType;
+use anc_isa::ModuleDependentType;
 
 use crate::{
     entry::ImportModuleEntry,
@@ -159,7 +159,7 @@ mod tests {
 
     use core::str;
 
-    use ancvm_isa::{DependentRemote, ModuleDependentType, ModuleDependentValue};
+    use anc_isa::{DependentRemote, ModuleDependentType, ModuleDependentValue};
 
     use crate::{
         entry::ImportModuleEntry,

@@ -8,8 +8,8 @@ mod multithread;
 mod runtime_info;
 mod timer;
 
-use ancvm_context::thread_context::ThreadContext;
-use ancvm_image::bytecode_reader::format_bytecode_as_text;
+use anc_context::thread_context::ThreadContext;
+use anc_image::bytecode_reader::format_bytecode_as_text;
 
 use crate::{
     envcall_num::{EnvCallNum, MAX_ENVCALL_CODE_NUMBER},

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_isa::opcode::Opcode;
+use anc_isa::opcode::Opcode;
 
 // format the bytecode with fixed length hex:
 //
@@ -603,7 +603,7 @@ fn continue_read_param_i32_i32(codes: &[u8], offset: usize) -> (usize, u32, u32)
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::opcode::Opcode;
+    use anc_isa::opcode::Opcode;
     use pretty_assertions::assert_eq;
 
     use crate::{

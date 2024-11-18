@@ -6,11 +6,11 @@
 
 use std::sync::Mutex;
 
-use ancvm_context::{
+use anc_context::{
     environment::Environment, external_function_table::ExternalFunctionTable,
     process_context::ProcessContext, resource::Resource,
 };
-use ancvm_image::utils::helper_load_modules_from_binaries;
+use anc_image::{utils::helper_load_modules_from_binaries, BinaryError};
 
 /// An implement of 'Resource' for unit testing
 pub struct InMemoryResource {
@@ -40,7 +40,7 @@ impl InMemoryResource {
 }
 
 impl Resource for InMemoryResource {
-    fn create_process_context(&self) -> Result<ProcessContext, ancvm_image::BinaryError> {
+    fn create_process_context(&self) -> Result<ProcessContext, BinaryError> {
         let binaries_ref = self
             .module_binaries
             .iter()
@@ -63,15 +63,15 @@ impl Resource for InMemoryResource {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::{
+    use anc_context::{
         resizeable_memory::ResizeableMemory, resource::Resource, thread_context::ProgramCounter,
         INIT_HEAP_SIZE_IN_PAGES,
     };
-    use ancvm_image::{
+    use anc_image::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
-    use ancvm_isa::OperandDataType;
+    use anc_isa::OperandDataType;
 
     use crate::in_memory_resource::InMemoryResource;
 

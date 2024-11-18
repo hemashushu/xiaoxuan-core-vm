@@ -4,9 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_image::bytecode_reader::format_bytecode_as_text;
-use ancvm_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
+use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_image::bytecode_reader::format_bytecode_as_text;
+use anc_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
 
 use crate::{envcall_num::MAX_ENVCALL_CODE_NUMBER, envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc}, syscall_handler::{
     generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER,

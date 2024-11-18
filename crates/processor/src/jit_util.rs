@@ -6,7 +6,7 @@
 
 use std::sync::{Mutex, MutexGuard, Once};
 
-use ancvm_isa::OperandDataType;
+use anc_isa::OperandDataType;
 use cranelift_codegen::ir::types;
 use cranelift_codegen::{ir::Type, settings};
 use cranelift_codegen::settings::Configurable;

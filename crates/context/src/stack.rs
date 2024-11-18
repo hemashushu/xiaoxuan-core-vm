@@ -6,7 +6,7 @@
 
 use std::mem::size_of;
 
-use ancvm_isa::OPERAND_SIZE_IN_BYTES;
+use anc_isa::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
     memory::Memory, thread_context::ProgramCounter, typed_memory::TypedMemory,
@@ -928,7 +928,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
 mod tests {
     use std::mem::size_of;
 
-    use ancvm_isa::OPERAND_SIZE_IN_BYTES;
+    use anc_isa::OPERAND_SIZE_IN_BYTES;
 
     use crate::{
         memory::Memory,

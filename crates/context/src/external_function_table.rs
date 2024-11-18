@@ -22,7 +22,7 @@
 
 use std::{ffi::c_void, sync::Once};
 
-use ancvm_isa::OperandDataType;
+use anc_isa::OperandDataType;
 
 // the signature of the wrapper function
 pub type WrapperFunction = extern "C" fn(

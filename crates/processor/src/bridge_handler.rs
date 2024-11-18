@@ -152,8 +152,8 @@
 
 use std::sync::Mutex;
 
-use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_isa::{OperandDataType, OPERAND_SIZE_IN_BYTES};
+use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_isa::{OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{
     types, AbiParam, Function, InstBuilder, StackSlotData, StackSlotKind, UserFuncName,
 };

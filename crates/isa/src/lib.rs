@@ -112,7 +112,7 @@ pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 /// between `enum` and `u8` date, e.g.
 ///
 /// ```rust
-/// use ancvm_isa::OperandDataType;
+/// use anc_isa::OperandDataType;
 /// let a = unsafe { std::mem::transmute::<OperandDataType, u8>(OperandDataType::F32) };
 /// assert_eq!(a, 2);
 /// ```
@@ -120,7 +120,7 @@ pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 /// it can be also done through 'union', e.g.
 ///
 /// ```rust
-/// use ancvm_isa::OperandDataType;
+/// use anc_isa::OperandDataType;
 /// union S2U {
 ///     src: OperandDataType,
 ///     dst: u8
@@ -133,7 +133,7 @@ pub const OPERAND_SIZE_IN_BYTES: usize = 8;
 /// or, add `#[repr(u8)]` notation for converting enum to u8.
 ///
 /// ```rust
-/// use ancvm_isa::OperandDataType;
+/// use anc_isa::OperandDataType;
 /// let a = OperandDataType::F32 as u8;
 /// assert_eq!(a, 2);
 /// ```

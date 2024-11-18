@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{memory::Memory, thread_context::ThreadContext};
+use anc_context::{memory::Memory, thread_context::ThreadContext};
 
 use super::{HandleResult, Handler};
 
@@ -609,19 +609,19 @@ fn do_local_store_i8(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper, entry::LocalVariableEntry,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
 
     #[test]
-    fn test_interpreter_local_load_and_store() {
+    fn test_handler_local_load_and_store() {
         // args index (also local var):     0       1
         // data type:                       f32     f64
         //
@@ -756,7 +756,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_load_and_store_extend() {
+    fn test_handler_local_load_and_store_extend() {
         //       |low address                                 high address|
         //       |                                                        |
         // index |0                                  1                    |
@@ -882,7 +882,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_bounds_check_offset_out_of_range() {
+    fn test_handler_local_bounds_check_offset_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 2, 0)
@@ -915,7 +915,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_bounds_check_type_length_overflow() {
+    fn test_handler_local_bounds_check_type_length_overflow() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
@@ -947,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_bounds_check_index_out_of_range() {
+    fn test_handler_local_bounds_check_index_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 11)
             // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) (operand value:i32) -> ()
@@ -981,7 +981,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_local_bounds_check_extend_offset_out_of_range() {
+    fn test_handler_local_bounds_check_extend_offset_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             // offset for load
             .append_opcode_i32(Opcode::imm_i32, 2)

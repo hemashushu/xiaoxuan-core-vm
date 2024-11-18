@@ -1,13 +1,13 @@
 [package]
-name = "ancvm-context"
+name = "anc-context"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ancvm-isa = { path = "../isa" }
-ancvm-image = { path = "../image" }
+anc-isa = { path = "../isa" }
+anc-image = { path = "../image" }
 
 
 [dev-dependencies]

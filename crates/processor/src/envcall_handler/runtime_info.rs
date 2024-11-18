@@ -4,8 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
-use ancvm_isa::{
+use anc_context::thread_context::ThreadContext;
+use anc_isa::{
     RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
 };
 
@@ -45,12 +45,12 @@ pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry, utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{
+    use anc_isa::{
         opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION,
         RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
     };

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use super::{HandleResult, Handler};
 
@@ -538,20 +538,20 @@ fn do_data_store_i8(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::{InitedDataEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data_sections,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
 
     #[test]
-    fn test_interpreter_data_load_and_store_initialized() {
+    fn test_handler_data_load_and_store_initialized() {
         //        read-only data section
         //        ======================
         //
@@ -694,7 +694,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_load_and_store_uninitialized() {
+    fn test_handler_data_load_and_store_uninitialized() {
         //        read-only data section
         //        ======================
         //
@@ -851,7 +851,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_load_and_store_extend() {
+    fn test_handler_data_load_and_store_extend() {
         //        uninitialized data section
         //        ==========================
         //
@@ -983,7 +983,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_bounds_check_offset_out_of_range() {
+    fn test_handler_data_bounds_check_offset_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             // (param offset_bytes:i16 data_public_index:i32) -> i64
             .append_opcode_i16_i32(Opcode::data_load_i32_u, 2, 0)
@@ -1022,7 +1022,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_bounds_check_type_length_overflow() {
+    fn test_handler_data_bounds_check_type_length_overflow() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i32(Opcode::data_load_i64, 0, 0)
             .append_opcode(Opcode::end)
@@ -1057,7 +1057,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_bounds_check_index_out_of_range() {
+    fn test_handler_data_bounds_check_index_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 11)
             // (param offset_bytes:i16 data_public_index:i32) (operand value:i32) -> ()
@@ -1094,7 +1094,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_data_bounds_check_extend_offset_out_of_range() {
+    fn test_handler_data_bounds_check_extend_offset_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             // offset for load
             .append_opcode_i32(Opcode::imm_i32, 2)

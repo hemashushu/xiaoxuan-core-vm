@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use super::{HandleResult, Handler};
 
@@ -148,15 +148,15 @@ mod tests {
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
 
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
-    fn test_interpreter_conversion_extend_and_truncate() {
+    fn test_handler_conversion_extend_and_truncate() {
         // (i64, i32)  ->  (i64, i64, i32)
         //  |    |          ^    ^    ^
         //  |    | extend   |s   |u   |
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_conversion_demote_and_promote() {
+    fn test_handler_conversion_demote_and_promote() {
         // (f64, f32)  ->  (f64, f32)
         //  |    |          ^    ^
         //  |    | promote  |    |
@@ -258,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_conversion_float_to_int() {
+    fn test_handler_conversion_float_to_int() {
         // (f32,              f64,            -f32,             -f64)
         //  |                 |                |                 |
         //  |                 |                |                 |
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_conversion_int_to_float() {
+    fn test_handler_conversion_int_to_float() {
         // (i32,              i64,            -i32,             -i64)
         //  |                 |                |                 |
         //  |                 |                |                 |

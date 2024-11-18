@@ -6,7 +6,7 @@
 
 use std::io::Write;
 
-use ancvm_isa::opcode::Opcode;
+use anc_isa::opcode::Opcode;
 
 pub struct BytecodeWriter {
     buffer: Vec<u8>, // trait std::io::Write
@@ -347,7 +347,7 @@ impl Default for BytecodeWriterHelper {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::opcode::Opcode;
+    use anc_isa::opcode::Opcode;
     use pretty_assertions::assert_eq;
 
     use crate::bytecode_writer::BytecodeWriterHelper;

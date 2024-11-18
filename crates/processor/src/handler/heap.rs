@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::{
+use anc_context::{
     memory::Memory, resizeable_memory::ResizeableMemory, thread_context::ThreadContext,
 };
 
@@ -212,15 +212,15 @@ mod tests {
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
-    fn test_interpreter_heap_capacity() {
+    fn test_handler_heap_capacity() {
         // () -> (i64, i64, i64, i64, i64)
 
         let code0 = BytecodeWriterHelper::new()
@@ -273,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_heap_load_and_store() {
+    fn test_handler_heap_load_and_store() {
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |

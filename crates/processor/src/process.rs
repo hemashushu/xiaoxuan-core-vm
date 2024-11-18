@@ -4,8 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
     handler::{HandleResult, Handler},

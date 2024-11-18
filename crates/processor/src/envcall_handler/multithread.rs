@@ -6,7 +6,7 @@
 
 use std::{thread, time::Duration};
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use crate::{
     handler::Handler,
@@ -388,8 +388,8 @@ pub fn thread_sleep(_handler: &Handler, thread_context: &mut ThreadContext) {
 mod tests {
     use std::time::Instant;
 
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry,
         utils::{
@@ -398,7 +398,7 @@ mod tests {
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{opcode::Opcode, OperandDataType};
+    use anc_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
         envcall_num::EnvCallNum, in_memory_resource::InMemoryResource,

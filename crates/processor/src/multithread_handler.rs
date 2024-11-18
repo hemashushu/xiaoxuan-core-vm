@@ -11,8 +11,8 @@ use std::{
     thread::JoinHandle,
 };
 
-use ancvm_context::process_context::ProcessContext;
-use ancvm_isa::{ForeignValue, GenericError};
+use anc_context::process_context::ProcessContext;
+use anc_isa::{ForeignValue, GenericError};
 
 use crate::{handler::Handler, process::process_function, HandleErrorType, HandlerError};
 

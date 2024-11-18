@@ -18,7 +18,7 @@
 //              | ...                                                                                                                                  |
 //              |--------------------------------------------------------------------------------------------------------------------------------------|
 
-use ancvm_isa::{DataSectionType, MemoryDataType};
+use anc_isa::{DataSectionType, MemoryDataType};
 
 use crate::{
     entry::ImportDataEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}
@@ -133,7 +133,7 @@ impl<'a> ImportDataSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{DataSectionType, MemoryDataType};
+    use anc_isa::{DataSectionType, MemoryDataType};
 
     use crate::{common_sections::import_data_section::{ImportDataItem, ImportDataSection}, entry::ImportDataEntry, module_image::SectionEntry};
 

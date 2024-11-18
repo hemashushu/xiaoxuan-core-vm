@@ -98,7 +98,7 @@
 //   module index, function type index, data index, local (variable list) index,
 //   function index, dynamic function index, external function index
 
-use ancvm_isa::{IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMAT_MINOR_VERSION};
+use anc_isa::{IMAGE_FILE_MAGIC_NUMBER, IMAGE_FORMAT_MAJOR_VERSION, IMAGE_FORMAT_MINOR_VERSION};
 
 use crate::{
     common_sections::{
@@ -536,7 +536,7 @@ impl<'a> ModuleImage<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::{MemoryDataType, OperandDataType};
+    use anc_isa::{MemoryDataType, OperandDataType};
 
     use crate::{
         common_sections::{

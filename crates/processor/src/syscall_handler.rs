@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 use syscall_util::call::{
     syscall_with_1_arg, syscall_with_2_args, syscall_with_3_args, syscall_with_4_args,
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,

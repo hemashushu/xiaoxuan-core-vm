@@ -4,8 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::process_context::ProcessContext;
-use ancvm_isa::{ForeignValue, GenericError};
+use anc_context::process_context::ProcessContext;
+use anc_isa::{ForeignValue, GenericError};
 
 use crate::{
     handler::Handler,
@@ -111,12 +111,12 @@ pub fn start_with_single_thread(
 
 #[cfg(test)]
 mod tests {
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, OperandDataType};
+    use anc_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
         in_memory_resource::InMemoryResource,

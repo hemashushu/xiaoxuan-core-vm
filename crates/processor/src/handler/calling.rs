@@ -4,8 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::{ProgramCounter, ThreadContext};
-use ancvm_isa::OPERAND_SIZE_IN_BYTES;
+use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_isa::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
     extcall_handler::get_or_create_external_function, PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE,
@@ -176,8 +176,8 @@ pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 mod tests {
     use std::collections::HashMap;
 
-    use ancvm_context::{environment::Environment, resource::Resource};
-    use ancvm_image::{
+    use anc_context::{environment::Environment, resource::Resource};
+    use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
         entry::{InitedDataEntry, TypeEntry},
@@ -190,7 +190,7 @@ mod tests {
             HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
         },
     };
-    use ancvm_isa::{
+    use anc_isa::{
         opcode::Opcode, ExternalLibraryDependentType, ExternalLibraryDependentValue, ForeignValue,
         OperandDataType,
     };
@@ -202,7 +202,7 @@ mod tests {
     };
 
     #[test]
-    fn test_interpreter_function_call() {
+    fn test_handler_function_call() {
         // fn $test (i32) -> (i32)
         //     (call $sum_square)
         // end
@@ -330,7 +330,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_function_call_dyncall() {
+    fn test_handler_function_call_dyncall() {
         // fn $test () -> (i32, i32, i32, i32, i32)
         //     (imm_i32 2)
         //     (dyncall)
@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_syscall_without_args() {
+    fn test_handler_syscall_without_args() {
         // fn $test () -> (result:i64 errno:i32)
 
         // syscall:
@@ -499,7 +499,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_syscall_with_2_args() {
+    fn test_handler_syscall_with_2_args() {
         // fn $test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
 
         // syscall:
@@ -563,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_syscall_error_no() {
+    fn test_handler_syscall_error_no() {
         // fn $test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
 
         // syscall:
@@ -633,7 +633,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_extcall_with_system_libc_getuid() {
+    fn test_handler_extcall_with_system_libc_getuid() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
             //
@@ -685,7 +685,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_extcall_with_system_libc_getenv() {
+    fn test_handler_extcall_with_system_libc_getenv() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external function param 0
             //
@@ -742,7 +742,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_extcall_with_user_lib() {
+    fn test_handler_extcall_with_user_lib() {
         // (i32,i32) -> (i32)
 
         // 'libtest0.so.1'

@@ -22,7 +22,7 @@
 
 use std::ptr::slice_from_raw_parts;
 
-use ancvm_isa::OperandDataType;
+use anc_isa::OperandDataType;
 
 use crate::{
     entry::TypeEntry, module_image::{ModuleSectionId, SectionEntry}, tableaccess::{load_section_with_table_and_data_area, save_section_with_table_and_data_area}

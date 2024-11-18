@@ -1,12 +1,12 @@
 [package]
-name = "ancvm-image"
+name = "anc-image"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ancvm-isa = { path = "../isa" }
+anc-isa = { path = "../isa" }
 ason = "1.0"
 
 [dev-dependencies]

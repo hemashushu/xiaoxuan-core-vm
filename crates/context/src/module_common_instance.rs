@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_image::{
+use anc_image::{
     common_sections::{
         data_name_section::DataNameSection, function_name_section::FunctionNameSection,
         function_section::FunctionSection, local_variable_section::LocalVariableSection,

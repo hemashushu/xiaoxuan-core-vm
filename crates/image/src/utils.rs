@@ -14,7 +14,7 @@ use crate::entry::{
 };
 use crate::index_sections::index_property_section::IndexPropertySection;
 use crate::BinaryError;
-use ancvm_isa::{
+use anc_isa::{
     DataSectionType, ExternalLibraryDependentType, ExternalLibraryDependentValue, OperandDataType,
     RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION,
 };
@@ -655,7 +655,7 @@ fn helper_new_local_variable_entry(operand_data_type: OperandDataType) -> LocalV
 mod tests {
     use core::str;
 
-    use ancvm_isa::{
+    use anc_isa::{
         DataSectionType, DependentShare, ExternalLibraryDependentType,
         ExternalLibraryDependentValue, MemoryDataType, OperandDataType,
     };

@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use ancvm_context::thread_context::ThreadContext;
+use anc_context::thread_context::ThreadContext;
 
 use super::{HandleResult, Handler};
 
@@ -106,15 +106,15 @@ mod tests {
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
     };
-    use ancvm_context::resource::Resource;
-    use ancvm_image::{
+    use anc_context::resource::Resource;
+    use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
-    use ancvm_isa::{opcode::Opcode, ForeignValue, OperandDataType};
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
-    fn test_interpreter_fundamental_nop() {
+    fn test_handler_fundamental_nop() {
         // bytecodes
         //
         // 0x0000  00 01                       nop
@@ -152,7 +152,7 @@ mod tests {
 
     /*
     #[test]
-    fn test_interpreter_fundamental_zero() {
+    fn test_handler_fundamental_zero() {
         // () -> (i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode(Opcode::zero)
@@ -177,7 +177,7 @@ mod tests {
 
     /*
     #[test]
-    fn test_interpreter_fundamental_drop() {
+    fn test_handler_fundamental_drop() {
         // () -> (i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 13)
@@ -202,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_fundamental_duplicate() {
+    fn test_handler_fundamental_duplicate() {
         // () -> (i32, i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 19)
@@ -229,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_fundamental_swap() {
+    fn test_handler_fundamental_swap() {
         // () -> (i32, i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 211)
@@ -259,7 +259,7 @@ mod tests {
 
     /*
     #[test]
-    fn test_interpreter_fundamental_select_nez_false() {
+    fn test_handler_fundamental_select_nez_false() {
         // () -> (i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 11)
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_fundamental_select_nez_true() {
+    fn test_handler_fundamental_select_nez_true() {
         // () -> (i32)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 11)
@@ -312,7 +312,7 @@ mod tests {
      */
 
     #[test]
-    fn test_interpreter_fundamental_immediate_integer() {
+    fn test_handler_fundamental_immediate_integer() {
         // bytecodes
         //
         // 0x0000  40 01 00 00  17 00 00 00    imm_i32           0x00000017
@@ -362,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_interpreter_fundamental_immediate_float() {
+    fn test_handler_fundamental_immediate_float() {
         // bytecodes
         //
         // 0x0000  42 01 00 00  db 0f 49 40    imm_f32           0x40490fdb

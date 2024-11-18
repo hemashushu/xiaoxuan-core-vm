@@ -1,5 +1,5 @@
 [package]
-name = "ancvm-isa"
+name = "anc-isa"
 version = "0.1.0"
 edition = "2021"
 

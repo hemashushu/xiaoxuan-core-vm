@@ -28,14 +28,14 @@
 use core::str;
 use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
-use ancvm_context::{
+use anc_context::{
     external_function_table::{
         ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
     thread_context::ThreadContext,
 };
-use ancvm_isa::{ExternalLibraryDependentValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use anc_isa::{ExternalLibraryDependentValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};

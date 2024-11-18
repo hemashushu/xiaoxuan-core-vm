@@ -23,7 +23,7 @@
 //              | ...                                                                         |
 //              |-----------------------------------------------------------------------------|
 
-use ancvm_isa::ExternalLibraryDependentType;
+use anc_isa::ExternalLibraryDependentType;
 
 use crate::{
     entry::UnifiedExternalLibraryEntry,
@@ -163,7 +163,7 @@ impl<'a> UnifiedExternalLibrarySection<'a> {
 mod tests {
     use core::str;
 
-    use ancvm_isa::{DependentRemote, ExternalLibraryDependentType, ExternalLibraryDependentValue};
+    use anc_isa::{DependentRemote, ExternalLibraryDependentType, ExternalLibraryDependentValue};
 
     use crate::{
         index_sections::unified_external_library_section::{

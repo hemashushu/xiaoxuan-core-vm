@@ -40,7 +40,7 @@
 
 use std::mem::size_of;
 
-use ancvm_isa::{MemoryDataType, OPERAND_SIZE_IN_BYTES};
+use anc_isa::{MemoryDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
     entry::{LocalVariableListEntry, LocalVariableEntry},
@@ -260,7 +260,7 @@ impl<'a> LocalVariableSection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ancvm_isa::MemoryDataType;
+    use anc_isa::MemoryDataType;
 
     use crate::{
         common_sections::local_variable_section::{
