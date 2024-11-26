@@ -421,6 +421,7 @@ impl Handler {
         handlers[Opcode::syscall as usize] = calling::syscall;
         handlers[Opcode::envcall as usize] = calling::envcall;
         handlers[Opcode::extcall as usize] = calling::extcall;
+        handlers[Opcode::pub_index_function as usize] = calling::pub_index_function;
 
         // host
         handlers[Opcode::panic as usize] = host::panic;

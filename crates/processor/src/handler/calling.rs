@@ -23,6 +23,12 @@ pub fn dyncall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     do_call(thread_context, function_public_index, 2)
 }
 
+pub fn pub_index_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    let function_public_index = thread_context.get_param_i32();
+    thread_context.stack.push_i32_u(function_public_index);
+    HandleResult::Move(8)
+}
+
 fn do_call(
     thread_context: &mut ThreadContext,
     function_public_index: u32,
@@ -252,10 +258,10 @@ mod tests {
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i32_i32(Opcode::block_alt,  4, 0x1c)
+            .append_opcode_i32_i32(Opcode::block_alt, 4, 0x1c)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-            .append_opcode_i32(Opcode::break_alt,  0x3a)
+            .append_opcode_i32(Opcode::break_alt, 0x3a)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
@@ -327,6 +333,74 @@ mod tests {
             &[ForeignValue::U32(5)],
         );
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55),]);
+    }
+
+    #[test]
+    fn test_handler_pub_index_function() {
+        // fn $test () -> (i32, i32)
+        //     (pub_index_function 1)
+        //     (pub_index_function 2)
+        // end
+        //
+        // fn $one (;1;) () -> (i32)
+        //     (imm_i32 11)
+        // end
+        //
+        // fn $two (;2;) () -> (i32)
+        //     (imm_i32 13)
+        // end
+
+        // expect (1, 2)
+        let code_main = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::pub_index_function, 1)
+            .append_opcode_i32(Opcode::pub_index_function, 2)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_one = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::imm_i32, 11)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let code_two = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::imm_i32, 13)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_functions_and_blocks(
+            vec![
+                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                    params: vec![],
+                    results: vec![OperandDataType::I32, OperandDataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_main,
+                },
+                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                    params: vec![],
+                    results: vec![OperandDataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_one,
+                },
+                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                    params: vec![],
+                    results: vec![OperandDataType::I32],
+                    local_variable_item_entries_without_args: vec![],
+                    code: code_two,
+                },
+            ],
+            vec![],
+        );
+
+        let handler = Handler::new();
+        let resource0 = InMemoryResource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let mut thread_context0 = process_context0.create_thread_context();
+
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        assert_eq!(
+            result0.unwrap(),
+            vec![ForeignValue::U32(1), ForeignValue::U32(2),]
+        );
     }
 
     #[test]
