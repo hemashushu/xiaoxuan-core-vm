@@ -226,13 +226,10 @@ mod tests {
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
             helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFunctionWithCodeAndLocalVariablesEntry,
+            HelperExternalFunctionEntry, HelperFunctionEntryWithCodeAndLocalVariables,
         },
     };
-    use anc_isa::{
-        opcode::Opcode, ExternalLibraryDependentType, ExternalLibraryDependentValue, ForeignValue,
-        OperandDataType,
-    };
+    use anc_isa::{opcode::Opcode, ExternalLibraryDependentValue, ForeignValue, OperandDataType};
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
@@ -985,12 +982,12 @@ mod tests {
                 }, // func1
             ], // types
             vec![
-                HelperFunctionWithCodeAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndLocalVariables {
                     type_index: 1,
                     local_variable_item_entries_without_args: vec![],
                     code: code0,
                 },
-                HelperFunctionWithCodeAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndLocalVariables {
                     type_index: 2,
                     local_variable_item_entries_without_args: vec![],
                     code: code1,
@@ -1000,7 +997,7 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                external_library_dependent_type: ExternalLibraryDependentType::Local,
+                // external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
                 library_value: Box::new(ExternalLibraryDependentValue::Local(
                     "lib/libtest0.so.1".to_owned(),

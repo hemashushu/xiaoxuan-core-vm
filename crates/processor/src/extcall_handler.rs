@@ -54,17 +54,20 @@ pub fn get_or_create_external_function(
     external_function_index: usize,
 ) -> Result<(*mut c_void, WrapperFunction, usize, bool), HandlerError> {
     // get the unified external function index
-    let (unified_external_function_index, type_index) = thread_context
+    let unified_external_function_index = thread_context
         .module_index_instance
         .external_function_index_section
-        .get_item_unified_external_function_index_and_type_index(
-            module_index,
-            external_function_index,
-        );
+        .get_item_unified_external_function_index(module_index, external_function_index);
+
+    let (external_function_name, unified_external_library_index, type_index) = thread_context
+        .module_index_instance
+        .unified_external_function_section
+        .get_item_name_and_external_library_index_and_type_index(unified_external_function_index);
 
     // get the data types of "params and results" of the external function
-    let (param_datatypes, result_datatypes) = thread_context.module_common_instances[module_index]
-        .type_section
+    let (param_datatypes, result_datatypes) = thread_context
+        .module_index_instance
+        .unified_external_type_section
         .get_item_params_and_results(type_index);
 
     let param_count = param_datatypes.len();
@@ -87,21 +90,20 @@ pub fn get_or_create_external_function(
         ));
     }
 
-    // get the name of the external function and
-    // the index of the unified external library
-    let (external_function_name, unified_external_library_index) = thread_context
-        .module_index_instance
-        .unified_external_function_section
-        .get_item_name_and_unified_external_library_index(unified_external_function_index);
+    // // get the name of the external function and
+    // // the index of the unified external library
+    // // let (external_function_name, unified_external_library_index) = thread_context
+    // //     .module_index_instance
+    // //     .unified_external_function_section
+    // //     .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
-    // get the file path or name of the external library
-    let (_, _, external_library_value) =
-        thread_context
-            .module_index_instance
-            .unified_external_library_section
-            .get_item_name_and_external_library_dependent_type_and_value(
-                unified_external_library_index,
-            );
+    // get the dependent info of the external library
+    let (_, _, external_library_value) = thread_context
+        .module_index_instance
+        .unified_external_library_section
+        .get_item_name_and_external_library_dependent_type_and_value(
+            unified_external_library_index,
+        );
 
     let value_str = unsafe { str::from_utf8_unchecked(external_library_value) };
 

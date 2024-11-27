@@ -191,15 +191,12 @@ mod tests {
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_functions_and_external_functions,
             helper_build_module_binary_with_single_function,
-            HelperBlockSignatureAndLocalVariablesEntry, HelperExternalFunctionEntry,
-            HelperFunctionWithCodeAndLocalVariablesEntry,
-            HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
+            HelperBlockEntryWithSignatureAndLocalVariables, HelperExternalFunctionEntry,
+            HelperFunctionEntryWithCodeAndLocalVariables,
+            HelperFunctionEntryWithCodeAndSignatureAndLocalVariables,
         },
     };
-    use anc_isa::{
-        opcode::Opcode, ExternalLibraryDependentType, ExternalLibraryDependentValue, ForeignValue,
-        OperandDataType,
-    };
+    use anc_isa::{opcode::Opcode, ExternalLibraryDependentValue, ForeignValue, OperandDataType};
     use dyncall_util::cstr_pointer_to_str;
     use syscall_util::{errno::Errno, number::SysCallNum};
 
@@ -287,19 +284,19 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_sum_square,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -307,12 +304,12 @@ mod tests {
                 },
             ],
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32, OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -369,19 +366,19 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_one,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -472,7 +469,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![
                         OperandDataType::I32,
@@ -484,25 +481,25 @@ mod tests {
                     local_variable_item_entries_without_args: vec![],
                     code: code_main,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_eleven,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_thirteen,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code_seventeen,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -728,7 +725,7 @@ mod tests {
                     results: vec![OperandDataType::I32],
                 }, // main
             ], // types
-            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
+            vec![HelperFunctionEntryWithCodeAndLocalVariables {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -737,7 +734,7 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                external_library_dependent_type: ExternalLibraryDependentType::System,
+                // external_library_dependent_type: ExternalLibraryDependentType::System,
                 library_name: "libc.so.6".to_string(),
                 library_value: Box::new(ExternalLibraryDependentValue::System(
                     "libc.so.6".to_owned(),
@@ -782,7 +779,7 @@ mod tests {
                     results: vec![OperandDataType::I64], // pointer
                 }, // main
             ], // types
-            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
+            vec![HelperFunctionEntryWithCodeAndLocalVariables {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -791,7 +788,7 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                external_library_dependent_type: ExternalLibraryDependentType::System,
+                // external_library_dependent_type: ExternalLibraryDependentType::System,
                 library_name: "libc.so.6".to_string(),
                 library_value: Box::new(ExternalLibraryDependentValue::System(
                     "libc.so.6".to_owned(),
@@ -842,7 +839,7 @@ mod tests {
                     results: vec![OperandDataType::I32],
                 }, // main
             ], // types
-            vec![HelperFunctionWithCodeAndLocalVariablesEntry {
+            vec![HelperFunctionEntryWithCodeAndLocalVariables {
                 type_index: 1,
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
@@ -851,7 +848,7 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                external_library_dependent_type: ExternalLibraryDependentType::Local,
+                // external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
                 library_value: Box::new(ExternalLibraryDependentValue::Local(
                     "lib/libtest0.so.1".to_owned(),

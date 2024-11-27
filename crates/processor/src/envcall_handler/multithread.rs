@@ -395,7 +395,7 @@ mod tests {
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_single_function,
-            HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry,
+            HelperFunctionEntryWithCodeAndSignatureAndLocalVariables,
         },
     };
     use anc_isa::{opcode::Opcode, OperandDataType};
@@ -475,13 +475,13 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
             vec![
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],                      // params
                     results: vec![OperandDataType::I64], // results
                     local_variable_item_entries_without_args: vec![LocalVariableEntry::from_i32()], // local variables (for dropping operands)
                     code: code0,
                 },
-                HelperFunctionWithCodeAndSignatureAndLocalVariablesEntry {
+                HelperFunctionEntryWithCodeAndSignatureAndLocalVariables {
                     params: vec![],                                   // params
                     results: vec![OperandDataType::I64],              // results
                     local_variable_item_entries_without_args: vec![], // local variables

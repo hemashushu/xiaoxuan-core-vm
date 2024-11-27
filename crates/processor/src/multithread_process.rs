@@ -8,9 +8,12 @@ use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
 use crate::{
-    handler::Handler, multithread_handler::{
+    handler::Handler,
+    multithread_handler::{
         create_thread, CHILD_THREADS, HANDLER_ADDRESS, PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA,
-    }, process::process_function, GenericError, HandleErrorType, HandlerError
+    },
+    process::process_function,
+    GenericError, HandleErrorType, HandlerError,
 };
 
 // pub fn start_with_multi_thread<T>(resource: T, thread_start_data: Vec<u8>) -> Result<u64, GenericError>
@@ -73,7 +76,6 @@ pub fn start_with_single_thread(
     const MAIN_MODULE_INDEX: usize = 0;
     let entry_function_public_index = thread_context
         .module_index_instance
-        .index_property_section
         .entry_function_public_index as usize;
 
     // the signature of the 'entry function' must be:

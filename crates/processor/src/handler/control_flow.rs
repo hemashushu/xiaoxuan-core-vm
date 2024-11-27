@@ -221,7 +221,7 @@ mod tests {
         entry::LocalVariableEntry,
         utils::{
             helper_build_module_binary_with_single_function_and_blocks,
-            HelperBlockSignatureAndLocalVariablesEntry,
+            HelperBlockEntryWithSignatureAndLocalVariables,
         },
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
@@ -285,7 +285,7 @@ mod tests {
             ], // results
             vec![], // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
@@ -360,7 +360,7 @@ mod tests {
             ], // results
             vec![], // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![OperandDataType::I32],
                 results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
@@ -550,7 +550,7 @@ mod tests {
             ], // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![
                         OperandDataType::I32,
@@ -563,7 +563,7 @@ mod tests {
                         LocalVariableEntry::from_i32(),
                     ],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32, OperandDataType::I32],
                     results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -712,7 +712,7 @@ mod tests {
             ], // results
             vec![], // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![],
                 results: vec![OperandDataType::I32, OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
@@ -793,7 +793,7 @@ mod tests {
             vec![OperandDataType::I32, OperandDataType::I32], // results
             vec![],                                           // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![],
                 results: vec![OperandDataType::I32, OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
@@ -872,7 +872,7 @@ mod tests {
             vec![OperandDataType::I32],                       // results
             vec![LocalVariableEntry::from_i32()],             // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
@@ -992,12 +992,12 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32, OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -1094,7 +1094,7 @@ mod tests {
             vec![OperandDataType::I32],                       // results
             vec![],                                           // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![], // 'block_alt' has no PARAMS
                 results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
@@ -1225,17 +1225,17 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![], // 'block_alt' has no PARAMS but RESULTS
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
@@ -1423,22 +1423,22 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1600,17 +1600,17 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1756,12 +1756,12 @@ mod tests {
             vec![LocalVariableEntry::from_i32()], // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -1882,12 +1882,12 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32, OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -2000,7 +2000,7 @@ mod tests {
             vec![OperandDataType::I32], // results
             vec![],                     // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![OperandDataType::I32, OperandDataType::I32],
                 results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],
@@ -2123,12 +2123,12 @@ mod tests {
             vec![],                     // local variables
             code0,
             vec![
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![OperandDataType::I32, OperandDataType::I32],
                     results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                 },
-                HelperBlockSignatureAndLocalVariablesEntry {
+                HelperBlockEntryWithSignatureAndLocalVariables {
                     params: vec![],
                     results: vec![],
                     local_variable_item_entries_without_args: vec![],
@@ -2242,7 +2242,7 @@ mod tests {
             vec![OperandDataType::I32],                       // results
             vec![],                                           // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![],
                 results: vec![],
                 local_variable_item_entries_without_args: vec![],
@@ -2344,7 +2344,7 @@ mod tests {
             vec![OperandDataType::I32],                       // results
             vec![],                                           // local variables
             code0,
-            vec![HelperBlockSignatureAndLocalVariablesEntry {
+            vec![HelperBlockEntryWithSignatureAndLocalVariables {
                 params: vec![], // 'block_alt' has no PARAMS
                 results: vec![OperandDataType::I32],
                 local_variable_item_entries_without_args: vec![],

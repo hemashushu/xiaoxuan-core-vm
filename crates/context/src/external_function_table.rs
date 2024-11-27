@@ -24,20 +24,13 @@ use std::{ffi::c_void, sync::Once};
 
 use anc_isa::OperandDataType;
 
-// the signature of the wrapper function
-pub type WrapperFunction = extern "C" fn(
-    external_function_pointer: *const c_void,
-    params_ptr: *const u8, // pointer to a range of bytes
-    results_ptr: *mut u8, // pointer to a range of bytes
-);
-
 /// the external function pointer table
 #[derive(Default)]
 pub struct ExternalFunctionTable {
-    // "unified external library section"  1:1
+    // 1:1 to the "unified external library section"
     pub unified_external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
 
-    // "unified external functioa section"  1:1
+    // 1:1 to the "unified external functioa section"
     pub unified_external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
 
     // wrapper function list
@@ -67,6 +60,13 @@ pub struct WrapperFunctionItem {
     pub wrapper_function: WrapperFunction,
 }
 
+// the signature of the wrapper function
+pub type WrapperFunction = extern "C" fn(
+    external_function_pointer: *const c_void,
+    params_ptr: *const u8, // pointer to a range of bytes
+    results_ptr: *mut u8,  // pointer to a range of bytes
+);
+
 static INIT: Once = Once::new();
 
 impl ExternalFunctionTable {
@@ -76,16 +76,13 @@ impl ExternalFunctionTable {
         unified_external_function_count: usize,
     ) {
         // https://doc.rust-lang.org/reference/conditional-compilation.html#debug_assertions
+        // https://doc.rust-lang.org/reference/conditional-compilation.html#test
         if cfg!(debug_assertions) {
-            // for
-            // - unit test
-            // - profile dev
             self.unified_external_library_pointer_list
                 .resize(unified_external_library_count, None);
             self.unified_external_function_pointer_list
                 .resize(unified_external_function_count, None);
         } else {
-            // for profile release
             INIT.call_once(|| {
                 self.unified_external_library_pointer_list
                     .resize(unified_external_library_count, None);
@@ -115,5 +112,4 @@ impl ExternalFunctionTable {
             _ => None,
         }
     }
-
 }

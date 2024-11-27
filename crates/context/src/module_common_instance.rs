@@ -19,19 +19,30 @@ use crate::{
 };
 
 pub struct ModuleCommonInstance<'a> {
+    /*
+    Note that this is the name of module/package,
+    it CANNOT be the sub-module name even if the current image is
+    the object file of a sub-module.
+    it CANNOT be a name path also.
+    */
     pub name: String, // &'a str,
+    pub import_data_count: usize,
+    pub import_function_count: usize,
+
+    // essential
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
     pub function_section: FunctionSection<'a>,
+
+    // source optional
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
     pub function_name_section: FunctionNameSection<'a>,
     pub data_name_section: DataNameSection<'a>,
-    pub import_data_count: usize,
-    pub import_function_count: usize,
 }
 
 impl<'a> ModuleCommonInstance<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
+        let common_property_section = module_image.get_common_property_section();
         let type_section = module_image.get_type_section();
         let local_variable_section = module_image.get_local_variable_section();
         let function_section = module_image.get_function_section();
@@ -71,7 +82,6 @@ impl<'a> ModuleCommonInstance<'a> {
             .get_optional_data_name_section()
             .unwrap_or_default();
 
-        let common_property_section = module_image.get_common_property_section();
         let name_bytes = common_property_section.module_name_buffer
             [0..common_property_section.module_name_length as usize]
             .to_vec();
