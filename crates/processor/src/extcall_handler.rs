@@ -35,7 +35,7 @@ use anc_context::{
     },
     thread_context::ThreadContext,
 };
-use anc_isa::{ExternalLibraryDependentValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};
@@ -107,10 +107,12 @@ pub fn get_or_create_external_function(
 
     let value_str = unsafe { str::from_utf8_unchecked(external_library_value) };
 
-    let value: ExternalLibraryDependentValue = ason::from_str(value_str).unwrap();
+    let value: ExternalLibraryDependency = ason::from_str(value_str).unwrap();
 
     let external_library_file_path_or_file_name = match value {
-        ExternalLibraryDependentValue::Local(file_path) => {
+        ExternalLibraryDependency::Local(dependency_local) => {
+            let path = dependency_local.path;
+
             // todo
             // if p.startsWith('~') ...
             // if p.isAbsolutePath() ...
@@ -119,13 +121,13 @@ pub fn get_or_create_external_function(
             if !thread_context.environment.is_module {
                 path_buf.pop();
             }
-            path_buf.push(file_path);
+            path_buf.push(path);
             path_buf.as_os_str().to_string_lossy().to_string()
         }
-        ExternalLibraryDependentValue::Remote(_) => {
+        ExternalLibraryDependency::Remote(_) => {
             todo!()
         }
-        ExternalLibraryDependentValue::Share(_) => {
+        ExternalLibraryDependency::Share(_) => {
             // the local folder for storing the shared modules and libraries which
             // comes from repository, e.g.
             //
@@ -140,7 +142,7 @@ pub fn get_or_create_external_function(
 
             // check that each file exists
         }
-        ExternalLibraryDependentValue::Runtime => {
+        ExternalLibraryDependency::Runtime => {
             // the runtime's path, e.g.
             //
             // `/usr/lib/anc/`
@@ -155,7 +157,7 @@ pub fn get_or_create_external_function(
 
             // thread_context.environment.runtime_path
         }
-        ExternalLibraryDependentValue::System(file_name) => file_name.to_owned(),
+        ExternalLibraryDependency::System(file_name) => file_name.to_owned(),
     };
 
     let mut table = thread_context.external_function_table.lock().unwrap();

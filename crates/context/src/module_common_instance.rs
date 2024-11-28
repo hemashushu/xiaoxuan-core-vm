@@ -20,12 +20,19 @@ use crate::{
 
 pub struct ModuleCommonInstance<'a> {
     /*
-    Note that this is the name of module/package,
-    it CANNOT be the sub-module name even if the current image is
-    the object file of a sub-module.
-    it CANNOT be a name path also.
-    */
+     * Note that this is the name of module/package,
+     * it CANNOT be the sub-module name even if the current image is
+     * the object file of a sub-module.
+     * it CANNOT be a name path also.
+     */
     pub name: String, // &'a str,
+
+    /*
+     * import_data_count and import_function_count are used for
+     * calculating the function/data public index.
+     * their values are calculate from the 'import*' sections,
+     * but these sections are omitted in runtime.
+     */
     pub import_data_count: usize,
     pub import_function_count: usize,
 

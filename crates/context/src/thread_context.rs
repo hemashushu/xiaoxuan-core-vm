@@ -362,19 +362,26 @@ offset in bytes: {}, expect length in bytes: {}.",
         module_name: &str,
         function_name: &str,
     ) -> Option<(usize, usize)> {
-        let (module_index, module_instance) = self
+        let (module_index, module_common_instance) = self
             .module_common_instances
             .iter()
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        let (internal_index, _) = module_instance
+        let (function_internal_index, _) = module_common_instance
             .function_name_section
             .get_item_index_and_export(function_name)?;
 
+        // the function public index is mixed by the following items:
+        // - the imported functions
+        // - the internal functions
+        //
+        // therefore:
+        // function_public_index = (all import functions) + function_internal_index
+
         Some((
             module_index,
-            internal_index + module_instance.import_function_count,
+            function_internal_index + module_common_instance.import_function_count,
         ))
     }
 
@@ -383,19 +390,35 @@ offset in bytes: {}, expect length in bytes: {}.",
         module_name: &str,
         data_name: &str,
     ) -> Option<(usize, usize)> {
-        let (module_index, module_instance) = self
+        let (module_index, module_common_instance) = self
             .module_common_instances
             .iter()
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        let (internal_index, _) = module_instance
+        // the data names in the `data_name_section` is order by:
+        // 1. internal read-only data
+        // 2. internal read-write data
+        // 3. internal uninit data
+
+        let (mixed_data_internal_index, _) = module_common_instance
             .data_name_section
             .get_item_index_and_export(data_name)?;
 
+        // the data public index is mixed the following items:
+        // - imported read-only data items
+        // - imported read-write data items
+        // - imported uninitilized data items
+        // - internal read-only data items
+        // - internal read-write data items
+        // - internal uninitilized data items
+        //
+        // therefore:
+        // data_public_index = (all import datas) + mixed_data_internal_index
+
         Some((
             module_index,
-            internal_index + module_instance.import_data_count,
+            mixed_data_internal_index + module_common_instance.import_data_count,
         ))
     }
 

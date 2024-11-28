@@ -229,7 +229,9 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionEntryWithCodeAndLocalVariables,
         },
     };
-    use anc_isa::{opcode::Opcode, ExternalLibraryDependentValue, ForeignValue, OperandDataType};
+    use anc_isa::{
+        opcode::Opcode, DependencyLocal, ExternalLibraryDependency, ForeignValue, OperandDataType,
+    };
 
     use crate::{
         handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
@@ -997,11 +999,14 @@ mod tests {
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {
-                // external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
-                library_value: Box::new(ExternalLibraryDependentValue::Local(
-                    "lib/libtest0.so.1".to_owned(),
-                )),
+                dependency: Box::new(ExternalLibraryDependency::Local(Box::new(
+                    DependencyLocal {
+                        path: "lib/libtest0.so.1".to_owned(),
+                        condition: None,
+                        values: None,
+                    },
+                ))),
                 function_name: "do_something".to_string(),
                 type_index: 0,
             }],

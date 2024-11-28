@@ -4,17 +4,17 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use anc_isa::{ModuleDependentType, ModuleDependentValue};
+use anc_isa::{ModuleDependency, ModuleDependencyType};
 
 use crate::ContextError;
 
 pub trait Loader<'a> {
     fn load_application(
-        module_type: ModuleDependentType,
+        module_type: ModuleDependencyType,
         name_or_path: &str,
     ) -> Result<Vec<&'a [u8]>, ContextError>;
 
-    fn load_module(module_value: ModuleDependentValue) -> Result<&'a [u8], ContextError>;
+    fn load_module(module_value: ModuleDependency) -> Result<&'a [u8], ContextError>;
 
-    fn compile_module(module_value: ModuleDependentValue) -> Result<&'a [u8], ContextError>;
+    fn compile_module(module_value: ModuleDependency) -> Result<&'a [u8], ContextError>;
 }

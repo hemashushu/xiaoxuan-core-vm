@@ -196,7 +196,9 @@ mod tests {
             HelperFunctionEntryWithCodeAndSignatureAndLocalVariables,
         },
     };
-    use anc_isa::{opcode::Opcode, ExternalLibraryDependentValue, ForeignValue, OperandDataType};
+    use anc_isa::{
+        opcode::Opcode, DependencyLocal, ExternalLibraryDependency, ForeignValue, OperandDataType,
+    };
     use dyncall_util::cstr_pointer_to_str;
     use syscall_util::{errno::Errno, number::SysCallNum};
 
@@ -736,9 +738,7 @@ mod tests {
             vec![HelperExternalFunctionEntry {
                 // external_library_dependent_type: ExternalLibraryDependentType::System,
                 library_name: "libc.so.6".to_string(),
-                library_value: Box::new(ExternalLibraryDependentValue::System(
-                    "libc.so.6".to_owned(),
-                )),
+                dependency: Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
                 function_name: "getuid".to_string(),
                 type_index: 0,
             }],
@@ -790,9 +790,7 @@ mod tests {
             vec![HelperExternalFunctionEntry {
                 // external_library_dependent_type: ExternalLibraryDependentType::System,
                 library_name: "libc.so.6".to_string(),
-                library_value: Box::new(ExternalLibraryDependentValue::System(
-                    "libc.so.6".to_owned(),
-                )),
+                dependency: Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
                 function_name: "getenv".to_string(),
                 type_index: 0,
             }],
@@ -850,9 +848,13 @@ mod tests {
             vec![HelperExternalFunctionEntry {
                 // external_library_dependent_type: ExternalLibraryDependentType::Local,
                 library_name: "libtest0.so.1".to_string(),
-                library_value: Box::new(ExternalLibraryDependentValue::Local(
-                    "lib/libtest0.so.1".to_owned(),
-                )),
+                dependency: Box::new(ExternalLibraryDependency::Local(Box::new(
+                    DependencyLocal {
+                        path: "lib/libtest0.so.1".to_owned(),
+                        values: None,
+                        condition: None,
+                    },
+                ))),
                 function_name: "add".to_string(),
                 type_index: 0,
             }],
