@@ -6,9 +6,9 @@
 
 use anc_image::{
     common_sections::{
-        data_name_section::DataNameSection, function_name_section::FunctionNameSection,
-        function_section::FunctionSection, local_variable_section::LocalVariableSection,
-        type_section::TypeSection,
+        data_name_path_section::DataNamePathSection,
+        function_name_path_section::FunctionNamePathSection, function_section::FunctionSection,
+        local_variable_section::LocalVariableSection, type_section::TypeSection,
     },
     module_image::ModuleImage,
 };
@@ -19,20 +19,22 @@ use crate::{
 };
 
 pub struct ModuleCommonInstance<'a> {
-    /*
-     * Note that this is the name of module/package,
-     * it CANNOT be the sub-module name even if the current image is
-     * the object file of a sub-module.
-     * it CANNOT be a name path also.
-     */
+    // Note that this is the name of module/package,
+    // it CANNOT be the sub-module name even if the current image is
+    // the object file of a sub-module.
+    // it CANNOT be a name path either.
+    //
+    // about the "full_name" and "name_path"
+    // -------------------------------------
+    // - "full_name" = "module_name::name_path"
+    // - "name_path" = "namespace::identifier"
+    // - "namespace" = "sub_module_name"{0,N}
     pub name: String, // &'a str,
 
-    /*
-     * import_data_count and import_function_count are used for
-     * calculating the function/data public index.
-     * their values are calculate from the 'import*' sections,
-     * but these sections are omitted in runtime.
-     */
+    // import_data_count and import_function_count are used for
+    // calculating the function/data public index.
+    // their values are calculate from the 'import*' sections,
+    // but these sections are omitted in runtime.
     pub import_data_count: usize,
     pub import_function_count: usize,
 
@@ -43,8 +45,8 @@ pub struct ModuleCommonInstance<'a> {
 
     // source optional
     pub datas: [Box<dyn IndexedMemory + 'a>; 3],
-    pub function_name_section: FunctionNameSection<'a>,
-    pub data_name_section: DataNameSection<'a>,
+    pub function_name_path_section: FunctionNamePathSection<'a>,
+    pub data_name_path_section: DataNamePathSection<'a>,
 }
 
 impl<'a> ModuleCommonInstance<'a> {
@@ -81,12 +83,12 @@ impl<'a> ModuleCommonInstance<'a> {
             },
         );
 
-        let function_name_section = module_image
-            .get_optional_function_name_section()
+        let function_name_path_section = module_image
+            .get_optional_function_name_path_section()
             .unwrap_or_default();
 
-        let data_name_section = module_image
-            .get_optional_data_name_section()
+        let data_name_path_section = module_image
+            .get_optional_data_name_path_section()
             .unwrap_or_default();
 
         let name_bytes = common_property_section.module_name_buffer
@@ -107,8 +109,8 @@ impl<'a> ModuleCommonInstance<'a> {
                 Box::new(read_write_data),
                 Box::new(uninit_data),
             ],
-            function_name_section,
-            data_name_section,
+            function_name_path_section,
+            data_name_path_section,
             import_data_count,
             import_function_count,
         }

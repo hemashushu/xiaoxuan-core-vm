@@ -515,7 +515,7 @@ mod tests {
             vec![],           // params
             result_datatypes, // results
             vec![
-                LocalVariableEntry::from_raw(64, 8), // space
+                LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i32(),
             ], // local variables
@@ -651,13 +651,13 @@ mod tests {
             vec![],           // params
             result_datatypes, // results
             vec![
-                LocalVariableEntry::from_raw(64, 8), // space
-                LocalVariableEntry::from_raw(8, 8),
+                LocalVariableEntry::from_bytes(64, 8), // space
+                LocalVariableEntry::from_bytes(8, 8),
             ], // local variables
             code0,
             vec![
-                InitedDataEntry::from_raw(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
-                InitedDataEntry::from_raw(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+                InitedDataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                InitedDataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
             ], // init data
             vec![],
             vec![],

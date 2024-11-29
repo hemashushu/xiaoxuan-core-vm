@@ -784,7 +784,7 @@ mod tests {
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
             }],
-            vec![InitedDataEntry::from_raw(b"PWD\0".to_vec(), 1)],
+            vec![InitedDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
             vec![],
             vec![],
             vec![HelperExternalFunctionEntry {

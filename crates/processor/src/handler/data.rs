@@ -656,7 +656,7 @@ mod tests {
                 InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
             vec![
-                InitedDataEntry::from_raw(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
+                InitedDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
                 InitedDataEntry::from_f32(std::f32::consts::PI),
                 InitedDataEntry::from_f64(std::f64::consts::E),
                 InitedDataEntry::from_i64(0),
@@ -805,7 +805,7 @@ mod tests {
             ],
             vec![],
             vec![
-                UninitDataEntry::from_raw(8, 8),
+                UninitDataEntry::from_bytes(8, 8),
                 UninitDataEntry::from_f32(),
                 UninitDataEntry::from_f64(),
                 UninitDataEntry::from_i64(),
@@ -951,8 +951,8 @@ mod tests {
             vec![],
             vec![],
             vec![
-                UninitDataEntry::from_raw(8, 8),
-                UninitDataEntry::from_raw(8, 8),
+                UninitDataEntry::from_bytes(8, 8),
+                UninitDataEntry::from_bytes(8, 8),
             ],
         );
 

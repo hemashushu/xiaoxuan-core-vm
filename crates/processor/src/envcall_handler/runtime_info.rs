@@ -114,7 +114,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                           // params
             vec![OperandDataType::I32, OperandDataType::I64], // results
-            vec![LocalVariableEntry::from_raw(8, 8)],         // local variables
+            vec![LocalVariableEntry::from_bytes(8, 8)],         // local variables
             code0,
         );
 

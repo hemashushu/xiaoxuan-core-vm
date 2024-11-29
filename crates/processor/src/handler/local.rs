@@ -709,7 +709,7 @@ mod tests {
                 OperandDataType::I32,
             ], // results
             vec![
-                LocalVariableEntry::from_raw(8, 8),
+                LocalVariableEntry::from_bytes(8, 8),
                 LocalVariableEntry::from_f32(),
                 LocalVariableEntry::from_f64(),
                 LocalVariableEntry::from_i64(),
@@ -849,8 +849,8 @@ mod tests {
                 OperandDataType::I32,
             ], // results
             vec![
-                LocalVariableEntry::from_raw(8, 8),
-                LocalVariableEntry::from_raw(8, 8),
+                LocalVariableEntry::from_bytes(8, 8),
+                LocalVariableEntry::from_bytes(8, 8),
             ], // local variables
             code0,
         );

@@ -33,7 +33,7 @@ pub fn get_function<T>(
     function_name: &str,
 ) -> Result<T, HandlerError> {
     let (module_index, function_public_index) = thread_context
-        .find_function_public_index_by_name(module_name, function_name)
+        .find_function_public_index_by_name_path(module_name, function_name)
         .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
 
     let function_ptr = get_or_create_bridge_function(
@@ -55,7 +55,7 @@ where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
-        .find_data_public_index_by_name(module_name, data_name)
+        .find_data_public_index_by_name_path(module_name, data_name)
         .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(
@@ -78,7 +78,7 @@ where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
-        .find_data_public_index_by_name(module_name, data_name)
+        .find_data_public_index_by_name_path(module_name, data_name)
         .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(

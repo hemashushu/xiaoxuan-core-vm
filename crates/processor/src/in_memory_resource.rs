@@ -86,7 +86,7 @@ mod tests {
                 InitedDataEntry::from_i32(0x11),
                 InitedDataEntry::from_i64(0x13),
             ],
-            vec![InitedDataEntry::from_raw(
+            vec![InitedDataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],

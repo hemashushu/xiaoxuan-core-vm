@@ -357,10 +357,10 @@ offset in bytes: {}, expect length in bytes: {}.",
         local_start_address + variable_item.var_offset as usize + offset_bytes
     }
 
-    pub fn find_function_public_index_by_name(
+    pub fn find_function_public_index_by_name_path(
         &self,
         module_name: &str,
-        function_name: &str,
+        expected_function_name_path: &str,
     ) -> Option<(usize, usize)> {
         let (module_index, module_common_instance) = self
             .module_common_instances
@@ -369,8 +369,8 @@ offset in bytes: {}, expect length in bytes: {}.",
             .find(|(_, module)| module.name == module_name)?;
 
         let (function_internal_index, _) = module_common_instance
-            .function_name_section
-            .get_item_index_and_export(function_name)?;
+            .function_name_path_section
+            .get_item_index_and_export(expected_function_name_path)?;
 
         // the function public index is mixed by the following items:
         // - the imported functions
@@ -385,10 +385,10 @@ offset in bytes: {}, expect length in bytes: {}.",
         ))
     }
 
-    pub fn find_data_public_index_by_name(
+    pub fn find_data_public_index_by_name_path(
         &self,
         module_name: &str,
-        data_name: &str,
+        expected_data_path_name: &str,
     ) -> Option<(usize, usize)> {
         let (module_index, module_common_instance) = self
             .module_common_instances
@@ -402,8 +402,8 @@ offset in bytes: {}, expect length in bytes: {}.",
         // 3. internal uninit data
 
         let (mixed_data_internal_index, _) = module_common_instance
-            .data_name_section
-            .get_item_index_and_export(data_name)?;
+            .data_name_path_section
+            .get_item_index_and_export(expected_data_path_name)?;
 
         // the data public index is mixed the following items:
         // - imported read-only data items
