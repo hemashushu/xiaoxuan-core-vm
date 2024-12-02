@@ -208,38 +208,38 @@ mod tests {
 
     #[test]
     fn test_handler_function_call() {
-        // fn $test (i32) -> (i32)
-        //     (call $sum_square)
+        // fn test (num/0:i32) -> (i32)                   // type 0
+        //     call(sum_square)
         // end
         //
-        // fn $sum_square (count/1:i32) -> (i32)
-        //     zero
-        //     (local_load32 0 0)
-        //     (block #0) (sum/0:i32, n/1:i32) -> (i32)
-        //                                  ;; if n == 0
-        //         (local_load32 0 1)
+        // fn sum_square (count/0:i32) -> (i32)       // type 1
+        //     imm_i32(0)
+        //     local_load32(0, 0)
+        //     block (sum/0:i32, n/1:i32) -> (i32)  // type 3
+        //                                          // if n == 0
+        //         local_load32(0, 1)
         //         eqz_i32
-        //         (block_alt #1) () -> (i32)
-        //             (local_load32 1 0)   ;; then sum
-        //         (break_alt)              ;; else
-        //                                  ;; sum + n^2
-        //             (local_load32 1 0)
-        //             (local_load32 1 1)
-        //             (call $square)
+        //         block_alt () -> (i32)    // type 4
+        //             local_load32(1, 0)   // then sum
+        //         break_alt()              // else
+        //                                  // sum + n^2
+        //             local_load32(1, 0)
+        //             local_load32(1, 1)
+        //             call(square)
         //             add_i32
-        //                                  ;; n - 1
-        //             (local_load32 1 1)
-        //             (sub_imm_i32 1)
-        //                                  ;; recur 1
-        //             (recur 1)
+        //                                  // n - 1
+        //             local_load32(1, 1)
+        //             sub_imm_i32(1)
+        //                                  // recur 1
+        //             recur(1)
         //         end
         //     end
         // end
         //
-        // fn $square (i32) -> (i32)
-        //     (local_load 32)
-        //     (local_load 32)
-        //     mul_i32
+        // fn square (num/0:i32) -> (i32)         // type 2
+        //     local_load_i32s(0, 0)
+        //     local_load_i32s(0, 0)
+        //     mul_i32()
         // end
 
         // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
@@ -250,14 +250,13 @@ mod tests {
             .to_bytes();
 
         let code_sum_square = BytecodeWriterHelper::new()
-            // .append_opcode(Opcode::zero)
             .append_opcode_i32(Opcode::imm_i32, 0)
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
             .append_opcode_i32_i32(Opcode::block, 3, 3)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::eqz_i32)
-            .append_opcode_i32_i32(Opcode::block_alt, 4, 0x1c)
+            .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
             .append_opcode_i32(Opcode::break_alt, 0x3a)
@@ -270,12 +269,14 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
             .append_opcode_i16(Opcode::sub_imm_i32, 1)
             //
-            .append_opcode_i16_i32(Opcode::recur, 1, 0x50)
+            .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
             //
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .to_bytes();
+
+        println!("{}", format_bytecode_as_text(&code_sum_square));
 
         let code_square = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
@@ -336,20 +337,21 @@ mod tests {
 
     #[test]
     fn test_handler_pub_index_function() {
-        // fn $test () -> (i32, i32)
-        //     (pub_index_function 1)
-        //     (pub_index_function 2)
+        // fn test () -> (i32, i32)     // pub idx 0
+        //     pub_index_function(1)
+        //     pub_index_function(2)
         // end
         //
-        // fn $one (;1;) () -> (i32)
-        //     (imm_i32 11)
+        // fn one () -> (i32)           // pub idx 1
+        //     imm_i32(11)
         // end
         //
-        // fn $two (;2;) () -> (i32)
-        //     (imm_i32 13)
+        // fn two () -> (i32)           // pub idx 2
+        //     imm_i32(13)
         // end
-
+        //
         // expect (1, 2)
+
         let code_main = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::pub_index_function, 1)
             .append_opcode_i32(Opcode::pub_index_function, 2)
@@ -404,35 +406,35 @@ mod tests {
 
     #[test]
     fn test_handler_function_call_dyncall() {
-        // fn $test () -> (i32, i32, i32, i32, i32)
-        //     (imm_i32 2)
-        //     (dyncall)
-        //     (imm_i32 4)
-        //     (dyncall)
-        //     (imm_i32 3)
-        //     (dyncall)
-        //     (imm_i32 1)
-        //     (dyncall)
-        //     (imm_i32 2)
-        //     (dyncall)
+        // fn test () -> (i32, i32, i32, i32, i32)  // pub idx: 0
+        //     imm_i32(2)
+        //     dyncall()
+        //     imm_i32(4)
+        //     dyncall()
+        //     imm_i32(3)
+        //     dyncall()
+        //     imm_i32(1)
+        //     dyncall()
+        //     imm_i32(2)
+        //     dyncall()
         // end
         //
-        // fn $eleven (;1;) () -> (i32)
-        //     (imm_i32 11)
+        // fn eleven () -> (i32)    // pub idx: 1
+        //     imm_i32(11)
         // end
         //
-        // fn $thirteen (;2;) () -> (i32)
-        //     (imm_i32 13)
+        // fn thirteen () -> (i32)  // pub idx: 2
+        //     imm_i32(13)
         // end
         //
-        // fn $seventeen (;3;) () -> (i32)
-        //     (imm_i32 17)
+        // fn seventeen () -> (i32) // pub idx: 3
+        //     imm_i32(17)
         // end
         //
-        // fn $nineteen (;4;) () -> (i32)
-        //     (imm_i32 19)
+        // fn nineteen () -> (i32)  // pub idx: 4
+        //     imm_i32(19)
         // end
-
+        //
         // expect (13, 19, 17, 11, 13)
 
         let code_main = BytecodeWriterHelper::new()
@@ -531,8 +533,8 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_without_args() {
-        // fn $test () -> (result:i64 errno:i32)
-
+        // fn test () -> (result:i64 errno:i32)
+        //
         // syscall:
         // `pid_t getpid(void);`
 
@@ -573,8 +575,8 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_with_2_args() {
-        // fn $test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
-
+        // fn test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
+        //
         // syscall:
         // `char *getcwd(char buf[.size], size_t size);`
 
@@ -637,8 +639,8 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_error_no() {
-        // fn $test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
-
+        // fn test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
+        //
         // syscall:
         // `int open(const char *pathname, int flags)`
 
@@ -813,7 +815,7 @@ mod tests {
     #[test]
     fn test_handler_extcall_with_user_lib() {
         // (i32,i32) -> (i32)
-
+        //
         // 'libtest0.so.1'
         // 'int add(int, int)'
 

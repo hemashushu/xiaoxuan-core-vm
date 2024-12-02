@@ -28,8 +28,7 @@ pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
-pub const LOCAL_LIST_INDEX_NOT_EXIST:u32 = 0x8000_0000;
-
+// pub const LOCAL_LIST_INDEX_NOT_EXIST:u32 = 0x8000_0000;
 
 use std::fmt::Display;
 
