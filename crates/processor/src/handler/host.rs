@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use anc_context::{memory::Memory, thread_context::ThreadContext};
+use anc_context::{memory_access::MemoryAccess, thread_context::ThreadContext};
 
 use crate::{
     bridge_handler::get_or_create_bridge_callback_function,
@@ -116,18 +116,18 @@ fn do_host_addr_data(
     HandleResult::Move(8)
 }
 
-pub fn host_addr_heap(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_memory(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let heap_address = thread_context.stack.pop_i64_u();
 
     let total_offset = heap_address as usize + offset_bytes as usize;
-    let ptr = thread_context.heap.get_ptr(total_offset);
+    let ptr = thread_context.memory.get_ptr(total_offset);
     store_pointer_to_operand_stack(thread_context, ptr);
     HandleResult::Move(4)
 }
 
-pub fn host_copy_heap_to_memory(
+pub fn host_copy_from_memory(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
@@ -138,13 +138,13 @@ pub fn host_copy_heap_to_memory(
     let src_heap_address = thread_context.stack.pop_i64_u();
     let dst_host_ptr = thread_context.stack.pop_i64_u();
 
-    let src_heap_ptr = thread_context.heap.get_ptr(src_heap_address as usize);
+    let src_heap_ptr = thread_context.memory.get_ptr(src_heap_address as usize);
     unsafe { std::ptr::copy(src_heap_ptr, dst_host_ptr as *mut u8, count as usize) };
 
     HandleResult::Move(2)
 }
 
-pub fn host_copy_memory_to_heap(
+pub fn host_copy_to_memory(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
@@ -155,13 +155,13 @@ pub fn host_copy_memory_to_heap(
     let src_host_ptr = thread_context.stack.pop_i64_u();
     let dst_heap_address = thread_context.stack.pop_i64_u();
 
-    let dst_heap_ptr = thread_context.heap.get_mut_ptr(dst_heap_address as usize);
+    let dst_heap_ptr = thread_context.memory.get_mut_ptr(dst_heap_address as usize);
     unsafe { std::ptr::copy(src_host_ptr as *const u8, dst_heap_ptr, count as usize) };
 
     HandleResult::Move(2)
 }
 
-pub fn host_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_external_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // copy data between host memory
     // (operand dst_pointer:i64 src_pointer:i64 count:i64)
 
@@ -704,28 +704,28 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             // .append_opcode(Opcode::drop)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0x07050302)
-            .append_opcode_i16(Opcode::heap_store_i32, 0)
+            .append_opcode_i16(Opcode::memory_store_i32, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x200)
             .append_opcode_i64(Opcode::imm_i64, 0x3731292319171311)
-            .append_opcode_i16(Opcode::heap_store_i64, 0)
+            .append_opcode_i16(Opcode::memory_store_i64, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::host_addr_heap, 0)
+            .append_opcode_i16(Opcode::host_addr_memory, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::host_addr_heap, 2)
+            .append_opcode_i16(Opcode::host_addr_memory, 2)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 0)
+            .append_opcode_i16(Opcode::host_addr_memory, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 4)
+            .append_opcode_i16(Opcode::host_addr_memory, 4)
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::host_addr_heap, 7)
+            .append_opcode_i16(Opcode::host_addr_memory, 7)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -773,7 +773,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_host_heap_copy() {
+    fn test_handler_host_memory_inter_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> VM heap 0x100 with 8 bytes
@@ -789,18 +789,18 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             // .append_opcode(Opcode::drop)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode_i64(Opcode::imm_i64, 8)
-            .append_opcode(Opcode::host_copy_memory_to_heap)
+            .append_opcode(Opcode::host_copy_to_memory)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i64(Opcode::imm_i64, 8)
-            .append_opcode(Opcode::host_copy_heap_to_memory)
+            .append_opcode(Opcode::host_copy_from_memory)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -845,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_host_memory_copy() {
+    fn test_handler_host_external_memory_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> dst_ptr
@@ -857,18 +857,18 @@ mod tests {
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 4, 2) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
             .append_opcode_i64(Opcode::imm_i64, 4) // length
-            .append_opcode(Opcode::host_memory_copy)
+            .append_opcode(Opcode::host_external_memory_copy)
             //
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
             .append_opcode_i16(Opcode::add_imm_i64, 4)
             .append_opcode_i64(Opcode::imm_i64, 4) // length
-            .append_opcode(Opcode::host_memory_copy)
+            .append_opcode(Opcode::host_external_memory_copy)
             //
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1) // dst ptr
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // src ptr
             .append_opcode_i64(Opcode::imm_i64, 8) // length
-            .append_opcode(Opcode::host_memory_copy)
+            .append_opcode(Opcode::host_external_memory_copy)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

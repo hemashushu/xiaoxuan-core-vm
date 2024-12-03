@@ -4,13 +4,13 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use crate::memory::Memory;
+use crate::memory_access::MemoryAccess;
 
 /// memory with primitive data type support, it's used for
 /// interactive with the VM.
 ///
 /// in XiaoXuan Core VM, only the Stack implement this trait.
-pub trait TypedMemory: Memory {
+pub trait TypedMemoryAccess: MemoryAccess {
     fn read_i32_s(&self, address: usize) -> i32 {
         let tp = self.get_ptr(address) as *const i32;
         unsafe { std::ptr::read(tp) }

@@ -22,7 +22,7 @@ mod conversion;
 mod data;
 mod calling;
 mod fundamental;
-mod heap;
+mod memory;
 mod host;
 mod local;
 mod math;
@@ -199,27 +199,27 @@ impl Handler {
         handlers[Opcode::data_store_extend_f32 as usize] = data::data_store_extend_i32; // store_f32 == store_i32
 
         // heap
-        handlers[Opcode::heap_load_i64 as usize] = heap::heap_load_i64;
-        handlers[Opcode::heap_load_i32_s as usize] = heap::heap_load_i32_s;
-        handlers[Opcode::heap_load_i32_u as usize] = heap::heap_load_i32_u;
-        handlers[Opcode::heap_load_i16_s as usize] = heap::heap_load_i16_s;
-        handlers[Opcode::heap_load_i16_u as usize] = heap::heap_load_i16_u;
-        handlers[Opcode::heap_load_i8_s as usize] = heap::heap_load_i8_s;
-        handlers[Opcode::heap_load_i8_u as usize] = heap::heap_load_i8_u;
-        handlers[Opcode::heap_load_f64 as usize] = heap::heap_load_f64;
-        handlers[Opcode::heap_load_f32 as usize] = heap::heap_load_f32;
-        handlers[Opcode::heap_store_i64 as usize] = heap::heap_store_i64;
-        handlers[Opcode::heap_store_i32 as usize] = heap::heap_store_i32;
-        handlers[Opcode::heap_store_i16 as usize] = heap::heap_store_i16;
-        handlers[Opcode::heap_store_i8 as usize] = heap::heap_store_i8;
-        handlers[Opcode::heap_store_f64 as usize] = heap::heap_store_i64; // store_f64 == store_i64
-        handlers[Opcode::heap_store_f32 as usize] = heap::heap_store_i32; // store_f32 == store_i32
+        handlers[Opcode::memory_load_i64 as usize] = memory::memory_load_i64;
+        handlers[Opcode::memory_load_i32_s as usize] = memory::memory_load_i32_s;
+        handlers[Opcode::memory_load_i32_u as usize] = memory::memory_load_i32_u;
+        handlers[Opcode::memory_load_i16_s as usize] = memory::memory_load_i16_s;
+        handlers[Opcode::memory_load_i16_u as usize] = memory::memory_load_i16_u;
+        handlers[Opcode::memory_load_i8_s as usize] = memory::memory_load_i8_s;
+        handlers[Opcode::memory_load_i8_u as usize] = memory::memory_load_i8_u;
+        handlers[Opcode::memory_load_f64 as usize] = memory::memory_load_f64;
+        handlers[Opcode::memory_load_f32 as usize] = memory::memory_load_f32;
+        handlers[Opcode::memory_store_i64 as usize] = memory::memory_store_i64;
+        handlers[Opcode::memory_store_i32 as usize] = memory::memory_store_i32;
+        handlers[Opcode::memory_store_i16 as usize] = memory::memory_store_i16;
+        handlers[Opcode::memory_store_i8 as usize] = memory::memory_store_i8;
+        handlers[Opcode::memory_store_f64 as usize] = memory::memory_store_i64; // store_f64 == store_i64
+        handlers[Opcode::memory_store_f32 as usize] = memory::memory_store_i32; // store_f32 == store_i32
 
         // heap memory operations
-        handlers[Opcode::heap_fill as usize] = heap::heap_fill;
-        handlers[Opcode::heap_copy as usize] = heap::heap_copy;
-        handlers[Opcode::heap_capacity as usize] = heap::heap_capacity;
-        handlers[Opcode::heap_resize as usize] = heap::heap_resize;
+        handlers[Opcode::memory_fill as usize] = memory::memory_fill;
+        handlers[Opcode::memory_copy as usize] = memory::memory_copy;
+        handlers[Opcode::memory_capacity as usize] = memory::memory_capacity;
+        handlers[Opcode::memory_resize as usize] = memory::memory_resize;
 
         // conversion
         handlers[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
@@ -421,7 +421,7 @@ impl Handler {
         handlers[Opcode::syscall as usize] = calling::syscall;
         handlers[Opcode::envcall as usize] = calling::envcall;
         handlers[Opcode::extcall as usize] = calling::extcall;
-        handlers[Opcode::pub_index_function as usize] = calling::pub_index_function;
+        handlers[Opcode::get_function as usize] = calling::get_function;
 
         // host
         handlers[Opcode::panic as usize] = host::panic;
@@ -431,11 +431,11 @@ impl Handler {
         handlers[Opcode::host_addr_local_extend as usize] = host::host_addr_local_extend;
         handlers[Opcode::host_addr_data as usize] = host::host_addr_data;
         handlers[Opcode::host_addr_data_extend as usize] = host::host_addr_data_extend;
-        handlers[Opcode::host_addr_heap as usize] = host::host_addr_heap;
+        handlers[Opcode::host_addr_memory as usize] = host::host_addr_memory;
         handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
-        handlers[Opcode::host_copy_heap_to_memory as usize] = host::host_copy_heap_to_memory;
-        handlers[Opcode::host_copy_memory_to_heap as usize] = host::host_copy_memory_to_heap;
-        handlers[Opcode::host_memory_copy as usize] = host::host_memory_copy;
+        handlers[Opcode::host_copy_from_memory as usize] = host::host_copy_from_memory;
+        handlers[Opcode::host_copy_to_memory as usize] = host::host_copy_to_memory;
+        handlers[Opcode::host_external_memory_copy as usize] = host::host_external_memory_copy;
 
         Handler {
             handlers,

@@ -23,7 +23,7 @@ pub fn dyncall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     do_call(thread_context, function_public_index, 2)
 }
 
-pub fn pub_index_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn get_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let function_public_index = thread_context.get_param_i32();
     thread_context.stack.push_i32_u(function_public_index);
     HandleResult::Move(8)
@@ -45,9 +45,9 @@ fn do_call(
             return_module_index,
             function_public_index as usize,
         );
-    let (type_index, local_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 target_function_internal_index,
             );
@@ -68,7 +68,7 @@ fn do_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(return_pc),
     );
@@ -338,8 +338,8 @@ mod tests {
     #[test]
     fn test_handler_pub_index_function() {
         // fn test () -> (i32, i32)     // pub idx 0
-        //     pub_index_function(1)
-        //     pub_index_function(2)
+        //     get_function(1)
+        //     get_function(2)
         // end
         //
         // fn one () -> (i32)           // pub idx 1
@@ -353,8 +353,8 @@ mod tests {
         // expect (1, 2)
 
         let code_main = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::pub_index_function, 1)
-            .append_opcode_i32(Opcode::pub_index_function, 2)
+            .append_opcode_i32(Opcode::get_function, 1)
+            .append_opcode_i32(Opcode::get_function, 2)
             .append_opcode(Opcode::end)
             .to_bytes();
 

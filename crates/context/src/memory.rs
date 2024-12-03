@@ -4,147 +4,71 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-/// in XiaoXuan Core VM, there are several objects belong to the memory class,
-/// includes the local variable area, (thread-local) data sections, stack,
-/// (thread-local) heap. this trait provides the ability of data loading and
-/// storing in memory, but does not include the primitive data reading and writing.
-///
-/// |---------------|
-/// | ReadOnlyData  |
-/// | ReadWriteData | ----\
-/// | UninitData    |     |
-/// |---------------|     |
-///                       |               |-------|         |------|
-/// |---------------|     |     load      |       |   pop   |      |
-/// | Heap          | ----| ------------> | Stack | ------> |  VM  |
-/// |---------------|     | <------------ |       | <------ |      |
-///                       |     store     |       |   push  |      |
-/// |---------------|     |               |-------|         |------|
-/// | Local Vars    | ----/
-/// | (virtual)     |
-/// |---------------|
-pub trait Memory {
-    // it's recommended that add annotation "#[inline]" to the implementation
-    fn get_ptr(&self, address: usize) -> *const u8;
+use crate::{memory_access::MemoryAccess, resizeable_memory::ResizeableMemory, MEMORY_PAGE_SIZE_IN_BYTES};
 
-    // it's recommended that add annotation "#[inline]" to the implementation
-    fn get_mut_ptr(&mut self, address: usize) -> *mut u8;
+pub struct Memory {
+    data: Vec<u8>,
+}
 
+impl Memory {
+    pub fn new(init_size_in_pages: usize) -> Self {
+        let len = init_size_in_pages * MEMORY_PAGE_SIZE_IN_BYTES;
+        let data: Vec<u8> = vec![0u8; len];
+        Self { data }
+    }
+}
+
+impl MemoryAccess for Memory {
     #[inline]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    fn load_to(&self, src_address: usize, dst_ptr: *mut u8, length_in_bytes: usize) {
-        let src = self.get_ptr(src_address);
-        unsafe {
-            std::ptr::copy(src, dst_ptr, length_in_bytes);
-        }
-    }
-
-    fn load_i64(&self, src_address: usize, dst_ptr: *mut u8) {
-        self.load_to(src_address, dst_ptr, 8);
-    }
-
-    fn load_i8_s(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const i8;
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    fn load_i8_u(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address);
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    fn load_i16_s(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const i16;
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    fn load_i16_u(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const u16;
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    fn load_i32_s(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const i32;
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    fn load_i32_u(&self, src_address: usize, dst_ptr: *mut u8) {
-        let tp_src = self.get_ptr(src_address) as *const u32;
-        unsafe {
-            let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
-            std::ptr::write(dst_ptr_64, val_64);
-        }
-    }
-
-    // load 64-bit data with extra check
-    // because VM does support some IEEE 754 variants.
-    fn load_f64(&self, src_address: usize, dst_ptr: *mut u8) -> bool {
-        let tp = self.get_ptr(src_address) as *const f64;
-        let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f64 {
-            self.load_i64(src_address, dst_ptr);
-            true
-        } else {
-            false
-        }
-    }
-
-    // load 32-bit data with extra check
-    // because VM does support some IEEE 754 variants.
-    fn load_f32(&self, src_addr: usize, dst_ptr: *mut u8) -> bool {
-        let tp = self.get_ptr(src_addr) as *const f32;
-        let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f32 {
-            self.load_i32_u(src_addr, dst_ptr);
-            true
-        } else {
-            false
-        }
+    fn get_ptr(&self, address: usize) -> *const u8 {
+        self.data[address..].as_ptr()
     }
 
     #[inline]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    fn store_from(&mut self, src_ptr: *const u8, dst_address: usize, length_in_bytes: usize) {
-        let dst = self.get_mut_ptr(dst_address);
-        unsafe {
-            std::ptr::copy(src_ptr, dst, length_in_bytes);
+    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
+        self.data[address..].as_mut_ptr()
+    }
+}
+
+impl ResizeableMemory for Memory {
+    fn get_capacity_in_pages(&self) -> usize {
+        self.data.len() / MEMORY_PAGE_SIZE_IN_BYTES
+    }
+
+    fn resize(&mut self, new_size_in_pages: usize) -> usize {
+        let new_len = new_size_in_pages * MEMORY_PAGE_SIZE_IN_BYTES;
+        self.data.resize(new_len, 0);
+        new_size_in_pages
+    }
+}
+
+impl Memory {
+    pub fn fill(&mut self, address: usize, value: u8, count: usize) {
+        self.data[address..(address + count)].fill(value);
+    }
+
+    pub fn copy(&mut self, dst_address: usize, src_address: usize, count: usize) {
+        let (src, dst) = self.data.split_at_mut(dst_address);
+
+        // depending on the location of src_offset and dst_offset, there are 2 situations:
+        //
+        // index: 0 1 2 3 4 5 | 6 7 8 9
+        //            ^       | ^
+        //            src     | dst
+        //
+        // index: 0 1 2 3   | 4 5 6 7 8 9
+        //            ^     |     ^
+        //            dst   |     src (the value of index 'src' has been changed)
+
+        if src_address < dst_address {
+            dst.copy_from_slice(&src[src_address..(src_address + count)]);
+        } else {
+            let offset = src_address - dst_address;
+            dst.copy_from_slice(&src[offset..(offset + count)]);
         }
     }
 
-    fn store_i64(&mut self, src_ptr: *const u8, dst_address: usize) {
-        self.store_from(src_ptr, dst_address, 8);
-    }
-
-    fn store_i32(&mut self, src_ptr: *const u8, dst_address: usize) {
-        self.store_from(src_ptr, dst_address, 4);
-    }
-
-    fn store_i16(&mut self, src_ptr: *const u8, dst_address: usize) {
-        self.store_from(src_ptr, dst_address, 2);
-    }
-
-    fn store_i8(&mut self, src_ptr: *const u8, dst_address: usize) {
-        self.store_from(src_ptr, dst_address, 1);
+    pub fn load_data(&self, address: usize, count: usize) -> &[u8] {
+        &self.data[address..(address + count)]
     }
 }

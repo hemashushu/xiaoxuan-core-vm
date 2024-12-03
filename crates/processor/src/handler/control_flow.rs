@@ -21,8 +21,8 @@ pub fn end(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResu
 }
 
 pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param type_index:i32, local_list_index:i32)
-    let (type_index, local_list_index) = thread_context.get_param_i32_i32();
+    // (param type_index:i32, local_variable_list_index:i32)
+    let (type_index, local_variable_list_index) = thread_context.get_param_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
@@ -32,12 +32,12 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes =
-        module.local_variable_section.list_items[local_list_index as usize].list_allocate_bytes;
+        module.local_variable_section.list_items[local_variable_list_index as usize].list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index,
+        local_variable_list_index,
         local_variables_allocate_bytes,
         None,
     );
@@ -45,9 +45,9 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
 }
 
 pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param type_index:i32, local_list_index:i32, next_inst_offset:i32)
+    // (param type_index:i32, local_variable_list_index:i32, next_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
-    let (type_index, local_list_index, next_inst_offset) = thread_context.get_param_i32_i32_i32();
+    let (type_index, local_variable_list_index, next_inst_offset) = thread_context.get_param_i32_i32_i32();
 
     let ProgramCounter {
         instruction_address: _,
@@ -58,12 +58,12 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     let type_item = &module.type_section.items[type_index as usize];
 
     let local_variables_allocate_bytes =
-        module.local_variable_section.list_items[local_list_index as usize].list_allocate_bytes;
+        module.local_variable_section.list_items[local_variable_list_index as usize].list_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index,
+        local_variable_list_index,
         local_variables_allocate_bytes,
         None,
     );
@@ -76,10 +76,10 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
 }
 
 pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param local_list_index:i32, next_inst_offset:i32)
+    // (param local_variable_list_index:i32, next_inst_offset:i32)
 
     let condition = thread_context.stack.pop_i32_u();
-    let (local_list_index, next_inst_offset) = thread_context.get_param_i32_i32();
+    let (local_variable_list_index, next_inst_offset) = thread_context.get_param_i32_i32();
 
     if condition == 0 {
         HandleResult::Move(next_inst_offset as isize)
@@ -91,13 +91,13 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
         } = thread_context.pc;
         let module = &thread_context.module_common_instances[module_index];
         let local_variables_allocate_bytes =
-            module.local_variable_section.list_items[local_list_index as usize].list_allocate_bytes;
+            module.local_variable_section.list_items[local_variable_list_index as usize].list_allocate_bytes;
 
         // 'block_nez' has no type (i.e. has no params and returns)
         thread_context.stack.create_frame(
             0,
             0,
-            local_list_index,
+            local_variable_list_index,
             local_variables_allocate_bytes,
             None,
         );

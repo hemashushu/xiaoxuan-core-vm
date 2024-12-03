@@ -7,9 +7,9 @@
 pub mod datas;
 pub mod environment;
 pub mod external_function_table;
-pub mod heap;
-pub mod indexed_memory;
 pub mod memory;
+pub mod indexed_memory_access;
+pub mod memory_access;
 pub mod module_common_instance;
 pub mod module_index_instance;
 pub mod process_context;
@@ -17,7 +17,7 @@ pub mod resizeable_memory;
 pub mod resource;
 pub mod stack;
 pub mod thread_context;
-pub mod typed_memory;
+pub mod typed_memory_access;
 pub mod loader;
 
 // the stack will be enlarge when the free size of stack is less than this value
@@ -28,7 +28,6 @@ pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
-// pub const LOCAL_LIST_INDEX_NOT_EXIST:u32 = 0x8000_0000;
 
 use std::fmt::Display;
 

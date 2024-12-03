@@ -9,10 +9,10 @@ use std::sync::Mutex;
 use anc_image::module_image::ModuleImage;
 
 use crate::{
-    environment::Environment, external_function_table::ExternalFunctionTable, heap::Heap,
-    indexed_memory::IndexedMemory, module_common_instance::ModuleCommonInstance,
-    module_index_instance::ModuleIndexInstance, stack::Stack, INIT_HEAP_SIZE_IN_PAGES,
-    INIT_STACK_SIZE_IN_BYTES,
+    environment::Environment, external_function_table::ExternalFunctionTable,
+    indexed_memory_access::IndexedMemoryAccess, memory::Memory,
+    module_common_instance::ModuleCommonInstance, module_index_instance::ModuleIndexInstance,
+    stack::Stack, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
 };
 
 /// the thread context of the VM.
@@ -105,11 +105,11 @@ pub struct ThreadContext<'a> {
     pub stack: Stack,
 
     // in XiaoXuan Core VM, the data sections (read-only, read-write, uninit) are all thread-local,
-    // and the heap is thread-local also.
+    // and the memory/heap is thread-local also.
     // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
     //
-    // note that the initial capacity of heap is 0 byte
-    pub heap: Heap,
+    // note that the initial capacity of memory/heap is 0 byte
+    pub memory: Memory,
 
     // the position of the next executing instruction (a.k.a. IP/PC)
     // the XiaoXuan Core VM load multiple modules for a application, thus the
@@ -173,7 +173,7 @@ impl<'a> ThreadContext<'a> {
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
-        let heap = Heap::new(INIT_HEAP_SIZE_IN_PAGES);
+        let memory = Memory::new(INIT_HEAP_SIZE_IN_PAGES);
 
         let pc = ProgramCounter {
             instruction_address: 0,
@@ -189,7 +189,7 @@ impl<'a> ThreadContext<'a> {
 
         Self {
             stack,
-            heap,
+            memory,
             pc,
             bridge_function_module_items: vec![],
             bridge_callback_function_module_items: vec![],
@@ -208,7 +208,7 @@ impl<'a> ThreadContext<'a> {
         data_public_index: usize,
         expect_offset_bytes: usize, // for checking the expect data length
         expect_data_length_in_bytes: usize, // for checking the expect data length
-    ) -> (usize, usize, &mut dyn IndexedMemory) {
+    ) -> (usize, usize, &mut dyn IndexedMemoryAccess) {
         let (target_module_index, data_internal_index, target_data_section_type) = self
             .module_index_instance
             .data_index_section
@@ -265,8 +265,8 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
     }
 
     /// return:
-    /// (type_index, local_list_index, code_offset, local_variables_allocate_bytes)
-    pub fn get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
+    /// (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes)
+    pub fn get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
         &self,
         module_index: usize,
         function_internal_index: usize,
@@ -276,17 +276,17 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             .items[function_internal_index];
 
         let type_index = function_item.type_index as usize;
-        let local_list_index = function_item.local_list_index as usize;
+        let local_variable_list_index = function_item.local_variable_list_index as usize;
         let code_offset = function_item.code_offset as usize;
 
         let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
-            .list_items[local_list_index]
+            .list_items[local_variable_list_index]
             .list_allocate_bytes;
 
         (
             type_index,
-            local_list_index,
+            local_variable_list_index,
             code_offset,
             local_variables_allocate_bytes,
         )
@@ -295,7 +295,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
     pub fn get_local_variable_address_by_index_and_offset_with_bounds_check(
         &self,
         reversed_index: u16,
-        local_variable_index: usize, // note that this is different from 'local_list_index'
+        local_variable_index: usize, // note that this is different from 'local_variable_list_index'
         offset_bytes: usize,
         expect_data_length_in_bytes: usize, // for checking the expect data length
     ) -> usize {
@@ -306,30 +306,17 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             module_index,
         } = self.pc;
 
-        let (fp, local_list_index) = {
+        let (fp, local_variable_list_index) = {
             let frame_pack = self.stack.get_frame_pack(reversed_index);
-            (frame_pack.address, frame_pack.frame_info.local_list_index)
+            (
+                frame_pack.address,
+                frame_pack.frame_info.local_variable_list_index,
+            )
         };
-
-//         if local_list_index == LOCAL_LIST_INDEX_NOT_EXIST {
-//             panic!(
-//                 "An attempt to access a local variable that does not exist.
-// module index: {}, function internal index: {}, instruction address: {},
-// block reversed index: {}, local variable index: {},
-// offset in bytes: {}, expect length in bytes: {}.",
-//                 module_index,
-//                 function_internal_index,
-//                 instruction_address,
-//                 reversed_index,
-//                 local_variable_index,
-//                 offset_bytes,
-//                 expect_data_length_in_bytes,
-//             );
-//         }
 
         let variable_item = &self.module_common_instances[module_index]
             .local_variable_section
-            .get_local_list(local_list_index as usize)[local_variable_index];
+            .get_local_variable_list(local_variable_list_index as usize)[local_variable_index];
 
         // bounds check
         #[cfg(feature = "bounds_check")]
@@ -539,7 +526,6 @@ offset in bytes: {}, expect length in bytes: {}.",
             (p0, p1)
         }
     }
-
 
     /// 128 bits instruction
     /// [opcode + padding + i32 + i32 + i32]

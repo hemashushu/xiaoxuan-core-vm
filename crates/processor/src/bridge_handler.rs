@@ -513,9 +513,9 @@ extern "C" fn delegate_bridge_function_call(
     let handler = unsafe { &*(handler_ptr as *const Handler) };
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
@@ -543,7 +543,7 @@ extern "C" fn delegate_bridge_function_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(ProgramCounter {
             instruction_address: 0,
@@ -600,9 +600,9 @@ extern "C" fn delegate_callback_function_call(
     let handler = unsafe { &*(handler_ptr as *const Handler) };
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
         thread_context
-            .get_function_type_and_local_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
                 target_module_index,
                 function_internal_index,
             );
@@ -659,7 +659,7 @@ extern "C" fn delegate_callback_function_call(
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_list_index as u32,
+        local_variable_list_index as u32,
         local_variables_allocate_bytes,
         Some(return_pc),
     );

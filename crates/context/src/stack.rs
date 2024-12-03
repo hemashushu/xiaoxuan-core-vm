@@ -9,7 +9,7 @@ use std::mem::size_of;
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    memory::Memory, thread_context::ProgramCounter, typed_memory::TypedMemory,
+    memory_access::MemoryAccess, thread_context::ProgramCounter, typed_memory_access::TypedMemoryAccess,
     STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES, STACK_FRAME_INCREMENT_SIZE_IN_BYTES,
 };
 
@@ -182,7 +182,7 @@ pub struct FrameInfo {
     pub function_frame_address: u32,         //--/  8 bytes
     pub params_count: u16,                   //--\
     pub results_count: u16,                  //  |  8 bytes
-    pub local_list_index: u32,               //--/
+    pub local_variable_list_index: u32,               //--/
     pub local_variables_allocate_bytes: u32, //--\
     pub return_module_index: u32,            //--/  8 bytes
     pub return_function_internal_index: u32, //--\  8 bytes
@@ -205,7 +205,7 @@ impl<'a> FramePack<'a> {
 }
 
 // for local variables load/store
-impl Memory for Stack {
+impl MemoryAccess for Stack {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
         self.data[address..].as_ptr()
@@ -217,7 +217,7 @@ impl Memory for Stack {
     }
 }
 
-impl TypedMemory for Stack {
+impl TypedMemoryAccess for Stack {
     //
 }
 
@@ -675,7 +675,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
         &mut self,
         params_count: u16,
         results_count: u16,
-        local_list_index: u32,
+        local_variable_list_index: u32,
         local_variables_allocate_bytes: u32,
         opt_return_pc: Option<ProgramCounter>,
     ) {
@@ -705,7 +705,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
         frame_info.function_frame_address = function_fp;
         frame_info.params_count = params_count;
         frame_info.results_count = results_count;
-        frame_info.local_list_index = local_list_index;
+        frame_info.local_variable_list_index = local_variable_list_index;
 
         frame_info.local_variables_allocate_bytes = local_variables_allocate_bytes;
 
@@ -931,10 +931,10 @@ mod tests {
     use anc_isa::OPERAND_SIZE_IN_BYTES;
 
     use crate::{
-        memory::Memory,
+        memory_access::MemoryAccess,
         stack::{FrameInfo, Stack},
         thread_context::ProgramCounter,
-        typed_memory::TypedMemory,
+        typed_memory_access::TypedMemoryAccess,
         INIT_STACK_SIZE_IN_BYTES, STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES,
         STACK_FRAME_INCREMENT_SIZE_IN_BYTES,
     };
@@ -1223,7 +1223,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 2,
                 results_count: 0,
-                local_list_index: 73,
+                local_variable_list_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
@@ -1338,7 +1338,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 1,
                 results_count: 2,
-                local_list_index: 97,
+                local_variable_list_index: 97,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 0,
                 return_function_internal_index: 0,
@@ -1443,7 +1443,7 @@ mod tests {
                 function_frame_address: fp0 as u32,
                 params_count: 0,
                 results_count: 0,
-                local_list_index: 701,
+                local_variable_list_index: 701,
                 local_variables_allocate_bytes: 0,
                 return_module_index: 0,
                 return_function_internal_index: 0,
@@ -1567,7 +1567,7 @@ mod tests {
                 function_frame_address: fp3 as u32,
                 params_count: 1,
                 results_count: 3,
-                local_list_index: 709,
+                local_variable_list_index: 709,
                 local_variables_allocate_bytes: 8,
                 return_module_index: 113,
                 return_function_internal_index: 109,
@@ -1919,7 +1919,7 @@ mod tests {
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                local_list_index: 73,
+                local_variable_list_index: 73,
                 local_variables_allocate_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
@@ -2071,7 +2071,7 @@ mod tests {
                 function_frame_address: 16,
                 params_count: 1,
                 results_count: 2,
-                local_list_index: 97,
+                local_variable_list_index: 97,
                 local_variables_allocate_bytes: 16,
                 return_module_index: 0,
                 return_function_internal_index: 0,

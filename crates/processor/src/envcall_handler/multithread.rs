@@ -75,7 +75,7 @@ pub fn thread_create(_handler: &Handler, thread_context: &mut ThreadContext) {
 
     // get thread start data
     let thread_start_data = thread_context
-        .heap
+        .memory
         .load_data(thread_start_data_address, thread_start_data_length)
         .to_vec();
 

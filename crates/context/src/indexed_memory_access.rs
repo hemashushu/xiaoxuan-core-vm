@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use crate::memory::Memory;
+use crate::memory_access::MemoryAccess;
 
 /// in the XiaoXuam Core VM, local variable memory and data memory are accessed
 /// by the index instead of the "memory address (pointer)".
@@ -25,7 +25,7 @@ use crate::memory::Memory;
 ///         int j = a[4]; // b[0] will be accessed.
 /// }
 /// ```
-pub trait IndexedMemory: Memory {
+pub trait IndexedMemoryAccess: MemoryAccess {
     // it's recommended that add annotation "#[inline]" to the implementation
     /// get (offset, length)
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);

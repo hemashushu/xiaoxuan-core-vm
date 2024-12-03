@@ -84,9 +84,9 @@ pub enum EnvCallNum {
     //   |                           TX ----------------------------> RX     |
     //   |                                | |    |  send     |    |          |
     //   |                                | |    \-----------/    \----------/
-    //   |  /------\  /-------\           | |
-    //   |  | heap |  | stack |           | |
-    //   |  \------/  \-------/           | |
+    //   |  /-------------\  /-------\    | |
+    //   |  | memory/heap |  | stack |    | |
+    //   |  \-------------/  \-------/    | |
     //   |                                | |
     //   |  /-----------------\           | |
     //   |  | SP, FP, PC      |           | |
@@ -109,7 +109,7 @@ pub enum EnvCallNum {
     //     \--------------------------------/
     //        child threads
     //
-    // note that the heap, stack, data sections are all thread-local,
+    // note that the memory/heap, stack, data sections are all thread-local,
     // by default the XiaoXuan has no 'global' data or variables.
     // threads can only comunicate through PIPE.
     //
@@ -135,7 +135,7 @@ pub enum EnvCallNum {
     //    thread_start_data_length:u32) -> child_thread_id:u32
     // ```
     //
-    // the value of 'thread_start_data_address' is the address of a data block in the heap, this
+    // the value of 'thread_start_data_address' is the address of a data block in the memory, this
     // data is copied to the new thread (temporarily on the VM host thread-local memory).
     // the new thread can read the data using the function 'thread_start_data_read'.
     //
@@ -212,7 +212,7 @@ pub enum EnvCallNum {
     // there is no point in dealing with errors anymore.
     thread_receive_msg_from_parent,
 
-    // send message (from heap) to the parent thread.
+    // send message (from memory/heap) to the parent thread.
     // this method will never block the current thread.
     // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
     //
@@ -240,7 +240,7 @@ pub enum EnvCallNum {
     //
     thread_msg_length,
 
-    // read/copy the last received message from the host temporary to 'local variable'/data/'VM heap'
+    // read/copy the last received message from the host temporary to 'local variable' (data or 'VM memory/heap')
     // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length:u32)'
     //
     // returns:

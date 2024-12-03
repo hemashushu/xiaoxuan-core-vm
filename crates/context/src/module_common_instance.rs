@@ -15,7 +15,7 @@ use anc_image::{
 
 use crate::{
     datas::{ReadOnlyDatas, ReadWriteDatas, UninitDatas},
-    indexed_memory::IndexedMemory,
+    indexed_memory_access::IndexedMemoryAccess,
 };
 
 pub struct ModuleCommonInstance<'a> {
@@ -44,7 +44,7 @@ pub struct ModuleCommonInstance<'a> {
     pub function_section: FunctionSection<'a>,
 
     // source optional
-    pub datas: [Box<dyn IndexedMemory + 'a>; 3],
+    pub datas: [Box<dyn IndexedMemoryAccess + 'a>; 3],
     pub function_name_path_section: FunctionNamePathSection<'a>,
     pub data_name_path_section: DataNamePathSection<'a>,
 }

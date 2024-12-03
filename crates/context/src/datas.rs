@@ -6,7 +6,7 @@
 
 use anc_image::common_sections::data_section::DataItem;
 
-use crate::{indexed_memory::IndexedMemory, memory::Memory};
+use crate::{indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess};
 
 pub struct ReadOnlyDatas<'a> {
     data_items: &'a [DataItem],
@@ -41,7 +41,7 @@ impl<'a> UninitDatas<'a> {
     }
 }
 
-impl Memory for ReadOnlyDatas<'_> {
+impl MemoryAccess for ReadOnlyDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
         self.datas[address..].as_ptr()
@@ -53,7 +53,7 @@ impl Memory for ReadOnlyDatas<'_> {
     }
 }
 
-impl IndexedMemory for ReadOnlyDatas<'_> {
+impl IndexedMemoryAccess for ReadOnlyDatas<'_> {
     #[inline]
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
         let item = &self.data_items[idx];
@@ -61,7 +61,7 @@ impl IndexedMemory for ReadOnlyDatas<'_> {
     }
 }
 
-impl Memory for ReadWriteDatas<'_> {
+impl MemoryAccess for ReadWriteDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
         self.datas[address..].as_ptr()
@@ -73,7 +73,7 @@ impl Memory for ReadWriteDatas<'_> {
     }
 }
 
-impl IndexedMemory for ReadWriteDatas<'_> {
+impl IndexedMemoryAccess for ReadWriteDatas<'_> {
     #[inline]
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
         let item = &self.data_items[idx];
@@ -81,7 +81,7 @@ impl IndexedMemory for ReadWriteDatas<'_> {
     }
 }
 
-impl Memory for UninitDatas<'_> {
+impl MemoryAccess for UninitDatas<'_> {
     #[inline]
     fn get_ptr(&self, address: usize) -> *const u8 {
         self.datas[address..].as_ptr()
@@ -93,7 +93,7 @@ impl Memory for UninitDatas<'_> {
     }
 }
 
-impl IndexedMemory for UninitDatas<'_> {
+impl IndexedMemoryAccess for UninitDatas<'_> {
     #[inline]
     fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
         let item = &self.data_items[idx];

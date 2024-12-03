@@ -5,203 +5,203 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 use anc_context::{
-    memory::Memory, resizeable_memory::ResizeableMemory, thread_context::ThreadContext,
+    memory_access::MemoryAccess, resizeable_memory::ResizeableMemory, thread_context::ThreadContext,
 };
 
 use super::{HandleResult, Handler};
 
-pub fn heap_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i64(total_offset, dst_ptr);
+    thread_context.memory.load_i64(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i32_s(total_offset, dst_ptr);
+    thread_context.memory.load_i32_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i32_u(total_offset, dst_ptr);
+    thread_context.memory.load_i32_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i16_s(total_offset, dst_ptr);
+    thread_context.memory.load_i16_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i16_u(total_offset, dst_ptr);
+    thread_context.memory.load_i16_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i8_s(total_offset, dst_ptr);
+    thread_context.memory.load_i8_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_i8_u(total_offset, dst_ptr);
+    thread_context.memory.load_i8_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_f64(total_offset, dst_ptr);
+    thread_context.memory.load_f64(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
     let dst_ptr = thread_context.stack.push_operand_from_memory();
-    thread_context.heap.load_f32(total_offset, dst_ptr);
+    thread_context.memory.load_f32(total_offset, dst_ptr);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
-    thread_context.heap.store_i64(src_ptr, total_offset);
+    thread_context.memory.store_i64(src_ptr, total_offset);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
-    thread_context.heap.store_i32(src_ptr, total_offset);
+    thread_context.memory.store_i32(src_ptr, total_offset);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
-    thread_context.heap.store_i16(src_ptr, total_offset);
+    thread_context.memory.store_i16(src_ptr, total_offset);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
-    thread_context.heap.store_i8(src_ptr, total_offset);
+    thread_context.memory.store_i8(src_ptr, total_offset);
 
     HandleResult::Move(4)
 }
 
-pub fn heap_capacity(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_capacity(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () -> pages:i64
-    let pages = thread_context.heap.get_capacity_in_pages();
+    let pages = thread_context.memory.get_capacity_in_pages();
     thread_context.stack.push_i64_u(pages as u64);
 
     HandleResult::Move(2)
 }
 
-pub fn heap_resize(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_resize(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand pages:i64) -> new_pages:i64
     let pages = thread_context.stack.pop_i64_u();
-    let new_pages = thread_context.heap.resize(pages as usize);
+    let new_pages = thread_context.memory.resize(pages as usize);
     thread_context.stack.push_i64_u(new_pages as u64);
 
     HandleResult::Move(2)
 }
 
-pub fn heap_fill(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_fill(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand address:i64, value:i8, count:i64) -> ()
     let count = thread_context.stack.pop_i64_u() as usize;
     let value = thread_context.stack.pop_i32_u() as u8;
     let address = thread_context.stack.pop_i64_u() as usize;
 
-    thread_context.heap.fill(address, value, count);
+    thread_context.memory.fill(address, value, count);
 
     HandleResult::Move(2)
 }
 
-pub fn heap_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand dst_address:i64, src_address:i64, count:i64) -> ()
     let count = thread_context.stack.pop_i64_u() as usize;
     let src_address = thread_context.stack.pop_i64_u() as usize;
     let dst_address = thread_context.stack.pop_i64_u() as usize;
 
     thread_context
-        .heap
+        .memory
         .copy(dst_address, src_address, count);
 
     HandleResult::Move(2)
@@ -225,18 +225,18 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // get the capacity
-            .append_opcode(Opcode::heap_capacity)
+            .append_opcode(Opcode::memory_capacity)
             // resize - increase
             .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             // resize - increase
             .append_opcode_i32(Opcode::imm_i32, 4)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             // resize - decrease
             .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             // get the capcity
-            .append_opcode(Opcode::heap_capacity)
+            .append_opcode(Opcode::memory_capacity)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -305,69 +305,69 @@ mod tests {
             // change the capacity of heap before test
             // init heap size
             .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::heap_resize)
+            .append_opcode(Opcode::memory_resize)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0x19171311)
             // (param offset_bytes:i16) (operand heap_addr:i64 value:i32) -> ()
-            .append_opcode_i16(Opcode::heap_store_i32, 0)
+            .append_opcode_i16(Opcode::memory_store_i32, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0xd0c0)
-            .append_opcode_i16(Opcode::heap_store_i16, 4)
+            .append_opcode_i16(Opcode::memory_store_i16, 4)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0xe0)
-            .append_opcode_i16(Opcode::heap_store_i8, 6)
+            .append_opcode_i16(Opcode::memory_store_i8, 6)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0xf0)
-            .append_opcode_i16(Opcode::heap_store_i8, 7)
+            .append_opcode_i16(Opcode::memory_store_i8, 7)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x300) // addr for store f64
             .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .append_opcode_i16(Opcode::heap_store_f64, 0) // store f64
+            .append_opcode_i16(Opcode::memory_store_f64, 0) // store f64
             .append_opcode_i64(Opcode::imm_i64, 0x200) // addr for store f32
             .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
-            .append_opcode_i16(Opcode::heap_store_f32, 0) // store f32
+            .append_opcode_i16(Opcode::memory_store_f32, 0) // store f32
             //
             .append_opcode_i64(Opcode::imm_i64, 0x400) // addr for store_i64
             .append_opcode_i64(Opcode::imm_i64, 0x100) // addr for load
             // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
-            .append_opcode_i16(Opcode::heap_load_i64, 0)
-            .append_opcode_i16(Opcode::heap_store_i64, 0)
+            .append_opcode_i16(Opcode::memory_load_i64, 0)
+            .append_opcode_i16(Opcode::memory_store_i64, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x500) // addr for store_i32
             .append_opcode_i64(Opcode::imm_i64, 0x100) // addr for load
-            .append_opcode_i16(Opcode::heap_load_i64, 0)
-            .append_opcode_i16(Opcode::heap_store_i32, 0)
+            .append_opcode_i16(Opcode::memory_load_i64, 0)
+            .append_opcode_i16(Opcode::memory_store_i32, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i64, 0)
+            .append_opcode_i16(Opcode::memory_load_i64, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i32_u, 4)
+            .append_opcode_i16(Opcode::memory_load_i32_u, 4)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i32_s, 4)
+            .append_opcode_i16(Opcode::memory_load_i32_s, 4)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i16_u, 6)
+            .append_opcode_i16(Opcode::memory_load_i16_u, 6)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i16_s, 6)
+            .append_opcode_i16(Opcode::memory_load_i16_s, 6)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i8_u, 7)
+            .append_opcode_i16(Opcode::memory_load_i8_u, 7)
             .append_opcode_i64(Opcode::imm_i64, 0x100)
-            .append_opcode_i16(Opcode::heap_load_i8_s, 7)
+            .append_opcode_i16(Opcode::memory_load_i8_s, 7)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x200)
-            .append_opcode_i16(Opcode::heap_load_f32, 0)
+            .append_opcode_i16(Opcode::memory_load_f32, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x300)
-            .append_opcode_i16(Opcode::heap_load_f64, 0)
+            .append_opcode_i16(Opcode::memory_load_f64, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x400)
-            .append_opcode_i16(Opcode::heap_load_i64, 0)
+            .append_opcode_i16(Opcode::memory_load_i64, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x500)
-            .append_opcode_i16(Opcode::heap_load_i32_u, 0)
+            .append_opcode_i16(Opcode::memory_load_i32_u, 0)
             .append_opcode_i64(Opcode::imm_i64, 0x500)
-            .append_opcode_i16(Opcode::heap_load_i32_s, 0)
+            .append_opcode_i16(Opcode::memory_load_i32_s, 0)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

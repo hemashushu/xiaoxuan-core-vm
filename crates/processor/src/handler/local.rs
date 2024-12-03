@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use anc_context::{memory::Memory, thread_context::ThreadContext};
+use anc_context::{memory_access::MemoryAccess, thread_context::ThreadContext};
 
 use super::{HandleResult, Handler};
 

@@ -165,7 +165,7 @@ mod tests {
 
         // check heap
         assert_eq!(
-            thread_context0.heap.get_capacity_in_pages(),
+            thread_context0.memory.get_capacity_in_pages(),
             INIT_HEAP_SIZE_IN_PAGES
         );
     }
