@@ -144,10 +144,7 @@ pub fn host_copy_from_memory(
     HandleResult::Move(2)
 }
 
-pub fn host_copy_to_memory(
-    _handler: &Handler,
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn host_copy_to_memory(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // copy data from host memory to VM heap
     // () (operand dst_addr:i64 src_pointer:i64 count:i64) -> ()
 
@@ -161,7 +158,10 @@ pub fn host_copy_to_memory(
     HandleResult::Move(2)
 }
 
-pub fn host_external_memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_external_memory_copy(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // copy data between host memory
     // (operand dst_pointer:i64 src_pointer:i64 count:i64)
 
@@ -221,12 +221,12 @@ mod tests {
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
-        entry::{InitedDataEntry, LocalVariableEntry, TypeEntry, UninitDataEntry},
+        entry::{ExternalLibraryEntry, InitedDataEntry, LocalVariableEntry, UninitDataEntry},
         utils::{
-            helper_build_module_binary_with_functions_and_external_functions,
+            helper_build_module_binary_with_functions_and_data_and_external_functions,
             helper_build_module_binary_with_single_function,
-            helper_build_module_binary_with_single_function_and_data_sections,
-            HelperExternalFunctionEntry, HelperFunctionEntryWithCodeAndLocalVariables,
+            helper_build_module_binary_with_single_function_and_data, HelperExternalFunctionEntry,
+            HelperFunctionEntry,
         },
     };
     use anc_isa::{
@@ -511,7 +511,7 @@ mod tests {
             OperandDataType::I32,
         ];
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![],           // params
             result_datatypes, // results
             vec![
@@ -647,7 +647,7 @@ mod tests {
             OperandDataType::I32,
         ];
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![],           // params
             result_datatypes, // results
             vec![
@@ -964,33 +964,19 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_functions_and_external_functions(
+        let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
             vec![
-                TypeEntry {
-                    params: vec![
-                        OperandDataType::I64,
-                        OperandDataType::I32,
-                        OperandDataType::I32,
-                    ],
-                    results: vec![OperandDataType::I32],
-                }, // do_something
-                TypeEntry {
+                HelperFunctionEntry {
+                    // type_index: 1,
                     params: vec![OperandDataType::I32, OperandDataType::I32],
                     results: vec![OperandDataType::I32],
-                }, // func0
-                TypeEntry {
-                    params: vec![OperandDataType::I32],
-                    results: vec![OperandDataType::I32],
-                }, // func1
-            ], // types
-            vec![
-                HelperFunctionEntryWithCodeAndLocalVariables {
-                    type_index: 1,
                     local_variable_item_entries_without_args: vec![],
                     code: code0,
                 },
-                HelperFunctionEntryWithCodeAndLocalVariables {
-                    type_index: 2,
+                HelperFunctionEntry {
+                    // type_index: 2,
+                    params: vec![OperandDataType::I32],
+                    results: vec![OperandDataType::I32],
                     local_variable_item_entries_without_args: vec![],
                     code: code1,
                 },
@@ -998,17 +984,25 @@ mod tests {
             vec![],
             vec![],
             vec![],
-            vec![HelperExternalFunctionEntry {
-                library_name: "libtest0.so.1".to_string(),
-                dependency: Box::new(ExternalLibraryDependency::Local(Box::new(
+            vec![ExternalLibraryEntry::new(
+                "libtest0".to_owned(),
+                Box::new(ExternalLibraryDependency::Local(Box::new(
                     DependencyLocal {
                         path: "lib/libtest0.so.1".to_owned(),
                         condition: None,
                         values: None,
                     },
                 ))),
-                function_name: "do_something".to_string(),
-                type_index: 0,
+            )],
+            vec![HelperExternalFunctionEntry {
+                name: "do_something".to_string(),
+                external_library_index: 0,
+                params: vec![
+                    OperandDataType::I64,
+                    OperandDataType::I32,
+                    OperandDataType::I32,
+                ],
+                result: Some(OperandDataType::I32),
             }],
         );
 

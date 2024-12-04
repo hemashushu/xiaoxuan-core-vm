@@ -9,12 +9,12 @@ use std::fmt::Display;
 mod bridge_handler;
 mod envcall_handler;
 mod extcall_handler;
-mod handler;
-mod in_memory_resource;
 mod jit_util;
 mod multithread_handler;
 mod syscall_handler;
 
+pub mod in_memory_resource;
+pub mod handler;
 pub mod bridge_process;
 pub mod envcall_num;
 pub mod multithread_process;

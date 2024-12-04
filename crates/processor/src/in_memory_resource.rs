@@ -55,10 +55,6 @@ impl Resource for InMemoryResource {
             module_images,
         ))
     }
-
-    // fn get_type(&self) -> ResourceType {
-    //     ResourceType::InMemory
-    // }
 }
 
 #[cfg(test)]
@@ -69,15 +65,15 @@ mod tests {
     };
     use anc_image::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
-        utils::helper_build_module_binary_with_single_function_and_data_sections,
+        utils::helper_build_module_binary_with_single_function_and_data,
     };
     use anc_isa::OperandDataType;
 
     use crate::in_memory_resource::InMemoryResource;
 
     #[test]
-    fn test_in_memory_program() {
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+    fn test_in_memory_module_instance() {
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![OperandDataType::I32, OperandDataType::I32],
             vec![OperandDataType::I64],
             vec![LocalVariableEntry::from_i32()],
@@ -110,29 +106,29 @@ mod tests {
         assert_eq!(module_index_instance.function_index_section.items.len(), 1);
 
         let module_common_instances = &thread_context0.module_common_instances;
-
         assert_eq!(module_common_instances.len(), 1);
-        let module = &module_common_instances[0];
+
+        let module_common_instance0 = &module_common_instances[0];
 
         // check data sections
-        assert_eq!(module.datas.len(), 3);
+        assert_eq!(module_common_instance0.datas.len(), 3);
 
         let mut data = [0u8; 8];
         let dst_ptr = &mut data as *mut [u8] as *mut u8;
 
-        let ro_datas = &module.datas[0];
+        let ro_datas = &module_common_instance0.datas[0];
         ro_datas.load_idx_i32_u(0, 0, dst_ptr);
         assert_eq!(&data[0..4], [0x11, 0, 0, 0]);
         ro_datas.load_idx_i64(1, 0, dst_ptr);
         assert_eq!(data, [0x13, 0, 0, 0, 0, 0, 0, 0]);
 
-        let rw_datas = &module.datas[1];
+        let rw_datas = &module_common_instance0.datas[1];
         rw_datas.load_idx_i32_u(0, 0, dst_ptr);
         assert_eq!(&data[0..4], &[0x17u8, 0x19, 0x23, 0x29]);
         rw_datas.load_idx_i16_u(0, 4, dst_ptr);
         assert_eq!(&data[0..2], &[0x31u8, 0x37]);
 
-        let uninit_datas = &module.datas[2];
+        let uninit_datas = &module_common_instance0.datas[2];
         uninit_datas.load_idx_i32_u(0, 0, dst_ptr);
         assert_eq!(&data[0..4], &[0x0u8, 0, 0, 0]);
         uninit_datas.load_idx_i64(1, 0, dst_ptr);
@@ -141,13 +137,13 @@ mod tests {
         assert_eq!(&data[0..4], &[0x0u8, 0, 0, 0]);
 
         // check type section
-        assert_eq!(module.type_section.items.len(), 1);
+        assert_eq!(module_common_instance0.type_section.items.len(), 1);
 
         // check function section
-        assert_eq!(module.function_section.items.len(), 1);
+        assert_eq!(module_common_instance0.function_section.items.len(), 1);
 
         // check local variable section
-        assert_eq!(module.local_variable_section.list_items.len(), 1);
+        assert_eq!(module_common_instance0.local_variable_section.list_items.len(), 1);
 
         // check pc
         assert_eq!(

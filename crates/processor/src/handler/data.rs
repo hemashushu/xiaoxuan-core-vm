@@ -23,7 +23,10 @@ pub fn data_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> 
     )
 }
 
-pub fn data_load_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32) -> i64
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -62,7 +65,10 @@ pub fn data_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn data_load_extend_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i32_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -101,7 +107,10 @@ pub fn data_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn data_load_extend_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i32_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -140,7 +149,10 @@ pub fn data_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn data_load_extend_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i16_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -179,7 +191,10 @@ pub fn data_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn data_load_extend_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i16_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -218,7 +233,10 @@ pub fn data_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn data_load_extend_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i8_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -257,7 +275,10 @@ pub fn data_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn data_load_extend_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_i8_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -296,7 +317,10 @@ pub fn data_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> 
     )
 }
 
-pub fn data_load_extend_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -335,7 +359,10 @@ pub fn data_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> 
     )
 }
 
-pub fn data_load_extend_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_extend_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -376,7 +403,10 @@ pub fn data_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn data_store_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_extend_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -419,7 +449,10 @@ pub fn data_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn data_store_extend_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_extend_i32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -462,7 +495,10 @@ pub fn data_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn data_store_extend_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_extend_i16(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -505,7 +541,10 @@ pub fn data_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> 
     )
 }
 
-pub fn data_store_extend_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_extend_i8(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i32)
     let data_public_index = thread_context.get_param_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -542,7 +581,7 @@ mod tests {
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::{InitedDataEntry, UninitDataEntry},
-        utils::helper_build_module_binary_with_single_function_and_data_sections,
+        utils::helper_build_module_binary_with_single_function_and_data,
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
@@ -631,7 +670,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![
                 OperandDataType::I64,
@@ -779,7 +818,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![OperandDataType::F32, OperandDataType::F64], // params
             vec![
                 OperandDataType::I64,
@@ -930,7 +969,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![
                 OperandDataType::I64,
@@ -990,7 +1029,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![], // results
             vec![], // local variables
@@ -1028,7 +1067,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![], // results
             vec![], // local variables
@@ -1065,7 +1104,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![], // results
             vec![], // local variables
@@ -1103,7 +1142,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![], // params
             vec![], // results
             vec![], // local variables

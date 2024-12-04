@@ -29,7 +29,7 @@ pub struct ModuleCommonInstance<'a> {
     // - "full_name" = "module_name::name_path"
     // - "name_path" = "namespace::identifier"
     // - "namespace" = "sub_module_name"{0,N}
-    pub name: String, // &'a str,
+    pub name: String,
 
     // import_data_count and import_function_count are used for
     // calculating the function/data public index.
@@ -91,10 +91,7 @@ impl<'a> ModuleCommonInstance<'a> {
             .get_optional_data_name_path_section()
             .unwrap_or_default();
 
-        let name_bytes = common_property_section.module_name_buffer
-            [0..common_property_section.module_name_length as usize]
-            .to_vec();
-        let name = String::from_utf8(name_bytes).unwrap();
+        let name = common_property_section.get_module_name().to_owned();
 
         let import_data_count = common_property_section.import_data_count as usize;
         let import_function_count = common_property_section.import_function_count as usize;

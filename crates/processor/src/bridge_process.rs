@@ -100,7 +100,7 @@ mod tests {
         entry::InitedDataEntry,
         utils::{
             helper_build_module_binary_with_single_function,
-            helper_build_module_binary_with_single_function_and_data_sections,
+            helper_build_module_binary_with_single_function_and_data,
         },
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
@@ -162,7 +162,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        let binary0 = helper_build_module_binary_with_single_function_and_data_sections(
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![],                     // params
             vec![OperandDataType::I32], // results
             vec![],                     // local variables
