@@ -40,56 +40,57 @@ pub struct Stack {
     pub fp: usize,
 }
 
-// the complete VM stack consists of 3 separated stacks:
+// the complete VM stack consists of 2 separated stacks:
 // - info stack
-// - local variables stack
-// - operand stack
+// - operand (includes local variables) stack
 //
-//           |                 |                 |                 |                  |                 |
-//           |                 |                 |                 |                  |                 |
-//           |-----------------|                 |-----------------|                  |-----------------|
-//           | info 3          |                 | local vars 3    |                  | operands 3      |
-//           |                 |      locate     |                 |     frame 3      |                 |     frame 3
-//           |                 | --------------> |-----------------| <-- start   /--> |-----------------| <-- start
-//           |                 | ---\            |                 |             |    |                 |
-//           |                 |    |            |                 |             |    |                 |
-//           |                 |    \-----------=====================------------/    |                 |
-// frame 3   |                 |                 |                 |    locate        |                 |
-// start --> |-----------------|                 |                 |                  |                 |
-//           | info 2          |                 | local vars 2    |                  | operands 2      |
-//           |                 |      locate     |                 |     frame 2      |                 |     frame 2
-//           |                 | --------------> |-----------------| <-- start   /--> |-----------------| <-- start
-//           |                 | ---\            |                 |             |    |                 |
-//           |                 |    |            |                 |             |    |                 |
-//           |                 |    \-----------=====================------------/    |                 |
-// frame 2   |                 |                 |                 |    locate        |                 |
-// start --> |-----------------|                 |                 |                  |                 |
-//           | info 1          |                 | local vars 1    |                  | operands 1      |
-//           |-----------------|                 |-----------------|                  |-----------------|
-// stack     | info 0          |                 | local vars 0    |                  | operands 0      |
-// start --> \=================/                 \=================/                  \=================/
+//           |                 |             |                 |
+//           |                 |             |                 |
+//           |-----------------|             |-----------------|
+//           | info 3          |             | operands 3      |
+//           |                 |   locate    | local vars 3    |     frame 3
+//           |                 | ----------> |-----------------| <-- start
+//           |                 |             |                 |
+//           |                 |             |                 |
+//           |                 |             |                 |
+// frame 3   |                 |             |                 |
+// start --> |-----------------|             |                 |
+//           | info 2          |             | operands 2      |
+//           |                 |   locate    | local vars 2    |     frame 2
+//           |                 | ----------> |-----------------| <-- start
+//           |                 |             |                 |
+//           |                 |             |                 |
+//           |                 |             |                 |
+// frame 2   |                 |             |                 |
+// start --> |-----------------|             | operands 1      |
+//           | info 1          |             | local vars 1    |
+//           |-----------------|             |-----------------|
+// stack     | info 0          |             | operands 0      |
+// start --> \=================/             \=================/
 //
-//                info stack                     local variables stack                   operands stack
-//                -------------------------------------------------------------------------------------
-//                                                  ternary stack
+//              info stack                      operand stack
+//              -----------------------------------------------
+//                                  stack
 //
 //
-// dividing the stack into 3 separate parts has serveral advantages:
+// dividing the stack into 2 separate parts has an advantage:
+// an incorrect local variable write or an incorrectly operands popped,
+// will not destroy the 'info stack', the function still returns to the
+// correct calling path and can find out where the error occurred instantly.
 //
-// 1. an incorrect local variable write (even if accessed by the external library/function),
-//    or an incorrectly operands popped, will not destroy the 'info stack', the function still
-//    returns to the correct calling path and can find out where the error occurred instantly.
+// the operand stack can be divided into 'local variable stack' and 'operand stack',
+// but for simplicity, the current stack is implemented by a single stack.
 //
-// 2. when a function is called, its return values are placed just on top of the 'operand stack',
-//    which helps avoiding the need to copy or move operands, and improving the runtime efficiency.
-//    (note that the arguments are moved to the local vars stack when calling a function, instead of
-//     staying in the operands stack)
-
 // note:
-// for simplicity, the current implementation of the VM stack is to
-// combine 3 sub-stacks into 1 stack.
+// in some stack-based VMs, the values of arguments of a function or a block are placed on the top
+// of the stack, so it is also possible to read the arguments directly in the function
+// using instructions which imply the `pop` capability (e.g. the comparison instruction `eq_i32` and
+// the arithmetic instruction `add_i32`).
+// this feature can be used as a trick to improve performance, but the XiaoXuan Core VM doesn't
+// guarantee this feature, the local variables may be placed at an individual place entirely.
+// so you should always use the "local_load" instructions to read arguments.
 //
-// the frame structure and the frame information:
+// the frame structure:
 //
 // | ...                    |                                   | ...                    |
 // | ...                    |                                   | ...                    |
@@ -98,17 +99,17 @@ pub struct Stack {
 // | operand 1              |                                   | operand 1              |
 // | operand 0              | <-- operands                      | operand 0              |
 // |------------------------|                                   |------------------------|
-// | local 3                |                                   | local 3                |
-// | local 2                | <-- local variable area           | local 2                |
+// | local var 3            |                                   | local var 3            |
+// | local var 2            | <-- local variable area           | local var 2            |
 // |------------------------|                                   |------------------------|
-// | arg 1 (local 1)        |                                   | arg 1 (local 1)        |
-// | arg 0 (local 0)        | <-- args from caller              | arg 0 (local 0)        |
+// | arg 1 (local var 1)    |                                   | arg 1 (local var 1)    |
+// | arg 0 (local var 0)    | <-- args from caller              | arg 0 (local var 0)    |
 // |------------------------|                                   |------------------------|
 // | return inst addr       |                                   | 0                      | <-- 0
 // | return func idx        |                                   | 0                      | <-- 0
 // | return module idx      |                                   | 0                      | <-- 0
 // | local vars alloc bytes |                                   | local vars alloc bytes |
-// | local vars idx         |                                   | local vars index       |
+// | local vars list index  |                                   | local vars list index  |
 // | params/results count   |                                   | params/results count   |
 // | function FP            |                                   | function FP            |
 // | previous FP            | <-- frame info                    | previous FP            |
@@ -120,7 +121,7 @@ pub struct Stack {
 //
 // please note that:
 //
-// - function arguments are part of local variables.
+// - arguments of functions and blocks are part of local variables.
 //
 //   |                 |
 //   |-----------------| <------
@@ -134,10 +135,10 @@ pub struct Stack {
 //   | frame info      |
 //   \-----------------/ <-- frame start
 //
-// - block frame also has local variables (and arguments).
-// - block frame has NO return PC.
+// - block frames also have arguments and local variables.
+// - block frames have NO return PC.
 // - the value of 'local_variables_allocate_bytes' includes the length of
-//   the arguments of function and block. e.g.
+//   the arguments from functions and blocks. e.g.
 //   a function with two i32 arguments and four i32 local variables, the
 //   value of 'local_variables_allocate_bytes' is (4 * 4 bytes) + (2 * 4 bytes) = 24 bytes
 // - if the MSB of 'return module index' is '1', it indicates that it's the starting frame of the
@@ -155,9 +156,10 @@ pub struct Stack {
 //  func frame | previous FP | ---\             | FFP           /
 //             |-------------| <--|-------------/ <------------/
 //             |             |    |
+//             |             |    | <-- crossing functions
 //             | ...         |    |
 //             | func FP     | ---|-------------\
-// block frame | previous FP | ---|--\          | all "FFP" are refered to the current function
+// block frame | previous FP | ---|--\          | all "FFP" of blocks are refered to the current function
 //             |-------------| <--/  |          | frame start position (FP)
 //             | ...         |       |          |
 //             | func FP     | ------|----------|
@@ -168,7 +170,7 @@ pub struct Stack {
 // block frame | previous FP | ---------|--\    |
 //             |-------------| <-------/   |    |
 //             | ...         |             |    |
-//             | func FP     | ------------|----| the value of FFP in the current function frame is the frame FP itself
+//             | func FP     | ------------|----| the value of FFP of the current function frame is the frame FP itself
 //  func frame | previous FP | ---\        |    |
 //             |-------------| <--|--------/ <--/
 //             | ...         |   ...
@@ -182,7 +184,7 @@ pub struct FrameInfo {
     pub function_frame_address: u32,         //--/  8 bytes
     pub params_count: u16,                   //--\
     pub results_count: u16,                  //  |  8 bytes
-    pub local_variable_list_index: u32,               //--/
+    pub local_variable_list_index: u32,      //--/
     pub local_variables_allocate_bytes: u32, //--\
     pub return_module_index: u32,            //--/  8 bytes
     pub return_function_internal_index: u32, //--\  8 bytes

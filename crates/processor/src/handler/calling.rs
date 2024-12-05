@@ -206,29 +206,29 @@ mod tests {
 
     #[test]
     fn test_handler_function_call() {
-        // fn test (num/0:i32) -> (i32)                   // type 0
+        // fn test (num/0:i32) -> (i32)             ;; type 0
         //     call(sum_square)
         // end
         //
-        // fn sum_square (count/0:i32) -> (i32)       // type 1
+        // fn sum_square (count/0:i32) -> (i32)     ;; type 1
         //     imm_i32(0)
         //     local_load32(0, 0)
-        //     block (sum/0:i32, n/1:i32) -> (i32)  // type 3
-        //                                          // if n == 0
+        //     block (sum/0:i32, n/1:i32) -> (i32)  ;; type 3
+        //                                          ;; if n == 0
         //         local_load32(0, 1)
         //         eqz_i32
-        //         block_alt () -> (i32)    // type 4
-        //             local_load32(1, 0)   // then sum
-        //         break_alt()              // else
-        //                                  // sum + n^2
+        //         block_alt () -> (i32)            ;; type 4
+        //             local_load32(1, 0)           ;; then sum
+        //         break_alt()                      ;; else
+        //                                          ;; sum + n^2
         //             local_load32(1, 0)
         //             local_load32(1, 1)
         //             call(square)
         //             add_i32
-        //                                  // n - 1
+        //                                          ;; n - 1
         //             local_load32(1, 1)
         //             sub_imm_i32(1)
-        //                                  // recur 1
+        //                                          ;; recur 1
         //             recur(1)
         //         end
         //     end
@@ -335,16 +335,16 @@ mod tests {
 
     #[test]
     fn test_handler_pub_index_function() {
-        // fn test () -> (i32, i32)     // pub idx 0
+        // fn test () -> (i32, i32)     ;; pub idx 0
         //     get_function(1)
         //     get_function(2)
         // end
         //
-        // fn one () -> (i32)           // pub idx 1
+        // fn one () -> (i32)           ;; pub idx 1
         //     imm_i32(11)
         // end
         //
-        // fn two () -> (i32)           // pub idx 2
+        // fn two () -> (i32)           ;; pub idx 2
         //     imm_i32(13)
         // end
         //
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_handler_function_call_dyncall() {
-        // fn test () -> (i32, i32, i32, i32, i32)  // pub idx: 0
+        // fn test () -> (i32, i32, i32, i32, i32)  ;; pub idx: 0
         //     imm_i32(2)
         //     dyncall()
         //     imm_i32(4)
@@ -417,19 +417,19 @@ mod tests {
         //     dyncall()
         // end
         //
-        // fn eleven () -> (i32)    // pub idx: 1
+        // fn eleven () -> (i32)        ;; pub idx: 1
         //     imm_i32(11)
         // end
         //
-        // fn thirteen () -> (i32)  // pub idx: 2
+        // fn thirteen () -> (i32)      ;; pub idx: 2
         //     imm_i32(13)
         // end
         //
-        // fn seventeen () -> (i32) // pub idx: 3
+        // fn seventeen () -> (i32)     ;; pub idx: 3
         //     imm_i32(17)
         // end
         //
-        // fn nineteen () -> (i32)  // pub idx: 4
+        // fn nineteen () -> (i32)      ;; pub idx: 4
         //     imm_i32(19)
         // end
         //

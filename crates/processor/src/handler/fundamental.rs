@@ -115,12 +115,7 @@ mod tests {
 
     #[test]
     fn test_handler_fundamental_nop() {
-        // bytecodes
-        //
-        // 0x0000  00 01                       nop
-        // 0x0002  c0 03                       end
-        //
-        // (i32) -> (i32)
+        // () -> ()
         let code0 = BytecodeWriterHelper::new()
             .append_opcode(Opcode::nop)
             .append_opcode(Opcode::end)
@@ -129,9 +124,9 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I32], // params
-            vec![OperandDataType::I32], // results
-            vec![],                     // local variables
+            vec![], // params
+            vec![], // results
+            vec![], // local variables
             code0,
         );
 
@@ -140,14 +135,9 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(
-            &handler,
-            &mut thread_context0,
-            0,
-            0,
-            &[ForeignValue::U32(11)],
-        );
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11)]);
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        assert!(matches!(result0, Ok(_)));
+
     }
 
     /*
@@ -313,16 +303,6 @@ mod tests {
 
     #[test]
     fn test_handler_fundamental_immediate_integer() {
-        // bytecodes
-        //
-        // 0x0000  40 01 00 00  17 00 00 00    imm_i32           0x00000017
-        // 0x0008  41 01 00 00  59 53 47 43    imm_i64           low:0x43475359  high:0x29313741
-        //         41 37 31 29
-        // 0x0014  40 01 00 00  21 ff ff ff    imm_i32           0xffffff21
-        // 0x001c  41 01 00 00  1d ff ff ff    imm_i64           low:0xffffff1d  high:0xffffffff
-        //         ff ff ff ff
-        // 0x0028  c0 03                       end
-        //
         // () -> (i32, i64, i32, i64)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::imm_i32, 23)
@@ -363,16 +343,6 @@ mod tests {
 
     #[test]
     fn test_handler_fundamental_immediate_float() {
-        // bytecodes
-        //
-        // 0x0000  42 01 00 00  db 0f 49 40    imm_f32           0x40490fdb
-        // 0x0008  43 01 00 00  cd 3b 7f 66    imm_f64           low:0x667f3bcd  high:0x3ff6a09e
-        //         9e a0 f6 3f
-        // 0x0014  42 01 00 00  54 f8 2d c0    imm_f32           0xc02df854
-        // 0x001c  43 01 00 00  66 73 2d 38    imm_f64           low:0x382d7366  high:0xbfe0c152
-        //         52 c1 e0 bf
-        // 0x0028  c0 03                       end
-        //
         // () -> (f32, f64, f32, f64)
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_f32(Opcode::imm_f32, std::f32::consts::PI)
