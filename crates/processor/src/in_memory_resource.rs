@@ -61,7 +61,7 @@ impl Resource for InMemoryResource {
 mod tests {
     use anc_context::{
         resizeable_memory::ResizeableMemory, resource::Resource, thread_context::ProgramCounter,
-        INIT_HEAP_SIZE_IN_PAGES,
+        INIT_MEMORY_SIZE_IN_PAGES,
     };
     use anc_image::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
@@ -162,7 +162,7 @@ mod tests {
         // check heap
         assert_eq!(
             thread_context0.memory.get_capacity_in_pages(),
-            INIT_HEAP_SIZE_IN_PAGES
+            INIT_MEMORY_SIZE_IN_PAGES
         );
     }
 }

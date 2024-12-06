@@ -42,7 +42,9 @@ use cranelift_module::{Linkage, Module};
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 
 use crate::{
-    jit_util::{convert_vm_operand_data_type_to_jit_type, get_jit_util_without_imported_symbols},
+    jit_generator::{
+        convert_vm_operand_data_type_to_jit_type, get_jit_generator_without_imported_symbols,
+    },
     HandleErrorType, HandlerError,
 };
 
@@ -311,10 +313,10 @@ pub fn build_wrapper_function(
     params: &[OperandDataType],
     results: &[OperandDataType],
 ) -> *const u8 {
-    let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
-    let jit_helper = mutex_jit_helper.as_mut().unwrap();
+    let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
+    let jit_generator = mutex_jit_generator.as_mut().unwrap();
 
-    let pointer_type = jit_helper.module.isa().pointer_type();
+    let pointer_type = jit_generator.module.isa().pointer_type();
     let mem_flags = MemFlags::new();
 
     // the signature of the external function:
@@ -323,7 +325,7 @@ pub fn build_wrapper_function(
     //     param0,
     //     param1,
     //     paramN) -> ?;
-    let mut func_external_sig = jit_helper.module.make_signature();
+    let mut func_external_sig = jit_generator.module.make_signature();
     for dt in params {
         func_external_sig
             .params
@@ -344,7 +346,7 @@ pub fn build_wrapper_function(
     //     params_ptr: *const u8,
     //     results_ptr: *mut u8);
 
-    let mut func_wrapper_sig = jit_helper.module.make_signature();
+    let mut func_wrapper_sig = jit_generator.module.make_signature();
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // external_function_pointer
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // params_ptr
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
@@ -362,74 +364,81 @@ pub fn build_wrapper_function(
 
     let func_wrapper_name = format!("wrapper_{}", next_id);
 
-    let func_wrapper_id = jit_helper
+    let func_wrapper_declare = jit_generator
         .module
         .declare_function(&func_wrapper_name, Linkage::Local, &func_wrapper_sig)
         .unwrap();
 
-    let mut func_wrapper = Function::with_name_signature(
-        UserFuncName::user(0, func_wrapper_id.as_u32()),
-        func_wrapper_sig,
-    );
+    {
+        let mut func_wrapper = Function::with_name_signature(
+            UserFuncName::user(0, func_wrapper_declare.as_u32()),
+            func_wrapper_sig,
+        );
 
-    let mut function_builder =
-        FunctionBuilder::new(&mut func_wrapper, &mut jit_helper.function_builder_context);
+        let mut function_builder = FunctionBuilder::new(
+            &mut func_wrapper,
+            &mut jit_generator.function_builder_context,
+        );
 
-    let block_0 = function_builder.create_block();
-    function_builder.append_block_params_for_function_params(block_0);
-    function_builder.switch_to_block(block_0);
+        let block_0 = function_builder.create_block();
+        function_builder.append_block_params_for_function_params(block_0);
+        function_builder.switch_to_block(block_0);
 
-    // build the params for calling external function
-    let value_params_ptr = function_builder.block_params(block_0)[1];
-    let value_params = (0..params.len())
-        .map(|idx| {
-            function_builder.ins().load(
-                convert_vm_operand_data_type_to_jit_type(params[idx]),
-                mem_flags,
-                value_params_ptr,
-                (idx * OPERAND_SIZE_IN_BYTES) as i32,
-            )
-        })
-        .collect::<Vec<_>>();
+        // build the params for calling external function
+        let value_params_ptr = function_builder.block_params(block_0)[1];
+        let value_params = (0..params.len())
+            .map(|idx| {
+                function_builder.ins().load(
+                    convert_vm_operand_data_type_to_jit_type(params[idx]),
+                    mem_flags,
+                    value_params_ptr,
+                    (idx * OPERAND_SIZE_IN_BYTES) as i32,
+                )
+            })
+            .collect::<Vec<_>>();
 
-    // the body of wrapper function
-    //
-    // building external function calling inst
-    let callee_0 = function_builder.block_params(block_0)[0];
-    let sig_ref0 = function_builder.import_signature(func_external_sig);
-    let call0 = function_builder
-        .ins()
-        .call_indirect(sig_ref0, callee_0, &value_params);
-
-    if !results.is_empty() {
-        let value_ret = function_builder.inst_results(call0)[0];
-
-        let value_results_ptr = function_builder.block_params(block_0)[2];
-        function_builder
+        // the body of wrapper function
+        //
+        // building external function calling inst
+        let callee_0 = function_builder.block_params(block_0)[0];
+        let sig_ref0 = function_builder.import_signature(func_external_sig);
+        let call0 = function_builder
             .ins()
-            .store(mem_flags, value_ret, value_results_ptr, 0);
+            .call_indirect(sig_ref0, callee_0, &value_params);
+
+        if !results.is_empty() {
+            let value_ret = function_builder.inst_results(call0)[0];
+
+            let value_results_ptr = function_builder.block_params(block_0)[2];
+            function_builder
+                .ins()
+                .store(mem_flags, value_ret, value_results_ptr, 0);
+        }
+
+        function_builder.ins().return_(&[]);
+        function_builder.seal_all_blocks();
+        function_builder.finalize();
+
+        // println!("{}", func_wrapper.display());
+
+        // generate the (machine/native) code of func_bridge
+        jit_generator.context.func = func_wrapper;
+
+        jit_generator
+            .module
+            .define_function(func_wrapper_declare, &mut jit_generator.context)
+            .unwrap();
     }
 
-    function_builder.ins().return_(&[]);
-    function_builder.seal_all_blocks();
-    function_builder.finalize();
-
-    // println!("{}", func_wrapper.display());
-
-    // generate the (machine/native) code of func_bridge
-    let mut codegen_context = jit_helper.module.make_context();
-    codegen_context.func = func_wrapper;
-
-    jit_helper
+    jit_generator
         .module
-        .define_function(func_wrapper_id, &mut codegen_context)
-        .unwrap();
-
-    jit_helper.module.clear_context(&mut codegen_context);
+        .clear_context(&mut jit_generator.context);
 
     // link
-    jit_helper.module.finalize_definitions().unwrap();
+    jit_generator.module.finalize_definitions().unwrap();
 
     // get func_bridge ptr
-    jit_helper.module.get_finalized_function(func_wrapper_id)
+    jit_generator
+        .module
+        .get_finalized_function(func_wrapper_declare)
 }

@@ -27,7 +27,7 @@ pub const STACK_FRAME_INCREMENT_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
 
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
-pub const INIT_HEAP_SIZE_IN_PAGES: usize = 0;
+pub const INIT_MEMORY_SIZE_IN_PAGES: usize = 0;
 
 use std::fmt::Display;
 

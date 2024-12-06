@@ -9,7 +9,7 @@ use std::fmt::Display;
 mod bridge_handler;
 mod envcall_handler;
 mod extcall_handler;
-mod jit_util;
+mod jit_generator;
 mod multithread_handler;
 mod syscall_handler;
 

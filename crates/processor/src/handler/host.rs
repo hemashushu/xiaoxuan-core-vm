@@ -117,11 +117,11 @@ fn do_host_addr_data(
 }
 
 pub fn host_addr_memory(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
-    let heap_address = thread_context.stack.pop_i64_u();
+    let memory_address = thread_context.stack.pop_i64_u();
 
-    let total_offset = heap_address as usize + offset_bytes as usize;
+    let total_offset = memory_address as usize + offset_bytes as usize;
     let ptr = thread_context.memory.get_ptr(total_offset);
     store_pointer_to_operand_stack(thread_context, ptr);
     HandleResult::Move(4)
@@ -135,10 +135,10 @@ pub fn host_copy_from_memory(
     // () (operand dst_pointer:i64 src_addr:i64 count:i64) -> ()
 
     let count = thread_context.stack.pop_i64_u();
-    let src_heap_address = thread_context.stack.pop_i64_u();
+    let src_memory_address = thread_context.stack.pop_i64_u();
     let dst_host_ptr = thread_context.stack.pop_i64_u();
 
-    let src_heap_ptr = thread_context.memory.get_ptr(src_heap_address as usize);
+    let src_heap_ptr = thread_context.memory.get_ptr(src_memory_address as usize);
     unsafe { std::ptr::copy(src_heap_ptr, dst_host_ptr as *mut u8, count as usize) };
 
     HandleResult::Move(2)
@@ -150,9 +150,9 @@ pub fn host_copy_to_memory(_handler: &Handler, thread_context: &mut ThreadContex
 
     let count = thread_context.stack.pop_i64_u();
     let src_host_ptr = thread_context.stack.pop_i64_u();
-    let dst_heap_address = thread_context.stack.pop_i64_u();
+    let dst_memory_address = thread_context.stack.pop_i64_u();
 
-    let dst_heap_ptr = thread_context.memory.get_mut_ptr(dst_heap_address as usize);
+    let dst_heap_ptr = thread_context.memory.get_mut_ptr(dst_memory_address as usize);
     unsafe { std::ptr::copy(src_host_ptr as *const u8, dst_heap_ptr, count as usize) };
 
     HandleResult::Move(2)

@@ -162,7 +162,9 @@ use cranelift_module::{Linkage, Module};
 
 use crate::{
     handler::Handler,
-    jit_util::{convert_vm_operand_data_type_to_jit_type, get_jit_util_without_imported_symbols},
+    jit_generator::{
+        convert_vm_operand_data_type_to_jit_type, get_jit_generator_without_imported_symbols,
+    },
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
     HandleErrorType, HandlerError,
 };
@@ -339,10 +341,10 @@ fn build_bridge_function(
     params: &[OperandDataType],
     results: &[OperandDataType],
 ) -> *const u8 {
-    let mut mutex_jit_helper = get_jit_util_without_imported_symbols();
-    let jit_helper = mutex_jit_helper.as_mut().unwrap();
+    let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
+    let jit_generator = mutex_jit_generator.as_mut().unwrap();
 
-    let pointer_type = jit_helper.module.isa().pointer_type();
+    let pointer_type = jit_generator.module.isa().pointer_type();
 
     // the signature of the delegate function:
     //
@@ -354,7 +356,7 @@ fn build_bridge_function(
     //     params_ptr: *const u8,
     //     results_ptr: *mut u8);
 
-    let mut func_delegate_sig = jit_helper.module.make_signature();
+    let mut func_delegate_sig = jit_generator.module.make_signature();
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // handler_ptr
     func_delegate_sig.params.push(AbiParam::new(pointer_type)); // thread_context_ptr
     func_delegate_sig.params.push(AbiParam::new(types::I32)); // target_module_index
@@ -369,7 +371,7 @@ fn build_bridge_function(
     //     param1,
     //     paramN) -> ?;
 
-    let mut func_exported_sig = jit_helper.module.make_signature();
+    let mut func_exported_sig = jit_generator.module.make_signature();
     for dt in params {
         func_exported_sig
             .params
@@ -396,101 +398,110 @@ fn build_bridge_function(
 
     let func_exported_name = format!("exported_{}", next_id);
 
-    let func_exported_id = jit_helper
+    let func_exported_declare = jit_generator
         .module
         .declare_function(&func_exported_name, Linkage::Local, &func_exported_sig)
         .unwrap();
 
-    let mut func_exported = Function::with_name_signature(
-        UserFuncName::user(0, func_exported_id.as_u32()),
-        func_exported_sig,
-    );
-
-    // create two stack slots, one for parameters, one for results.
-    let ss0 = func_exported.create_sized_stack_slot(StackSlotData::new(
-        StackSlotKind::ExplicitSlot,
-        (OPERAND_SIZE_IN_BYTES * params.len()) as u32,
-        3,
-    ));
-    let ss1 = func_exported.create_sized_stack_slot(StackSlotData::new(
-        StackSlotKind::ExplicitSlot,
-        OPERAND_SIZE_IN_BYTES as u32,
-        3,
-    ));
-
-    let mut function_builder =
-        FunctionBuilder::new(&mut func_exported, &mut jit_helper.function_builder_context);
-
-    let block_0 = function_builder.create_block();
-    function_builder.append_block_params_for_function_params(block_0);
-    function_builder.switch_to_block(block_0);
-
-    for idx in 0..params.len() {
-        let value_param = function_builder.block_params(block_0)[idx];
-        function_builder
-            .ins()
-            .stack_store(value_param, ss0, (idx * OPERAND_SIZE_IN_BYTES) as i32);
-    }
-
-    // build params for calling delegate function
-    let callee_0 = function_builder
-        .ins()
-        .iconst(pointer_type, delegate_function_addr as i64);
-    let param_0 = function_builder
-        .ins()
-        .iconst(pointer_type, handler_addr as i64);
-    let param_1 = function_builder
-        .ins()
-        .iconst(pointer_type, thread_context_addr as i64);
-    let param_2 = function_builder
-        .ins()
-        .iconst(types::I32, target_module_index as i64);
-    let param_3 = function_builder
-        .ins()
-        .iconst(types::I32, function_internal_index as i64);
-    let param_4 = function_builder.ins().stack_addr(pointer_type, ss0, 0);
-    let param_5 = function_builder.ins().stack_addr(pointer_type, ss1, 0);
-
-    // call delegate function
-    let sig_ref0 = function_builder.import_signature(func_delegate_sig);
-    function_builder.ins().call_indirect(
-        sig_ref0,
-        callee_0,
-        &[param_0, param_1, param_2, param_3, param_4, param_5],
-    );
-
-    if !results.is_empty() {
-        let value_ret = function_builder.ins().stack_load(
-            convert_vm_operand_data_type_to_jit_type(results[0]),
-            ss1,
-            0,
+    {
+        let mut func_exported = Function::with_name_signature(
+            UserFuncName::user(0, func_exported_declare.as_u32()),
+            func_exported_sig,
         );
-        function_builder.ins().return_(&[value_ret]);
-    } else {
-        function_builder.ins().return_(&[]);
+
+        // create two stack slots, one for parameters, one for results.
+        let ss0 = func_exported.create_sized_stack_slot(StackSlotData::new(
+            StackSlotKind::ExplicitSlot,
+            (OPERAND_SIZE_IN_BYTES * params.len()) as u32,
+            3,
+        ));
+        let ss1 = func_exported.create_sized_stack_slot(StackSlotData::new(
+            StackSlotKind::ExplicitSlot,
+            OPERAND_SIZE_IN_BYTES as u32,
+            3,
+        ));
+
+        let mut function_builder = FunctionBuilder::new(
+            &mut func_exported,
+            &mut jit_generator.function_builder_context,
+        );
+
+        let block_0 = function_builder.create_block();
+        function_builder.append_block_params_for_function_params(block_0);
+        function_builder.switch_to_block(block_0);
+
+        for idx in 0..params.len() {
+            let value_param = function_builder.block_params(block_0)[idx];
+            function_builder.ins().stack_store(
+                value_param,
+                ss0,
+                (idx * OPERAND_SIZE_IN_BYTES) as i32,
+            );
+        }
+
+        // build params for calling delegate function
+        let callee_0 = function_builder
+            .ins()
+            .iconst(pointer_type, delegate_function_addr as i64);
+        let param_0 = function_builder
+            .ins()
+            .iconst(pointer_type, handler_addr as i64);
+        let param_1 = function_builder
+            .ins()
+            .iconst(pointer_type, thread_context_addr as i64);
+        let param_2 = function_builder
+            .ins()
+            .iconst(types::I32, target_module_index as i64);
+        let param_3 = function_builder
+            .ins()
+            .iconst(types::I32, function_internal_index as i64);
+        let param_4 = function_builder.ins().stack_addr(pointer_type, ss0, 0);
+        let param_5 = function_builder.ins().stack_addr(pointer_type, ss1, 0);
+
+        // call delegate function
+        let sig_ref0 = function_builder.import_signature(func_delegate_sig);
+        function_builder.ins().call_indirect(
+            sig_ref0,
+            callee_0,
+            &[param_0, param_1, param_2, param_3, param_4, param_5],
+        );
+
+        if !results.is_empty() {
+            let value_ret = function_builder.ins().stack_load(
+                convert_vm_operand_data_type_to_jit_type(results[0]),
+                ss1,
+                0,
+            );
+            function_builder.ins().return_(&[value_ret]);
+        } else {
+            function_builder.ins().return_(&[]);
+        }
+
+        function_builder.seal_all_blocks();
+        function_builder.finalize();
+
+        // println!("{}", func_exported.display());
+
+        // generate the (machine/native) code of func_bridge
+        jit_generator.context.func = func_exported;
+
+        jit_generator
+            .module
+            .define_function(func_exported_declare, &mut jit_generator.context)
+            .unwrap();
     }
 
-    function_builder.seal_all_blocks();
-    function_builder.finalize();
-
-    // println!("{}", func_exported.display());
-
-    // generate the (machine/native) code of func_bridge
-    let mut codegen_context = jit_helper.module.make_context();
-    codegen_context.func = func_exported;
-
-    jit_helper
+    jit_generator
         .module
-        .define_function(func_exported_id, &mut codegen_context)
-        .unwrap();
-
-    jit_helper.module.clear_context(&mut codegen_context);
+        .clear_context(&mut jit_generator.context);
 
     // link
-    jit_helper.module.finalize_definitions().unwrap();
+    jit_generator.module.finalize_definitions().unwrap();
 
     // get func_bridge ptr
-    jit_helper.module.get_finalized_function(func_exported_id)
+    jit_generator
+        .module
+        .get_finalized_function(func_exported_declare)
 }
 
 // function calling from outside of VM (such as a Rust program

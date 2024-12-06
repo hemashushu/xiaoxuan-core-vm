@@ -12,7 +12,7 @@ use crate::{
     environment::Environment, external_function_table::ExternalFunctionTable,
     indexed_memory_access::IndexedMemoryAccess, memory::Memory,
     module_common_instance::ModuleCommonInstance, module_index_instance::ModuleIndexInstance,
-    stack::Stack, INIT_HEAP_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
+    stack::Stack, INIT_MEMORY_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
 };
 
 /// the thread context of the VM.
@@ -173,7 +173,7 @@ impl<'a> ThreadContext<'a> {
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
         let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
-        let memory = Memory::new(INIT_HEAP_SIZE_IN_PAGES);
+        let memory = Memory::new(INIT_MEMORY_SIZE_IN_PAGES);
 
         let pc = ProgramCounter {
             instruction_address: 0,

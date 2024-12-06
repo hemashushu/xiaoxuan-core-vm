@@ -11,7 +11,7 @@ use anc_context::{
 use super::{HandleResult, Handler};
 
 pub fn memory_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -23,7 +23,7 @@ pub fn memory_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -
 }
 
 pub fn memory_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -35,7 +35,7 @@ pub fn memory_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 pub fn memory_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -47,7 +47,7 @@ pub fn memory_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 pub fn memory_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -59,7 +59,7 @@ pub fn memory_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 pub fn memory_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -71,7 +71,7 @@ pub fn memory_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 pub fn memory_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -83,7 +83,7 @@ pub fn memory_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) 
 }
 
 pub fn memory_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -95,7 +95,7 @@ pub fn memory_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) 
 }
 
 pub fn memory_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -107,7 +107,7 @@ pub fn memory_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -
 }
 
 pub fn memory_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+    // (param offset_bytes:i16) (operand memory_address:i64) -> i64
     let offset_bytes = thread_context.get_param_i16();
     let address = thread_context.stack.pop_i64_u();
 
@@ -119,7 +119,7 @@ pub fn memory_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -
 }
 
 pub fn memory_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
+    // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -131,7 +131,7 @@ pub fn memory_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) 
 }
 
 pub fn memory_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
+    // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -143,7 +143,7 @@ pub fn memory_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) 
 }
 
 pub fn memory_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
+    // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -155,7 +155,7 @@ pub fn memory_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) 
 }
 
 pub fn memory_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param offset_bytes:i16) (operand heap_addr:i64 value:i64) -> ()
+    // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -220,7 +220,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     #[test]
-    fn test_handler_heap_capacity() {
+    fn test_handler_memory_capacity() {
         // () -> (i64, i64, i64, i64, i64)
 
         let code0 = BytecodeWriterHelper::new()
@@ -273,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_heap_load_and_store() {
+    fn test_handler_memory_load_and_store() {
         //       |low address                                                              high address|
         //       |                                                                                     |
         // index |0x100                              0x200  0x300  0x400                     0x500     |
@@ -309,7 +309,7 @@ mod tests {
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
             .append_opcode_i32(Opcode::imm_i32, 0x19171311)
-            // (param offset_bytes:i16) (operand heap_addr:i64 value:i32) -> ()
+            // (param offset_bytes:i16) (operand memory_address:i64 value:i32) -> ()
             .append_opcode_i16(Opcode::memory_store_i32, 0)
             //
             .append_opcode_i64(Opcode::imm_i64, 0x100)
@@ -333,7 +333,7 @@ mod tests {
             //
             .append_opcode_i64(Opcode::imm_i64, 0x400) // addr for store_i64
             .append_opcode_i64(Opcode::imm_i64, 0x100) // addr for load
-            // (param offset_bytes:i16) (operand heap_addr:i64) -> i64
+            // (param offset_bytes:i16) (operand memory_address:i64) -> i64
             .append_opcode_i16(Opcode::memory_load_i64, 0)
             .append_opcode_i16(Opcode::memory_store_i64, 0)
             //
