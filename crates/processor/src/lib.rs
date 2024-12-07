@@ -7,16 +7,17 @@
 use std::fmt::Display;
 
 mod bridge_handler;
+mod code_generator;
 mod envcall_handler;
 mod extcall_handler;
-mod jit_generator;
+mod jit_context;
 mod multithread_handler;
 mod syscall_handler;
 
-pub mod in_memory_resource;
-pub mod handler;
 pub mod bridge_process;
 pub mod envcall_num;
+pub mod handler;
+pub mod in_memory_resource;
 pub mod multithread_process;
 pub mod process;
 

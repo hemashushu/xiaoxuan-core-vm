@@ -162,7 +162,7 @@ use cranelift_module::{Linkage, Module};
 
 use crate::{
     handler::Handler,
-    jit_generator::{
+    jit_context::{
         convert_vm_operand_data_type_to_jit_type, get_jit_generator_without_imported_symbols,
     },
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
