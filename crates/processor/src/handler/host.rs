@@ -152,7 +152,9 @@ pub fn host_copy_to_memory(_handler: &Handler, thread_context: &mut ThreadContex
     let src_host_ptr = thread_context.stack.pop_i64_u();
     let dst_memory_address = thread_context.stack.pop_i64_u();
 
-    let dst_heap_ptr = thread_context.memory.get_mut_ptr(dst_memory_address as usize);
+    let dst_heap_ptr = thread_context
+        .memory
+        .get_mut_ptr(dst_memory_address as usize);
     unsafe { std::ptr::copy(src_host_ptr as *const u8, dst_heap_ptr, count as usize) };
 
     HandleResult::Move(2)
@@ -181,17 +183,17 @@ pub fn host_external_memory_copy(
 }
 
 fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *const u8) {
-    #[cfg(target_pointer_width = "64")]
-    {
-        let address = ptr as u64;
-        thread_context.stack.push_i64_u(address);
-    }
+    // #[cfg(target_pointer_width = "64")]
+    // {
+    let address = ptr as u64;
+    thread_context.stack.push_i64_u(address);
+    // }
 
-    #[cfg(target_pointer_width = "32")]
-    {
-        let address = ptr as u32;
-        thread_context.stack.push_i32_u(address);
-    }
+    // #[cfg(target_pointer_width = "32")]
+    // {
+    //     let address = ptr as u32;
+    //     thread_context.stack.push_i32_u(address);
+    // }
 }
 
 pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -239,78 +241,77 @@ mod tests {
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::U32(addr) = fv {
-            let ptr = addr as *const u64;
-            unsafe { std::ptr::read(ptr) }
-        } else {
-            panic!("The data type of the foreign value does not match.")
-        }
+        // #[cfg(target_pointer_width = "32")]
+        // if let ForeignValue::U32(addr) = fv {
+        //     let ptr = addr as *const u64;
+        //     unsafe { std::ptr::read(ptr) }
+        // } else {
+        //     panic!("The data type of the foreign value does not match.")
+        // }
     }
 
     fn read_memory_i32(fv: ForeignValue) -> u32 {
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::U32(addr) = fv {
-            let ptr = addr as *const u32;
-            unsafe { std::ptr::read(ptr) }
-        } else {
-            panic!("The data type of the foreign value does not match.")
-        }
+        // #[cfg(target_pointer_width = "32")]
+        // if let ForeignValue::U32(addr) = fv {
+        //     let ptr = addr as *const u32;
+        //     unsafe { std::ptr::read(ptr) }
+        // } else {
+        //     panic!("The data type of the foreign value does not match.")
+        // }
     }
 
     fn read_memory_i16(fv: ForeignValue) -> u16 {
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::U32(addr) = fv {
-            let ptr = addr as *const u16;
-            unsafe { std::ptr::read(ptr) }
-        } else {
-            panic!("The data type of the foreign value does not match.")
-        }
+        // #[cfg(target_pointer_width = "32")]
+        // if let ForeignValue::U32(addr) = fv {
+        //     let ptr = addr as *const u16;
+        //     unsafe { std::ptr::read(ptr) }
+        // } else {
+        //     panic!("The data type of the foreign value does not match.")
+        // }
     }
 
     fn read_memory_i8(fv: ForeignValue) -> u8 {
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        #[cfg(target_pointer_width = "32")]
-        if let ForeignValue::U32(addr) = fv {
-            let ptr = addr as *const u8;
-            unsafe { std::ptr::read(ptr) }
-        } else {
-            panic!("The data type of the foreign value does not match.")
-        }
+        // #[cfg(target_pointer_width = "32")]
+        // if let ForeignValue::U32(addr) = fv {
+        //     let ptr = addr as *const u8;
+        //     unsafe { std::ptr::read(ptr) }
+        // } else {
+        //     panic!("The data type of the foreign value does not match.")
+        // }
     }
 
     #[test]
     fn test_handler_host_panic() {
         // () -> ()
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode(Opcode::nop)
             .append_opcode_i32(Opcode::panic, 0x101)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -487,7 +488,7 @@ mod tests {
 
         println!("{}", format_bytecode_as_text(&code0));
 
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
             OperandDataType::I64,
             OperandDataType::I64,
@@ -499,17 +500,17 @@ mod tests {
             OperandDataType::I64,
         ];
 
-        #[cfg(target_pointer_width = "32")]
-        let result_datatypes = vec![
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-        ];
+        // #[cfg(target_pointer_width = "32")]
+        // let result_datatypes = vec![
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        // ];
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![],           // params
@@ -623,7 +624,7 @@ mod tests {
 
         println!("{}", format_bytecode_as_text(&code0));
 
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
             OperandDataType::I64,
             OperandDataType::I64,
@@ -635,17 +636,17 @@ mod tests {
             OperandDataType::I64,
         ];
 
-        #[cfg(target_pointer_width = "32")]
-        let result_datatypes = vec![
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-        ];
+        // #[cfg(target_pointer_width = "32")]
+        // let result_datatypes = vec![
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        // ];
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
             vec![],           // params
@@ -689,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_host_address_heap() {
+    fn test_handler_host_address_memory() {
         //        heap
         //       |low address                high addr|
         //       |                                    |
@@ -732,7 +733,7 @@ mod tests {
 
         println!("{}", format_bytecode_as_text(&code0));
 
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         let result_datatypes = vec![
             OperandDataType::I64,
             OperandDataType::I64,
@@ -741,14 +742,14 @@ mod tests {
             OperandDataType::I64,
         ];
 
-        #[cfg(target_pointer_width = "32")]
-        let result_datatypes = vec![
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-            OperandDataType::I32,
-        ];
+        // #[cfg(target_pointer_width = "32")]
+        // let result_datatypes = vec![
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        //     OperandDataType::I32,
+        // ];
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],           // params
@@ -773,7 +774,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_host_memory_inter_copy() {
+    fn test_handler_host_memory_and_vm_memory_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
         // copy src_ptr -> VM heap 0x100 with 8 bytes
@@ -805,11 +806,11 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         let param_datatypes = vec![OperandDataType::I64, OperandDataType::I64];
 
-        #[cfg(target_pointer_width = "32")]
-        let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
+        // #[cfg(target_pointer_width = "32")]
+        // let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
 
         let binary0 = helper_build_module_binary_with_single_function(
             param_datatypes, // params
@@ -848,36 +849,20 @@ mod tests {
     fn test_handler_host_external_memory_copy() {
         // fn(src_ptr, dst_ptr) -> ()
 
-        // copy src_ptr -> dst_ptr
-        //
-        // host src_ptr  local var     host dst_ptr
-        // |01234567| -> |45670123| -> |45670123|
-
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 4, 2) // dst ptr
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
-            .append_opcode_i64(Opcode::imm_i64, 4) // length
-            .append_opcode(Opcode::host_external_memory_copy)
-            //
-            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // dst ptr
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
-            .append_opcode_i16(Opcode::add_imm_i64, 4)
-            .append_opcode_i64(Opcode::imm_i64, 4) // length
-            .append_opcode(Opcode::host_external_memory_copy)
-            //
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1) // dst ptr
-            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 2) // src ptr
+            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // src ptr
             .append_opcode_i64(Opcode::imm_i64, 8) // length
             .append_opcode(Opcode::host_external_memory_copy)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        #[cfg(target_pointer_width = "64")]
+        // #[cfg(target_pointer_width = "64")]
         let param_datatypes = vec![OperandDataType::I64, OperandDataType::I64];
 
-        #[cfg(target_pointer_width = "32")]
-        let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
+        // #[cfg(target_pointer_width = "32")]
+        // let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
 
         let binary0 = helper_build_module_binary_with_single_function(
             param_datatypes,                      // params
@@ -909,7 +894,7 @@ mod tests {
         );
         result0.unwrap();
 
-        assert_eq!(&dst_buf, b"everwhat");
+        assert_eq!(&dst_buf, b"whatever");
     }
 
     #[test]
@@ -936,9 +921,9 @@ mod tests {
         //
         // calling path:
         // (11,13) ->
-        //   function(VM) ->
+        //   function0 (VM) ->
         //     do_something (external function) ->
-        //       function1(VM funcation as callback function) ->
+        //       function1 (call from external) ->
         //     return to do_something ->
         //   return to function0 ->
         // return (11*2+13)

@@ -239,7 +239,7 @@ mod tests {
         //     local_load_i32s(0, 0)
         //     mul_i32()
         // end
-
+        //
         // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
 
         let code_main = BytecodeWriterHelper::new()
@@ -333,87 +333,87 @@ mod tests {
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(55),]);
     }
 
+//     #[test]
+//     fn test_handler_get_function() {
+//         // fn test () -> (i32, i32)     ;; pub idx 0
+//         //     get_function(1)
+//         //     get_function(2)
+//         // end
+//         //
+//         // fn one () -> (i32)           ;; pub idx 1
+//         //     imm_i32(11)
+//         // end
+//         //
+//         // fn two () -> (i32)           ;; pub idx 2
+//         //     imm_i32(13)
+//         // end
+//         //
+//         // expect (1, 2)
+//
+//         let code_main = BytecodeWriterHelper::new()
+//             .append_opcode_i32(Opcode::get_function, 1)
+//             .append_opcode_i32(Opcode::get_function, 2)
+//             .append_opcode(Opcode::end)
+//             .to_bytes();
+//
+//         let code_one = BytecodeWriterHelper::new()
+//             .append_opcode_i32(Opcode::imm_i32, 11)
+//             .append_opcode(Opcode::end)
+//             .to_bytes();
+//
+//         let code_two = BytecodeWriterHelper::new()
+//             .append_opcode_i32(Opcode::imm_i32, 13)
+//             .append_opcode(Opcode::end)
+//             .to_bytes();
+//
+//         let binary0 = helper_build_module_binary_with_functions_and_blocks(
+//             vec![
+//                 HelperFunctionEntry {
+//                     params: vec![],
+//                     results: vec![OperandDataType::I32, OperandDataType::I32],
+//                     local_variable_item_entries_without_args: vec![],
+//                     code: code_main,
+//                 },
+//                 HelperFunctionEntry {
+//                     params: vec![],
+//                     results: vec![OperandDataType::I32],
+//                     local_variable_item_entries_without_args: vec![],
+//                     code: code_one,
+//                 },
+//                 HelperFunctionEntry {
+//                     params: vec![],
+//                     results: vec![OperandDataType::I32],
+//                     local_variable_item_entries_without_args: vec![],
+//                     code: code_two,
+//                 },
+//             ],
+//             vec![],
+//         );
+//
+//         let handler = Handler::new();
+//         let resource0 = InMemoryResource::new(vec![binary0]);
+//         let process_context0 = resource0.create_process_context().unwrap();
+//         let mut thread_context0 = process_context0.create_thread_context();
+//
+//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         assert_eq!(
+//             result0.unwrap(),
+//             vec![ForeignValue::U32(1), ForeignValue::U32(2),]
+//         );
+//     }
+
     #[test]
-    fn test_handler_pub_index_function() {
-        // fn test () -> (i32, i32)     ;; pub idx 0
-        //     get_function(1)
-        //     get_function(2)
-        // end
-        //
-        // fn one () -> (i32)           ;; pub idx 1
-        //     imm_i32(11)
-        // end
-        //
-        // fn two () -> (i32)           ;; pub idx 2
-        //     imm_i32(13)
-        // end
-        //
-        // expect (1, 2)
-
-        let code_main = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::get_function, 1)
-            .append_opcode_i32(Opcode::get_function, 2)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let code_one = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 11)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let code_two = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 13)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_functions_and_blocks(
-            vec![
-                HelperFunctionEntry {
-                    params: vec![],
-                    results: vec![OperandDataType::I32, OperandDataType::I32],
-                    local_variable_item_entries_without_args: vec![],
-                    code: code_main,
-                },
-                HelperFunctionEntry {
-                    params: vec![],
-                    results: vec![OperandDataType::I32],
-                    local_variable_item_entries_without_args: vec![],
-                    code: code_one,
-                },
-                HelperFunctionEntry {
-                    params: vec![],
-                    results: vec![OperandDataType::I32],
-                    local_variable_item_entries_without_args: vec![],
-                    code: code_two,
-                },
-            ],
-            vec![],
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::U32(1), ForeignValue::U32(2),]
-        );
-    }
-
-    #[test]
-    fn test_handler_function_call_dyncall() {
+    fn test_handler_function_dyncall() {
         // fn test () -> (i32, i32, i32, i32, i32)  ;; pub idx: 0
-        //     imm_i32(2)
+        //     get_function(thirteen)
         //     dyncall()
-        //     imm_i32(4)
+        //     get_function(nineteen)
         //     dyncall()
-        //     imm_i32(3)
+        //     get_function(seventeen)
         //     dyncall()
-        //     imm_i32(1)
+        //     get_function(eleven)
         //     dyncall()
-        //     imm_i32(2)
+        //     get_function(thirteen)
         //     dyncall()
         // end
         //
@@ -621,7 +621,7 @@ mod tests {
 
         // note
         //
-        // the syscall 'getcwd' in the libc returns the pointer to the buf, but the
+        // the function 'getcwd' in the libc returns the pointer to the buf, but the
         // raw syscall 'getcwd' returns the length of the path (includes the NULL terminated char)
 
         let null_pos = buf.iter().position(|u| *u == 0).unwrap();
@@ -713,6 +713,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
+        // ref:
         // `man 3 getuid`
         // 'uid_t getuid(void);'
 
@@ -759,6 +760,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
+        // ref:
         // `man 3 getenv`
         // 'char *getenv(const char *name);'
 

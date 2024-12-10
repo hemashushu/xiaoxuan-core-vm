@@ -518,12 +518,12 @@ mod tests {
         let resource0 = InMemoryResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
-        let before = Instant::now();
+        let instant_a = Instant::now();
         let result0 = start_with_multiple_thread(&process_context0, vec![]);
         assert_eq!(result0.unwrap(), 0x13);
 
-        let after = Instant::now();
-        let duration = after.duration_since(before);
+        let instant_b = Instant::now();
+        let duration = instant_b.duration_since(instant_a);
         let ms = duration.as_millis() as u64;
         assert!(ms > 500);
     }

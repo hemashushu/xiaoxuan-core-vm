@@ -70,7 +70,7 @@ mod tests {
 
         let secs = results0[0].as_u64();
         let nanos = results0[1].as_u32();
-        let dur_before = Duration::new(secs, nanos);
+        let dur_a = Duration::new(secs, nanos);
 
         let mut t: timespec = timespec {
             tv_sec: 0,
@@ -79,9 +79,9 @@ mod tests {
         unsafe {
             clock_gettime(CLOCK_MONOTONIC, &mut t);
         }
-        let dur_after = Duration::new(t.tv_sec as u64, t.tv_nsec as u32);
+        let dur_b = Duration::new(t.tv_sec as u64, t.tv_nsec as u32);
 
-        let duration = dur_after - dur_before;
+        let duration = dur_b - dur_a;
         assert!(duration.as_millis() < 1000);
     }
 }
