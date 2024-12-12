@@ -158,18 +158,18 @@ use cranelift_codegen::ir::{
     types, AbiParam, Function, InstBuilder, StackSlotData, StackSlotKind, UserFuncName,
 };
 use cranelift_frontend::FunctionBuilder;
+use cranelift_jit::JITModule;
 use cranelift_module::{Linkage, Module};
 
 use crate::{
+    code_generator::Generator,
     handler::Handler,
-    jit_context::{
-        convert_vm_operand_data_type_to_jit_type, get_jit_generator_without_imported_symbols,
-    },
+    jit_context::convert_vm_operand_data_type_to_jit_type,
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
     HandleErrorType, HandlerError,
 };
 
-static mut LAST_BRIDGE_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
+static LAST_BRIDGE_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
 pub fn get_or_create_bridge_function(
     handler: &Handler,
@@ -206,7 +206,11 @@ pub fn get_or_create_bridge_function(
     let delegate_function_addr = delegate_bridge_function_call as *const u8 as usize;
     let handler_addr = handler as *const Handler as *const u8 as usize;
     let thread_context_addr = thread_context as *const ThreadContext as *const u8 as usize;
+
+    let mut jit_generator = handler.jit_generator.lock().unwrap();
+
     let bridge_function_ptr = build_bridge_function(
+        &mut jit_generator,
         delegate_function_addr,
         handler_addr,
         thread_context_addr,
@@ -283,7 +287,10 @@ pub fn get_or_create_bridge_callback_function(
     let handler_addr = handler as *const Handler as *const u8 as usize;
     let thread_context_addr = thread_context as *const ThreadContext as *const u8 as usize;
 
+    let mut jit_generator = handler.jit_generator.lock().unwrap();
+
     let callback_function_ptr = build_bridge_function(
+        &mut jit_generator,
         delegate_function_addr,
         handler_addr,
         thread_context_addr,
@@ -332,7 +339,9 @@ pub fn get_or_create_bridge_callback_function(
 //     3. call delegate_function (...stack slots...)
 //     4. return value
 // }
+#[allow(clippy::too_many_arguments)]
 fn build_bridge_function(
+    jit_generator: &mut Generator<JITModule>,
     delegate_function_addr: usize,
     handler_addr: usize,
     thread_context_addr: usize,
@@ -341,8 +350,8 @@ fn build_bridge_function(
     params: &[OperandDataType],
     results: &[OperandDataType],
 ) -> *const u8 {
-    let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
-    let jit_generator = mutex_jit_generator.as_mut().unwrap();
+    // let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
+    // let jit_generator = mutex_jit_generator.as_mut().unwrap();
 
     let pointer_type = jit_generator.module.isa().pointer_type();
 
@@ -389,12 +398,10 @@ fn build_bridge_function(
     // "process global unique" id, otherwise duplicate ids will be generated
     // in unit tests due to parallet running, which will eventually cause
     // the wrapper function construction to fail.
-    let next_id = unsafe {
-        let mut last_id = LAST_BRIDGE_FUNCTION_ID.lock().unwrap();
-        let next_id: usize = *last_id;
-        *last_id = next_id + 1;
-        next_id
-    };
+
+    let mut last_id = LAST_BRIDGE_FUNCTION_ID.lock().unwrap();
+    let next_id: usize = *last_id;
+    *last_id = next_id + 1;
 
     let func_exported_name = format!("exported_{}", next_id);
 

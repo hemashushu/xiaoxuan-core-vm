@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use std::sync::{Mutex, MutexGuard, Once};
+use std::sync::Mutex;
 
 use anc_isa::OperandDataType;
 use cranelift_codegen::ir::types;
@@ -13,9 +13,9 @@ use cranelift_jit::JITModule;
 
 use crate::code_generator::Generator;
 
-static mut JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS: Mutex<Option<Generator<JITModule>>> =
-    Mutex::new(None);
-static INIT: Once = Once::new();
+// static JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS: Mutex<Option<Generator<JITModule>>> =
+//     Mutex::new(None);
+// static INIT: Once = Once::new();
 
 pub fn convert_vm_operand_data_type_to_jit_type(dt: OperandDataType) -> Type {
     match dt {
@@ -26,17 +26,19 @@ pub fn convert_vm_operand_data_type_to_jit_type(dt: OperandDataType) -> Type {
     }
 }
 
-pub fn get_jit_generator_without_imported_symbols(
-) -> MutexGuard<'static, Option<Generator<JITModule>>> {
-    INIT.call_once(|| {
-        unsafe {
-            JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS =
-                Mutex::new(Some(Generator::<JITModule>::new(vec![])))
-        };
-    });
+pub fn get_jit_generator_without_imported_symbols() -> Mutex<Generator<JITModule>> {
+    // MutexGuard<'static, Option<Generator<JITModule>>> {
+    //     INIT.call_once(|| {
+    //         unsafe {
+    //             JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS =
+    //                 Mutex::new(Some(Generator::<JITModule>::new(vec![])))
+    //         };
+    //     });
+    //
+    //     unsafe {
+    //         let a = JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS.lock().unwrap();
+    //         a
+    //     }
 
-    unsafe {
-        let a = JIT_GENERATOR_WITHOUT_IMPORTED_SYMBOLS.lock().unwrap();
-        a
-    }
+    Mutex::new(Generator::<JITModule>::new(vec![]))
 }

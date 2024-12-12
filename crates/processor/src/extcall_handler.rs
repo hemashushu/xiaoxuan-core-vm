@@ -38,19 +38,19 @@ use anc_context::{
 use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use cranelift_codegen::ir::{AbiParam, Function, InstBuilder, MemFlags, UserFuncName};
 use cranelift_frontend::FunctionBuilder;
+use cranelift_jit::JITModule;
 use cranelift_module::{Linkage, Module};
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 
 use crate::{
-    jit_context::{
-        convert_vm_operand_data_type_to_jit_type, get_jit_generator_without_imported_symbols,
-    },
-    HandleErrorType, HandlerError,
+    code_generator::Generator, handler::Handler,
+    jit_context::convert_vm_operand_data_type_to_jit_type, HandleErrorType, HandlerError,
 };
 
-static mut LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
+static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
 pub fn get_or_create_external_function(
+    handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     external_function_index: usize,
@@ -163,8 +163,10 @@ pub fn get_or_create_external_function(
     };
 
     let mut table = thread_context.external_function_table.lock().unwrap();
+    let mut jit_generator = handler.jit_generator.lock().unwrap();
 
     let (external_function_pointer, wrapper_function) = add_external_function(
+        &mut jit_generator,
         &mut table,
         unified_external_function_index,
         unified_external_library_index,
@@ -182,7 +184,9 @@ pub fn get_or_create_external_function(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn add_external_function(
+    jit_generator: &mut Generator<JITModule>,
     external_function_table: &mut ExternalFunctionTable,
     unified_external_function_index: usize,
     unified_external_library_index: usize,
@@ -235,7 +239,12 @@ pub fn add_external_function(
         }) {
         wrapper_function_index
     } else {
-        add_wrapper_function(external_function_table, param_datatypes, result_datatypes)
+        add_wrapper_function(
+            jit_generator,
+            external_function_table,
+            param_datatypes,
+            result_datatypes,
+        )
     };
 
     // update external_function_pointer_list
@@ -273,6 +282,7 @@ fn add_external_library(
 }
 
 fn add_wrapper_function(
+    jit_generator: &mut Generator<JITModule>,
     external_function_table: &mut ExternalFunctionTable,
     param_types: &[OperandDataType],
     result_types: &[OperandDataType],
@@ -280,8 +290,11 @@ fn add_wrapper_function(
     // build wrapper function
     let wrapper_function_index = external_function_table.wrapper_function_list.len();
 
-    let wrapper_function_pointer =
-        build_wrapper_function(/* wrapper_function_index, */ param_types, result_types);
+    let wrapper_function_pointer = build_wrapper_function(
+        jit_generator,
+        /* wrapper_function_index, */ param_types,
+        result_types,
+    );
 
     let wrapper_function_item = WrapperFunctionItem {
         param_datatypes: param_types.to_vec(),
@@ -310,11 +323,12 @@ fn add_wrapper_function(
 // }
 pub fn build_wrapper_function(
     /* wrapper_function_index: usize, */
+    jit_generator: &mut Generator<JITModule>,
     params: &[OperandDataType],
     results: &[OperandDataType],
 ) -> *const u8 {
-    let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
-    let jit_generator = mutex_jit_generator.as_mut().unwrap();
+    // let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
+    // let jit_generator = mutex_jit_generator.as_mut().unwrap();
 
     let pointer_type = jit_generator.module.isa().pointer_type();
     let mem_flags = MemFlags::new();
@@ -355,12 +369,10 @@ pub fn build_wrapper_function(
     // "process global unique" id, otherwise duplicate ids will be generated
     // in unit tests due to parallet running, which will eventually cause
     // the wrapper function construction to fail.
-    let next_id = unsafe {
-        let mut last_id = LAST_WRAPPER_FUNCTION_ID.lock().unwrap();
-        let next_id: usize = *last_id;
-        *last_id = next_id + 1;
-        next_id
-    };
+
+    let mut last_id = LAST_WRAPPER_FUNCTION_ID.lock().unwrap();
+    let next_id: usize = *last_id;
+    *last_id = next_id + 1;
 
     let func_wrapper_name = format!("wrapper_{}", next_id);
 

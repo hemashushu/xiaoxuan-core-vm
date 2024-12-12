@@ -1039,10 +1039,6 @@ mod tests {
             vec![],
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         // capture the panic and keep silent
         // it is also possible to check the panic by
         // adding `#[should_panic]` attribute to the function.
@@ -1050,6 +1046,9 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -1077,14 +1076,13 @@ mod tests {
             vec![],
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: load i32 variable with load_i64 instruction
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -1114,14 +1112,13 @@ mod tests {
             vec![],
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: access non-exist index local variable
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -1152,14 +1149,13 @@ mod tests {
             vec![],
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);

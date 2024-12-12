@@ -356,7 +356,7 @@ offset in bytes: {}, expect length in bytes: {}.",
             .find(|(_, module)| module.name == module_name)?;
 
         let (function_internal_index, _) = module_common_instance
-            .function_name_path_section
+            .function_name_section
             .get_item_index_and_export(expected_function_name_path)?;
 
         // the function public index is mixed by the following items:
@@ -389,7 +389,7 @@ offset in bytes: {}, expect length in bytes: {}.",
         // 3. internal uninit data
 
         let (mixed_data_internal_index, _) = module_common_instance
-            .data_name_path_section
+            .data_name_section
             .get_item_index_and_export(expected_data_path_name)?;
 
         // the data public index is mixed the following items:

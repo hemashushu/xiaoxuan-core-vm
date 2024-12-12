@@ -25,7 +25,10 @@ pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn local_load_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -81,7 +84,10 @@ pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) 
     )
 }
 
-pub fn local_load_extend_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i32_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -124,7 +130,10 @@ pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) 
     )
 }
 
-pub fn local_load_extend_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i32_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -167,7 +176,10 @@ pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) 
     )
 }
 
-pub fn local_load_extend_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i16_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -210,7 +222,10 @@ pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) 
     )
 }
 
-pub fn local_load_extend_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i16_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -253,7 +268,10 @@ pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn local_load_extend_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i8_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -296,7 +314,10 @@ pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn local_load_extend_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_i8_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -339,7 +360,10 @@ pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn local_load_extend_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -382,7 +406,10 @@ pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn local_load_extend_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_extend_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -427,7 +454,10 @@ pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn local_store_extend_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_extend_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -474,7 +504,10 @@ pub fn local_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn local_store_extend_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_extend_i32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -521,7 +554,10 @@ pub fn local_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -
     )
 }
 
-pub fn local_store_extend_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_extend_i16(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -568,7 +604,10 @@ pub fn local_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) ->
     )
 }
 
-pub fn local_store_extend_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_extend_i8(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param reversed_index:i16 local_variable_index:i32) (operand offset_bytes:i32)
     let (reversed_index, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -896,14 +935,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -928,14 +966,14 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
+
             let mut thread_context0 = process_context0.create_thread_context();
             // err: load i32 variable with load_i64 instruction
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -962,14 +1000,14 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
+
             let mut thread_context0 = process_context0.create_thread_context();
             // err: access non-exist index local variable
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
@@ -997,14 +1035,14 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
+            let handler = Handler::new();
+            let resource0 = InMemoryResource::new(vec![binary0]);
+            let process_context0 = resource0.create_process_context().unwrap();
+
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area
             let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);

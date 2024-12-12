@@ -4,28 +4,35 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use std::sync::Mutex;
+
 use anc_context::thread_context::{ProgramCounter, ThreadContext};
 use anc_image::bytecode_reader::format_bytecode_as_text;
 use anc_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
+use cranelift_jit::JITModule;
 
-use crate::{envcall_num::MAX_ENVCALL_CODE_NUMBER, envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc}, syscall_handler::{
-    generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER,
-}};
+use crate::{
+    code_generator::Generator,
+    envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc},
+    envcall_num::MAX_ENVCALL_CODE_NUMBER,
+    jit_context::get_jit_generator_without_imported_symbols,
+    syscall_handler::{generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER},
+};
 
 pub type HandleFunc = fn(&Handler, &mut ThreadContext) -> HandleResult;
 
 mod arithmetic;
 mod bitwise;
+mod calling;
 mod comparison;
 mod control_flow;
 mod conversion;
 mod data;
-mod calling;
 mod fundamental;
-mod memory;
 mod host;
 mod local;
 mod math;
+mod memory;
 
 // mod envcall;
 // mod extcall;
@@ -110,7 +117,8 @@ Bytecode:
 pub struct Handler {
     pub handlers: [HandleFunc; MAX_OPCODE_NUMBER],
     pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
-    pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER]
+    pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
+    pub jit_generator: Mutex<Generator<JITModule>>,
 }
 
 impl Handler {
@@ -440,7 +448,8 @@ impl Handler {
         Handler {
             handlers,
             syscall_handlers: generate_syscall_handlers(),
-            envcall_handlers: generate_envcall_handlers()
+            envcall_handlers: generate_envcall_handlers(),
+            jit_generator: get_jit_generator_without_imported_symbols(),
         }
     }
 }

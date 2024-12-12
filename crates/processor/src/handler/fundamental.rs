@@ -136,7 +136,7 @@ mod tests {
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-        assert!(matches!(result0, Ok(_)));
+        assert!(result0.is_ok());
 
     }
 

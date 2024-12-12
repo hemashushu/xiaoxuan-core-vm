@@ -6,8 +6,8 @@
 
 use anc_image::{
     common_sections::{
-        data_name_path_section::DataNamePathSection,
-        function_name_path_section::FunctionNamePathSection, function_section::FunctionSection,
+        data_name_section::DataNameSection,
+        function_name_section::FunctionNameSection, function_section::FunctionSection,
         local_variable_section::LocalVariableSection, type_section::TypeSection,
     },
     module_image::ModuleImage,
@@ -45,8 +45,8 @@ pub struct ModuleCommonInstance<'a> {
 
     // source optional
     pub datas: [Box<dyn IndexedMemoryAccess + 'a>; 3],
-    pub function_name_path_section: FunctionNamePathSection<'a>,
-    pub data_name_path_section: DataNamePathSection<'a>,
+    pub function_name_section: FunctionNameSection<'a>,
+    pub data_name_section: DataNameSection<'a>,
 }
 
 impl<'a> ModuleCommonInstance<'a> {
@@ -83,12 +83,12 @@ impl<'a> ModuleCommonInstance<'a> {
             },
         );
 
-        let function_name_path_section = module_image
-            .get_optional_function_name_path_section()
+        let function_name_section = module_image
+            .get_optional_function_name_section()
             .unwrap_or_default();
 
-        let data_name_path_section = module_image
-            .get_optional_data_name_path_section()
+        let data_name_section = module_image
+            .get_optional_data_name_section()
             .unwrap_or_default();
 
         let name = common_property_section.get_module_name().to_owned();
@@ -106,8 +106,8 @@ impl<'a> ModuleCommonInstance<'a> {
                 Box::new(read_write_data),
                 Box::new(uninit_data),
             ],
-            function_name_path_section,
-            data_name_path_section,
+            function_name_section,
+            data_name_section,
             import_data_count,
             import_function_count,
         }

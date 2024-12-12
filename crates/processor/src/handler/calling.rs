@@ -132,7 +132,7 @@ pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     HandleResult::Move(8)
 }
 
-pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (operand external_function_index:i32) -> void/i32/i64/f32/f64
     //
     // the 'external_function_index' is the index within a specific module, it is not
@@ -143,7 +143,7 @@ pub fn extcall(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 
     let (external_function_pointer, wrapper_function, params_count, has_return_value) =
         if let Ok(pwr) =
-            get_or_create_external_function(thread_context, module_index, external_function_index)
+            get_or_create_external_function(handler, thread_context, module_index, external_function_index)
         {
             pwr
         } else {
