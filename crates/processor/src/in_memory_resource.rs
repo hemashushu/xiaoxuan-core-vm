@@ -10,7 +10,7 @@ use anc_context::{
     environment::Environment, external_function_table::ExternalFunctionTable,
     process_context::ProcessContext, resource::Resource,
 };
-use anc_image::{utils::helper_load_modules_from_binaries, BinaryError};
+use anc_image::{utils::helper_load_modules_from_binaries, ImageError};
 
 /// An implement of 'Resource' for unit testing
 pub struct InMemoryResource {
@@ -40,7 +40,7 @@ impl InMemoryResource {
 }
 
 impl Resource for InMemoryResource {
-    fn create_process_context(&self) -> Result<ProcessContext, BinaryError> {
+    fn create_process_context(&self) -> Result<ProcessContext, ImageError> {
         let binaries_ref = self
             .module_binaries
             .iter()
@@ -143,7 +143,10 @@ mod tests {
         assert_eq!(module_common_instance0.function_section.items.len(), 1);
 
         // check local variable section
-        assert_eq!(module_common_instance0.local_variable_section.list_items.len(), 1);
+        assert_eq!(
+            module_common_instance0.local_variable_section.lists.len(),
+            1
+        );
 
         // check pc
         assert_eq!(

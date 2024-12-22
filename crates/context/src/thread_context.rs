@@ -281,7 +281,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
 
         let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
-            .list_items[local_variable_list_index]
+            .lists[local_variable_list_index]
             .list_allocate_bytes;
 
         (

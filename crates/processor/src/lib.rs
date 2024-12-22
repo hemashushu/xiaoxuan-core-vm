@@ -52,19 +52,19 @@ impl Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.error_type {
             HandleErrorType::ParametersAmountMissmatch => {
-                f.write_str("Handler error: the number of parameters doesn't match")
+                f.write_str("The number of parameters doesn't match.")
             }
             HandleErrorType::ResultsAmountMissmatch => {
-                f.write_str("Handler error: the number of results doesn't match")
+                f.write_str("The number of results doesn't match.")
             }
-            HandleErrorType::DataTypeMissmatch => f.write_str("Handler error: data type missmatch"),
-            HandleErrorType::InvalidOperation => f.write_str("Handler error: invalid operation"),
-            HandleErrorType::IndexNotFound => f.write_str("Handler error: index not found"),
-            HandleErrorType::OutOfBoundary => f.write_str("Handler error: out of boundary"),
+            HandleErrorType::DataTypeMissmatch => f.write_str("Data type missmatch."),
+            HandleErrorType::InvalidOperation => f.write_str("Invalid operation."),
+            HandleErrorType::IndexNotFound => f.write_str("Index not found."),
+            HandleErrorType::OutOfBoundary => f.write_str("Out of boundary."),
             HandleErrorType::ItemNotFound => f.write_str("Item not found."),
             HandleErrorType::Panic(code) => write!(
                 f,
-                "XiaoXuan Core VM was terminated by instruction \"panic\", code: {}.",
+                "Terminated by instruction \"panic\", code: {}.",
                 code
             ),
         }
