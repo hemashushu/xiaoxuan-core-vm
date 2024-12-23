@@ -32,7 +32,7 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_allocate_bytes =
-        module.local_variable_section.lists[local_variable_list_index as usize].list_allocate_bytes;
+        module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
@@ -59,7 +59,7 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     let type_item = &module.type_section.items[type_index as usize];
 
     let local_variables_allocate_bytes =
-        module.local_variable_section.lists[local_variable_list_index as usize].list_allocate_bytes;
+        module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
@@ -93,7 +93,7 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
         let module = &thread_context.module_common_instances[module_index];
         let local_variables_allocate_bytes = module.local_variable_section.lists
             [local_variable_list_index as usize]
-            .list_allocate_bytes;
+            .vars_allocate_bytes;
 
         // 'block_nez' has no type (i.e. has no params and returns)
         thread_context.stack.create_frame(

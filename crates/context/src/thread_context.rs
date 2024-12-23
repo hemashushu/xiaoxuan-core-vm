@@ -151,7 +151,7 @@ pub struct ThreadContext<'a> {
 /// of clarity the 'function index' field is kept here.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
-    pub instruction_address: usize,     // the address of instruction
+    pub instruction_address: usize,     // the address of instruction, it's the code offset in the "FunctionSection"
     pub function_internal_index: usize, // the function internal index
     pub module_index: usize,            // the module index
 }
@@ -282,7 +282,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
             .lists[local_variable_list_index]
-            .list_allocate_bytes;
+            .vars_allocate_bytes ;
 
         (
             type_index,
