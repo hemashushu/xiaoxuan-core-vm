@@ -39,7 +39,7 @@ pub enum HandleErrorType {
     IndexNotFound,    // the index of function (or data, local variables) does not found
     OutOfBoundary,    // out of boundary
     ItemNotFound,     // the specified item (module, function or data) does not found.
-    Panic(u32),
+    Panic(u32),       //
 }
 
 impl HandlerError {
@@ -62,11 +62,9 @@ impl Display for HandlerError {
             HandleErrorType::IndexNotFound => f.write_str("Index not found."),
             HandleErrorType::OutOfBoundary => f.write_str("Out of boundary."),
             HandleErrorType::ItemNotFound => f.write_str("Item not found."),
-            HandleErrorType::Panic(code) => write!(
-                f,
-                "Terminated by instruction \"panic\", code: {}.",
-                code
-            ),
+            HandleErrorType::Panic(code) => {
+                write!(f, "Terminated by instruction \"panic\", code: {}.", code)
+            }
         }
     }
 }

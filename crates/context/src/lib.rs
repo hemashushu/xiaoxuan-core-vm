@@ -7,8 +7,8 @@
 pub mod datas;
 pub mod environment;
 pub mod external_function_table;
-pub mod memory;
 pub mod indexed_memory_access;
+pub mod memory;
 pub mod memory_access;
 pub mod module_common_instance;
 pub mod module_index_instance;
@@ -18,7 +18,6 @@ pub mod resource;
 pub mod stack;
 pub mod thread_context;
 pub mod typed_memory_access;
-pub mod loader;
 
 // the stack will be enlarge when the free size of stack is less than this value
 pub const STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES / 2;
@@ -29,25 +28,25 @@ pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_MEMORY_SIZE_IN_PAGES: usize = 0;
 
-use std::fmt::Display;
-
-#[derive(Debug)]
-pub struct ContextError {
-    message: String,
-}
-
-impl ContextError {
-    pub fn new(message: &str) -> Self {
-        Self {
-            message: message.to_owned(),
-        }
-    }
-}
-
-impl Display for ContextError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Context error: {}", self.message)
-    }
-}
-
-impl std::error::Error for ContextError {}
+// use std::fmt::Display;
+//
+// #[derive(Debug)]
+// pub struct ContextError {
+//     // message: String,
+// }
+//
+// impl ContextError {
+//     pub fn new(message: &str) -> Self {
+//         Self {
+//             message: message.to_owned(),
+//         }
+//     }
+// }
+//
+// impl Display for ContextError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         todo!()
+//     }
+// }
+//
+// impl std::error::Error for ContextError {}
