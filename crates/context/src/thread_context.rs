@@ -151,9 +151,9 @@ pub struct ThreadContext<'a> {
 /// of clarity the 'function index' field is kept here.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
-    pub instruction_address: usize,     // the address of instruction, it's the code offset in the "FunctionSection"
+    pub instruction_address: usize, // the address of instruction, it's the code offset in the "FunctionSection"
     pub function_internal_index: usize, // the function internal index
-    pub module_index: usize,            // the module index
+    pub module_index: usize,        // the module index
 }
 
 pub struct DelegateFunctionModuleItem {
@@ -208,7 +208,11 @@ impl<'a> ThreadContext<'a> {
         data_public_index: usize,
         expect_offset_bytes: usize, // for checking the expect data length
         expect_data_length_in_bytes: usize, // for checking the expect data length
-    ) -> (usize, usize, &mut dyn IndexedMemoryAccess) {
+    ) -> (
+        /* target_module_index */ usize,
+        /* data_internal_index */ usize,
+        &mut dyn IndexedMemoryAccess,
+    ) {
         let (target_module_index, data_internal_index, target_data_section_type) = self
             .module_index_instance
             .data_index_section
@@ -253,7 +257,10 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         &self,
         module_index: usize,
         function_public_index: usize,
-    ) -> (usize, usize) {
+    ) -> (
+        /* target_module_index */ usize,
+        /* function_internal_index */ usize,
+    ) {
         let (target_module_index, function_internal_index) = self
             .module_index_instance
             .function_index_section
@@ -270,7 +277,12 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         &self,
         module_index: usize,
         function_internal_index: usize,
-    ) -> (usize, usize, usize, u32) {
+    ) -> (
+        /* type_index */ usize,
+        /* local_variable_list_index */ usize,
+        /* code_offset */ usize,
+        /* local_variables_allocate_bytes */ u32,
+    ) {
         let function_item = &self.module_common_instances[module_index]
             .function_section
             .items[function_internal_index];
@@ -282,7 +294,7 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         let local_variables_allocate_bytes = self.module_common_instances[module_index]
             .local_variable_section
             .lists[local_variable_list_index]
-            .vars_allocate_bytes ;
+            .vars_allocate_bytes;
 
         (
             type_index,
@@ -348,7 +360,10 @@ offset in bytes: {}, expect length in bytes: {}.",
         &self,
         module_name: &str,
         expected_function_name_path: &str,
-    ) -> Option<(usize, usize)> {
+    ) -> Option<(
+        /* module index */ usize,
+        /* function public index */ usize,
+    )> {
         let (module_index, module_common_instance) = self
             .module_common_instances
             .iter()
@@ -356,8 +371,8 @@ offset in bytes: {}, expect length in bytes: {}.",
             .find(|(_, module)| module.name == module_name)?;
 
         let (function_internal_index, _) = module_common_instance
-            .function_name_section
-            .get_item_index_and_export(expected_function_name_path)?;
+            .export_function_section
+            .get_item_index_and_visibility(expected_function_name_path)?;
 
         // the function public index is mixed by the following items:
         // - the imported functions
@@ -376,7 +391,10 @@ offset in bytes: {}, expect length in bytes: {}.",
         &self,
         module_name: &str,
         expected_data_path_name: &str,
-    ) -> Option<(usize, usize)> {
+    ) -> Option<(
+        /* module index */ usize,
+        /* data public index */ usize,
+    )> {
         let (module_index, module_common_instance) = self
             .module_common_instances
             .iter()
@@ -388,9 +406,9 @@ offset in bytes: {}, expect length in bytes: {}.",
         // 2. internal read-write data
         // 3. internal uninit data
 
-        let (mixed_data_internal_index, _) = module_common_instance
-            .data_name_section
-            .get_item_index_and_export(expected_data_path_name)?;
+        let (mixed_data_internal_index, _, _) = module_common_instance
+            .export_data_section
+            .get_item_index_and_visibility_and_section_type(expected_data_path_name)?;
 
         // the data public index is mixed the following items:
         // - imported read-only data items
