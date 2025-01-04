@@ -51,7 +51,7 @@ pub struct ModuleCommonInstance<'a> {
 
 impl<'a> ModuleCommonInstance<'a> {
     pub fn new(module_image: &'a ModuleImage<'a>) -> Self {
-        let common_property_section = module_image.get_common_property_section();
+        let property_section = module_image.get_property_section();
         let type_section = module_image.get_type_section();
         let local_variable_section = module_image.get_local_variable_section();
         let function_section = module_image.get_function_section();
@@ -91,10 +91,9 @@ impl<'a> ModuleCommonInstance<'a> {
             .get_optional_export_data_section()
             .unwrap_or_default();
 
-        let name = common_property_section.get_module_name().to_owned();
-
-        let import_data_count = common_property_section.import_data_count as usize;
-        let import_function_count = common_property_section.import_function_count as usize;
+        let name = property_section.get_module_name().to_owned();
+        let import_data_count = property_section.import_data_count as usize;
+        let import_function_count = property_section.import_function_count as usize;
 
         Self {
             name,

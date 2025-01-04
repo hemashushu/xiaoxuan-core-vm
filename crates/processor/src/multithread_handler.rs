@@ -22,10 +22,6 @@ use crate::{
 // runs on parallel and overwrite these values each thread.
 // change to 'thread local' to avoid this.
 thread_local! {
-    // pointer to the 'Multithread' instance.
-    // pub static MT_OBJECT_ADDRESS: RefCell<usize> = RefCell::new(0);
-    // pub static MT_SOURCE_TYPE: RefCell<ResourceType> = RefCell::new(ResourceType::InMemory);
-
     // pointer to the "process context" and "handler" objects
     pub static PROCESS_CONTEXT_ADDRESS: RefCell<usize> = const{ RefCell::new(0) };
     pub static HANDLER_ADDRESS: RefCell<usize> =  const{  RefCell::new(0) };
@@ -73,7 +69,7 @@ thread_local! {
 
 pub struct ChildThread {
     // the child thread on host will return the 'thread_exit_code'
-    pub join_handle: JoinHandle<Result<u64, GenericError>>,
+    pub join_handle: JoinHandle<Result<u32, GenericError>>,
 
     // the receiver that connects to the child thread
     pub rx: Receiver<Vec<u8>>,
@@ -82,58 +78,30 @@ pub struct ChildThread {
     pub tx: Sender<Vec<u8>>,
 }
 
-// pub struct Multithread<T>
-// where
-//     T: Resource, //  + ?Sized,
-// {
-//     pub resource: Arc<T>,
-// }
-//
-// impl<T> Multithread<T>
-// where
-//     T: Resource + std::marker::Send + std::marker::Sync + 'static,
-// {
-//     pub fn new(resource: T) -> Self {
-//         Self {
-//             resource: Arc::new(resource),
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone, Copy)]
 pub struct ThreadStartFunction {
     pub module_index: usize,
     pub function_public_index: usize,
 }
 
-// the signature of the 'thread start function' must be:
-// 'fn () -> exit_code:u64'
-
+/// the signature of the 'thread start function' must be:
+/// 'fn () -> exit_code:u32'
+///
 pub fn create_thread(
-    thread_start_function: Option<ThreadStartFunction>,
+    // entry_point_name: &str,
+    thread_start_function: ThreadStartFunction,
     thread_start_data: Vec<u8>,
-) -> u32
-// pub fn create_thread<T>(
-//     // multithread: &Multithread<T>, // dyn ProgramSource + std::marker::Send + std::marker::Sync + 'static,
-//     thread_start_function: Option<ThreadStartFunction>,
-//     thread_start_data: Vec<u8>,
-// ) -> u32
-// where
-//     T: Resource + std::marker::Send + std::marker::Sync + 'static,
-{
-    // let mt_object_address = multithread as *const Multithread<_> as *const u8 as usize;
-    // let mt_source_type = multithread.resource.get_type();
-
+) -> u32 {
     let mut process_context_address: usize = 0;
     let mut handler_address: usize = 0;
     let mut next_thread_id: u32 = 0;
 
-    PROCESS_CONTEXT_ADDRESS.with(|data| {
-        process_context_address = *data.borrow();
-    });
-
     HANDLER_ADDRESS.with(|data| {
         handler_address = *data.borrow();
+    });
+
+    PROCESS_CONTEXT_ADDRESS.with(|data| {
+        process_context_address = *data.borrow();
     });
 
     CHILD_THREAD_NEXT_ID.with(|max_id_cell| {
@@ -145,8 +113,6 @@ pub fn create_thread(
     let (parent_tx, child_rx) = std::sync::mpsc::channel::<Vec<u8>>();
     let (child_tx, parent_rx) = std::sync::mpsc::channel::<Vec<u8>>();
 
-    // let cloned_program_source = Arc::clone(&multithread.resource);
-
     const HOST_THREAD_STACK_SIZE: usize = 128 * 1024; // 128 KB
 
     // the default stack size is 2MB
@@ -154,17 +120,9 @@ pub fn create_thread(
     // change to a smaller size
     let thread_builder = std::thread::Builder::new().stack_size(HOST_THREAD_STACK_SIZE);
 
+    // let entry_point_name_string = entry_point_name.to_owned();
     let join_handle = thread_builder
         .spawn(move || {
-            //             // store the information of mt object
-            //             MT_OBJECT_ADDRESS.with(|object_addr_cell| {
-            //                 *object_addr_cell.borrow_mut() = mt_object_address;
-            //             });
-            //
-            //             MT_SOURCE_TYPE.with(|source_type_cell| {
-            //                 *source_type_cell.borrow_mut() = mt_source_type;
-            //             });
-
             // store the address of process_context and handler
             HANDLER_ADDRESS.with(|data| {
                 *data.borrow_mut() = handler_address;
@@ -194,35 +152,34 @@ pub fn create_thread(
                 data.replace(thread_start_data);
             });
 
-            // let process_context_rst = cloned_program_source.create_process_context();
-            // match process_context_rst {
-            //     Ok(program) => {
-
             let handler_ptr = handler_address as *const u8 as *const Handler;
             let process_context_ptr = process_context_address as *const u8 as *const ProcessContext;
 
             let handler = unsafe { &*handler_ptr };
             let process_context = unsafe { &*process_context_ptr };
 
-            let mut thread_context = process_context.create_thread_context(); // program.create_thread_context();
+            let mut thread_context = process_context.create_thread_context();
 
-            let (module_index, function_public_index) = if let Some(item) = thread_start_function {
-                (item.module_index, item.function_public_index)
-            } else {
-                // use the function 'entry' as the startup function
-                const MAIN_MODULE_INDEX: usize = 0;
-                let entry_function_public_index = thread_context
-                    .module_index_instance
-                    .entry_function_public_index
-                    as usize;
-                (MAIN_MODULE_INDEX, entry_function_public_index)
-            };
-
+            // let function_public_index = if let Some(idx) = thread_context
+            //     .module_index_instance
+            //     .entry_point_section
+            //     .get_function_public_index(&entry_point_name_string)
+            // {
+            //     idx
+            // } else {
+            //     return Err(
+            //         Box::new(HandlerError::new(HandleErrorType::EntryPointNotFound(
+            //             entry_point_name_string,
+            //         ))) as GenericError,
+            //     );
+            // };
+            //
+            // const MAIN_MODULE_INDEX: usize = 0;
             let result_foreign_values = process_function(
                 handler,
                 &mut thread_context,
-                module_index,
-                function_public_index,
+                thread_start_function.module_index,
+                thread_start_function.function_public_index,
                 // the specified function should only has no parameters
                 &[],
             );
@@ -239,7 +196,7 @@ pub fn create_thread(
                         )) as GenericError);
                     }
 
-                    if let ForeignValue::U64(exit_code) = foreign_values[0] {
+                    if let ForeignValue::U32(exit_code) = foreign_values[0] {
                         Ok(exit_code)
                     } else {
                         Err(
@@ -250,16 +207,13 @@ pub fn create_thread(
                 }
                 Err(e) => Err(Box::new(e) as GenericError),
             }
-            //     }
-            //     Err(e) => Err(Box::new(e) as GenericError),
-            // }
         })
         .unwrap();
 
     let child_thread = ChildThread {
         join_handle,
-        rx: parent_rx, // RefCell::new(Some(parent_rx)),
-        tx: parent_tx, // RefCell::new(Some(parent_tx)),
+        rx: parent_rx,
+        tx: parent_tx,
     };
 
     CHILD_THREADS.with(|child_threads| {

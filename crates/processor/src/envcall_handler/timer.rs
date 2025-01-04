@@ -4,32 +4,44 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+use std::time::SystemTime;
+
 use anc_context::thread_context::ThreadContext;
-use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
+// use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
 use crate::handler::Handler;
 
 // ref:
 // https://linux.die.net/man/3/clock_gettime
 pub fn time_now(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // `fn () -> (seconds:u64, nano_seconds:u32)`
+    // `fn () -> (seconds:u64, nano_seconds:u64)`
 
-    let mut t = timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
+    let total_nanos = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_nanos(),
+        Err(_) => 0, // SystemTime before UNIX EPOCH
     };
 
-    unsafe {
-        clock_gettime(CLOCK_MONOTONIC, &mut t);
-    }
+    let secs = (total_nanos / 1_000_000_000_u128) as u64;
+    let nanos = (total_nanos % 1_000_000_000_u128) as u64;
 
-    thread_context.stack.push_i64_u(t.tv_sec as u64);
-    thread_context.stack.push_i32_u(t.tv_nsec as u32);
+    thread_context.stack.push_i64_u(secs);
+    thread_context.stack.push_i64_u(nanos);
+
+    //     let mut t = timespec {
+    //         tv_sec: 0,
+    //         tv_nsec: 0,
+    //     };
+    //
+    //     unsafe {
+    //         clock_gettime(CLOCK_MONOTONIC, &mut t);
+    //     }
+    // thread_context.stack.push_i64_u(t.tv_sec as u64);
+    // thread_context.stack.push_i32_u(t.tv_nsec as u32);
 }
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::time::SystemTime;
 
     use anc_context::resource::Resource;
     use anc_image::{
@@ -37,7 +49,7 @@ mod tests {
         utils::helper_build_module_binary_with_single_function,
     };
     use anc_isa::{opcode::Opcode, OperandDataType};
-    use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
+    // use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
     use crate::{
         envcall_num::EnvCallNum, handler::Handler, in_memory_resource::InMemoryResource,
@@ -46,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_envcall_time_now() {
-        // () -> (i64, i32)
+        // () -> (i64, i64)
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::envcall, EnvCallNum::time_now as u32)
@@ -55,7 +67,7 @@ mod tests {
 
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                           // params
-            vec![OperandDataType::I64, OperandDataType::I32], // results
+            vec![OperandDataType::I64, OperandDataType::I64], // results
             vec![],                                           // local variables
             code0,
         );
@@ -69,19 +81,30 @@ mod tests {
         let results0 = result0.unwrap();
 
         let secs = results0[0].as_u64();
-        let nanos = results0[1].as_u32();
-        let dur_a = Duration::new(secs, nanos);
+        let nanos = results0[1].as_u64();
 
-        let mut t: timespec = timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        };
-        unsafe {
-            clock_gettime(CLOCK_MONOTONIC, &mut t);
-        }
-        let dur_b = Duration::new(t.tv_sec as u64, t.tv_nsec as u32);
+        println!("{}", secs);
+        println!("{}", nanos);
 
-        let duration = dur_b - dur_a;
-        assert!(duration.as_millis() < 1000);
+        let duration = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+
+        assert_eq!(duration.as_secs(), secs);
+        assert!(nanos > 0);
+
+        // let dur_a = Duration::new(secs, nanos);
+        //
+        // let mut t: timespec = timespec {
+        //     tv_sec: 0,
+        //     tv_nsec: 0,
+        // };
+        // unsafe {
+        //     clock_gettime(CLOCK_MONOTONIC, &mut t);
+        // }
+        // let dur_b = Duration::new(t.tv_sec as u64, t.tv_nsec as u32);
+        //
+        // let duration = dur_b - dur_a;
+        // assert!(duration.as_millis() < 1000);
     }
 }

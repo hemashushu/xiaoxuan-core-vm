@@ -4,27 +4,28 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use anc_context::thread_context::ThreadContext;
-use anc_isa::{
-    RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION, RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
-};
-
 use crate::handler::Handler;
+use anc_context::thread_context::ThreadContext;
+use anc_isa::RUNTIME_EDITION;
 
-pub fn runtime_name(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // `fn (buf_ptr: u64) -> name_len:u32`
+pub fn runtime_edition(_handler: &Handler, thread_context: &mut ThreadContext) {
+    // `fn (buf_ptr: u64) -> len:u32`
 
     let buf_ptr_value = thread_context.stack.pop_i64_u();
 
-    let name_len = RUNTIME_CODE_NAME.len();
+    let len = if let Some(len) = RUNTIME_EDITION.iter().position(|c| *c == 0) {
+        len
+    } else {
+        RUNTIME_EDITION.len()
+    };
 
-    let src_ptr = RUNTIME_CODE_NAME.as_ptr();
+    let src_ptr = RUNTIME_EDITION.as_ptr();
     let dst_ptr = buf_ptr_value as *mut u8;
     unsafe {
-        std::ptr::copy(src_ptr, dst_ptr, name_len);
+        std::ptr::copy(src_ptr, dst_ptr, len);
     }
 
-    thread_context.stack.push_i32_u(name_len as u32);
+    thread_context.stack.push_i32_u(len as u32);
 }
 
 pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
@@ -36,9 +37,16 @@ pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
     //        |    |minor
     //        |major
 
-    let version_number = RUNTIME_PATCH_VERSION as u64
-        | (RUNTIME_MINOR_VERSION as u64) << 16
-        | (RUNTIME_MAJOR_VERSION as u64) << 32;
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
+    // CARGO_PKG_VERSION_MAJOR — The major version of your package.
+    // CARGO_PKG_VERSION_MINOR — The minor version of your package.
+    // CARGO_PKG_VERSION_PATCH — The patch version of your package.
+    let version_patch = env!("CARGO_PKG_VERSION_PATCH").parse::<u16>().unwrap();
+    let version_minor = env!("CARGO_PKG_VERSION_MINOR").parse::<u16>().unwrap();
+    let version_major = env!("CARGO_PKG_VERSION_MAJOR").parse::<u16>().unwrap();
+
+    let version_number =
+        version_patch as u64 | (version_minor as u64) << 16 | (version_major as u64) << 32;
 
     thread_context.stack.push_i64_u(version_number);
 }
@@ -50,10 +58,7 @@ mod tests {
         bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry, utils::helper_build_module_binary_with_single_function,
     };
-    use anc_isa::{
-        opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_CODE_NAME, RUNTIME_MAJOR_VERSION,
-        RUNTIME_MINOR_VERSION, RUNTIME_PATCH_VERSION,
-    };
+    use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
         envcall_num::EnvCallNum, handler::Handler, in_memory_resource::InMemoryResource,
@@ -85,9 +90,12 @@ mod tests {
 
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
 
-        let expect_version_number = RUNTIME_PATCH_VERSION as u64
-            | (RUNTIME_MINOR_VERSION as u64) << 16
-            | (RUNTIME_MAJOR_VERSION as u64) << 32;
+        let version_patch = env!("CARGO_PKG_VERSION_PATCH").parse::<u16>().unwrap();
+        let version_minor = env!("CARGO_PKG_VERSION_MINOR").parse::<u16>().unwrap();
+        let version_major = env!("CARGO_PKG_VERSION_MAJOR").parse::<u16>().unwrap();
+
+        let expect_version_number =
+            version_patch as u64 | (version_minor as u64) << 16 | (version_major as u64) << 32;
 
         assert_eq!(
             result0.unwrap(),
@@ -96,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_envcall_runtime_code_name() {
+    fn test_envcall_runtime_edition() {
         // () -> (i32, i64)
         //        ^    ^
         //        |    |name buffer (8 bytes)
@@ -104,7 +112,7 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 0)
-            .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_name as u32)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_edition as u32)
             .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -114,7 +122,7 @@ mod tests {
         let binary0 = helper_build_module_binary_with_single_function(
             vec![],                                           // params
             vec![OperandDataType::I32, OperandDataType::I64], // results
-            vec![LocalVariableEntry::from_bytes(8, 8)],         // local variables
+            vec![LocalVariableEntry::from_bytes(8, 8)],       // local variables
             code0,
         );
 
@@ -129,6 +137,10 @@ mod tests {
         let name_u64 = fvs1[1].as_u64();
 
         let name_data = name_u64.to_le_bytes();
-        assert_eq!(&RUNTIME_CODE_NAME[..], &name_data[0..name_len as usize]);
+        assert_eq!(RUNTIME_EDITION, &name_data);
+        assert_eq!(
+            RUNTIME_EDITION.iter().position(|c| *c == 0).unwrap(),
+            name_len as usize
+        );
     }
 }

@@ -30,7 +30,7 @@ pub struct HandlerError {
 }
 
 #[repr(u16)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum HandleErrorType {
     ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
     ResultsAmountMissmatch,    //
@@ -39,7 +39,8 @@ pub enum HandleErrorType {
     IndexNotFound,    // the index of function (or data, local variables) does not found
     OutOfBoundary,    // out of boundary
     ItemNotFound,     // the specified item (module, function or data) does not found.
-    Panic(u32),       //
+    EntryPointNotFound(String),
+    Panic(u32), //
 }
 
 impl HandlerError {
@@ -50,7 +51,7 @@ impl HandlerError {
 
 impl Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.error_type {
+        match &self.error_type {
             HandleErrorType::ParametersAmountMissmatch => {
                 f.write_str("The number of parameters doesn't match.")
             }
@@ -62,6 +63,9 @@ impl Display for HandlerError {
             HandleErrorType::IndexNotFound => f.write_str("Index not found."),
             HandleErrorType::OutOfBoundary => f.write_str("Out of boundary."),
             HandleErrorType::ItemNotFound => f.write_str("Item not found."),
+            HandleErrorType::EntryPointNotFound(entry_point_name) => {
+                write!(f, "Entry point \"{entry_point_name}\" not found.")
+            }
             HandleErrorType::Panic(code) => {
                 write!(f, "Terminated by instruction \"panic\", code: {}.", code)
             }

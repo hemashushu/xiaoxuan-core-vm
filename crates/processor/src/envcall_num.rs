@@ -10,9 +10,9 @@
 pub enum EnvCallNum {
     // runtime
     //
-    // get the VM runtime code name
-    // `fn (buf_ptr: i64) -> name_len:i32`
-    runtime_name = 0x0100,
+    // get the VM runtime edition
+    // `fn (buf_ptr: i64) -> len:i32`
+    runtime_edition = 0x0100,
 
     // get the VM runtime version
     // `fn () -> version:i64`
@@ -48,6 +48,8 @@ pub enum EnvCallNum {
     // thread
     //
     // get the current thread id
+    // it's '0' for the main thread, and '1' for the first child thread.
+    //
     // 'fn () -> thread_id:u32'
     thread_id = 0x0140,
 
@@ -140,7 +142,7 @@ pub enum EnvCallNum {
     // the new thread can read the data using the function 'thread_start_data_read'.
     //
     // the signature of the 'thread start function' MUST be exactly:
-    // 'fn () -> exit_code:u64'
+    // 'fn () -> exit_code:u32'
     //
     // it's similar to the 'int main(int argc, char* argv[])'
     //
@@ -164,12 +166,10 @@ pub enum EnvCallNum {
     // wait for the specified child thread to finish and collect resources from the child thread,
     // return the exit code of the 'thread start function'.
     //
-    // 'fn (child_thread_id:u32) -> (thread_exit_code:u64/u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
     //
     // returns:
-    // - thread_exit_code: the meaning of the 'exit_code' is user defined, the datatype
-    //   of 'thread_exit_code' is platform-dependent, e.g. u32 on 32-bit platforms,
-    //   u64 on 64-bit platforms.
+    // - thread_exit_code: the meaning of the 'exit_code' is user defined.
     // - thread_result: 0=success, 1=failure (or thread_not_found)
     //
     // the caller will be blocked if the child thread is running, when the child thread finishes,
@@ -258,8 +258,8 @@ pub enum EnvCallNum {
 
     // time
     //
-    // get the current time
-    // `fn () -> (seconds:u64, nano_seconds:u32)`
+    // get the current time (elapse from epoch)
+    // `fn () -> (seconds:u64, nano_seconds:u64)`
     // valid values of 'nano_seconds' are [0, 999_999_999]
     time_now = 0x0180,
 

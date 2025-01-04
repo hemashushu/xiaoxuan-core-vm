@@ -6,7 +6,7 @@
 
 use anc_image::{
     index_sections::{
-        data_index_section::DataIndexSection,
+        data_index_section::DataIndexSection, entry_point_section::EntryPointSection,
         external_function_index_section::ExternalFunctionIndexSection,
         external_function_section::UnifiedExternalFunctionSection,
         external_library_section::UnifiedExternalLibrarySection,
@@ -17,12 +17,8 @@ use anc_image::{
 };
 
 pub struct ModuleIndexInstance<'a> {
-    pub runtime_major_version: u16, // only application can specify runtime/compiler version
-    pub runtime_minor_version: u16,
-    pub entry_function_public_index: u32, // u32::max = none
-
     // essential
-    // pub index_property_section: IndexPropertySection,
+    pub entry_point_section: EntryPointSection<'a>,
     pub function_index_section: FunctionIndexSection<'a>,
 
     // source optional
@@ -37,7 +33,7 @@ impl<'a> ModuleIndexInstance<'a> {
     pub fn new(module_images: &'a [ModuleImage<'a>]) -> Self {
         let main_module = &module_images[0];
 
-        let index_property_section = main_module.get_index_property_section();
+        let entry_point_section = main_module.get_entry_point_section();
         let function_index_section = main_module.get_function_index_section();
 
         let data_index_section = main_module
@@ -60,15 +56,8 @@ impl<'a> ModuleIndexInstance<'a> {
             .get_optional_external_function_index_section()
             .unwrap_or_default();
 
-        let runtime_major_version = index_property_section.runtime_major_version;
-        let runtime_minor_version = index_property_section.runtime_minor_version;
-        let entry_function_public_index = index_property_section.entry_function_public_index;
-
         Self {
-            runtime_major_version,
-            runtime_minor_version,
-            entry_function_public_index,
-            //
+            entry_point_section,
             function_index_section,
             //
             data_index_section,

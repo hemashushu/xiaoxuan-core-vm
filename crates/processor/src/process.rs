@@ -19,8 +19,8 @@ pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
 pub const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT: usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
 
 // note:
-// 'function public index' includes the imported functions, it equals to
-// 'amount of imported functions' + 'function internal index'
+// the value of 'function public index' includes the amount of imported functions,
+// it equals to 'amount of imported functions' + 'function internal index'
 pub fn process_function(
     handler: &Handler,
     thread_context: &mut ThreadContext,

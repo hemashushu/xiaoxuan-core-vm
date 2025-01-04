@@ -1011,9 +1011,9 @@ mod tests {
             &Environment::new(
                 application_path,
                 true,
-                "",
-                &[""],
-                "",
+                // "",
+                // &[""],
+                // "",
                 HashMap::<String, String>::new(),
             ),
         );

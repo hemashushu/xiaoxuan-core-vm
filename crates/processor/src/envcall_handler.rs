@@ -49,7 +49,7 @@ pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMB
         [envcall_unreachable_handler; MAX_ENVCALL_CODE_NUMBER];
 
     // runtime info
-    handlers[EnvCallNum::runtime_name as usize] = runtime_info::runtime_name;
+    handlers[EnvCallNum::runtime_edition as usize] = runtime_info::runtime_edition;
     handlers[EnvCallNum::runtime_version as usize] = runtime_info::runtime_version;
 
     // timer
