@@ -36,14 +36,34 @@ pub enum EnvCallNum {
     // runtime_feature_check,
 
     // host
-    // host_info_arch = 0x110,      // x86_64/aarch64/riscv64 ...
-    // host_info_os,                // linux/macos/windows/freebsd/android/ios ...
-    // host_info_family,            // unix/windows ...
-    // host_info_endian,            // little/big
-    // host_info_pointer_width,     // 32/64 ...
+    //
+    host_arch,   // x86_64/aarch64/riscv64 ...
+    host_os,     // linux/macos/windows/freebsd/android/ios ...
+    host_family, // unix/windows ...
+    host_endian, // little/big
+    host_width,  // 32bit/64bit ... the size of data/pointer
 
     // ref:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
+
+    // env
+    //
+    env_count,
+    env_list,
+    env_get,
+    env_set,
+    env_remove,
+
+    // time
+    //
+    // get the current time (elapse from epoch)
+    // `fn () -> (seconds:u64, nano_seconds:u64)`
+    // valid values of 'nano_seconds' are [0, 999_999_999]
+    time_now,
+
+    // random
+    random_init,
+    random_int,
 
     // thread
     //
@@ -51,7 +71,7 @@ pub enum EnvCallNum {
     // it's '0' for the main thread, and '1' for the first child thread.
     //
     // 'fn () -> thread_id:u32'
-    thread_id = 0x0140,
+    thread_id = 0x0200,
 
     // thread model
     // ------------
@@ -256,24 +276,13 @@ pub enum EnvCallNum {
     // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
     // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
-    // time
-    //
-    // get the current time (elapse from epoch)
-    // `fn () -> (seconds:u64, nano_seconds:u64)`
-    // valid values of 'nano_seconds' are [0, 999_999_999]
-    time_now = 0x0180,
-
-    // random
-    random_init = 0x01c0,
-    random_int,
-
     // regex
     //
     // ref: https://github.com/rust-lang/regex
-    regex_create = 0x0200,
+    regex_create,
     regex_match,
     regex_test,
     regex_remove,
 }
 
-pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0240;
+pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0300;

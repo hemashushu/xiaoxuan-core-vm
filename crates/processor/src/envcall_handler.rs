@@ -4,8 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
+mod env;
+mod host;
 mod multithread;
-mod runtime_info;
+mod random;
+mod regex;
+mod runtime;
 mod timer;
 
 use anc_context::thread_context::ThreadContext;
@@ -49,16 +53,15 @@ pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMB
         [envcall_unreachable_handler; MAX_ENVCALL_CODE_NUMBER];
 
     // runtime info
-    handlers[EnvCallNum::runtime_edition as usize] = runtime_info::runtime_edition;
-    handlers[EnvCallNum::runtime_version as usize] = runtime_info::runtime_version;
+    handlers[EnvCallNum::runtime_edition as usize] = runtime::runtime_edition;
+    handlers[EnvCallNum::runtime_version as usize] = runtime::runtime_version;
 
     // timer
     handlers[EnvCallNum::time_now as usize] = timer::time_now;
 
     // multiple thread
     handlers[EnvCallNum::thread_id as usize] = multithread::thread_id;
-    handlers[EnvCallNum::thread_start_data_length as usize] =
-        multithread::thread_start_data_length;
+    handlers[EnvCallNum::thread_start_data_length as usize] = multithread::thread_start_data_length;
     handlers[EnvCallNum::thread_start_data_read as usize] = multithread::thread_start_data_read;
     handlers[EnvCallNum::thread_create as usize] = multithread::thread_create;
     handlers[EnvCallNum::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
