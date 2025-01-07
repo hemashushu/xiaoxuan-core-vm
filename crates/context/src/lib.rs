@@ -5,7 +5,7 @@
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
 pub mod datas;
-pub mod environment;
+pub mod process_config;
 pub mod external_function_table;
 pub mod indexed_memory_access;
 pub mod memory;
@@ -14,7 +14,7 @@ pub mod module_common_instance;
 pub mod module_index_instance;
 pub mod process_context;
 pub mod resizeable_memory;
-pub mod resource;
+pub mod process_resource;
 pub mod stack;
 pub mod thread_context;
 pub mod typed_memory_access;

@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use anc_image::module_image::ModuleImage;
 
 use crate::{
-    external_function_table::ExternalFunctionTable, environment::Environment,
+    external_function_table::ExternalFunctionTable, process_config::ProcessConfig,
     thread_context::ThreadContext,
 };
 
@@ -17,7 +17,7 @@ use crate::{
 /// when a program is running.
 /// `ThreadContext` is produced by `ProcessContext`.
 pub struct ProcessContext<'a> {
-    pub environment: &'a Environment,
+    pub config: &'a ProcessConfig,
     pub module_images: Vec<ModuleImage<'a>>,
 
     // since the 'loadlibrary' is process-scope, the external function (pointer) table
@@ -27,7 +27,7 @@ pub struct ProcessContext<'a> {
 
 impl<'a> ProcessContext<'a> {
     pub fn new(
-        environment: &'a Environment,
+        config: &'a ProcessConfig,
         external_function_table: &'a Mutex<ExternalFunctionTable>,
         module_images: Vec<ModuleImage<'a>>,
     ) -> Self {
@@ -45,7 +45,7 @@ impl<'a> ProcessContext<'a> {
         );
 
         Self {
-            environment,
+            config,
             module_images,
             external_function_table,
         }
@@ -53,7 +53,7 @@ impl<'a> ProcessContext<'a> {
 
     pub fn create_thread_context(&'a self) -> ThreadContext<'a> {
         ThreadContext::new(
-            self.environment,
+            self.config,
             &self.module_images,
             self.external_function_table,
         )

@@ -219,7 +219,7 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
 mod tests {
     use std::collections::HashMap;
 
-    use anc_context::{environment::Environment, resource::Resource};
+    use anc_context::{process_config::ProcessConfig, process_resource::ProcessResource};
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
@@ -232,11 +232,12 @@ mod tests {
         },
     };
     use anc_isa::{
-        opcode::Opcode, DependencyLocal, ExternalLibraryDependency, ForeignValue, OperandDataType,
+        opcode::Opcode, DependencyCondition, DependencyLocal, ExternalLibraryDependency,
+        ForeignValue, OperandDataType,
     };
 
     use crate::{
-        handler::Handler, in_memory_resource::InMemoryResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
         HandleErrorType, HandlerError,
     };
 
@@ -324,7 +325,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let mut thread_context0 = process_context0.create_thread_context();
@@ -536,7 +537,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -665,7 +666,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -759,7 +760,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -820,7 +821,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -872,7 +873,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -974,8 +975,8 @@ mod tests {
                 Box::new(ExternalLibraryDependency::Local(Box::new(
                     DependencyLocal {
                         path: "lib/libtest0.so.1".to_owned(),
-                        condition: None,
-                        values: None,
+                        condition: DependencyCondition::True,
+                        parameters: HashMap::default(),
                     },
                 ))),
             )],
@@ -1006,14 +1007,12 @@ mod tests {
         let application_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::with_environment(
+        let resource0 = InMemoryProcessResource::with_config(
             vec![binary0],
-            &Environment::new(
+            &ProcessConfig::new(
                 application_path,
-                true,
-                // "",
-                // &[""],
-                // "",
+                false,
+                vec![],
                 HashMap::<String, String>::new(),
             ),
         );

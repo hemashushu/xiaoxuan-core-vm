@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use anc_image::module_image::ModuleImage;
 
 use crate::{
-    environment::Environment, external_function_table::ExternalFunctionTable,
+    process_config::ProcessConfig, external_function_table::ExternalFunctionTable,
     indexed_memory_access::IndexedMemoryAccess, memory::Memory,
     module_common_instance::ModuleCommonInstance, module_index_instance::ModuleIndexInstance,
     stack::Stack, INIT_MEMORY_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
@@ -126,7 +126,7 @@ pub struct ThreadContext<'a> {
     pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
     // application environment
-    pub environment: &'a Environment,
+    pub process_config: &'a ProcessConfig,
 }
 
 /// the PC
@@ -168,7 +168,7 @@ pub struct DelegateFunctionItem {
 
 impl<'a> ThreadContext<'a> {
     pub fn new(
-        environment: &'a Environment,
+        environment: &'a ProcessConfig,
         module_images: &'a [ModuleImage<'a>],
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
@@ -196,7 +196,7 @@ impl<'a> ThreadContext<'a> {
             external_function_table,
             module_index_instance,
             module_common_instances,
-            environment,
+            process_config: environment,
         }
     }
 

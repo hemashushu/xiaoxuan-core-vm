@@ -17,7 +17,7 @@ mod syscall_handler;
 pub mod bridge_process;
 pub mod envcall_num;
 pub mod handler;
-pub mod in_memory_resource;
+pub mod in_memory_process_resource;
 pub mod multithread_process;
 pub mod process;
 

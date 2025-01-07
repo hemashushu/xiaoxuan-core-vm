@@ -7,39 +7,39 @@
 use std::sync::Mutex;
 
 use anc_context::{
-    environment::Environment, external_function_table::ExternalFunctionTable,
-    process_context::ProcessContext, resource::Resource,
+    process_config::ProcessConfig, external_function_table::ExternalFunctionTable,
+    process_context::ProcessContext, process_resource::ProcessResource,
 };
 use anc_image::{utils::helper_load_modules_from_binaries, ImageError};
 
-/// An implement of 'Resource' for unit testing
-pub struct InMemoryResource {
-    environment: Environment,
-    module_binaries: Vec<Vec<u8>>,
+/// An implement of 'ProcessResource' for unit testing only
+pub struct InMemoryProcessResource {
+    process_config: ProcessConfig,
     external_function_table: Mutex<ExternalFunctionTable>,
+    module_binaries: Vec<Vec<u8>>,
 }
 
-impl InMemoryResource {
+impl InMemoryProcessResource {
     #[allow(dead_code)]
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
             module_binaries,
-            environment: Environment::default(),
+            process_config: ProcessConfig::default(),
             external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_environment(module_binaries: Vec<Vec<u8>>, environment: &Environment) -> Self {
+    pub fn with_config(module_binaries: Vec<Vec<u8>>, process_config: &ProcessConfig) -> Self {
         Self {
             module_binaries,
-            environment: environment.clone(),
+            process_config: process_config.clone(),
             external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 }
 
-impl Resource for InMemoryResource {
+impl ProcessResource for InMemoryProcessResource {
     fn create_process_context(&self) -> Result<ProcessContext, ImageError> {
         let binaries_ref = self
             .module_binaries
@@ -50,7 +50,7 @@ impl Resource for InMemoryResource {
         let module_images = helper_load_modules_from_binaries(binaries_ref)?;
 
         Ok(ProcessContext::new(
-            &self.environment,
+            &self.process_config,
             &self.external_function_table,
             module_images,
         ))
@@ -60,7 +60,7 @@ impl Resource for InMemoryResource {
 #[cfg(test)]
 mod tests {
     use anc_context::{
-        resizeable_memory::ResizeableMemory, resource::Resource, thread_context::ProgramCounter,
+        resizeable_memory::ResizeableMemory, process_resource::ProcessResource, thread_context::ProgramCounter,
         INIT_MEMORY_SIZE_IN_PAGES,
     };
     use anc_image::{
@@ -69,7 +69,7 @@ mod tests {
     };
     use anc_isa::OperandDataType;
 
-    use crate::in_memory_resource::InMemoryResource;
+    use crate::in_memory_process_resource::InMemoryProcessResource;
 
     #[test]
     fn test_in_memory_module_instance() {
@@ -93,7 +93,7 @@ mod tests {
             ],
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let thread_context0 = process_context0.create_thread_context();
 

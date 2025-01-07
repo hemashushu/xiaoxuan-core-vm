@@ -46,13 +46,21 @@ pub enum EnvCallNum {
     // ref:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
 
+    // arg
+    arg_count,
+    arg_item_length,
+    arg_item,
+
     // env
     //
-    env_count,
-    env_list,
-    env_get,
-    env_set,
-    env_remove,
+    env_count,        // Get the number of items.
+    env_name_length,  // get the length of the item name, in bytes
+    env_name,         // get the name of item
+    env_value_length, // get the length of the item value, in bytes
+    env_value,        // get the value of item
+    env_update,       // update the value of an existing item
+    env_add,          // add a new item with name and value
+    env_remove,       // remove an item
 
     // time
     //

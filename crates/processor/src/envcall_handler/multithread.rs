@@ -365,7 +365,7 @@ pub fn thread_sleep(_handler: &Handler, thread_context: &mut ThreadContext) {
 mod tests {
     use std::time::Instant;
 
-    use anc_context::resource::Resource;
+    use anc_context::process_resource::ProcessResource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry,
@@ -377,7 +377,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
-        envcall_num::EnvCallNum, in_memory_resource::InMemoryResource,
+        envcall_num::EnvCallNum, in_memory_process_resource::InMemoryProcessResource,
         multithread_process::start_program,
     };
 
@@ -414,7 +414,7 @@ mod tests {
             code0,
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let result0 = start_program(&process_context0, "", vec![]);
 
@@ -465,7 +465,7 @@ mod tests {
             vec![],
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let result0 = start_program(&process_context0, "", vec![]);
 
@@ -519,7 +519,7 @@ mod tests {
             vec![],
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let result0 = start_program(&process_context0, "", vec![]);
         assert_eq!(result0.unwrap(), 0x13);
@@ -544,7 +544,7 @@ mod tests {
             code0,
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let instant_a = Instant::now();

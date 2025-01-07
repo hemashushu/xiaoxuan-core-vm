@@ -119,8 +119,8 @@ pub fn get_or_create_external_function(
             // if p.startsWith('~') ...
             // if p.isAbsolutePath() ...
             // if external_library_name is relate path ...
-            let mut path_buf = PathBuf::from(&thread_context.environment.application_path);
-            if !thread_context.environment.is_module {
+            let mut path_buf = PathBuf::from(&thread_context.process_config.application_path);
+            if thread_context.process_config.is_script {
                 path_buf.pop();
             }
             path_buf.push(path);

@@ -53,7 +53,7 @@ pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
-    use anc_context::resource::Resource;
+    use anc_context::process_resource::ProcessResource;
     use anc_image::{
         bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry, utils::helper_build_module_binary_with_single_function,
@@ -61,7 +61,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler, in_memory_resource::InMemoryResource,
+        envcall_num::EnvCallNum, handler::Handler, in_memory_process_resource::InMemoryProcessResource,
         process::process_function,
     };
 
@@ -84,7 +84,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -127,7 +127,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 

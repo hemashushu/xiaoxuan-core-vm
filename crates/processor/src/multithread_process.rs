@@ -43,6 +43,10 @@ use crate::{
 
 pub fn start_program(
     process_context: &ProcessContext,
+
+    // - empty string for the default entry point (in file "main.anca").
+    // - submodule name for the executable units in the "app" folder.
+    // - submodule and function name ("test_*") for the unit test (in folder "tests").
     entry_point_name: &str,
     thread_start_data: Vec<u8>,
 ) -> Result<u32, GenericError> {
@@ -69,7 +73,7 @@ pub fn start_program(
     let function_public_index = if let Some(idx) = thread_context
         .module_index_instance
         .entry_point_section
-        .get_function_public_index(&entry_point_name)
+        .get_function_public_index(entry_point_name)
     {
         idx
     } else {
@@ -113,14 +117,14 @@ pub fn start_program(
 
 #[cfg(test)]
 mod tests {
-    use anc_context::resource::Resource;
+    use anc_context::process_resource::ProcessResource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
     use anc_isa::{opcode::Opcode, OperandDataType};
 
-    use crate::{in_memory_resource::InMemoryResource, multithread_process::start_program};
+    use crate::{in_memory_process_resource::InMemoryProcessResource, multithread_process::start_program};
 
     // #[test]
     // fn test_envcall_multithread_start_with_multithread() {
@@ -164,7 +168,7 @@ mod tests {
             code0,
         );
 
-        let resource0 = InMemoryResource::new(vec![binary0]);
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let result0 = start_program(&process_context0, "", vec![]);
 
