@@ -45,98 +45,146 @@ pub fn promote_f32_to_f64(_handler: &Handler, thread_context: &mut ThreadContext
 
 // convert float to int
 // truncate fractional part
-pub fn convert_f32_to_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i32_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i32_s(value as i32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i32_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i32_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i32_s(value as i32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i32_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i64_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f32_to_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f32_to_i64_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f32();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i64_s(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn convert_f64_to_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_f64_to_i64_u(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_f64();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
 // convert int to float
-pub fn convert_i32_s_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_s_to_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_u_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_u_to_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_s_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_s_to_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_u_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_u_to_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_f32(value as f32);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_s_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_s_to_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i32_u_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i32_u_to_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_s_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_s_to_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
 }
 
-pub fn convert_i64_u_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn convert_i64_u_to_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_f64(value as f64);
     HandleResult::Move(2)
@@ -145,7 +193,8 @@ pub fn convert_i64_u_to_f64(_handler: &Handler, thread_context: &mut ThreadConte
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
 
     use anc_context::process_resource::ProcessResource;
@@ -174,13 +223,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I64, OperandDataType::I32], // params
-            vec![
+            &[OperandDataType::I64, OperandDataType::I32], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local variables
+            &[],                                           // local variables
             code0,
         );
 
@@ -226,9 +275,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::F64, OperandDataType::F32], // params
-            vec![OperandDataType::F64, OperandDataType::F32], // results
-            vec![],                                           // local variables
+            &[OperandDataType::F64, OperandDataType::F32], // params
+            &[OperandDataType::F64, OperandDataType::F32], // results
+            &[],                                           // local variables
             code0,
         );
 
@@ -312,13 +361,13 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F64,
                 OperandDataType::F32,
                 OperandDataType::F64,
             ], // params
-            vec![
+            &[
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I64,
@@ -340,7 +389,7 @@ mod tests {
                 OperandDataType::I64,
                 //
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -441,13 +490,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::I32,
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I64,
             ], // params
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F64,
@@ -468,7 +517,7 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 

@@ -52,8 +52,8 @@ mod tests {
     // use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler, in_memory_process_resource::InMemoryProcessResource,
-        process::process_function,
+        envcall_num::EnvCallNum, handler::Handler,
+        in_memory_process_resource::InMemoryProcessResource, process::process_function,
     };
 
     #[test]
@@ -66,9 +66,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                                           // params
-            vec![OperandDataType::I64, OperandDataType::I64], // results
-            vec![],                                           // local variables
+            &[],                                           // params
+            &[OperandDataType::I64, OperandDataType::I64], // results
+            &[],                                           // local variables
             code0,
         );
 

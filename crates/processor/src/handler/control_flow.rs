@@ -222,8 +222,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
-        HandleErrorType, HandlerError,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function, HandleErrorType, HandlerError,
     };
     use anc_context::process_resource::ProcessResource;
 

@@ -200,9 +200,7 @@ pub fn memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> Ha
     let src_address = thread_context.stack.pop_i64_u() as usize;
     let dst_address = thread_context.stack.pop_i64_u() as usize;
 
-    thread_context
-        .memory
-        .copy(dst_address, src_address, count);
+    thread_context.memory.copy(dst_address, src_address, count);
 
     HandleResult::Move(2)
 }
@@ -210,7 +208,8 @@ pub fn memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> Ha
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
     use anc_context::process_resource::ProcessResource;
     use anc_image::{
@@ -241,15 +240,15 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -373,8 +372,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::F32, OperandDataType::F64], // params
-            vec![
+            &[OperandDataType::F32, OperandDataType::F64], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -390,7 +389,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local variables
+            &[],                                           // local variables
             code0,
         );
 

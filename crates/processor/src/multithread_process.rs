@@ -124,7 +124,9 @@ mod tests {
     };
     use anc_isa::{opcode::Opcode, OperandDataType};
 
-    use crate::{in_memory_process_resource::InMemoryProcessResource, multithread_process::start_program};
+    use crate::{
+        in_memory_process_resource::InMemoryProcessResource, multithread_process::start_program,
+    };
 
     // #[test]
     // fn test_envcall_multithread_start_with_multithread() {
@@ -162,9 +164,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                     // params
-            vec![OperandDataType::I32], // results
-            vec![],                     // local variables
+            &[],                     // params
+            &[OperandDataType::I32], // results
+            &[],                     // local variables
             code0,
         );
 

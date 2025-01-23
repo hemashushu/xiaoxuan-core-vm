@@ -183,17 +183,8 @@ pub fn host_external_memory_copy(
 }
 
 fn store_pointer_to_operand_stack(thread_context: &mut ThreadContext, ptr: *const u8) {
-    // #[cfg(target_pointer_width = "64")]
-    // {
     let address = ptr as u64;
     thread_context.stack.push_i64_u(address);
-    // }
-
-    // #[cfg(target_pointer_width = "32")]
-    // {
-    //     let address = ptr as u32;
-    //     thread_context.stack.push_i32_u(address);
-    // }
 }
 
 pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -219,7 +210,7 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
 mod tests {
     use std::collections::HashMap;
 
-    use anc_context::{process_config::ProcessConfig, process_resource::ProcessResource};
+    use anc_context::{process_property::ProcessProperty, process_resource::ProcessResource};
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
@@ -237,76 +228,44 @@ mod tests {
     };
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
-        HandleErrorType, HandlerError,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function, HandleErrorType, HandlerError,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
-        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u64;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        // #[cfg(target_pointer_width = "32")]
-        // if let ForeignValue::U32(addr) = fv {
-        //     let ptr = addr as *const u64;
-        //     unsafe { std::ptr::read(ptr) }
-        // } else {
-        //     panic!("The data type of the foreign value does not match.")
-        // }
     }
 
     fn read_memory_i32(fv: ForeignValue) -> u32 {
-        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        // #[cfg(target_pointer_width = "32")]
-        // if let ForeignValue::U32(addr) = fv {
-        //     let ptr = addr as *const u32;
-        //     unsafe { std::ptr::read(ptr) }
-        // } else {
-        //     panic!("The data type of the foreign value does not match.")
-        // }
     }
 
     fn read_memory_i16(fv: ForeignValue) -> u16 {
-        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u16;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        // #[cfg(target_pointer_width = "32")]
-        // if let ForeignValue::U32(addr) = fv {
-        //     let ptr = addr as *const u16;
-        //     unsafe { std::ptr::read(ptr) }
-        // } else {
-        //     panic!("The data type of the foreign value does not match.")
-        // }
     }
 
     fn read_memory_i8(fv: ForeignValue) -> u8 {
-        // #[cfg(target_pointer_width = "64")]
         if let ForeignValue::U64(addr) = fv {
             let ptr = addr as *const u8;
             unsafe { std::ptr::read(ptr) }
         } else {
             panic!("The data type of the foreign value does not match.")
         }
-        // #[cfg(target_pointer_width = "32")]
-        // if let ForeignValue::U32(addr) = fv {
-        //     let ptr = addr as *const u8;
-        //     unsafe { std::ptr::read(ptr) }
-        // } else {
-        //     panic!("The data type of the foreign value does not match.")
-        // }
     }
 
     #[test]
@@ -318,9 +277,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
         );
 
@@ -338,70 +297,6 @@ mod tests {
             })
         ));
     }
-
-    /*
-    #[test]
-    fn test_handler_host_debug() {
-        // () -> ()
-
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode(Opcode::nop)
-            .append_opcode_i32(Opcode::debug, 0x101)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
-        let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-
-        assert!(matches!(
-            result0,
-            Err(InterpreterError {
-                error_type: InterpreterErrorType::Debug(0x101)
-            })
-        ));
-    }
-
-    #[test]
-    fn test_handler_host_unreachable() {
-        // () -> ()
-
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode(Opcode::nop)
-            .append_opcode_i32(Opcode::unreachable, 0x103)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
-        let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-
-        assert!(matches!(
-            result0,
-            Err(InterpreterError {
-                error_type: InterpreterErrorType::Unreachable(0x103)
-            })
-        ));
-    }
-    */
 
     #[test]
     fn test_handler_host_address_of_data_and_local_variables() {
@@ -487,50 +382,35 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
-
-        // #[cfg(target_pointer_width = "64")]
-        let result_datatypes = vec![
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-        ];
-
-        // #[cfg(target_pointer_width = "32")]
-        // let result_datatypes = vec![
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        // ];
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![],           // params
-            result_datatypes, // results
-            vec![
+            &[], // params
+            &[
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // results
+            &[
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_i32(),
                 LocalVariableEntry::from_i32(),
             ], // local variables
             code0,
-            vec![
+            &[
                 InitedDataEntry::from_i32(0x11), // ro, data idx: 0
                 InitedDataEntry::from_i32(0x13), // ro, data idx: 1
             ],
-            vec![
+            &[
                 InitedDataEntry::from_i64(0xee), // rw, data idx: 2
                 InitedDataEntry::from_i32(0xff), // rw, data idx: 3
             ],
-            vec![
+            &[
                 UninitDataEntry::from_i32(), // bss, data idx: 4
                 UninitDataEntry::from_i64(), // bss, data idx: 5
             ],
@@ -625,44 +505,29 @@ mod tests {
 
         println!("{}", format_bytecode_as_text(&code0));
 
-        // #[cfg(target_pointer_width = "64")]
-        let result_datatypes = vec![
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-        ];
-
-        // #[cfg(target_pointer_width = "32")]
-        // let result_datatypes = vec![
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        // ];
-
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![],           // params
-            result_datatypes, // results
-            vec![
+            &[], // params
+            &[
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // results
+            &[
                 LocalVariableEntry::from_bytes(64, 8), // space
                 LocalVariableEntry::from_bytes(8, 8),
             ], // local variables
             code0,
-            vec![
+            &[
                 InitedDataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
                 InitedDataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
             ], // init data
-            vec![],
-            vec![],
+            &[],
+            &[],
         );
 
         let handler = Handler::new();
@@ -734,28 +599,16 @@ mod tests {
 
         println!("{}", format_bytecode_as_text(&code0));
 
-        // #[cfg(target_pointer_width = "64")]
-        let result_datatypes = vec![
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-            OperandDataType::I64,
-        ];
-
-        // #[cfg(target_pointer_width = "32")]
-        // let result_datatypes = vec![
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        //     OperandDataType::I32,
-        // ];
-
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],           // params
-            result_datatypes, // results
-            vec![],           // local variables
+            &[], // params
+            &[
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // results
+            &[], // local variables
             code0,
         );
 
@@ -807,16 +660,10 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // #[cfg(target_pointer_width = "64")]
-        let param_datatypes = vec![OperandDataType::I64, OperandDataType::I64];
-
-        // #[cfg(target_pointer_width = "32")]
-        // let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
-
         let binary0 = helper_build_module_binary_with_single_function(
-            param_datatypes, // params
-            vec![],          // results
-            vec![],          // local variables
+            &[OperandDataType::I64, OperandDataType::I64], // params
+            &[],                                           // results
+            &[],                                           // local variables
             code0,
         );
 
@@ -859,16 +706,10 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // #[cfg(target_pointer_width = "64")]
-        let param_datatypes = vec![OperandDataType::I64, OperandDataType::I64];
-
-        // #[cfg(target_pointer_width = "32")]
-        // let param_datatypes = vec![OperandDataType::I32, OperandDataType::I32];
-
         let binary0 = helper_build_module_binary_with_single_function(
-            param_datatypes,                      // params
-            vec![],                               // results
-            vec![LocalVariableEntry::from_i64()], // local variables
+            &[OperandDataType::I64, OperandDataType::I64], // params
+            &[],                                           // results
+            &[LocalVariableEntry::from_i64()],             // local variables
             code0,
         );
 
@@ -951,7 +792,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
-            vec![
+            &[
                 HelperFunctionEntry {
                     // type_index: 1,
                     params: vec![OperandDataType::I32, OperandDataType::I32],
@@ -967,10 +808,10 @@ mod tests {
                     code: code1,
                 },
             ],
-            vec![],
-            vec![],
-            vec![],
-            vec![ExternalLibraryEntry::new(
+            &[],
+            &[],
+            &[],
+            &[ExternalLibraryEntry::new(
                 "libtest0".to_owned(),
                 Box::new(ExternalLibraryDependency::Local(Box::new(
                     DependencyLocal {
@@ -980,7 +821,7 @@ mod tests {
                     },
                 ))),
             )],
-            vec![HelperExternalFunctionEntry {
+            &[HelperExternalFunctionEntry {
                 name: "do_something".to_string(),
                 external_library_index: 0,
                 params: vec![
@@ -1007,9 +848,9 @@ mod tests {
         let application_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::with_config(
+        let resource0 = InMemoryProcessResource::with_property(
             vec![binary0],
-            &ProcessConfig::new(
+            &ProcessProperty::new(
                 application_path,
                 false,
                 vec![],

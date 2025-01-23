@@ -586,7 +586,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
 
     #[test]
@@ -671,8 +672,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -688,20 +689,20 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
-            vec![
+            &[
                 InitedDataEntry::from_i32(0x19171311),
                 InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
-            vec![
+            &[
                 InitedDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
                 InitedDataEntry::from_f32(std::f32::consts::PI),
                 InitedDataEntry::from_f64(std::f64::consts::E),
                 InitedDataEntry::from_i64(0),
                 InitedDataEntry::from_i32(0),
             ],
-            vec![],
+            &[],
         );
 
         let handler = Handler::new();
@@ -819,8 +820,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![OperandDataType::F32, OperandDataType::F64], // params
-            vec![
+            &[OperandDataType::F32, OperandDataType::F64], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -836,14 +837,14 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local variables
+            &[],                                           // local variables
             code0,
-            vec![
+            &[
                 InitedDataEntry::from_i32(0x19171311),
                 InitedDataEntry::from_i32(0xf0e0d0c0),
             ],
-            vec![],
-            vec![
+            &[],
+            &[
                 UninitDataEntry::from_bytes(8, 8),
                 UninitDataEntry::from_f32(),
                 UninitDataEntry::from_f64(),
@@ -970,8 +971,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -985,11 +986,11 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
-            vec![],
-            vec![],
-            vec![
+            &[],
+            &[],
+            &[
                 UninitDataEntry::from_bytes(8, 8),
                 UninitDataEntry::from_bytes(8, 8),
             ],
@@ -1030,13 +1031,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
-            vec![],
-            vec![InitedDataEntry::from_i32(11)],
-            vec![],
+            &[],
+            &[InitedDataEntry::from_i32(11)],
+            &[],
         );
 
         // capture the panic and keep silent
@@ -1067,13 +1068,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
-            vec![],
-            vec![InitedDataEntry::from_i32(11)],
-            vec![],
+            &[],
+            &[InitedDataEntry::from_i32(11)],
+            &[],
         );
 
         let prev_hook = std::panic::take_hook(); // silent panic
@@ -1103,13 +1104,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
-            vec![],
-            vec![InitedDataEntry::from_i32(11)],
-            vec![],
+            &[],
+            &[InitedDataEntry::from_i32(11)],
+            &[],
         );
 
         let prev_hook = std::panic::take_hook(); // silent panic
@@ -1140,13 +1141,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
-            vec![],
-            vec![InitedDataEntry::from_i32(11)],
-            vec![],
+            &[],
+            &[InitedDataEntry::from_i32(11)],
+            &[],
         );
 
         let prev_hook = std::panic::take_hook(); // silent panic

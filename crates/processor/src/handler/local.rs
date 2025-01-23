@@ -656,7 +656,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
 
     #[test]
@@ -730,8 +731,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::F32, OperandDataType::F64], // params
-            vec![
+            &[OperandDataType::F32, OperandDataType::F64], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -747,7 +748,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![
+            &[
                 LocalVariableEntry::from_bytes(8, 8),
                 LocalVariableEntry::from_f32(),
                 LocalVariableEntry::from_f64(),
@@ -872,8 +873,8 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -887,7 +888,7 @@ mod tests {
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![
+            &[
                 LocalVariableEntry::from_bytes(8, 8),
                 LocalVariableEntry::from_bytes(8, 8),
             ], // local variables
@@ -929,9 +930,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                               // params
-            vec![],                               // results
-            vec![LocalVariableEntry::from_i32()], // local variables
+            &[],                               // params
+            &[],                               // results
+            &[LocalVariableEntry::from_i32()], // local variables
             code0,
         );
 
@@ -960,9 +961,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                               // params
-            vec![],                               // results
-            vec![LocalVariableEntry::from_i32()], // local variables
+            &[],                               // params
+            &[],                               // results
+            &[LocalVariableEntry::from_i32()], // local variables
             code0,
         );
 
@@ -994,9 +995,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                               // params
-            vec![],                               // results
-            vec![LocalVariableEntry::from_i32()], // local variables
+            &[],                               // params
+            &[],                               // results
+            &[LocalVariableEntry::from_i32()], // local variables
             code0,
         );
 
@@ -1029,9 +1030,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                               // params
-            vec![],                               // results
-            vec![LocalVariableEntry::from_i32()], // local variables
+            &[],                               // params
+            &[],                               // results
+            &[LocalVariableEntry::from_i32()], // local variables
             code0,
         );
 

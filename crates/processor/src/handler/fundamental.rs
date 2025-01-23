@@ -104,7 +104,8 @@ pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
     use anc_context::process_resource::ProcessResource;
     use anc_image::{
@@ -124,9 +125,9 @@ mod tests {
         // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![], // results
-            vec![], // local variables
+            &[], // params
+            &[], // results
+            &[], // local variables
             code0,
         );
 
@@ -137,169 +138,7 @@ mod tests {
 
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         assert!(result0.is_ok());
-
     }
-
-    /*
-    #[test]
-    fn test_handler_fundamental_zero() {
-        // () -> (i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode(Opcode::zero)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![OperandDataType::I32], // results
-            vec![],              // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(0)]);
-    }
-    */
-
-    /*
-    #[test]
-    fn test_handler_fundamental_drop() {
-        // () -> (i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 13)
-            .append_opcode_i32(Opcode::imm_i32, 17)
-            .append_opcode(Opcode::drop)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![OperandDataType::I32], // results
-            vec![],              // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
-    }
-
-    #[test]
-    fn test_handler_fundamental_duplicate() {
-        // () -> (i32, i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 19)
-            .append_opcode(Opcode::duplicate)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                             // params
-            vec![OperandDataType::I32, OperandDataType::I32], // results
-            vec![],                             // local variables
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::U32(19), ForeignValue::U32(19)]
-        );
-    }
-
-    #[test]
-    fn test_handler_fundamental_swap() {
-        // () -> (i32, i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 211)
-            .append_opcode_i32(Opcode::imm_i32, 223)
-            .append_opcode(Opcode::swap)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                             // params
-            vec![OperandDataType::I32, OperandDataType::I32], // results
-            vec![],                             // local variables
-            code0,
-        );
-
-        let program_source0 = InMemoryProgramSource::new(vec![binary0]);
-        let program0 = program_source0.build_program().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(
-            result0.unwrap(),
-            vec![ForeignValue::U32(223), ForeignValue::U32(211)]
-        );
-    }
-    */
-
-    /*
-    #[test]
-    fn test_handler_fundamental_select_nez_false() {
-        // () -> (i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 11)
-            .append_opcode_i32(Opcode::imm_i32, 13)
-            .append_opcode(Opcode::zero)
-            .append_opcode(Opcode::select_nez)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![OperandDataType::I32], // results
-            vec![],              // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(13)]);
-    }
-
-    #[test]
-    fn test_handler_fundamental_select_nez_true() {
-        // () -> (i32)
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 11)
-            .append_opcode_i32(Opcode::imm_i32, 13)
-            .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::select_nez)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            vec![],              // params
-            vec![OperandDataType::I32], // results
-            vec![],              // local variables
-            code0,
-        );
-
-        let resource0 = InMemoryResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11)]);
-    }
-     */
 
     #[test]
     fn test_handler_fundamental_immediate_integer() {
@@ -313,14 +152,14 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::I32,
                 OperandDataType::I64,
                 OperandDataType::I32,
                 OperandDataType::I64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -353,14 +192,14 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![], // params
-            vec![
+            &[], // params
+            &[
                 OperandDataType::F32,
                 OperandDataType::F64,
                 OperandDataType::F32,
                 OperandDataType::F64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 

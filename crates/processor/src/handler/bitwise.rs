@@ -56,19 +56,28 @@ pub fn not(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResu
 //     HandleResult::Move(2)
 // }
 
-pub fn count_leading_zeros_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_zeros_i32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.leading_zeros());
     HandleResult::Move(2)
 }
 
-pub fn count_leading_ones_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_ones_i32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.leading_ones());
     HandleResult::Move(2)
 }
 
-pub fn count_trailing_zeros_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_trailing_zeros_i32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, v.trailing_zeros());
     HandleResult::Move(2)
@@ -115,19 +124,28 @@ pub fn rotate_right_i32(_handler: &Handler, thread_context: &mut ThreadContext) 
     HandleResult::Move(2)
 }
 
-pub fn count_leading_zeros_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_zeros_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.leading_zeros()); // the result of 'clz' is u32
     HandleResult::Move(2)
 }
 
-pub fn count_leading_ones_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_leading_ones_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.leading_ones()); // the result of 'cls' is u32
     HandleResult::Move(2)
 }
 
-pub fn count_trailing_zeros_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn count_trailing_zeros_i64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_i64_u(thread_context);
     store_i32_u(thread_context, v.trailing_zeros()); // the result of 'ctz' is u32
     HandleResult::Move(2)
@@ -231,7 +249,8 @@ fn store_i64_u(thread_context: &mut ThreadContext, v: u64) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
     use anc_context::process_resource::ProcessResource;
     use anc_image::{
@@ -327,13 +346,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // params
-            vec![
+            &[
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I32,
@@ -355,7 +374,7 @@ mod tests {
                 OperandDataType::I32,
                 //
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -490,13 +509,13 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
             ], // params
-            vec![
+            &[
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
@@ -518,7 +537,7 @@ mod tests {
                 OperandDataType::I32,
                 //
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 

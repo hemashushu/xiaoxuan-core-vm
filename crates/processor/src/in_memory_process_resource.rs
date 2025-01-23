@@ -7,14 +7,14 @@
 use std::sync::Mutex;
 
 use anc_context::{
-    process_config::ProcessConfig, external_function_table::ExternalFunctionTable,
-    process_context::ProcessContext, process_resource::ProcessResource,
+    external_function_table::ExternalFunctionTable, process_context::ProcessContext,
+    process_property::ProcessProperty, process_resource::ProcessResource,
 };
 use anc_image::{utils::helper_load_modules_from_binaries, ImageError};
 
 /// An implement of 'ProcessResource' for unit testing only
 pub struct InMemoryProcessResource {
-    process_config: ProcessConfig,
+    process_config: ProcessProperty,
     external_function_table: Mutex<ExternalFunctionTable>,
     module_binaries: Vec<Vec<u8>>,
 }
@@ -24,13 +24,13 @@ impl InMemoryProcessResource {
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
             module_binaries,
-            process_config: ProcessConfig::default(),
+            process_config: ProcessProperty::default(),
             external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_config(module_binaries: Vec<Vec<u8>>, process_config: &ProcessConfig) -> Self {
+    pub fn with_property(module_binaries: Vec<Vec<u8>>, process_config: &ProcessProperty) -> Self {
         Self {
             module_binaries,
             process_config: process_config.clone(),
@@ -47,7 +47,7 @@ impl ProcessResource for InMemoryProcessResource {
             .map(|e| &e[..])
             .collect::<Vec<_>>();
 
-        let module_images = helper_load_modules_from_binaries(binaries_ref)?;
+        let module_images = helper_load_modules_from_binaries(&binaries_ref)?;
 
         Ok(ProcessContext::new(
             &self.process_config,
@@ -60,8 +60,8 @@ impl ProcessResource for InMemoryProcessResource {
 #[cfg(test)]
 mod tests {
     use anc_context::{
-        resizeable_memory::ResizeableMemory, process_resource::ProcessResource, thread_context::ProgramCounter,
-        INIT_MEMORY_SIZE_IN_PAGES,
+        process_resource::ProcessResource, resizeable_memory::ResizeableMemory,
+        thread_context::ProgramCounter, INIT_MEMORY_SIZE_IN_PAGES,
     };
     use anc_image::{
         entry::{InitedDataEntry, LocalVariableEntry, UninitDataEntry},
@@ -74,19 +74,19 @@ mod tests {
     #[test]
     fn test_in_memory_module_instance() {
         let binary0 = helper_build_module_binary_with_single_function_and_data(
-            vec![OperandDataType::I32, OperandDataType::I32],
-            vec![OperandDataType::I64],
-            vec![LocalVariableEntry::from_i32()],
+            &[OperandDataType::I32, OperandDataType::I32],
+            &[OperandDataType::I64],
+            &[LocalVariableEntry::from_i32()],
             vec![0u8],
-            vec![
+            &[
                 InitedDataEntry::from_i32(0x11),
                 InitedDataEntry::from_i64(0x13),
             ],
-            vec![InitedDataEntry::from_bytes(
+            &[InitedDataEntry::from_bytes(
                 vec![0x17u8, 0x19, 0x23, 0x29, 0x31, 0x37],
                 8,
             )],
-            vec![
+            &[
                 UninitDataEntry::from_i32(),
                 UninitDataEntry::from_i64(),
                 UninitDataEntry::from_i32(),

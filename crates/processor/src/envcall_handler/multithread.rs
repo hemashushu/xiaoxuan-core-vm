@@ -408,9 +408,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                     // params
-            vec![OperandDataType::I32], // results
-            vec![],                     // local variables
+            &[],                     // params
+            &[OperandDataType::I32], // results
+            &[],                     // local variables
             code0,
         );
 
@@ -448,7 +448,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
-            vec![
+            &[
                 HelperFunctionEntry {
                     params: vec![],                      // params
                     results: vec![OperandDataType::I32], // results
@@ -462,7 +462,7 @@ mod tests {
                     code: code1,
                 },
             ],
-            vec![],
+            &[],
         );
 
         let resource0 = InMemoryProcessResource::new(vec![binary0]);
@@ -502,7 +502,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
-            vec![
+            &[
                 HelperFunctionEntry {
                     params: vec![],                      // params
                     results: vec![OperandDataType::I32], // results
@@ -516,7 +516,7 @@ mod tests {
                     code: code1,
                 },
             ],
-            vec![],
+            &[],
         );
 
         let resource0 = InMemoryProcessResource::new(vec![binary0]);
@@ -538,9 +538,9 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                     // params
-            vec![OperandDataType::I32], // results
-            vec![],                     // local variables
+            &[],                     // params
+            &[OperandDataType::I32], // results
+            &[],                     // local variables
             code0,
         );
 

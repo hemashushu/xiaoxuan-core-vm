@@ -61,8 +61,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler, in_memory_process_resource::InMemoryProcessResource,
-        process::process_function,
+        envcall_num::EnvCallNum, handler::Handler,
+        in_memory_process_resource::InMemoryProcessResource, process::process_function,
     };
 
     #[test]
@@ -77,9 +77,9 @@ mod tests {
         println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                     // params
-            vec![OperandDataType::I64], // results
-            vec![],                     // local variables
+            &[],                     // params
+            &[OperandDataType::I64], // results
+            &[],                     // local variables
             code0,
         );
 
@@ -120,9 +120,9 @@ mod tests {
         println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![],                                           // params
-            vec![OperandDataType::I32, OperandDataType::I64], // results
-            vec![LocalVariableEntry::from_bytes(8, 8)],       // local variables
+            &[],                                           // params
+            &[OperandDataType::I32, OperandDataType::I64], // results
+            &[LocalVariableEntry::from_bytes(8, 8)],       // local variables
             code0,
         );
 

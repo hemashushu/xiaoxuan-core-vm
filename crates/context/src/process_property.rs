@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 
 #[derive(Default, Clone)]
-pub struct ProcessConfig {
+pub struct ProcessProperty {
     // the application path
     // it may be a file path of a script file,
     // also a directory path of a module. e.g.
@@ -33,7 +33,7 @@ pub struct ProcessConfig {
     pub environments: HashMap<String, String>,
 }
 
-impl ProcessConfig {
+impl ProcessProperty {
     pub fn new(
         application_path: &str,
         is_script: bool,

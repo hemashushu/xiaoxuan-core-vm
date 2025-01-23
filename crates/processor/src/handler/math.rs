@@ -56,13 +56,19 @@ pub fn floor_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     HandleResult::Move(2)
 }
 
-pub fn round_half_away_from_zero_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_f32(thread_context);
     store_f32(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn round_half_to_even_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f32(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_f32(thread_context);
 
     let toint_32: f32 = 1.0 / f32::EPSILON;
@@ -222,13 +228,19 @@ pub fn floor_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     HandleResult::Move(2)
 }
 
-pub fn round_half_away_from_zero_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_away_from_zero_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_f64(thread_context);
     store_f64(thread_context, v.round());
     HandleResult::Move(2)
 }
 
-pub fn round_half_to_even_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn round_half_to_even_f64(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
     let v = load_operand_f64(thread_context);
 
     let toint_64: f64 = 1.0 / f64::EPSILON;
@@ -401,7 +413,8 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource, process::process_function,
+        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        process::process_function,
     };
     use anc_context::process_resource::ProcessResource;
     use anc_image::{
@@ -437,14 +450,14 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I32, OperandDataType::I32], // params
-            vec![
+            &[OperandDataType::I32, OperandDataType::I32], // params
+            &[
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I32,
                 OperandDataType::I32,
             ], // results
-            vec![],                                           // local variables
+            &[],                                           // local variables
             code0,
         );
 
@@ -498,14 +511,14 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![OperandDataType::I64, OperandDataType::I64], // params
-            vec![
+            &[OperandDataType::I64, OperandDataType::I64], // params
+            &[
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
                 OperandDataType::I64,
             ], // results
-            vec![],                                           // local variables
+            &[],                                           // local variables
             code0,
         );
 
@@ -652,7 +665,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
@@ -664,7 +677,7 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // params
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
@@ -698,7 +711,7 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -895,7 +908,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
@@ -908,7 +921,7 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // params
-            vec![
+            &[
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
@@ -940,7 +953,7 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -1125,7 +1138,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
@@ -1137,7 +1150,7 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // params
-            vec![
+            &[
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
@@ -1171,7 +1184,7 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
@@ -1368,7 +1381,7 @@ mod tests {
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_single_function(
-            vec![
+            &[
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
@@ -1381,7 +1394,7 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // params
-            vec![
+            &[
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
@@ -1413,7 +1426,7 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
             ], // results
-            vec![], // local variables
+            &[], // local variables
             code0,
         );
 
