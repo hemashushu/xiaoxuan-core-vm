@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions,
 // more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Default, Clone)]
 pub struct ProcessProperty {
@@ -21,7 +21,7 @@ pub struct ProcessProperty {
     // when a user launcher an application by file path,
     // the runtime should check it and its parent folders to determine
     // whether the file is part of a module.
-    pub application_path: String,
+    pub application_path: PathBuf,
 
     // to indicate the application is single-file script.
     pub is_script: bool,
@@ -35,7 +35,7 @@ pub struct ProcessProperty {
 
 impl ProcessProperty {
     pub fn new(
-        application_path: &str,
+        application_path: PathBuf,
         is_script: bool,
         arguments: Vec<String>,
         environments: HashMap<String, String>,
