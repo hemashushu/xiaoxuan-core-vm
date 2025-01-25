@@ -55,6 +55,22 @@ pub fn get_or_create_external_function(
     module_index: usize,
     external_function_index: usize,
 ) -> Result<(*mut c_void, WrapperFunction, usize, bool), HandlerError> {
+    // static bounds check
+    #[cfg(feature = "static_bounds_check")]
+    {
+        let count = thread_context
+            .module_index_instance
+            .external_function_index_section
+            .get_items_count(module_index);
+
+        if external_function_index > range.count as usize {
+            panic!("Out of bounds of the external function index, module index:{}, total external functions: {}, request external function index: {}",
+                            module_index,
+                            count,
+                            external_function_index);
+        }
+    }
+
     // get the unified external function index
     let unified_external_function_index = thread_context
         .module_index_instance

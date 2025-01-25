@@ -44,9 +44,18 @@ use crate::{
 pub fn start_program(
     process_context: &ProcessContext,
 
-    // - empty string for the default entry point (in file "main.anca").
-    // - submodule name for the executable units in the "app" folder.
-    // - submodule and function name ("test_*") for the unit test (in folder "tests").
+    // entry point names:
+    // - "_start"
+    //   executes function 'app_module_name::_start', the default entry point.
+    //   public executable unit name is: "" (empty string).
+    //
+    // - "submodule_name"
+    //   executes function 'app_module_name::app::{submodule_name}::_start', the additional executable units.
+    //   public executable unit name is: ".{submodule_name}"
+    //
+    // - "submodule_name::test_*"
+    //   executes function 'app_module_name::tests::{submodule_name}::test_*' for unit test.
+    //   public executable unit name is: matching any prefix of "submodule_name::test_*"
     entry_point_name: &str,
     thread_start_data: Vec<u8>,
 ) -> Result<u32, GenericError> {

@@ -9,8 +9,9 @@ use std::mem::size_of;
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    memory_access::MemoryAccess, thread_context::ProgramCounter, typed_memory_access::TypedMemoryAccess,
-    STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES, STACK_FRAME_INCREMENT_SIZE_IN_BYTES,
+    memory_access::MemoryAccess, thread_context::ProgramCounter,
+    typed_memory_access::TypedMemoryAccess, STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES,
+    STACK_FRAME_INCREMENT_SIZE_IN_BYTES,
 };
 
 pub struct Stack {
@@ -367,42 +368,42 @@ impl Stack {
     }
 
     pub fn pop_i32_s(&mut self) -> i32 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_i32_s(self.sp)
     }
 
     pub fn pop_i32_u(&mut self) -> u32 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_i32_u(self.sp)
     }
 
     pub fn pop_i64_s(&mut self) -> i64 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_i64_s(self.sp)
     }
 
     pub fn pop_i64_u(&mut self) -> u64 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_i64_u(self.sp)
     }
 
     pub fn pop_f32(&mut self) -> f32 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_f32(self.sp)
     }
 
     pub fn pop_f64(&mut self) -> f64 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_f64(self.sp)
@@ -419,18 +420,45 @@ impl Stack {
     // memory.store_64(ptr, address);
     // ```
     pub fn pop_operand_to_memory(&mut self) -> *const u8 {
-        self.operands_stack_bounds_check(1);
+        self.do_popping_operands_in_frame_bounds_check(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.get_ptr(self.sp)
     }
 
     pub fn pop_operands(&mut self, count: usize) -> &[u8] {
-        self.operands_stack_bounds_check(count);
+        self.do_popping_operands_in_frame_bounds_check(count);
 
         let length = count * OPERAND_SIZE_IN_BYTES;
         self.sp -= length;
         &self.data[self.sp..]
+    }
+
+    // bounds check
+    #[inline]
+    fn do_popping_operands_in_frame_bounds_check(&self, remove_operands_count: usize) {
+        #[cfg(feature = "bounds_check")]
+        {
+            let frame_info = self.read_frame_info(self.fp);
+            let local_variables_allocate_bytes = frame_info.local_variables_allocate_bytes as usize;
+
+            if self.sp - (remove_operands_count * OPERAND_SIZE_IN_BYTES)
+                < self.fp + size_of::<FrameInfo>() + local_variables_allocate_bytes
+            {
+                panic!(
+                    "No sufficient operands on the stack are available for popping.
+(i.e., expects: SP > FP + frame info length + local vars length + popping length)
+SP: {}, FP: {}, frame info length (in bytes): {}, local variables area length (in bytes): {},
+expect popping operands count: {} (length in bytes: {}).",
+                    self.sp,
+                    self.fp,
+                    size_of::<FrameInfo>(),
+                    local_variables_allocate_bytes,
+                    remove_operands_count,
+                    remove_operands_count * OPERAND_SIZE_IN_BYTES
+                )
+            }
+        }
     }
 
     // because the info stack, local variable stack and operands stack are combined as
@@ -441,31 +469,6 @@ impl Stack {
         let length = count * OPERAND_SIZE_IN_BYTES;
         self.sp -= length;
         &self.data[self.sp..]
-    }
-
-    // bounds check
-    #[inline]
-    fn operands_stack_bounds_check(&self, remove_operands_count: usize) {
-        #[cfg(feature = "bounds_check")]
-        {
-            let frame_info = self.read_frame_info(self.fp);
-            let local_variables_allocate_bytes = frame_info.local_variables_allocate_bytes as usize;
-
-            if self.sp - (remove_operands_count * OPERAND_SIZE_IN_BYTES)
-                < self.fp + size_of::<FrameInfo>() + local_variables_allocate_bytes
-            {
-                panic!(
-                    "Out of the bound of the current operand stack frame.
-FP: {}, frame info length in bytes: {}, local variables area length in bytes: {},
-SP: {}, expect popping length in bytes: {}",
-                    self.fp,
-                    size_of::<FrameInfo>(),
-                    local_variables_allocate_bytes,
-                    self.sp,
-                    remove_operands_count * OPERAND_SIZE_IN_BYTES
-                )
-            }
-        }
     }
 
     /**
@@ -615,31 +618,41 @@ SP: {}, expect popping length in bytes: {}",
         unsafe { &mut *(ptr as *mut FrameInfo) }
     }
 
-    /// move the specified number of operands to the swap are
+    /// move the specified number of operands to the swap area
+    /// - move the arguments to swap when creating a new frame.
+    /// - move the specified number of operands as return values to swap when removing a frame.
+    /// - move the specified number of operands as arguments to swap when reseting a frame.
     fn move_operands_to_swap(&mut self, operands_count: usize) {
         if operands_count == 0 {
             return;
         }
 
-        // PATCH:
-        // since there is no stack frame before the first function running, so
-        // can not check the operands stack bounds
-        if self.fp != 0 {
-            self.operands_stack_bounds_check(operands_count);
+        // Note that function `operands_stack_bounds_check` requires a stack frame to be present on the stack,
+        // however there is currently no definitive way to determine whether a stack frame is present,
+        // since it is possible that when FP is zero, it just so happens that the first stack frame is located at address 0.
+        #[cfg(feature = "bounds_check")]
+        {
+            if self.fp == 0 {
+                // the statck maybe has no frame in this case (fp == 0),
+                // do not call `do_popping_operands_in_frame_bounds_check` which requires frames.
+
+                // only check this case: 'move the arguments to swap when creating a new frame'
+                if self.sp < operands_count * OPERAND_SIZE_IN_BYTES {
+                    panic!(
+                        "No sufficient operands on the stack are available for function arguments.
+FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
+                        self.fp,
+                        self.sp,
+                        operands_count,
+                        operands_count * OPERAND_SIZE_IN_BYTES
+                    )
+                }
+            } else {
+                self.do_popping_operands_in_frame_bounds_check(operands_count);
+            }
         }
 
         let count_in_bytes = operands_count * OPERAND_SIZE_IN_BYTES;
-
-        #[cfg(feature = "bounds_check")]
-        {
-            if self.sp < self.fp + count_in_bytes {
-                panic!(
-                    "Not enough operands for returning values.
-FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
-                    self.fp, self.sp, operands_count, count_in_bytes
-                )
-            }
-        }
 
         let offset = self.sp - count_in_bytes;
 
@@ -681,7 +694,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
         local_variables_allocate_bytes: u32,
         opt_return_pc: Option<ProgramCounter>,
     ) {
-        // move the arguments to swap first
+        // move the arguments to swap
         self.move_operands_to_swap(params_count as usize);
 
         let previous_fp = self.fp;
@@ -776,7 +789,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
             )
         };
 
-        // move the specified number of operands to swap
+        // move the specified number of operands to swap as return values
         self.move_operands_to_swap(results_count as usize);
 
         self.sp = sp;
@@ -871,7 +884,7 @@ FP: {}, SP: {}, expect returning operands: {} (in bytes: {})",
             return is_function_frame;
         }
 
-        // move the specified number of operands to swap
+        // move the specified number of operands to swap as arguments
         self.move_operands_to_swap(params_count as usize);
 
         // remove all operands and frames which follows the current frame
@@ -1145,11 +1158,11 @@ mod tests {
 
         // the current layout
         //
-        //              |        |
+        // SP    0d0032 |        |
         //       0d0024 | 37     |
         //       0d0016 | 31     |
         //       0d0008 | 29     |
-        // FP,SP 0d0000 | 23     |
+        // FP    0d0000 | 23     |
         //              \--------/
 
         //

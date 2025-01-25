@@ -23,3 +23,8 @@ cranelift-object = "0.115.0"
 
 # libc = "0.2"
 # rand = "0.8.5"
+
+[features]
+# https://doc.rust-lang.org/cargo/reference/features.html
+default = []
+static_bounds_check = [] # to check the compilation code

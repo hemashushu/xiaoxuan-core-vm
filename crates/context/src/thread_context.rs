@@ -9,10 +9,10 @@ use std::sync::Mutex;
 use anc_image::module_image::ModuleImage;
 
 use crate::{
-    process_property::ProcessProperty, external_function_table::ExternalFunctionTable,
-    indexed_memory_access::IndexedMemoryAccess, memory::Memory,
-    module_common_instance::ModuleCommonInstance, module_index_instance::ModuleIndexInstance,
-    stack::Stack, INIT_MEMORY_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
+    external_function_table::ExternalFunctionTable, indexed_memory_access::IndexedMemoryAccess,
+    memory::Memory, module_common_instance::ModuleCommonInstance,
+    module_index_instance::ModuleIndexInstance, process_property::ProcessProperty, stack::Stack,
+    INIT_MEMORY_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
 };
 
 /// the thread context of the VM.
@@ -213,6 +213,21 @@ impl<'a> ThreadContext<'a> {
         /* data_internal_index */ usize,
         &mut dyn IndexedMemoryAccess,
     ) {
+        // static bounds check
+        #[cfg(feature = "static_bounds_check")]
+        {
+            let count = self
+                .module_index_instance
+                .data_index_section
+                .get_items_count(module_index);
+            if data_public_index > count as usize {
+                panic!(
+                    "Out of bounds of the data public index, module index: {}, total data items: {}, request data index: {}.",
+                    module_index, count, data_public_index
+                );
+            }
+        }
+
         let (target_module_index, data_internal_index, target_data_section_type) = self
             .module_index_instance
             .data_index_section
@@ -231,10 +246,10 @@ impl<'a> ThreadContext<'a> {
                 data_object.get_offset_and_length_by_index(data_internal_index);
             if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
                 panic!(
-                    "Out of bounds of the data.
+                    "Access exceeds the length of the data.
 module index: {}, function internal index: {}, instruction address: {},
 data section type: {}, data public index: {}, data internal index: {},
-data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}.",
+data actual length (in bytes): {}, access offset (in bytes): {}, expect length (in bytes): {}.",
                     module_index,
                     self.pc.function_internal_index,
                     self.pc.instruction_address,
@@ -261,6 +276,23 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
         /* target_module_index */ usize,
         /* function_internal_index */ usize,
     ) {
+        // static bounds check
+        #[cfg(feature = "static_bounds_check")]
+        {
+            let count = self
+                .module_index_instance
+                .function_index_section
+                .get_items_count(module_index);
+
+            if function_public_index > count {
+                panic!("Out of bounds of the function public index, module index: {}, total functions (includes imported): {}, request function public index: {}.",
+                    module_index,
+                    count,
+                    function_public_index
+                );
+            }
+        }
+
         let (target_module_index, function_internal_index) = self
             .module_index_instance
             .function_index_section
@@ -336,10 +368,10 @@ data actual length in bytes: {}, offset in bytes: {}, expect length in bytes: {}
             if expect_data_length_in_bytes + offset_bytes > variable_item.var_actual_length as usize
             {
                 panic!(
-                    "Out of bounds of the local variable.
+                    "Access exceeds the length of the local variable.
 module index: {}, function internal index: {}, instruction address: {},
-block reversed index: {}, local variable index: {}, variable actual length in bytes: {},
-offset in bytes: {}, expect length in bytes: {}.",
+block reversed index: {}, local variable index: {},
+variable actual length (in bytes): {}, access offset (in bytes): {}, expect length (in bytes): {}.",
                     module_index,
                     function_internal_index,
                     instruction_address,

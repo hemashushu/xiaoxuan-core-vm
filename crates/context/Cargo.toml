@@ -16,3 +16,4 @@ pretty_assertions = "1.4.1"
 # https://doc.rust-lang.org/cargo/reference/features.html
 default = ["bounds_check"]
 bounds_check = []
+static_bounds_check = [] # to check the compilation code
