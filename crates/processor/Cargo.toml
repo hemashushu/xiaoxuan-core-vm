@@ -1,6 +1,6 @@
 [package]
 name = "anc-processor"
-version = "0.2.1"
+version = "2.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,12 +14,12 @@ dyncall-util = { git = "https://github.com/hemashushu/dyncall-util.git", rev = "
 regex-anre = "1.0.0"
 ason = "1.4.0"
 
-cranelift-codegen = "0.115.0"
-cranelift-frontend = "0.115.0"
-cranelift-module = "0.115.0"
-cranelift-jit = "0.115.0"
-cranelift-native = "0.115.0"
-cranelift-object = "0.115.0"
+cranelift-codegen = "0.116.1"
+cranelift-frontend = "0.116.1"
+cranelift-module = "0.116.1"
+cranelift-jit = "0.116.1"
+cranelift-native = "0.116.1"
+cranelift-object = "0.116.1"
 
 # libc = "0.2"
 # rand = "0.8.5"
