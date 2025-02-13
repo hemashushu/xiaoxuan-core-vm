@@ -160,21 +160,6 @@ pub fn get_or_create_external_function(
 
             // check that each file exists
         }
-        ExternalLibraryDependency::Runtime => {
-            // the runtime's path, e.g.
-            //
-            // `/usr/lib/anc/`
-            //
-            // note the this path SHOULD NOT include the runtime version number.
-            //
-            // thus the computed bulitin modules and libraries path are:
-            // - `/usr/lib/anc/1.0/runtime/modules/http-client/{src, target}`
-            // - `/usr/lib/anc/1.0/runtime/libraries/lz4/{lib, include}`
-
-            todo!()
-
-            // thread_context.environment.runtime_path
-        }
         ExternalLibraryDependency::System(file_name) => file_name.to_owned(),
     };
 
