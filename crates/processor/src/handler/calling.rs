@@ -1,38 +1,40 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::{ProgramCounter, ThreadContext};
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 
 use crate::{
-    extcall_handler::get_or_create_external_function, PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE,
+    extcall_handler::get_or_create_external_function,
+    TERMINATE_CODE_FAILED_TO_CREATE_EXTERNAL_FUNCTION,
 };
 
 use super::{HandleResult, Handler};
 
 pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let function_public_index = thread_context.get_param_i32();
-    do_call(thread_context, function_public_index, 8)
+    do_call(
+        thread_context,
+        thread_context.pc.module_index,
+        function_public_index,
+        8,
+    )
 }
 
-pub fn dyncall(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn call_dynamic(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     let function_public_index = thread_context.stack.pop_i32_u();
-    do_call(thread_context, function_public_index, 2)
-}
-
-pub fn get_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let function_public_index = thread_context.get_param_i32();
-    thread_context.stack.push_i32_u(function_public_index);
-    HandleResult::Move(8)
+    let module_index = thread_context.stack.pop_i32_u() as usize;
+    do_call(thread_context, module_index, function_public_index, 2)
 }
 
 fn do_call(
     thread_context: &mut ThreadContext,
+    module_index: usize,
     function_public_index: u32,
-    instruction_length: usize,
+    instruction_length_in_bytes: usize,
 ) -> HandleResult {
     let ProgramCounter {
         instruction_address: return_instruction_address,
@@ -42,7 +44,7 @@ fn do_call(
 
     let (target_module_index, target_function_internal_index) = thread_context
         .get_function_target_module_index_and_internal_index(
-            return_module_index,
+            module_index,
             function_public_index as usize,
         );
     let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
@@ -60,7 +62,7 @@ fn do_call(
         // the length of instruction 'call' is 8 bytes (while 'dyncall' is 2 bytes).
         // so when the target function is finish, the next instruction should be the
         // instruction after the instruction 'call/dyncall'.
-        instruction_address: return_instruction_address + instruction_length,
+        instruction_address: return_instruction_address + instruction_length_in_bytes,
         function_internal_index: return_function_internal_index,
         module_index: return_module_index,
     };
@@ -150,7 +152,7 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
         ) {
             pwr
         } else {
-            return HandleResult::Panic(PANIC_CODE_EXTERNAL_FUNCTION_CREATE_FAILURE);
+            return HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_CREATE_EXTERNAL_FUNCTION);
         };
 
     // call the wrapper function:
@@ -339,18 +341,18 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_function_dyncall() {
+    fn test_handler_function_call_dynamic() {
         // fn test () -> (i32, i32, i32, i32, i32)  ;; pub idx: 0
         //     get_function(thirteen)
-        //     dyncall()
+        //     call_dynamic()
         //     get_function(nineteen)
-        //     dyncall()
+        //     call_dynamic()
         //     get_function(seventeen)
-        //     dyncall()
+        //     call_dynamic()
         //     get_function(eleven)
-        //     dyncall()
+        //     call_dynamic()
         //     get_function(thirteen)
-        //     dyncall()
+        //     call_dynamic()
         // end
         //
         // fn eleven () -> (i32)        ;; pub idx: 1
@@ -372,16 +374,16 @@ mod tests {
         // expect (13, 19, 17, 11, 13)
 
         let code_main = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::imm_i32, 4)
-            .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::imm_i32, 3)
-            .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::imm_i32, 1)
-            .append_opcode(Opcode::dyncall)
-            .append_opcode_i32(Opcode::imm_i32, 2)
-            .append_opcode(Opcode::dyncall)
+            .append_opcode_i32(Opcode::get_function, 2)
+            .append_opcode(Opcode::call_dynamic)
+            .append_opcode_i32(Opcode::get_function, 4)
+            .append_opcode(Opcode::call_dynamic)
+            .append_opcode_i32(Opcode::get_function, 3)
+            .append_opcode(Opcode::call_dynamic)
+            .append_opcode_i32(Opcode::get_function, 1)
+            .append_opcode(Opcode::call_dynamic)
+            .append_opcode_i32(Opcode::get_function, 2)
+            .append_opcode(Opcode::call_dynamic)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -806,12 +808,7 @@ mod tests {
         let handler = Handler::new();
         let resource0 = InMemoryProcessResource::with_property(
             vec![binary0],
-            &ProcessProperty::new(
-                pwd,
-                false,
-                vec![],
-                HashMap::<String, String>::new(),
-            ),
+            &ProcessProperty::new(pwd, false, vec![], HashMap::<String, String>::new()),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();

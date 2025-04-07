@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 // the external function
 // ---------------------
@@ -44,7 +44,7 @@ use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 
 use crate::{
     code_generator::Generator, handler::Handler,
-    jit_context::convert_vm_operand_data_type_to_jit_type, HandleErrorType, HandlerError,
+    jit_context::convert_vm_operand_data_type_to_jit_type, FunctionEntryErrorType, FunctionEntryError,
 };
 
 static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
@@ -54,9 +54,9 @@ pub fn get_or_create_external_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     external_function_index: usize,
-) -> Result<(*mut c_void, WrapperFunction, usize, bool), HandlerError> {
-    // static bounds check
-    #[cfg(feature = "static_bounds_check")]
+) -> Result<(*mut c_void, WrapperFunction, usize, bool), FunctionEntryError> {
+    // external function index bounds check
+    #[cfg(feature = "bounds_check")]
     {
         let count = thread_context
             .module_index_instance
@@ -195,11 +195,11 @@ pub fn add_external_function(
     external_function_name: &str,
     param_datatypes: &[OperandDataType],
     result_datatypes: &[OperandDataType],
-) -> Result<(*mut c_void, WrapperFunction), HandlerError> {
+) -> Result<(*mut c_void, WrapperFunction), FunctionEntryError> {
     if result_datatypes.len() > 1 {
         // The specified function has more than 1 return value.
-        return Err(HandlerError {
-            error_type: HandleErrorType::ResultsAmountMissmatch,
+        return Err(FunctionEntryError {
+            type_: FunctionEntryErrorType::ResultsAmountMissmatch,
         });
     }
 
@@ -221,8 +221,8 @@ pub fn add_external_function(
     let function_pointer = if let Ok(p) = load_symbol(library_pointer, external_function_name) {
         p
     } else {
-        return Err(HandlerError {
-            error_type: HandleErrorType::ItemNotFound,
+        return Err(FunctionEntryError {
+            type_: FunctionEntryErrorType::ItemNotFound,
         });
     };
 
@@ -266,12 +266,12 @@ fn add_external_library(
     external_function_table: &mut ExternalFunctionTable,
     unified_external_library_index: usize,
     external_library_file_path_or_name: &str,
-) -> Result<*mut c_void, HandlerError> {
+) -> Result<*mut c_void, FunctionEntryError> {
     let library_pointer = if let Ok(p) = load_library(external_library_file_path_or_name) {
         p
     } else {
-        return Err(HandlerError {
-            error_type: HandleErrorType::ItemNotFound,
+        return Err(FunctionEntryError {
+            type_: FunctionEntryErrorType::ItemNotFound,
         });
     };
 

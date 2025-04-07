@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use std::{
     cell::RefCell,
@@ -15,7 +15,8 @@ use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
 use crate::{
-    handler::Handler, process::process_function, GenericError, HandleErrorType, HandlerError,
+    handler::Handler, process::process_function, FunctionEntryError, FunctionEntryErrorType,
+    GenericError,
 };
 
 // these values should be 'process global', but the unit test
@@ -184,29 +185,30 @@ pub fn create_thread(
                 &[],
             );
 
-            // returns Result<Vec<ForeignValue>, Box<dyn RuntimeError + Send>>.
+            // returns Result<Vec<ForeignValue>, Box<FunctionEntryError>>.
             //
             // the 'thread start function' should only return one value,
             // it is the user-defined thread exit code.
-            match result_foreign_values {
+            let result = match result_foreign_values {
                 Ok(foreign_values) => {
                     if foreign_values.len() != 1 {
-                        return Err(Box::new(HandlerError::new(
-                            HandleErrorType::ResultsAmountMissmatch,
-                        )) as GenericError);
-                    }
-
-                    if let ForeignValue::U32(exit_code) = foreign_values[0] {
-                        Ok(exit_code)
+                        Err(FunctionEntryError::new(
+                            FunctionEntryErrorType::ResultsAmountMissmatch,
+                        ))
                     } else {
-                        Err(
-                            Box::new(HandlerError::new(HandleErrorType::DataTypeMissmatch))
-                                as GenericError,
-                        )
+                        if let ForeignValue::U32(exit_code) = foreign_values[0] {
+                            Ok(exit_code)
+                        } else {
+                            Err(FunctionEntryError::new(
+                                FunctionEntryErrorType::DataTypeMissmatch,
+                            ))
+                        }
                     }
                 }
-                Err(e) => Err(Box::new(e) as GenericError),
-            }
+                Err(e) => Err(e),
+            };
+
+            result.map_err(|entry_error| Box::new(entry_error) as GenericError)
         })
         .unwrap();
 

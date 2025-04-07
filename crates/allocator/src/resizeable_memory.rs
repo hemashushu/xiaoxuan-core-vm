@@ -4,11 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use anc_image::ImageError;
-
-use crate::process_context::ProcessContext;
-
-/// `ProcessContext` is produced by `ProcessResource`.
-pub trait ProcessResource {
-    fn create_process_context(&self) -> Result<ProcessContext, ImageError>;
+pub trait ResizeableMemory {
+    fn get_capacity_in_pages(&self) -> usize;
+    fn resize(&mut self, new_size_in_pages: usize) -> usize;
 }

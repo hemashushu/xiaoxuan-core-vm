@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -48,19 +48,17 @@ pub enum EnvCallNum {
 
     // arg
     arg_count,
-    arg_item_length,
-    arg_item,
+    arg_get_item_size,
+    arg_get_item_text,
 
     // env
     //
-    env_count,        // Get the number of items.
-    env_name_length,  // get the length of the item name, in bytes
-    env_name,         // get the name of item
-    env_value_length, // get the length of the item value, in bytes
-    env_value,        // get the value of item
-    env_update,       // update the value of an existing item
-    env_add,          // add a new item with name and value
-    env_remove,       // remove an item
+    env_count,         // get the number of items.
+    env_get_item_size, // get the length of the specified item, in bytes
+    env_get_item_text, // get the text content of the specified item
+    env_update, // update the value of an existing item by name-value pair (i.e., "name=value")
+    env_add,    // add a new item with name-value pair (i.e., "name=value")
+    env_remove, // remove an item by name
 
     // time
     //
@@ -175,9 +173,7 @@ pub enum EnvCallNum {
     // it's similar to the 'int main(int argc, char* argv[])'
     //
     // the meaning of the 'exit_code' is defined by the user,
-    // but by general convention, the 'exit_code' of the 'entry' function is defined as:
-    // - 0, thread exit on success
-    // - 1, thread exit on failure
+    // you can just returns 0 if you do not need it.
     thread_create,
 
     // get the length of the thread start data
@@ -194,14 +190,14 @@ pub enum EnvCallNum {
     // wait for the specified child thread to finish and collect resources from the child thread,
     // return the exit code of the 'thread start function'.
     //
-    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_not_found:u32)'
     //
     // returns:
     // - thread_exit_code: the meaning of the 'exit_code' is user defined.
-    // - thread_result: 0=success, 1=failure (or thread_not_found)
+    // - thread_not_found: 0=false, 1=true
     //
     // the caller will be blocked if the child thread is running, when the child thread finishes,
-    // the 'thread_wait_and_collect' will get the (thread_exit_code, thread_result), and the child thread
+    // the 'thread_wait_and_collect' will get the (thread_exit_code, thread_not_found), and the child thread
     // will be removed from the 'child thread collection'.
     //
     // note that if the child thread is finished before the parent thread calls the
@@ -215,11 +211,11 @@ pub enum EnvCallNum {
     thread_wait_and_collect,
 
     // check whether the specified (child) thread is finish
-    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_not_found:u32)'
     //
     // returns:
-    // - running_status:  0=running, 1=finish
-    // - thread_result: 0=success, 1=failure (thread_not_found)
+    // - running_status: 0=running, 1=finish
+    // - thread_not_found: 0=false, 1=true
     thread_running_status,
 
     // drop the specified (child) thread
@@ -231,36 +227,34 @@ pub enum EnvCallNum {
     //
     // 'fn () -> length:u32'
     //
-    // this function will always block the current thread if there is no data available.
+    // this function always **block** the current thread if there is no data available.
     //
     // when the pipe is closed, the child thread is also closed,
     // the child thread is automatically removed from the parent's 'child thread collection'.
-    // so this function does not return 'thread_result', it simply ignores errors,
-    // because the error means that the current thread will be terminated,
+    // so this function does not return errors,
+    // because the error means that the current thread is going to be terminated,
     // there is no point in dealing with errors anymore.
     thread_receive_msg_from_parent,
 
     // send message (from memory/heap) to the parent thread.
-    // this method will never block the current thread.
-    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
-    //
-    // returns:
-    // - thread_result: 0=success, 1=failed.
+    // this method does **NOT block** the current thread.
+    // 'fn (src_memory_ptr:u64, length:u32) -> ()'
     thread_send_msg_to_parent,
 
     // receive message from the specified (child) thread.
-    // this function will always block the current thread if there is no data available.
-    // the 'thread_result' will be '1=failure' when the PIPE (or the child thread) is close or
+    // this function always **block** the current thread if there is no data available.
+    // the 'receive_result' equals to '1/true' when the PIPE (or the child thread) is close or
     // the specified child thread does not exist.
-    // 'fn (child_thread_id:u32) -> (length:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (length:u32, receive_result:u32)'
+    //
+    // receive_result: 0=success, 1=failure
     thread_receive_msg,
 
     // send message to the specified (child) thread.
-    // this function will never block the current thread.
-    // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> thread_result:u32'
+    // this function does **NOT block** the current thread.
+    // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> send_result:u32'
     //
-    // returns:
-    // - thread_result: 0=success, 1=failure (thread_not_found).
+    // send_result: 0=success, 1=failure
     thread_send_msg,
 
     // get the length of the last received message

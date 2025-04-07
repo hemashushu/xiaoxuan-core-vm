@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 // when the XiaoXuan Core VM is embed into a Rust (or C) application as a library,
 // the application can call the VM function through the bridge function as if it calls a native function.
@@ -19,7 +19,7 @@ use anc_context::thread_context::ThreadContext;
 use crate::{
     bridge_handler::{get_or_create_bridge_data, get_or_create_bridge_function},
     handler::Handler,
-    HandleErrorType, HandlerError,
+    FunctionEntryErrorType, FunctionEntryError,
 };
 
 // create a new bridge function and map it to the specified VM function.
@@ -31,10 +31,10 @@ pub fn get_function<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     function_name: &str,
-) -> Result<T, HandlerError> {
+) -> Result<T, FunctionEntryError> {
     let (module_index, function_public_index) = thread_context
         .find_function_public_index_by_name_path(module_name, function_name)
-        .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
+        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
 
     let function_ptr = get_or_create_bridge_function(
         handler,
@@ -50,13 +50,13 @@ pub fn get_data<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     data_name: &str,
-) -> Result<*const T, HandlerError>
+) -> Result<*const T, FunctionEntryError>
 where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
         .find_data_public_index_by_name_path(module_name, data_name)
-        .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
+        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(
         thread_context,
@@ -73,13 +73,13 @@ pub fn get_data_mut<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     data_name: &str,
-) -> Result<*mut T, HandlerError>
+) -> Result<*mut T, FunctionEntryError>
 where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
         .find_data_public_index_by_name_path(module_name, data_name)
-        .ok_or(HandlerError::new(HandleErrorType::ItemNotFound))?;
+        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(
         thread_context,

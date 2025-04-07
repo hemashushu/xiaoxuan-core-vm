@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use std::sync::Mutex;
 
@@ -29,8 +29,8 @@ mod control_flow;
 mod conversion;
 mod data;
 mod fundamental;
-mod host;
 mod local;
+mod machine;
 mod math;
 mod memory;
 
@@ -60,15 +60,8 @@ pub enum HandleResult {
     // param (original_pc: ProgramCounter)
     End(ProgramCounter),
 
-    // param (code: u32)
-    Panic(u32),
-    // param (code: u32)
-    // Unreachable(u32),
-
-    // pause the interpreter
-    // for debug the program or the VM itself
-    // param (code: u32)
-    // Debug(u32),
+    // param (terminate_code: i32)
+    Terminate(i32),
 }
 
 fn unreachable_handler(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -98,22 +91,7 @@ Bytecode:
     );
 }
 
-// static INIT: Once = Once::new();
-// static mut INTERPRETERS: [InterpretFunc; MAX_OPCODE_NUMBER] = [unreachable; MAX_OPCODE_NUMBER];
-//
-// // initilize the instruction interpreters
-// //
-// // note:
-// // ensure this initialization is only called once,
-// // to do that, the 3rd party crates such as 'lazy_static', 'once_cell' and 'rust-ctor' can be used.
-// // the same can be done with 'std::sync::Once'.
-// #[inline]
-// pub fn init_interpreters() {
-//     INIT.call_once(|| {
-//         init_interpreters_internal();
-//     });
-// }
-
+#[non_exhaustive]
 pub struct Handler {
     pub handlers: [HandleFunc; MAX_OPCODE_NUMBER],
     pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
@@ -128,11 +106,7 @@ impl Handler {
 
         // fundamental
         handlers[Opcode::nop as usize] = fundamental::nop;
-        // handlers[Opcode::zero as usize] = fundamental::zero;
-        // handlers[Opcode::drop as usize] = fundamental::drop_;
-        // handlers[Opcode::duplicate as usize] = fundamental::duplicate;
-        // handlers[Opcode::swap as usize] = fundamental::swap;
-        // handlers[Opcode::select_nez as usize] = fundamental::select_nez;
+        handlers[Opcode::terminate as usize] = fundamental::terminate;
         handlers[Opcode::imm_i32 as usize] = fundamental::imm_i32;
         handlers[Opcode::imm_i64 as usize] = fundamental::imm_i64;
         handlers[Opcode::imm_f32 as usize] = fundamental::imm_f32;
@@ -152,8 +126,8 @@ impl Handler {
         handlers[Opcode::local_store_i32 as usize] = local::local_store_i32;
         handlers[Opcode::local_store_i16 as usize] = local::local_store_i16;
         handlers[Opcode::local_store_i8 as usize] = local::local_store_i8;
-        handlers[Opcode::local_store_f64 as usize] = local::local_store_i64; // store_f64 == store_i64
-        handlers[Opcode::local_store_f32 as usize] = local::local_store_i32; // store_f32 == store_i32
+        handlers[Opcode::local_store_f64 as usize] = local::local_store_i64; // reuse store_i64
+        handlers[Opcode::local_store_f32 as usize] = local::local_store_i32; // reuse store_i32
 
         // local variable extend
         handlers[Opcode::local_load_extend_i64 as usize] = local::local_load_extend_i64;
@@ -169,8 +143,8 @@ impl Handler {
         handlers[Opcode::local_store_extend_i32 as usize] = local::local_store_extend_i32;
         handlers[Opcode::local_store_extend_i16 as usize] = local::local_store_extend_i16;
         handlers[Opcode::local_store_extend_i8 as usize] = local::local_store_extend_i8;
-        handlers[Opcode::local_store_extend_f64 as usize] = local::local_store_extend_i64; // store_f64 == store_i64
-        handlers[Opcode::local_store_extend_f32 as usize] = local::local_store_extend_i32; // store_f32 == store_i32
+        handlers[Opcode::local_store_extend_f64 as usize] = local::local_store_extend_i64; // reuse store_i64
+        handlers[Opcode::local_store_extend_f32 as usize] = local::local_store_extend_i32; // reuse store_i32
 
         // data
         handlers[Opcode::data_load_i64 as usize] = data::data_load_i64;
@@ -186,8 +160,8 @@ impl Handler {
         handlers[Opcode::data_store_i32 as usize] = data::data_store_i32;
         handlers[Opcode::data_store_i16 as usize] = data::data_store_i16;
         handlers[Opcode::data_store_i8 as usize] = data::data_store_i8;
-        handlers[Opcode::data_store_f64 as usize] = data::data_store_i64; // store_f64 == store_i64
-        handlers[Opcode::data_store_f32 as usize] = data::data_store_i32; // store_f32 == store_i32
+        handlers[Opcode::data_store_f64 as usize] = data::data_store_i64; // reuse store_i64
+        handlers[Opcode::data_store_f32 as usize] = data::data_store_i32; // reuse store_i32
 
         // data extend
         handlers[Opcode::data_load_extend_i64 as usize] = data::data_load_extend_i64;
@@ -203,8 +177,25 @@ impl Handler {
         handlers[Opcode::data_store_extend_i32 as usize] = data::data_store_extend_i32;
         handlers[Opcode::data_store_extend_i16 as usize] = data::data_store_extend_i16;
         handlers[Opcode::data_store_extend_i8 as usize] = data::data_store_extend_i8;
-        handlers[Opcode::data_store_extend_f64 as usize] = data::data_store_extend_i64; // store_f64 == store_i64
-        handlers[Opcode::data_store_extend_f32 as usize] = data::data_store_extend_i32; // store_f32 == store_i32
+        handlers[Opcode::data_store_extend_f64 as usize] = data::data_store_extend_i64; // reuse store_i64
+        handlers[Opcode::data_store_extend_f32 as usize] = data::data_store_extend_i32; // reuse store_i32
+
+        // data dynamic
+        handlers[Opcode::data_load_dynamic_i64 as usize] = data::data_load_dynamic_i64;
+        handlers[Opcode::data_load_dynamic_i32_s as usize] = data::data_load_dynamic_i32_s;
+        handlers[Opcode::data_load_dynamic_i32_u as usize] = data::data_load_dynamic_i32_u;
+        handlers[Opcode::data_load_dynamic_i16_s as usize] = data::data_load_dynamic_i16_s;
+        handlers[Opcode::data_load_dynamic_i16_u as usize] = data::data_load_dynamic_i16_u;
+        handlers[Opcode::data_load_dynamic_i8_s as usize] = data::data_load_dynamic_i8_s;
+        handlers[Opcode::data_load_dynamic_i8_u as usize] = data::data_load_dynamic_i8_u;
+        handlers[Opcode::data_load_dynamic_f64 as usize] = data::data_load_dynamic_f64;
+        handlers[Opcode::data_load_dynamic_f32 as usize] = data::data_load_dynamic_f32;
+        handlers[Opcode::data_store_dynamic_i64 as usize] = data::data_store_dynamic_i64;
+        handlers[Opcode::data_store_dynamic_i32 as usize] = data::data_store_dynamic_i32;
+        handlers[Opcode::data_store_dynamic_i16 as usize] = data::data_store_dynamic_i16;
+        handlers[Opcode::data_store_dynamic_i8 as usize] = data::data_store_dynamic_i8;
+        handlers[Opcode::data_store_dynamic_f64 as usize] = data::data_store_dynamic_i64; // reuse store_i64
+        handlers[Opcode::data_store_dynamic_f32 as usize] = data::data_store_dynamic_i32; // reuse store_i32
 
         // heap
         handlers[Opcode::memory_load_i64 as usize] = memory::memory_load_i64;
@@ -220,8 +211,8 @@ impl Handler {
         handlers[Opcode::memory_store_i32 as usize] = memory::memory_store_i32;
         handlers[Opcode::memory_store_i16 as usize] = memory::memory_store_i16;
         handlers[Opcode::memory_store_i8 as usize] = memory::memory_store_i8;
-        handlers[Opcode::memory_store_f64 as usize] = memory::memory_store_i64; // store_f64 == store_i64
-        handlers[Opcode::memory_store_f32 as usize] = memory::memory_store_i32; // store_f32 == store_i32
+        handlers[Opcode::memory_store_f64 as usize] = memory::memory_store_i64; // reuse store_i64
+        handlers[Opcode::memory_store_f32 as usize] = memory::memory_store_i32; // reuse store_i32
 
         // heap memory operations
         handlers[Opcode::memory_fill as usize] = memory::memory_fill;
@@ -418,32 +409,27 @@ impl Handler {
         handlers[Opcode::block_alt as usize] = control_flow::block_alt;
         handlers[Opcode::break_alt as usize] = control_flow::break_alt;
         handlers[Opcode::block_nez as usize] = control_flow::block_nez;
-        // handlers[Opcode::break_nez as usize] = control_flow::break_nez;
-        // handlers[Opcode::recur_nez as usize] = control_flow::recur_nez;
 
         // function call
         handlers[Opcode::call as usize] = calling::call;
-        handlers[Opcode::dyncall as usize] = calling::dyncall;
-
-        // other calling
+        handlers[Opcode::call_dynamic as usize] = calling::call_dynamic;
         handlers[Opcode::syscall as usize] = calling::syscall;
         handlers[Opcode::envcall as usize] = calling::envcall;
         handlers[Opcode::extcall as usize] = calling::extcall;
-        handlers[Opcode::get_function as usize] = calling::get_function;
 
-        // host
-        handlers[Opcode::panic as usize] = host::panic;
-        // handlers[Opcode::unreachable as usize] = host::unreachable;
-        // handlers[Opcode::debug as usize] = host::debug;
-        handlers[Opcode::host_addr_local as usize] = host::host_addr_local;
-        handlers[Opcode::host_addr_local_extend as usize] = host::host_addr_local_extend;
-        handlers[Opcode::host_addr_data as usize] = host::host_addr_data;
-        handlers[Opcode::host_addr_data_extend as usize] = host::host_addr_data_extend;
-        handlers[Opcode::host_addr_memory as usize] = host::host_addr_memory;
-        handlers[Opcode::host_addr_function as usize] = host::host_addr_function;
-        handlers[Opcode::host_copy_from_memory as usize] = host::host_copy_from_memory;
-        handlers[Opcode::host_copy_to_memory as usize] = host::host_copy_to_memory;
-        handlers[Opcode::host_external_memory_copy as usize] = host::host_external_memory_copy;
+        // machine
+        handlers[Opcode::get_function as usize] = machine::get_function;
+        handlers[Opcode::get_data as usize] = machine::get_data;
+        handlers[Opcode::host_addr_local as usize] = machine::host_addr_local;
+        handlers[Opcode::host_addr_local_extend as usize] = machine::host_addr_local_extend;
+        handlers[Opcode::host_addr_data as usize] = machine::host_addr_data;
+        handlers[Opcode::host_addr_data_extend as usize] = machine::host_addr_data_extend;
+        handlers[Opcode::host_addr_data_dynamic as usize] = machine::host_addr_data_dynamic;
+        handlers[Opcode::host_addr_memory as usize] = machine::host_addr_memory;
+        handlers[Opcode::host_addr_function as usize] = machine::host_addr_function;
+        handlers[Opcode::host_copy_from_memory as usize] = machine::host_copy_from_memory;
+        handlers[Opcode::host_copy_to_memory as usize] = machine::host_copy_to_memory;
+        handlers[Opcode::host_external_memory_copy as usize] = machine::host_external_memory_copy;
 
         Handler {
             handlers,

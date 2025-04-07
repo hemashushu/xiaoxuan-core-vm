@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 // the bridge function
 // -------------------
@@ -166,7 +166,7 @@ use crate::{
     handler::Handler,
     jit_context::convert_vm_operand_data_type_to_jit_type,
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
-    HandleErrorType, HandlerError,
+    FunctionEntryError, FunctionEntryErrorType,
 };
 
 static LAST_BRIDGE_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
@@ -176,7 +176,7 @@ pub fn get_or_create_bridge_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
-) -> Result<*const u8, HandlerError> {
+) -> Result<*const u8, FunctionEntryError> {
     let (target_module_index, function_internal_index) = thread_context
         .get_function_target_module_index_and_internal_index(module_index, function_public_index);
 
@@ -200,7 +200,9 @@ pub fn get_or_create_bridge_function(
 
     if results.len() > 1 {
         // The specified function has more than 1 return value.
-        return Err(HandlerError::new(HandleErrorType::ResultsAmountMissmatch));
+        return Err(FunctionEntryError::new(
+            FunctionEntryErrorType::ResultsAmountMissmatch,
+        ));
     }
 
     let delegate_function_addr = delegate_bridge_function_call as *const u8 as usize;
@@ -236,7 +238,7 @@ pub fn get_or_create_bridge_data(
     data_public_index: usize,
     offset_bytes: usize,
     data_length_in_bytes: usize,
-) -> Result<*const u8, HandlerError> {
+) -> Result<*const u8, FunctionEntryError> {
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
             module_index,
@@ -256,7 +258,7 @@ pub fn get_or_create_bridge_callback_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
-) -> Result<*const u8, HandlerError> {
+) -> Result<*const u8, FunctionEntryError> {
     // get the internal index of function
     let (target_module_index, function_internal_index) = thread_context
         .get_function_target_module_index_and_internal_index(module_index, function_public_index);
@@ -280,7 +282,9 @@ pub fn get_or_create_bridge_callback_function(
 
     if results.len() > 1 {
         // The specified function has more than 1 return value.
-        return Err(HandlerError::new(HandleErrorType::ResultsAmountMissmatch));
+        return Err(FunctionEntryError::new(
+            FunctionEntryErrorType::ResultsAmountMissmatch,
+        ));
     }
 
     let delegate_function_addr = delegate_callback_function_call as *const u8 as usize;
@@ -579,9 +583,10 @@ extern "C" fn delegate_bridge_function_call(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    match process_continuous_instructions(handler, thread_context) {
-        Ok(_) => {}
-        Err(e) => panic!("{}", e),
+    if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
+        // there is no way to return the details of FunctionEntryError in the
+        // callback function processing, so only the panic can be thrown.
+        panic!("Program terminated, code: {}", terminate_code);
     }
 
     // pop the results from the stack
@@ -688,9 +693,10 @@ extern "C" fn delegate_callback_function_call(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    match process_continuous_instructions(handler, thread_context) {
-        Ok(_) => {}
-        Err(e) => panic!("{}", e),
+    if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
+        // there is no way to return the details of FunctionEntryError in the
+        // callback function processing, so only the panic can be thrown.
+        panic!("Program terminated, code: {}", terminate_code);
     }
 
     // pop the results from the stack

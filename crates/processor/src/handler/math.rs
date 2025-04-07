@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::ThreadContext;
 
@@ -412,6 +412,8 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use crate::{
         handler::Handler, in_memory_process_resource::InMemoryProcessResource,
         process::process_function,
@@ -991,13 +993,13 @@ mod tests {
                 // group 1
                 ForeignValue::F32(20.085_537),
                 ForeignValue::F32(512.0),
-                ForeignValue::F32(0.99999994), // 1.0
+                ForeignValue::F32(0.999_999_94), // 1.0
                 ForeignValue::F32(2.0),
                 ForeignValue::F32(2.0),
                 // group 2
                 ForeignValue::F32(0.5),
                 ForeignValue::F32(0.866_025_4),
-                ForeignValue::F32(0.577_350_3),
+                ForeignValue::F32(0.577_350_3), // 0.577_350_26
                 ForeignValue::F32(std::f32::consts::FRAC_PI_6),
                 ForeignValue::F32(std::f32::consts::FRAC_PI_6),
                 ForeignValue::F32(std::f32::consts::FRAC_PI_6),

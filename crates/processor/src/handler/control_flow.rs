@@ -1,12 +1,12 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::{ProgramCounter, ThreadContext};
 
-use crate::process::{EXIT_CURRENT_HANDLER_LOOP_BIT, EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT};
+use crate::process::EXIT_CURRENT_HANDLER_LOOP_BIT;
 
 use super::{HandleResult, Handler};
 
@@ -145,17 +145,24 @@ fn do_break(
     if let Some(return_pc) = opt_return_pc {
         // current function end
         //
+        // the `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicated
+        // the current function stack is nested, for example,
+        // it's within the callback function call.
+        //
         // if the value of the MSB of 'return module index' is '1',
-        // it indicates that it's the END of the current function call.
+        // it indicates that the `process_continuous_instructions()` should be terminated
+        // instead of returns to caller.
         if return_pc.module_index & EXIT_CURRENT_HANDLER_LOOP_BIT == EXIT_CURRENT_HANDLER_LOOP_BIT {
-            // since the function call could be nested (e.g. a callback function call).
-            // it's necessary to recover the original module index.
+            const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT: usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
+
+            // remove the EXIT_CURRENT_HANDLER_LOOP_BIT flag
+            let original_module_index =
+                return_pc.module_index & EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT;
+
             let original_pc = ProgramCounter {
                 instruction_address: return_pc.instruction_address,
                 function_internal_index: return_pc.function_internal_index,
-
-                // remove the value '1' of the MSB
-                module_index: return_pc.module_index & EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT,
+                module_index: original_module_index,
             };
 
             HandleResult::End(original_pc)
@@ -223,7 +230,7 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_process_resource::InMemoryProcessResource,
-        process::process_function, HandleErrorType, HandlerError,
+        process::process_function, FunctionEntryError, FunctionEntryErrorType, TERMINATE_CODE_UNREACHABLE,
     };
     use anc_context::process_resource::ProcessResource;
 
@@ -1580,7 +1587,7 @@ mod tests {
             .append_opcode_i16_i32(Opcode::break_, 1, 0x16)
             .append_opcode(Opcode::end)
             // unreachable
-            .append_opcode_i32(Opcode::panic, 0x100)
+            .append_opcode_i32(Opcode::terminate, TERMINATE_CODE_UNREACHABLE as u32)
             // block end
             .append_opcode(Opcode::end)
             //
@@ -1645,8 +1652,8 @@ mod tests {
         );
         assert!(matches!(
             result2,
-            Err(HandlerError {
-                error_type: HandleErrorType::Panic(0x100)
+            Err(FunctionEntryError {
+                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
             })
         ));
 
@@ -1659,8 +1666,8 @@ mod tests {
         );
         assert!(matches!(
             result3,
-            Err(HandlerError {
-                error_type: HandleErrorType::Panic(0x100)
+            Err(FunctionEntryError {
+                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
             })
         ));
     }

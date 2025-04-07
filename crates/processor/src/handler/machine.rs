@@ -1,32 +1,33 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::{memory_access::MemoryAccess, thread_context::ThreadContext};
 
 use crate::{
     bridge_handler::get_or_create_bridge_callback_function,
-    PANIC_CODE_BRIDGE_FUNCTION_CREATE_FAILURE,
+    TERMINATE_CODE_FAILED_TO_CREATE_BRIDGE_FUNCTION,
 };
 
 use super::{HandleResult, Handler};
 
-pub fn panic(_handler: &Handler, thread: &mut ThreadContext) -> HandleResult {
-    let code = thread.get_param_i32();
-    HandleResult::Panic(code)
+pub fn get_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    let function_public_index = thread_context.get_param_i32();
+    let module_index = thread_context.pc.module_index as u32;
+    thread_context.stack.push_i32_u(module_index);
+    thread_context.stack.push_i32_u(function_public_index);
+    HandleResult::Move(8)
 }
 
-// pub fn unreachable(thread: &mut ThreadContext) -> HandleResult {
-//     let code = thread.get_param_i32();
-//     HandleResult::Unreachable(code)
-// }
-//
-// pub fn debug(thread: &mut ThreadContext) -> HandleResult {
-//     let code = thread.get_param_i32();
-//     HandleResult::Debug(code)
-// }
+pub fn get_data(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    let data_public_index = thread_context.get_param_i32();
+    let module_index = thread_context.pc.module_index as u32;
+    thread_context.stack.push_i32_u(module_index);
+    thread_context.stack.push_i32_u(data_public_index);
+    HandleResult::Move(8)
+}
 
 pub fn host_addr_local(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param reversed_index:i16 offset_bytes:i16 local_variable_index:i16) -> i64
@@ -78,8 +79,10 @@ pub fn host_addr_data(_handler: &Handler, thread_context: &mut ThreadContext) ->
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_host_addr_data(
         thread_context,
+        thread_context.pc.module_index,
         data_public_index as usize,
         offset_bytes as usize,
+        8,
     )
 }
 
@@ -92,19 +95,40 @@ pub fn host_addr_data_extend(
     let offset_bytes = thread_context.stack.pop_i32_u();
     do_host_addr_data(
         thread_context,
+        thread_context.pc.module_index,
         data_public_index as usize,
         offset_bytes as usize,
+        8,
+    )
+}
+
+pub fn host_addr_data_dynamic(
+    _handler: &Handler,
+    thread_context: &mut ThreadContext,
+) -> HandleResult {
+    // (param) (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i64
+    let offset_bytes = thread_context.stack.pop_i64_u();
+    let data_public_index = thread_context.stack.pop_i32_u();
+    let module_index = thread_context.stack.pop_i32_u();
+    do_host_addr_data(
+        thread_context,
+        module_index as usize,
+        data_public_index as usize,
+        offset_bytes as usize,
+        2,
     )
 }
 
 fn do_host_addr_data(
     thread_context: &mut ThreadContext,
+    module_index: usize,
     data_public_index: usize,
     offset_bytes: usize,
+    instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
-            thread_context.pc.module_index,
+            module_index,
             data_public_index,
             0,
             0,
@@ -113,7 +137,7 @@ fn do_host_addr_data(
         data_object.get_data_address_by_index_and_offset(data_internal_index, offset_bytes);
     let ptr = data_object.get_ptr(total_offset);
     store_pointer_to_operand_stack(thread_context, ptr);
-    HandleResult::Move(8)
+    HandleResult::Move(instruction_length_in_bytes)
 }
 
 pub fn host_addr_memory(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -202,7 +226,7 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
         store_pointer_to_operand_stack(thread_context, callback_function_ptr);
         HandleResult::Move(8)
     } else {
-        HandleResult::Panic(PANIC_CODE_BRIDGE_FUNCTION_CREATE_FAILURE)
+        HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_CREATE_BRIDGE_FUNCTION)
     }
 }
 
@@ -229,7 +253,7 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_process_resource::InMemoryProcessResource,
-        process::process_function, HandleErrorType, HandlerError,
+        process::process_function,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
@@ -269,77 +293,55 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_host_panic() {
-        // () -> ()
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::panic, 0x101)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            &[], // params
-            &[], // results
-            &[], // local variables
-            code0,
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
-        let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-
-        assert!(matches!(
-            result0,
-            Err(HandlerError {
-                error_type: HandleErrorType::Panic(0x101)
-            })
-        ));
-    }
-
-    #[test]
     fn test_handler_host_address_of_data_and_local_variables() {
         //        read-only data section
         //        ======================
         //
         //       |low address    high addr|
-        //       |                        |
+        //   pub |                        |
         // index |0              1        |
         //  type |i32------|    |i32------|
         //
         //  data 11 00 00 00    13 00 00 00
+        //       |              |
+        //   r/w |0             |1
         //
         //        read write data section
         //        =======================
         //
         //       |low address             high address|
-        //       |                                    |
+        //   pub |                                    |
         // index |2(0)                       3(1)     |
         //  type |i64------------------|    |i32------|
         //
         //  data 17 00 00 00 00 00 00 00    19 00 00 00
+        //       |                          |
+        //   r/w |2                         |3
         //
         //        uninitialized data section
         //        ==========================
         //
         //       |low address             high address|
-        //       |                                    |
+        //   pub |                                    |
         // index |4(0)           5(1)                 |
         //  type |i32------|    |i64------------------|
         //
         //  data 23 00 00 00    29 00 00 00 00 00 00 00
+        //       |              |
+        //   r/w |4             |5
         //
         //        local variable area
         //        ===================
         //
         //       |low address                                       high addr|
-        //       |                                                           |
+        // local |                                                           |
         // index |0       1                           2                      |
         //  type |bytes| |i32------|   |padding--|   |i32------|   |padding--|
         //
         //  data 0.....0 31 00 00 00   00 00 00 00   37 00 00 00   00 00 00 00
-        //       ^
+        //       ^       |                           |
+        //   r/w |       |6                          |7
+        //       |
         //       | 64 bytes, the space for storing function results.
         //       | because the results will overwrite the stack, so it need to
         //       | leave enough space for results, then the data of local variables
@@ -366,6 +368,7 @@ mod tests {
             //
             .append_opcode_i32(Opcode::imm_i32, 0x31)
             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 1)
+            //
             .append_opcode_i32(Opcode::imm_i32, 0x37)
             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 2)
             //
@@ -447,25 +450,25 @@ mod tests {
         //        ======================
         //
         //       |low address  high addr|
-        //       |                      |
+        //   pub |                      |
         // index |0            1        |
-        //  type |bytes----|  |byte-----|
+        //  type |bytes----|  |bytes----|
         //
         //  data 02 03 05 07  11 13 17 19
         //       |     |            |  |
-        //       |0    |1           |2 |3
+        //   r/w |0    |1           |2 |3
         //
         //        local variable area
         //        ===================
         //
         //       |low address         high addr|
-        //       |                             |
+        //   pub |                             |
         // index |0       1                    |
         //  type |bytes| |bytes----------------|
         //
         //  data 0.....0 23 29 31 37 41 43 47 53
         //       ^       |        |        |  |
-        //       |       |4       |5       |6 |7
+        //   r/w |       |4       |5       |6 |7
         //       |
         //       | 64 bytes, the space for storing function results.
         //       | because the results will overwrite the stack, so it need to
@@ -553,6 +556,112 @@ mod tests {
         assert_eq!(read_memory_i8(fvs[5]), 0x37);
         assert_eq!(read_memory_i8(fvs[6]), 0x47);
         assert_eq!(read_memory_i8(fvs[7]), 0x53);
+    }
+
+    #[test]
+    fn test_handler_host_address_of_data_dynamic_base() {
+        // note:
+        // only limited testing is done here.
+        // corss-module tests are left to higher-level module
+        // because the code is too complex due to the need to
+        // generate and link multiple modules.
+
+        //        read-only data section
+        //        ======================
+        //
+        //       |low address  high addr|
+        //   pub |                      |
+        // index |0           1         |
+        //  data 02 03 05 07  11 13 17 19
+        //       |            |     |
+        //   r/w |0           |1    |2
+
+        //        read-write data section
+        //        ======================
+        //
+        //       |low address  high addr|
+        //   pub |                      |
+        // index |2                     |
+        //  data 23 29 31 37  41 43 47 53
+        //       |            |     |
+        //   r/w |3           |4    |5
+
+        // () -> (i64,i64,i64,i64,i64,i64)
+        //       -------------------------
+        //             addr of data
+
+        let code0 = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 0) // data index
+            .append_opcode_i32(Opcode::imm_i64, 0) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 1) // data index
+            .append_opcode_i64(Opcode::imm_i64, 0) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 1) // data index
+            .append_opcode_i64(Opcode::imm_i64, 2) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 1) // data index
+            .append_opcode_i64(Opcode::imm_i64, 0) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 1) // data index
+            .append_opcode_i64(Opcode::imm_i64, 4) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode_i32(Opcode::imm_i32, 0) // module index
+            .append_opcode_i32(Opcode::imm_i32, 1) // data index
+            .append_opcode_i64(Opcode::imm_i64, 6) // offset
+            .append_opcode(Opcode::host_addr_data_dynamic)
+            //
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        println!("{}", format_bytecode_as_text(&code0));
+
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
+            &[], // params
+            &[
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+                //
+                OperandDataType::I64,
+                OperandDataType::I64,
+                OperandDataType::I64,
+            ], // results
+            &[], // local variables
+            code0,
+            &[
+                InitedDataEntry::from_bytes(vec![0x02u8, 0x03, 0x05, 0x07], 4), // init data
+                InitedDataEntry::from_bytes(vec![0x11u8, 0x13, 0x17, 0x19], 4), // init data
+            ], // init data
+            &[InitedDataEntry::from_i64(0x5347434137312923u64)],
+            &[],
+        );
+
+        let handler = Handler::new();
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let mut thread_context0 = process_context0.create_thread_context();
+
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let fvs = result0.unwrap();
+
+        assert_eq!(read_memory_i8(fvs[0]), 0x02);
+        assert_eq!(read_memory_i8(fvs[1]), 0x11);
+        assert_eq!(read_memory_i8(fvs[2]), 0x17);
+        //
+        assert_eq!(read_memory_i8(fvs[3]), 0x23);
+        assert_eq!(read_memory_i8(fvs[4]), 0x41);
+        assert_eq!(read_memory_i8(fvs[5]), 0x47);
     }
 
     #[test]
@@ -850,12 +959,7 @@ mod tests {
         let handler = Handler::new();
         let resource0 = InMemoryProcessResource::with_property(
             vec![binary0],
-            &ProcessProperty::new(
-                pwd,
-                false,
-                vec![],
-                HashMap::<String, String>::new(),
-            ),
+            &ProcessProperty::new(pwd, false, vec![], HashMap::<String, String>::new()),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();

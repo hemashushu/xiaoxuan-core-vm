@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use std::mem::size_of;
 
@@ -411,7 +411,7 @@ impl Stack {
 
     // note:
     // this is an unsafe function.
-    // the caller should write data to memory immediately after calling this function.
+    // the caller should use this memory (pointer) immediately after calling this function.
     //
     // e.g.
     //

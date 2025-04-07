@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use std::{thread, time::Duration};
 
@@ -16,11 +16,12 @@ use crate::{
     },
 };
 
-pub const THREAD_RESULT_SUCCESS: u32 = 0;
-pub const THREAD_RESULT_FAILURE: u32 = 1;
-
 pub const THREAD_RUNNING_STATUS_RUNNING: u32 = 0;
 pub const THREAD_RUNNING_STATUS_FINISH: u32 = 1;
+pub const MESSAGE_SEND_RESULT_SUCCESS: u32 = 0;
+pub const MESSAGE_SEND_RESULT_FAILURE: u32 = 1;
+pub const MESSAGE_RECEIVE_RESULT_SUCCESS: u32 = 0;
+pub const MESSAGE_RECEIVE_RESULT_FAILURE: u32 = 1;
 
 pub fn thread_id(_handler: &Handler, thread_context: &mut ThreadContext) {
     // `fn () -> thread_id:u64`
@@ -109,11 +110,11 @@ pub fn thread_start_data_read(_handler: &Handler, thread_context: &mut ThreadCon
 }
 
 pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_not_found:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
-    let (thread_exit_code, thread_result) = CHILD_THREADS.with(|child_threads_cell| {
+    let (thread_exit_code, thread_not_found) = CHILD_THREADS.with(|child_threads_cell| {
         let mut child_threads = child_threads_cell.borrow_mut();
 
         // remove the child thread object from 'child thread collection'
@@ -123,24 +124,26 @@ pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadCo
             Some(child_thread) => {
                 let result = child_thread.join_handle.join().unwrap();
                 match result {
-                    Ok(thread_exit_code) => (thread_exit_code, THREAD_RESULT_SUCCESS),
-                    Err(_) => (0, THREAD_RESULT_FAILURE),
+                    Ok(thread_exit_code) => (thread_exit_code, 0),
+                    // there is no way to return the details of FunctionEntryError in the
+                    // child thread, so only the panic can be thrown.
+                    Err(e) => panic!("Child thread panic: {}", e),
                 }
             }
-            None => (0, THREAD_RESULT_FAILURE),
+            None => (0, 1),
         }
     });
 
     thread_context.stack.push_i32_u(thread_exit_code);
-    thread_context.stack.push_i32_u(thread_result);
+    thread_context.stack.push_i32_u(thread_not_found);
 }
 
 pub fn thread_running_status(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (running_status:u32, thread_not_found:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
-    let (thread_running_status, thread_result) = CHILD_THREADS.with(|child_threads_cell| {
+    let (thread_running_status, thread_not_found) = CHILD_THREADS.with(|child_threads_cell| {
         let child_threads = child_threads_cell.borrow_mut();
 
         let opt_child_thread = child_threads.get(&child_thread_id);
@@ -152,14 +155,14 @@ pub fn thread_running_status(_handler: &Handler, thread_context: &mut ThreadCont
                 } else {
                     THREAD_RUNNING_STATUS_RUNNING
                 };
-                (thread_running_status, THREAD_RESULT_SUCCESS)
+                (thread_running_status, 0)
             }
-            None => (0, THREAD_RESULT_FAILURE),
+            None => (0, 1),
         }
     });
 
     thread_context.stack.push_i32_u(thread_running_status);
-    thread_context.stack.push_i32_u(thread_result);
+    thread_context.stack.push_i32_u(thread_not_found);
 }
 
 pub fn thread_terminate(_handler: &Handler, thread_context: &mut ThreadContext) {
@@ -222,7 +225,7 @@ pub fn thread_receive_msg_from_parent(_handler: &Handler, thread_context: &mut T
 }
 
 pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // 'fn (src_memory_ptr:u64, length:u32) -> thread_result:u32'
+    // 'fn (src_memory_ptr:u64, length:u32) -> ()'
 
     let length = thread_context.stack.pop_i32_u();
     let src_memory_ptr = thread_context.stack.pop_i64_u();
@@ -230,28 +233,24 @@ pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut Thread
     TX.with(|tx_refcell| {
         let tx_ref = tx_refcell.borrow();
         let tx_opt = tx_ref.as_ref();
-        let thread_result = match tx_opt {
+        match tx_opt {
             Some(tx) => {
                 let src_ptr = src_memory_ptr as *const u8;
                 let data_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
                 let data_vec = data_slice.to_vec();
 
-                match tx.send(data_vec) {
-                    Ok(_) => THREAD_RESULT_SUCCESS,
-                    Err(_) => THREAD_RESULT_FAILURE,
-                }
+                tx.send(data_vec)
+                    .expect("Send message to parent thread failed.");
             }
             None => {
                 unreachable!("TX is not set.")
             }
         };
-
-        thread_context.stack.push_i32_u(thread_result);
     });
 }
 
 pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32) -> (length:u32, thread_result:u32)'
+    // 'fn (child_thread_id:u32) -> (length:u32, receive_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
@@ -259,7 +258,7 @@ pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext
         let child_threads = child_threads_cell.borrow_mut();
         let child_thread_opt = child_threads.get(&child_thread_id);
 
-        let (length, thread_result) = match child_thread_opt {
+        let (length, receive_result) = match child_thread_opt {
             Some(child_thread) => {
                 match child_thread.rx.recv() {
                     Ok(data) => {
@@ -267,23 +266,23 @@ pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext
                         LAST_THREAD_MESSAGE.with(|msg_refcell| {
                             let length = data.len();
                             msg_refcell.replace(data);
-                            (length, THREAD_RESULT_SUCCESS)
+                            (length, MESSAGE_RECEIVE_RESULT_SUCCESS)
                         })
                     }
-                    Err(_) => (0, THREAD_RESULT_FAILURE),
+                    Err(_) => (0, MESSAGE_RECEIVE_RESULT_FAILURE), // the PIPE may have closed
                 }
             }
-            None => (0, THREAD_RESULT_FAILURE),
+            None => (0, MESSAGE_RECEIVE_RESULT_FAILURE),
         };
 
-        // push 'length' and 'thread_result' to stack
+        // push 'length' and 'receive_result' to stack
         thread_context.stack.push_i32_u(length as u32);
-        thread_context.stack.push_i32_u(thread_result);
+        thread_context.stack.push_i32_u(receive_result);
     });
 }
 
 pub fn thread_send_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> thread_result:u32'
+    // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> send_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
     let src_memory_ptr = thread_context.stack.pop_i64_u();
@@ -293,22 +292,22 @@ pub fn thread_send_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
         let child_threads = child_threads_cell.borrow_mut();
         let child_thread_opt = child_threads.get(&child_thread_id);
 
-        let thread_result = match child_thread_opt {
+        let send_result = match child_thread_opt {
             Some(child_thread) => {
                 let src_ptr = src_memory_ptr as *const u8;
                 let data_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
                 let data_vec = data_slice.to_vec();
 
                 match child_thread.tx.send(data_vec) {
-                    Ok(_) => THREAD_RESULT_SUCCESS,
-                    Err(_) => THREAD_RESULT_FAILURE,
+                    Ok(_) => MESSAGE_SEND_RESULT_SUCCESS,
+                    Err(_) => MESSAGE_SEND_RESULT_FAILURE,
                 }
             }
-            None => THREAD_RESULT_FAILURE,
+            None => MESSAGE_SEND_RESULT_FAILURE,
         };
 
-        // push 'thread_result' to stack
-        thread_context.stack.push_i32_u(thread_result);
+        // push 'send_result' to stack
+        thread_context.stack.push_i32_u(send_result);
     });
 }
 

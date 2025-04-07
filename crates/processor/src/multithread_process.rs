@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
@@ -11,7 +11,7 @@ use crate::{
     handler::Handler,
     multithread_handler::{HANDLER_ADDRESS, PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA},
     process::process_function,
-    GenericError, HandleErrorType, HandlerError,
+    FunctionEntryError, FunctionEntryErrorType,
 };
 
 // pub fn start_with_multiple_thread(
@@ -41,24 +41,29 @@ use crate::{
 //     })
 // }
 
+/// internal entry point names:
+///
+/// - internal entry point name: "_start"
+///   executes function: '{app_module_name}::_start' (the default entry point)
+///   user CLI unit name: "" (empty string)
+///
+/// - internal entry point name: "{submodule_name}"
+///   executes function: '{app_module_name}::app::{submodule_name}::_start' (the additional executable units)
+///   user CLI unit name: ":{submodule_name}"
+///
+/// - internal entry point name: "{submodule_name}::test_*"
+///   executes function: '{app_module_name}::tests::{submodule_name}::test_*' (unit tests)
+///   user CLI unit name: name path prefix, e.g. "{submodule_name}", "{submodule_name}::test_get_"
+///
+/// The type of entry function:
+///
+/// the entry functions (includes the default entry, additional executable units and unit test functions)
+/// should returns i32, as well as the thread start function also returns i32.
 pub fn start_program(
     process_context: &ProcessContext,
-
-    // entry point names:
-    // - "_start"
-    //   executes function 'app_module_name::_start', the default entry point.
-    //   public executable unit name is: "" (empty string).
-    //
-    // - "submodule_name"
-    //   executes function 'app_module_name::app::{submodule_name}::_start', the additional executable units.
-    //   public executable unit name is: ".{submodule_name}"
-    //
-    // - "submodule_name::test_*"
-    //   executes function 'app_module_name::tests::{submodule_name}::test_*' for unit test.
-    //   public executable unit name is: matching any prefix of "submodule_name::test_*"
-    entry_point_name: &str,
+    internal_entry_point_name: &str,
     thread_start_data: Vec<u8>,
-) -> Result<u32, GenericError> {
+) -> Result<u32, FunctionEntryError> {
     let handler = Handler::new();
     let handler_address = &handler as *const Handler as *const u8 as usize;
     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
@@ -82,21 +87,20 @@ pub fn start_program(
     let function_public_index = if let Some(idx) = thread_context
         .module_index_instance
         .entry_point_section
-        .get_function_public_index(entry_point_name)
+        .get_function_public_index(internal_entry_point_name)
     {
         idx
     } else {
-        return Err(
-            Box::new(HandlerError::new(HandleErrorType::EntryPointNotFound(
-                entry_point_name.to_owned(),
-            ))) as GenericError,
-        );
+        return Err(FunctionEntryError::new(
+            FunctionEntryErrorType::EntryPointNotFound(internal_entry_point_name.to_owned()),
+        ));
     };
 
     // the signature of the 'entry function' must be:
     // 'fn () -> exit_code:u32'
 
     const MAIN_MODULE_INDEX: usize = 0;
+
     let result_foreign_values = process_function(
         &handler,
         &mut thread_context,
@@ -108,19 +112,20 @@ pub fn start_program(
     match result_foreign_values {
         Ok(foreign_values) => {
             if foreign_values.len() != 1 {
-                return Err(
-                    Box::new(HandlerError::new(HandleErrorType::ResultsAmountMissmatch))
-                        as GenericError,
-                );
-            }
-
-            if let ForeignValue::U32(exit_code) = foreign_values[0] {
-                Ok(exit_code)
+                Err(FunctionEntryError::new(
+                    FunctionEntryErrorType::ResultsAmountMissmatch,
+                ))
             } else {
-                Err(Box::new(HandlerError::new(HandleErrorType::DataTypeMissmatch)) as GenericError)
+                if let ForeignValue::U32(exit_code) = foreign_values[0] {
+                    Ok(exit_code)
+                } else {
+                    Err(FunctionEntryError::new(
+                        FunctionEntryErrorType::DataTypeMissmatch,
+                    ))
+                }
             }
         }
-        Err(e) => Err(Box::new(e) as GenericError),
+        Err(e) => Err(e),
     }
 }
 

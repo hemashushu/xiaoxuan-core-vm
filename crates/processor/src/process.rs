@@ -1,22 +1,25 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::{ProgramCounter, ThreadContext};
 use anc_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 
 use crate::{
     handler::{HandleResult, Handler},
-    HandleErrorType, HandlerError,
+    FunctionEntryError, FunctionEntryErrorType,
 };
 
-// when the function call is a nested (in a callback function loop),
-// then the current handler-loop should be ended when this
-// bit is encountered.
+// the `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicated
+// the current function stack is nested, for example,
+// it's within the callback function call.
+//
+// if the value of the MSB of 'return module index' is '1',
+// it indicates that the `process_continuous_instructions()` should be terminated
+// instead of returns to caller.
 pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
-pub const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT: usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
 
 // note:
 // the value of 'function public index' includes the amount of imported functions,
@@ -27,7 +30,7 @@ pub fn process_function(
     module_index: usize,
     function_public_index: usize,
     arguments: &[ForeignValue],
-) -> Result<Vec<ForeignValue>, HandlerError> {
+) -> Result<Vec<ForeignValue>, FunctionEntryError> {
     // reset the statck
     thread_context.stack.reset();
 
@@ -50,8 +53,8 @@ pub fn process_function(
 
     // the number of arguments does not match the specified funcion.
     if arguments.len() != params.len() {
-        return Err(HandlerError::new(
-            HandleErrorType::ParametersAmountMissmatch,
+        return Err(FunctionEntryError::new(
+            FunctionEntryErrorType::ParametersAmountMissmatch,
         ));
     }
 
@@ -110,7 +113,11 @@ pub fn process_function(
     thread_context.pc.instruction_address = code_offset;
 
     // start processing instructions
-    process_continuous_instructions(handler, thread_context)?;
+    if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
+        return Err(FunctionEntryError::new(FunctionEntryErrorType::Terminate(
+            terminate_code,
+        )));
+    }
 
     // pop the results from the stack
     //
@@ -157,7 +164,7 @@ pub fn process_function(
 pub fn process_continuous_instructions(
     handler: &Handler,
     thread_context: &mut ThreadContext,
-) -> Result<(), HandlerError> {
+) -> Option<i32> /* terminate code */ {
     loop {
         let result = process_instruction(handler, thread_context);
         match result {
@@ -177,18 +184,14 @@ pub fn process_continuous_instructions(
                 thread_context.pc.instruction_address = original_pc.instruction_address;
 
                 // break the instruction processing loop
-                break Ok(());
+                // break Ok(());
+                break None;
             }
-            HandleResult::Panic(code) => {
-                break Err(HandlerError::new(HandleErrorType::Panic(code)))
-            } // HandleResult::Unreachable(code) => {
-              //     break Err(InterpreterError::new(InterpreterErrorType::Unreachable(
-              //         code,
-              //     )))
-              // }
-              // HandleResult::Debug(code) => {
-              //     break Err(InterpreterError::new(InterpreterErrorType::Debug(code)))
-              // }
+            HandleResult::Terminate(terminate_code) => {
+                // break Err(HandlerError::new(HandleErrorType::Terminate(code))),
+                // std::process::exit(terminate_code)
+                break Some(terminate_code);
+            }
         }
     }
 }

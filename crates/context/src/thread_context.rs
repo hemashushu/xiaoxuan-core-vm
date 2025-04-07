@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use std::sync::Mutex;
 
@@ -213,8 +213,8 @@ impl<'a> ThreadContext<'a> {
         /* data_internal_index */ usize,
         &mut dyn IndexedMemoryAccess,
     ) {
-        // static bounds check
-        #[cfg(feature = "static_bounds_check")]
+        // data index bounds check
+        #[cfg(feature = "bounds_check")]
         {
             let count = self
                 .module_index_instance
@@ -276,8 +276,8 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         /* target_module_index */ usize,
         /* function_internal_index */ usize,
     ) {
-        // static bounds check
-        #[cfg(feature = "static_bounds_check")]
+        // function index bounds check
+        #[cfg(feature = "bounds_check")]
         {
             let count = self
                 .module_index_instance

@@ -1,8 +1,8 @@
-// Copyright (c) 2024 Hemashushu <hippospark@gmail.com>, All rights reserved.
+// Copyright (c) 2025 Hemashushu <hippospark@gmail.com>, All rights reserved.
 //
 // This Source Code Form is subject to the terms of
-// the Mozilla Public License version 2.0 and additional exceptions,
-// more details in file LICENSE, LICENSE.additional and CONTRIBUTING.
+// the Mozilla Public License version 2.0 and additional exceptions.
+// For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::ThreadContext;
 
@@ -12,52 +12,10 @@ pub fn nop(_handler: &Handler, _thread: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-// pub fn zero(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-//     thread_context.stack.push_i64_u(0);
-//     HandleResult::Move(2)
-// }
-
-/*
-pub fn drop_(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    thread_context.stack.drop_();
-    HandleResult::Move(2)
+pub fn terminate(_handler: &Handler, thread: &mut ThreadContext) -> HandleResult {
+    let terminate_code = thread.get_param_i32() as i32;
+    HandleResult::Terminate(terminate_code)
 }
-
-pub fn duplicate(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    thread_context.stack.duplicate();
-    HandleResult::Move(2)
-}
-
-pub fn swap(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let a = thread_context.stack.pop_i64_u();
-    let b = thread_context.stack.pop_i64_u();
-    thread_context.stack.push_i64_u(a);
-    thread_context.stack.push_i64_u(b);
-    HandleResult::Move(2)
-}
-*/
-
-// pub fn select_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-//     // (operand when_true:any when_false:any test:i32) -> any
-//     //
-//     // | test    | a
-//     // | false   | b
-//     // | true    | c
-//     // | ...     |
-//     // \---------/
-//     //
-//     // pop operands a, b and c, then push c if a!=0, otherwise push b.
-//
-//     let test = thread_context.stack.pop_i32_u();
-//     let alternate = thread_context.stack.pop_i64_u();
-//
-//     if test == 0 {
-//         thread_context.stack.drop_();
-//         thread_context.stack.push_i64_u(alternate);
-//     }
-//
-//     HandleResult::Move(2)
-// }
 
 pub fn imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // note:
@@ -105,7 +63,7 @@ pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 mod tests {
     use crate::{
         handler::Handler, in_memory_process_resource::InMemoryProcessResource,
-        process::process_function,
+        process::process_function, FunctionEntryError, FunctionEntryErrorType, TERMINATE_CODE_UNREACHABLE,
     };
     use anc_context::process_resource::ProcessResource;
     use anc_image::{
@@ -138,6 +96,36 @@ mod tests {
 
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         assert!(result0.is_ok());
+    }
+
+    #[test]
+    fn test_handler_fundamental_terminate() {
+        // () -> ()
+        let code0 = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::terminate, TERMINATE_CODE_UNREACHABLE as u32)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function(
+            &[], // params
+            &[], // results
+            &[], // local variables
+            code0,
+        );
+
+        let handler = Handler::new();
+        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+
+        let mut thread_context0 = process_context0.create_thread_context();
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+
+        assert!(matches!(
+            result0,
+            Err(FunctionEntryError {
+                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
+            })
+        ));
     }
 
     #[test]
