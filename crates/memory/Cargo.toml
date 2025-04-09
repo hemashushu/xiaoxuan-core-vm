@@ -6,13 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anc-isa = { path = "../../../xiaoxuan-core-isa" }
-anc-image = { path = "../../../xiaoxuan-core-image" }
 
 [dev-dependencies]
-pretty_assertions = "1.4.1"
 
 [features]
-# https://doc.rust-lang.org/cargo/reference/features.html
-default = ["bounds_check"]
-bounds_check = []
+

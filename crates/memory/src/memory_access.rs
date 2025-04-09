@@ -88,28 +88,30 @@ pub trait MemoryAccess {
     }
 
     // Reads a 64-bit floating-point value from the source address, validates it, and writes it to the destination pointer.
-    // Returns true if the value is valid (normal, subnormal, or zero), otherwise false.
-    fn read_f64(&self, src_address: usize, dst_ptr: *mut u8) -> bool {
+    // Returns Ok if the value is valid (normal, subnormal, or zero), otherwise Err.
+    fn read_f64(&self, src_address: usize, dst_ptr: *mut u8) -> Result<(), ()> {
         let tp = self.get_ptr(src_address) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f64 {
-            self.read_i64(src_address, dst_ptr);
-            true
+        if val.is_nan() || val.is_infinite() {
+            // NaN, +Inf, -Inf
+            Err(())
         } else {
-            false
+            self.read_i64(src_address, dst_ptr);
+            Ok(())
         }
     }
 
     // Reads a 32-bit floating-point value from the source address, validates it, and writes it to the destination pointer.
     // Returns true if the value is valid (normal, subnormal, or zero), otherwise false.
-    fn read_f32(&self, src_addr: usize, dst_ptr: *mut u8) -> bool {
+    fn read_f32(&self, src_addr: usize, dst_ptr: *mut u8) -> Result<(), ()> {
         let tp = self.get_ptr(src_addr) as *const f32;
         let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f32 {
-            self.read_i32_u(src_addr, dst_ptr);
-            true
+        if val.is_nan() || val.is_infinite() {
+            // NaN, +Inf, -Inf
+            Err(())
         } else {
-            false
+            self.read_i32_u(src_addr, dst_ptr);
+            Ok(())
         }
     }
 

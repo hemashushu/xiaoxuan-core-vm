@@ -165,18 +165,18 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     // );
     // ```
 
-    let params = thread_context.stack.pop_operands(params_count);
+    let params_ptr = thread_context.stack.prepare_popping_operands_to_memory(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
     wrapper_function(
         external_function_pointer,
-        params.as_ptr(),
+        params_ptr as *const usize,
         results.as_mut_ptr(),
     );
 
     // push the result on the stack
     if has_return_value {
-        let dst = thread_context.stack.push_operand_from_memory();
+        let dst = thread_context.stack.prepare_pushing_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }
 

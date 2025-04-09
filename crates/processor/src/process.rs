@@ -130,7 +130,7 @@ pub fn process_function(
     // \-----/
     let result_operands = thread_context
         .stack
-        .pop_operands_without_bound_check(results.len());
+        .pop_last_operands(results.len());
     let result_values = results
         .iter()
         .enumerate()

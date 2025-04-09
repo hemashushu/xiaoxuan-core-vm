@@ -56,8 +56,8 @@ fn handle_syscall_with_1_arg(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 1;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_1_arg(number, args[0]) }
 }
 
@@ -67,8 +67,8 @@ fn handle_syscall_with_2_args(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 2;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_2_args(number, args[0], args[1]) }
 }
 
@@ -78,8 +78,8 @@ fn handle_syscall_with_3_args(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 3;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_3_args(number, args[0], args[1], args[2]) }
 }
 
@@ -89,8 +89,8 @@ fn handle_syscall_with_4_args(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 4;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_4_args(number, args[0], args[1], args[2], args[3]) }
 }
 
@@ -100,8 +100,8 @@ fn handle_syscall_with_5_args(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 5;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_5_args(number, args[0], args[1], args[2], args[3], args[4]) }
 }
 
@@ -111,7 +111,7 @@ fn handle_syscall_with_6_args(
     number: usize,
 ) -> Result<usize, usize> {
     const ARGS_COUNT: usize = 6;
-    let args_u8 = thread_context.stack.pop_operands(ARGS_COUNT);
-    let args = unsafe { std::slice::from_raw_parts(args_u8.as_ptr() as *const usize, ARGS_COUNT) };
+    let args_ptr = thread_context.stack.prepare_popping_operands_to_memory(ARGS_COUNT);
+    let args = unsafe { std::slice::from_raw_parts(args_ptr as *const usize, ARGS_COUNT) };
     unsafe { syscall_with_6_args(number, args[0], args[1], args[2], args[3], args[4], args[5]) }
 }

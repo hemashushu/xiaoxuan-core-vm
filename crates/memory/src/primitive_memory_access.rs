@@ -7,7 +7,7 @@
 use crate::memory_access::MemoryAccess;
 
 /// Read/write primitive data from/to memory.
-pub trait TypedMemoryAccess: MemoryAccess {
+pub trait PrimitiveMemoryAccess: MemoryAccess {
     fn read_primitive_i64_s(&self, address: usize) -> i64 {
         let tp = self.get_ptr(address) as *const i64;
         unsafe { std::ptr::read(tp) }
@@ -33,10 +33,11 @@ pub trait TypedMemoryAccess: MemoryAccess {
     fn read_primitive_f64(&self, address: usize) -> Result<f64, ()> {
         let tp = self.get_ptr(address) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f64 {
-            Ok(val)
-        } else {
+        if val.is_nan() || val.is_infinite() {
+            // NaN, +Inf, -Inf
             Err(())
+        } else {
+            Ok(val)
         }
     }
 
@@ -45,10 +46,11 @@ pub trait TypedMemoryAccess: MemoryAccess {
     fn read_primitive_f32(&self, address: usize) -> Result<f32, ()> {
         let tp = self.get_ptr(address) as *const f32;
         let val = unsafe { std::ptr::read(tp) };
-        if val.is_normal() || val.is_subnormal() || val == 0.0f32 {
-            Ok(val)
-        } else {
+        if val.is_nan() || val.is_infinite() {
+            // NaN, +Inf, -Inf
             Err(())
+        } else {
+            Ok(val)
         }
     }
 

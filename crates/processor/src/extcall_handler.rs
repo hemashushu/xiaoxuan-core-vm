@@ -44,7 +44,8 @@ use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 
 use crate::{
     code_generator::Generator, handler::Handler,
-    jit_context::convert_vm_operand_data_type_to_jit_type, FunctionEntryErrorType, FunctionEntryError,
+    jit_context::convert_vm_operand_data_type_to_jit_type, FunctionEntryError,
+    FunctionEntryErrorType,
 };
 
 static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
@@ -55,8 +56,8 @@ pub fn get_or_create_external_function(
     module_index: usize,
     external_function_index: usize,
 ) -> Result<(*mut c_void, WrapperFunction, usize, bool), FunctionEntryError> {
-    // external function index bounds check
-    #[cfg(feature = "bounds_check")]
+    // external function index bounds check for compilation error
+    #[cfg(debug_assertions)]
     {
         let count = thread_context
             .module_index_instance

@@ -129,33 +129,6 @@ pub struct ThreadContext<'a> {
     pub process_config: &'a ProcessProperty,
 }
 
-/// the PC
-/// ------
-///
-/// unlike the ELF and Linux running environment, which all data and code of executable binary
-/// are loaded into one memory space, and the execution state of instruction can be represented
-/// by a single number -- program counter (PC) or instruction pointer (IP).
-/// XiaoXuan application is composed of several modules, each module contains its data and code,
-/// and code are separated into several pieces which called 'function'.
-/// so the PC in XiaoXuan Core VM is represented by a tuple of
-/// (module index, function index, instruction address)
-///
-/// note that in the default VM implementation, the code of functions are joined together,
-/// so the address of the first instruction of a function does not always start with 0.
-/// for example, the 'instruction address' of the first function in a module is naturally 0,
-/// the second will be N if the length of the code of the first function is N, and
-/// the third will be N+M if the length of the code of the second function, and so on.
-///
-/// on the other hand, a PC can only consist of 'module index' and 'instruction address', because
-/// the 'instruction address' implies the code start position of a function, but for the sake
-/// of clarity the 'function index' field is kept here.
-#[derive(Debug, PartialEq)]
-pub struct ProgramCounter {
-    pub instruction_address: usize, // the address of instruction, it's the code offset in the "FunctionSection"
-    pub function_internal_index: usize, // the function internal index
-    pub module_index: usize,        // the module index
-}
-
 pub struct DelegateFunctionModuleItem {
     pub target_module_index: usize,
     pub birdge_function_items: Vec<DelegateFunctionItem>,
@@ -213,8 +186,8 @@ impl<'a> ThreadContext<'a> {
         /* data_internal_index */ usize,
         &mut dyn IndexedMemoryAccess,
     ) {
-        // data index bounds check
-        #[cfg(feature = "bounds_check")]
+        // data index bounds check for compilation error
+        #[cfg(debug_assertions)]
         {
             let count = self
                 .module_index_instance
@@ -276,8 +249,8 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         /* target_module_index */ usize,
         /* function_internal_index */ usize,
     ) {
-        // function index bounds check
-        #[cfg(feature = "bounds_check")]
+        // function index bounds check for compilation error
+        #[cfg(debug_assertions)]
         {
             let count = self
                 .module_index_instance

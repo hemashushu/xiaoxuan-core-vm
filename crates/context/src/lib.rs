@@ -19,12 +19,6 @@ pub mod stack;
 pub mod thread_context;
 pub mod typed_memory_access;
 
-// the stack will be enlarge when the free size of stack is less than this value
-pub const STACK_FRAME_ENSURE_FREE_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES / 2;
-pub const STACK_FRAME_INCREMENT_SIZE_IN_BYTES: usize = 64 * 1024;
-
-pub const INIT_STACK_SIZE_IN_BYTES: usize = STACK_FRAME_INCREMENT_SIZE_IN_BYTES;
-
 pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
 pub const INIT_MEMORY_SIZE_IN_PAGES: usize = 0;
 

@@ -19,13 +19,13 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     /// of underlying memory to simulate each memory item. In such cases, the
     /// "start address" refers to the location of the memory item. However, other
     /// implementations may not have a "start address" and handle memory items differently.
-    fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize);
+    fn get_start_address_and_length_by_index(&self, idx: usize) -> (usize, usize);
 
-    /// Returns the start address of the data for the given index and offset.
+    /// Returns the address of the data for the given index and offset.
     /// If the implementation does not have a "start address," the offset itself is returned.
     #[inline]
     fn get_data_address_by_index_and_offset(&self, idx: usize, offset: usize) -> usize {
-        let (start, _length) = self.get_offset_and_length_by_index(idx);
+        let (start, _length) = self.get_start_address_and_length_by_index(idx);
         start + offset
     }
 
@@ -86,19 +86,19 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     }
 
     /// Reads a 64-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+    fn read_idx_f64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), ()> {
         self.read_f64(
             self.get_data_address_by_index_and_offset(idx, offset),
             dst_ptr,
-        );
+        )
     }
 
     /// Reads a 32-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
+    fn read_idx_f32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), ()> {
         self.read_f32(
             self.get_data_address_by_index_and_offset(idx, offset),
             dst_ptr,
-        );
+        )
     }
 
     /// Writes a 64-bit integer to the memory at the specified index and offset.

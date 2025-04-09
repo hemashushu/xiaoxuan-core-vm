@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anc-isa = { path = "../../../xiaoxuan-core-isa" }
-anc-image = { path = "../../../xiaoxuan-core-image" }
+anc-memory = { path = "../memory" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

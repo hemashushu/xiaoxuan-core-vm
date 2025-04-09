@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/memory",
-    # "crates/stack",
+    "crates/stack",
     # "crates/allocator",
     # "crates/context",
     # "crates/processor",

@@ -16,7 +16,7 @@ pub fn memory_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i64(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -28,7 +28,7 @@ pub fn memory_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext)
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i32_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -40,7 +40,7 @@ pub fn memory_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext)
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i32_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -52,7 +52,7 @@ pub fn memory_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext)
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i16_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -64,7 +64,7 @@ pub fn memory_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext)
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i16_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -76,7 +76,7 @@ pub fn memory_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) 
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i8_s(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -88,7 +88,7 @@ pub fn memory_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) 
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_i8_u(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -100,7 +100,7 @@ pub fn memory_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_f64(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -112,7 +112,7 @@ pub fn memory_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -
     let address = thread_context.stack.pop_i64_u();
 
     let total_offset = address as usize + offset_bytes as usize;
-    let dst_ptr = thread_context.stack.push_operand_from_memory();
+    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     thread_context.memory.load_f32(total_offset, dst_ptr);
 
     HandleResult::Move(4)
@@ -122,7 +122,7 @@ pub fn memory_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) 
     // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
+    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
     thread_context.memory.store_i64(src_ptr, total_offset);
@@ -134,7 +134,7 @@ pub fn memory_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) 
     // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
+    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
     thread_context.memory.store_i32(src_ptr, total_offset);
@@ -146,7 +146,7 @@ pub fn memory_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) 
     // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
+    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
     thread_context.memory.store_i16(src_ptr, total_offset);
@@ -158,7 +158,7 @@ pub fn memory_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -
     // (param offset_bytes:i16) (operand memory_address:i64 value:i64) -> ()
     let offset_bytes = thread_context.get_param_i16();
 
-    let src_ptr = thread_context.stack.pop_operand_to_memory();
+    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
     let address = thread_context.stack.pop_i64_u();
     let total_offset = address as usize + offset_bytes as usize;
     thread_context.memory.store_i8(src_ptr, total_offset);
