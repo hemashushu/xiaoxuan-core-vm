@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use crate::memory_access::MemoryAccess;
+use crate::{memory_access::MemoryAccess, MemoryError, MemoryErrorType};
 
 /// Read/write primitive data from/to memory.
 pub trait PrimitiveMemoryAccess: MemoryAccess {
@@ -30,12 +30,14 @@ pub trait PrimitiveMemoryAccess: MemoryAccess {
 
     // load 64-bit floating-point with validation check.
     // the VM does support some IEEE 754 variants, for more details, see the ISA document.
-    fn read_primitive_f64(&self, address: usize) -> Result<f64, ()> {
+    fn read_primitive_f64(&self, address: usize) -> Result<f64, MemoryError> {
         let tp = self.get_ptr(address) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
         if val.is_nan() || val.is_infinite() {
             // NaN, +Inf, -Inf
-            Err(())
+            Err(MemoryError::new(
+                MemoryErrorType::UnsupportedFloatingPointVariants,
+            ))
         } else {
             Ok(val)
         }
@@ -43,12 +45,14 @@ pub trait PrimitiveMemoryAccess: MemoryAccess {
 
     // load 32-bit floating-point with validation check.
     // the VM does support some IEEE 754 variants, for more details, see the ISA document.
-    fn read_primitive_f32(&self, address: usize) -> Result<f32, ()> {
+    fn read_primitive_f32(&self, address: usize) -> Result<f32, MemoryError> {
         let tp = self.get_ptr(address) as *const f32;
         let val = unsafe { std::ptr::read(tp) };
         if val.is_nan() || val.is_infinite() {
             // NaN, +Inf, -Inf
-            Err(())
+            Err(MemoryError::new(
+                MemoryErrorType::UnsupportedFloatingPointVariants,
+            ))
         } else {
             Ok(val)
         }

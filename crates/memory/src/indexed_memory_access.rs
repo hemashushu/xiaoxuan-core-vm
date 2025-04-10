@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use crate::memory_access::MemoryAccess;
+use crate::{memory_access::MemoryAccess, MemoryError};
 
 /// In the XiaoXuam Core VM, local variables, data, and allocator memory are accessed
 /// using an index instead of a memory address (pointer).
@@ -86,7 +86,7 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     }
 
     /// Reads a 64-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), ()> {
+    fn read_idx_f64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
         self.read_f64(
             self.get_data_address_by_index_and_offset(idx, offset),
             dst_ptr,
@@ -94,7 +94,7 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     }
 
     /// Reads a 32-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), ()> {
+    fn read_idx_f32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
         self.read_f32(
             self.get_data_address_by_index_and_offset(idx, offset),
             dst_ptr,

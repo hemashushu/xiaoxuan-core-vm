@@ -4,7 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use crate::{FrameType, ProgramCounter};
+use anc_memory::MemoryError;
+
+use crate::{FrameType, ProgramCounter, StackError};
 
 pub trait Stack {
     fn push_i64_s(&mut self, value: i64);
@@ -34,15 +36,15 @@ pub trait Stack {
     fn peek_i64_u(&self) -> u64;
     fn peek_i32_s(&self) -> i32;
     fn peek_i32_u(&self) -> u32;
-    fn peek_f64(&self) -> Result<f64, ()>;
-    fn peek_f32(&self) -> Result<f32, ()>;
+    fn peek_f64(&self) -> Result<f64, MemoryError>;
+    fn peek_f32(&self) -> Result<f32, MemoryError>;
 
     fn pop_i64_s(&mut self) -> i64;
     fn pop_i64_u(&mut self) -> u64;
     fn pop_i32_s(&mut self) -> i32;
     fn pop_i32_u(&mut self) -> u32;
-    fn pop_f64(&mut self) -> Result<f64, ()>;
-    fn pop_f32(&mut self) -> Result<f32, ()>;
+    fn pop_f64(&mut self) -> Result<f64, MemoryError>;
+    fn pop_f32(&mut self) -> Result<f32, MemoryError>;
 
     // fast read operands from stack to memory.
     //
@@ -68,7 +70,7 @@ pub trait Stack {
 
         // pass None if creating block frame.
         optional_return_pc: Option<ProgramCounter>,
-    ) -> Result<(), ()>;
+    ) -> Result<(), StackError>;
 
     fn remove_frames(&mut self, reversed_index: u16) -> Option<ProgramCounter>;
 

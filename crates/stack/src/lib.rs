@@ -4,12 +4,19 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+use std::fmt::Display;
+
 pub mod simple_stack;
 pub mod stack;
 
-// the stack will be enlarge when the free size of stack is less than this value
+// the initial size of the stack.
+// note that the stack will be enlarge when the free size is less than
+// the half of the stack size.
 pub const INIT_STACK_SIZE_IN_BYTES: usize = 64 * 1024; // 64KB
-pub const MAX_STACK_SIZE_IN_BYTES: usize = 64 * 1024 * 1024; // 64MB
+
+// the maximum size of the stack. it's identical to the maximum size of the
+// Linux x86_64 stack size.
+pub const MAX_STACK_SIZE_IN_BYTES: usize = 8 * 1024 * 1024; // 8MB
 
 /// The location of next instruction to be executed.
 ///
@@ -45,3 +52,29 @@ pub enum FrameType {
     /// Block stack frame.
     Block,
 }
+
+#[derive(Debug)]
+pub enum StackErrorType {
+    StackOverflow,
+}
+
+#[derive(Debug)]
+pub struct StackError {
+    pub error_type: StackErrorType,
+}
+
+impl StackError {
+    pub fn new(error_type: StackErrorType) -> Self {
+        StackError { error_type }
+    }
+}
+
+impl Display for StackError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.error_type {
+            StackErrorType::StackOverflow => write!(f, "Insufficient stack space."),
+        }
+    }
+}
+
+impl std::error::Error for StackError {}

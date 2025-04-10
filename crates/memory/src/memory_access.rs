@@ -4,6 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+use crate::{MemoryError, MemoryErrorType};
+
 pub trait MemoryAccess {
     // Returns a constant pointer to the memory at the specified address.
     fn get_ptr(&self, address: usize) -> *const u8;
@@ -89,12 +91,14 @@ pub trait MemoryAccess {
 
     // Reads a 64-bit floating-point value from the source address, validates it, and writes it to the destination pointer.
     // Returns Ok if the value is valid (normal, subnormal, or zero), otherwise Err.
-    fn read_f64(&self, src_address: usize, dst_ptr: *mut u8) -> Result<(), ()> {
+    fn read_f64(&self, src_address: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
         let tp = self.get_ptr(src_address) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
         if val.is_nan() || val.is_infinite() {
             // NaN, +Inf, -Inf
-            Err(())
+            Err(MemoryError::new(
+                MemoryErrorType::UnsupportedFloatingPointVariants,
+            ))
         } else {
             self.read_i64(src_address, dst_ptr);
             Ok(())
@@ -103,12 +107,14 @@ pub trait MemoryAccess {
 
     // Reads a 32-bit floating-point value from the source address, validates it, and writes it to the destination pointer.
     // Returns true if the value is valid (normal, subnormal, or zero), otherwise false.
-    fn read_f32(&self, src_addr: usize, dst_ptr: *mut u8) -> Result<(), ()> {
+    fn read_f32(&self, src_addr: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
         let tp = self.get_ptr(src_addr) as *const f32;
         let val = unsafe { std::ptr::read(tp) };
         if val.is_nan() || val.is_infinite() {
             // NaN, +Inf, -Inf
-            Err(())
+            Err(MemoryError::new(
+                MemoryErrorType::UnsupportedFloatingPointVariants,
+            ))
         } else {
             self.read_i32_u(src_addr, dst_ptr);
             Ok(())

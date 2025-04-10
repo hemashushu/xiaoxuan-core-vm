@@ -33,6 +33,7 @@ pub const TERMINATE_CODE_FAILED_TO_CREATE_BRIDGE_FUNCTION: i32 = 0x1000_1001;
 
 #[derive(Debug)]
 pub struct FunctionEntryError {
+    todo!() // rename to error_type
     pub type_: FunctionEntryErrorType,
 }
 

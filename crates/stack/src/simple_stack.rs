@@ -177,10 +177,13 @@
 use std::mem::size_of;
 
 use anc_isa::OPERAND_SIZE_IN_BYTES;
-use anc_memory::{memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess};
+use anc_memory::{
+    memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError,
+};
 
 use crate::{
-    stack::Stack, FrameType, ProgramCounter, INIT_STACK_SIZE_IN_BYTES, MAX_STACK_SIZE_IN_BYTES,
+    stack::Stack, FrameType, ProgramCounter, StackError, StackErrorType, INIT_STACK_SIZE_IN_BYTES,
+    MAX_STACK_SIZE_IN_BYTES,
 };
 
 pub struct SimpleStack {
@@ -298,10 +301,10 @@ impl SimpleStack {
         self.data.len()
     }
 
-    fn increase_stack_capacity(&mut self) -> Result<usize, ()> {
+    fn increase_stack_capacity(&mut self) -> Result<usize, StackError> {
         let new_size_in_bytes = self.get_stack_capacity_in_bytes() * 2;
         if new_size_in_bytes > MAX_STACK_SIZE_IN_BYTES {
-            return Err(());
+            return Err(StackError::new(StackErrorType::StackOverflow));
         }
 
         self.data.resize(new_size_in_bytes, 0);
@@ -311,7 +314,7 @@ impl SimpleStack {
     // check the capacity of the stack to make sure
     // there is enough space for a stack frame.
     // call this function before creating a new stack frame.
-    pub fn check_and_increase_stack_capacity(&mut self) -> Result<usize, ()> {
+    pub fn check_and_increase_stack_capacity(&mut self) -> Result<usize, StackError> {
         let stack_size_in_bytes = self.get_stack_capacity_in_bytes();
         let new_size_in_bytes = if self.sp > stack_size_in_bytes / 2 {
             self.increase_stack_capacity()?
@@ -641,11 +644,11 @@ impl Stack for SimpleStack {
         self.read_primitive_i32_u(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    fn peek_f64(&self) -> Result<f64, ()> {
+    fn peek_f64(&self) -> Result<f64, MemoryError> {
         self.read_primitive_f64(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
-    fn peek_f32(&self) -> Result<f32, ()> {
+    fn peek_f32(&self) -> Result<f32, MemoryError> {
         self.read_primitive_f32(self.sp - OPERAND_SIZE_IN_BYTES)
     }
 
@@ -677,14 +680,14 @@ impl Stack for SimpleStack {
         self.read_primitive_i32_u(self.sp)
     }
 
-    fn pop_f64(&mut self) -> Result<f64, ()> {
+    fn pop_f64(&mut self) -> Result<f64, MemoryError> {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.read_primitive_f64(self.sp)
     }
 
-    fn pop_f32(&mut self) -> Result<f32, ()> {
+    fn pop_f32(&mut self) -> Result<f32, MemoryError> {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
@@ -718,7 +721,7 @@ impl Stack for SimpleStack {
         // includes the length of arguments and local variables
         local_variables_allocate_bytes: u32,
         optional_return_pc: Option<ProgramCounter>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), StackError> {
         self.check_and_increase_stack_capacity()?;
 
         // move the arguments to swap
@@ -2013,17 +2016,19 @@ mod tests {
         //   9. crossing reset, reset to f1
         //  10. crossing reset, reset to f0
 
-        stack.create_frame(
-            2, // params count
-            0, // results count
-            73,
-            16 + 16, // local vars len
-            Some(ProgramCounter {
-                instruction_address: 89,     //return inst addr
-                function_internal_index: 79, // func idx
-                module_index: 83,            // return mod idx
-            }),
-        ).unwrap();
+        stack
+            .create_frame(
+                2, // params count
+                0, // results count
+                73,
+                16 + 16, // local vars len
+                Some(ProgramCounter {
+                    instruction_address: 89,     //return inst addr
+                    function_internal_index: 79, // func idx
+                    module_index: 83,            // return mod idx
+                }),
+            )
+            .unwrap();
 
         // the stack data layout:
         //
