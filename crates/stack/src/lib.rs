@@ -9,47 +9,46 @@ use std::fmt::Display;
 pub mod simple_stack;
 pub mod stack;
 
-// the initial size of the stack.
-// note that the stack will be enlarge when the free size is less than
-// the half of the stack size.
+// The initial size of the stack in bytes.
+// The stack will automatically grow when the available free space
+// is less than half of the current stack size.
 pub const INIT_STACK_SIZE_IN_BYTES: usize = 64 * 1024; // 64KB
 
-// the maximum size of the stack. it's identical to the maximum size of the
-// Linux x86_64 stack size.
+// The maximum size of the stack in bytes.
+// This value matches the maximum stack size for Linux x86_64 systems.
 pub const MAX_STACK_SIZE_IN_BYTES: usize = 8 * 1024 * 1024; // 8MB
 
-/// The location of next instruction to be executed.
+/// Represents the location of the next instruction to be executed.
 ///
-/// On the real hardware platform, the PC (program counter) or IP (instruction pointer) is
-/// a register in CPU that contains the address of the next instruction to be executed.
-/// a single address is sufficient since all the code (includes application and shared libraries)
-/// are loaded into one memory space.
+/// On real hardware platforms, the program counter (PC) or instruction pointer (IP)
+/// is a CPU register that holds the address of the next instruction to execute.
+/// A single address is sufficient since all code (including applications and shared libraries)
+/// resides in a unified memory space.
 ///
-/// However, in XiaoXuan Core VM, modules are individual objects and functions are accessed
-/// using the function index. The PC is not a single number,
-/// but a tuple of `(module index, function index, instruction address)`.
+/// In the XiaoXuan Core VM, however, modules are independent objects, and functions
+/// are accessed using their function index. As a result, the program counter is represented
+/// as a tuple: `(module index, function index, instruction address)`.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
-    // address of the next instruction to be executed.
-    // it's the offset of all functions code area in the "FunctionSection".
+    // The offset of the next instruction to be executed within the "FunctionSection".
     pub instruction_address: usize,
 
-    // the index of module where the function is defined.
+    // The index of the module where the function is defined.
     pub module_index: usize,
 
-    // internal index of the next function to be executed.
-    // it's redundant since the instruction address can be used to
-    // calculate the function index, but it's kept here for debugging.
+    // The internal index of the next function to be executed.
+    // This is redundant because the instruction address can be used to
+    // calculate the function index, but it is retained for debugging purposes.
     pub function_internal_index: usize,
 }
 
-/// The type of the frame in the stack.
+/// Represents the type of a frame in the stack.
 #[derive(Debug, PartialEq)]
 pub enum FrameType {
-    /// Function stack frame.
+    /// A stack frame for a function.
     Function,
 
-    /// Block stack frame.
+    /// A stack frame for a block.
     Block,
 }
 

@@ -2,7 +2,7 @@
 members = [
     "crates/memory",
     "crates/stack",
-    # "crates/allocator",
+    "crates/allocator",
     # "crates/context",
     # "crates/processor",
 ]

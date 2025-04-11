@@ -8,18 +8,18 @@ use std::sync::Mutex;
 
 use anc_context::{
     external_function_table::ExternalFunctionTable, process_context::ProcessContext,
-    process_property::ProcessProperty, process_resource::ProcessResource,
+    process_property::ProcessProperty, process_resource::ProgramSource,
 };
 use anc_image::{utils::helper_load_modules_from_binaries, ImageError};
 
-/// An implement of 'ProcessResource' for unit testing only
-pub struct InMemoryProcessResource {
+/// An implement of 'ProgramSource' for unit testing only
+pub struct InMemoryProgramSource {
     process_config: ProcessProperty,
     external_function_table: Mutex<ExternalFunctionTable>,
     module_binaries: Vec<Vec<u8>>,
 }
 
-impl InMemoryProcessResource {
+impl InMemoryProgramSource {
     #[allow(dead_code)]
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
@@ -39,7 +39,7 @@ impl InMemoryProcessResource {
     }
 }
 
-impl ProcessResource for InMemoryProcessResource {
+impl ProgramSource for InMemoryProgramSource {
     fn create_process_context(&self) -> Result<ProcessContext, ImageError> {
         let binaries_ref = self
             .module_binaries
@@ -60,7 +60,7 @@ impl ProcessResource for InMemoryProcessResource {
 #[cfg(test)]
 mod tests {
     use anc_context::{
-        process_resource::ProcessResource, resizeable_memory::ResizeableMemory,
+        process_resource::ProgramSource, resizeable_memory::ResizeableMemory,
         thread_context::ProgramCounter, INIT_MEMORY_SIZE_IN_PAGES,
     };
     use anc_image::{
@@ -69,7 +69,7 @@ mod tests {
     };
     use anc_isa::OperandDataType;
 
-    use crate::in_memory_process_resource::InMemoryProcessResource;
+    use crate::in_memory_program_source::InMemoryProgramSource;
 
     #[test]
     fn test_in_memory_module_instance() {
@@ -93,7 +93,7 @@ mod tests {
             ],
         );
 
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let thread_context0 = process_context0.create_thread_context();
 

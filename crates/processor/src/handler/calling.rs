@@ -187,7 +187,7 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
 mod tests {
     use std::collections::HashMap;
 
-    use anc_context::{process_property::ProcessProperty, process_resource::ProcessResource};
+    use anc_context::{process_property::ProcessProperty, process_resource::ProgramSource};
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
@@ -207,7 +207,7 @@ mod tests {
     use syscall_util::{errno::Errno, number::SysCallNum};
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        handler::Handler, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -326,7 +326,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -450,7 +450,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -496,7 +496,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -539,7 +539,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -603,7 +603,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -678,7 +678,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -727,7 +727,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -806,7 +806,7 @@ mod tests {
         // let application_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::with_property(
+        let resource0 = InMemoryProgramSource::with_property(
             vec![binary0],
             &ProcessProperty::new(pwd, false, vec![], HashMap::<String, String>::new()),
         );

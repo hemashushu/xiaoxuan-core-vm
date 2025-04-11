@@ -3,6 +3,14 @@
 version = 4
 
 [[package]]
+name = "anc-allocator"
+version = "2.2.0"
+dependencies = [
+ "anc-memory",
+ "pretty_assertions",
+]
+
+[[package]]
 name = "anc-isa"
 version = "2.2.0"
 dependencies = [

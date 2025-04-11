@@ -884,7 +884,7 @@ fn do_data_store_i8(
 
 #[cfg(test)]
 mod tests {
-    use anc_context::process_resource::ProcessResource;
+    use anc_context::process_resource::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         entry::{InitedDataEntry, UninitDataEntry},
@@ -893,7 +893,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        handler::Handler, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -1013,7 +1013,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -1161,7 +1161,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -1304,7 +1304,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -1355,7 +1355,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let handler = Handler::new();
-            let resource0 = InMemoryProcessResource::new(vec![binary0]);
+            let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area
@@ -1389,7 +1389,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let handler = Handler::new();
-            let resource0 = InMemoryProcessResource::new(vec![binary0]);
+            let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: load i32 variable with load_i64 instruction
@@ -1425,7 +1425,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let handler = Handler::new();
-            let resource0 = InMemoryProcessResource::new(vec![binary0]);
+            let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: access non-exist index local variable
@@ -1462,7 +1462,7 @@ mod tests {
 
         let result = std::panic::catch_unwind(move || {
             let handler = Handler::new();
-            let resource0 = InMemoryProcessResource::new(vec![binary0]);
+            let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // err: offset(+length) is out of data area

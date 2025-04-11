@@ -8,7 +8,7 @@ use anc_image::ImageError;
 
 use crate::process_context::ProcessContext;
 
-/// `ProcessContext` is produced by `ProcessResource`.
-pub trait ProcessResource {
+/// `ProcessContext` is produced by `ProgramSource`.
+pub trait ProgramSource {
     fn create_process_context(&self) -> Result<ProcessContext, ImageError>;
 }

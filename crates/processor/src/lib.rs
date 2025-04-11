@@ -21,7 +21,7 @@ pub mod handler;
 // https://doc.rust-lang.org/reference/conditional-compilation.html#debug_assertions
 // https://doc.rust-lang.org/reference/conditional-compilation.html#test
 #[cfg(debug_assertions)]
-pub mod in_memory_process_resource;
+pub mod in_memory_program_source;
 
 pub mod multithread_process;
 pub mod process;

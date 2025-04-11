@@ -4,10 +4,10 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// Stack is consists of a contiguous stack frames, each frame contains
-// the frame information and the operands (local variables and arguments).
+// The stack consists of contiguous stack frames. Each frame contains
+// frame information and operands (local variables and arguments).
 //
-// the layout of a stack frame:
+// Layout of a stack frame:
 //
 // ```diagram
 // | ...                     |                           | ...                     |
@@ -36,12 +36,12 @@
 //       function frame                                          block frame
 // ```
 //
-// block frames are similr to function frames, they
-// also have arguments and local variables, but block frames have NO return PC.
+// Block frames are similar to function frames. They also have arguments and local variables,
+// but block frames do not have a return program counter (PC).
 
-// note about the arguments and local variables:
+// Notes on arguments and local variables:
 //
-// arguments of functions and blocks are also part of local variables.
+// Arguments of functions and blocks are also part of the local variables.
 //
 // |                         |
 // |-------------------------| <------
@@ -55,24 +55,22 @@
 // | frame info              |
 // \-------------------------/ <-- frame start
 //
-// the value of `local_variables_allocate_bytes` in the `FrameInfo` includes the length of
-// the arguments from functions and blocks. for example,
-// a function with two i32 arguments and four i32 local variables, the
-// value of `local_variables_allocate_bytes` is (4 * 4 bytes) + (2 * 4 bytes) = 24 bytes
+// The value of `local_variables_allocate_bytes` in the `FrameInfo` includes the length of
+// the arguments from functions and blocks. For example, a function with two `i32` arguments
+// and four `i32` local variables will have a `local_variables_allocate_bytes` value of
+// (4 * 8 bytes) + (2 * 8 bytes) = 48 bytes. (Each `i32` occurs 8 bytes in the stack.)
 //
-// in some stack-based VMs, the values of arguments of a function or a block are placed on the top
-// of the stack, so it is also possible to read the arguments directly in the function
-// using instructions which imply the `pop` capability (e.g. the comparison instruction `eq_i32` and
-// the arithmetic instruction `add_i32`).
-// this feature can be used as a trick to improve performance, but the XiaoXuan Core VM doesn't
-// guarantee this feature, the local variables may be placed at an individual place entirely.
-// so you should always use the "local_load/store_xxx" instructions to read/write arguments.
+// In some stack-based VMs, the arguments of a function or block are placed at the top
+// of the stack, allowing direct access using instructions with implicit `pop` behavior
+// (e.g., `eq_i32` or `add_i32`). However, the XiaoXuan Core VM does not guarantee this behavior.
+// Local variables may be placed in a separate memory region. Always use "local_load/store_xxx"
+// instructions to read/write arguments.
 
-// note about the `return_module_index` in 'FrameInfo'
+// Notes on `return_module_index` in `FrameInfo`:
 //
-// if the MSB of `return_module_index` in 'FrameInfo' is 1, it indicates that it's the first frame of the
-// function calling path. A stack may have multiple function calling paths, since each callback calling
-// is a new function calling path.
+// If the most significant bit (MSB) of `return_module_index` in `FrameInfo` is 1, it indicates
+// that this is the first frame in the function call path. A stack may have multiple function
+// call paths, as each callback creates a new function call path.
 //
 // ```diagram
 //              stack                      external
@@ -95,12 +93,12 @@
 //           \---------/ <-- stack start
 // ```
 
-// note about the `previous_frame_address` in 'FrameInfo':
+// Notes on `previous_frame_address` in `FrameInfo`:
 //
-// because the length of frame is variable, so there are a pointer `previous_frame_address` in each
-// stack frame, all these pointers form a single linked list.
+// Since frame lengths are variable, each stack frame contains a `previous_frame_address` pointer.
+// These pointers form a singly linked list of frames.
 //
-// the chain of frames
+// Frame chain:
 //
 //             |             |
 //             |-------------| <----------------------- stack.sp
@@ -112,8 +110,8 @@
 //             |             |    | <-- crossing functions
 //             | ...         |    |
 //             | func FP     | ---|-------------\
-// block frame | previous FP | ---|--\          | all "func FP" of blocks pointe to the
-//             |-------------| <--/  |          | start position of the current function frame (FP)
+// block frame | previous FP | ---|--\          | All "func FP" of blocks point to the
+//             |-------------| <--/  |          | start position of the current function frame (FP).
 //             | ...         |       |          |
 //             | func FP     | ------|--------->\
 // block frame | previous FP | ---\  |          |
@@ -123,19 +121,19 @@
 // block frame | previous FP | ---|--\          |
 //             |-------------| <--/  |          |
 //             | ...         |       |          |
-//             | func FP     | ------|--------->\ the value of "func FP" of the current function frame
-//  func frame | previous FP | ---\  |          | is FP of the frame itself.
+//             | func FP     | ------|--------->\ The value of "func FP" of the current function frame
+//  func frame | previous FP | ---\  |          | is the FP of the frame itself.
 //             |-------------| <--|--/  <-------/
 //             |             |    |
 //             | ...         |   ...
 //             |             |
 //             \-------------/ <-- stack start
 
-// a comprehensive stack approach:
+// Comprehensive stack approach:
 //
-// a better stack should consist of 2 separated stacks:
-// - the frame information stack.
-// - the operands stack (for both local variables and operands).
+// A better stack design consists of two separate stacks:
+// - The frame information stack.
+// - The operand stack (for both local variables and operands).
 //
 // ```diagram
 //           |                 |             |                 |
@@ -166,19 +164,19 @@
 //              info stack                      operand stack
 // ```
 //
-// dividing the stack into 2 separate parts has an advantage:
-// an incorrect operation on the operand stack, such as incorrect local variable write or an incorrectly operands popped,
-// will not destroy the information stack, the function still call return to the
-// correct calling path.
+// Separating the stack into two parts has advantages:
+// An incorrect operation on the operand stack (e.g., incorrect local variable writes or operand pops)
+// will not corrupt the information stack. This ensures the function can still return to the correct
+// call path.
 //
-// the operand stack can be futher divided into "the local variables stack" and "the operand stack",
-// but for simplicity, the 2-stack approach is sufficient.
+// The operand stack can be further divided into "local variables stack" and "operand stack",
+// but for simplicity, the two-stack approach is sufficient.
 
 use std::mem::size_of;
 
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 use anc_memory::{
-    memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError,
+    indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError
 };
 
 use crate::{
@@ -187,33 +185,28 @@ use crate::{
 };
 
 pub struct SimpleStack {
-    // the data of stack
-    // the stack is a contiguous memory area, the stack pointer (SP) points to the
-    // end of the stack, and the frame pointer (FP) points to the start of the frame.
+    // The stack data is stored in a contiguous memory area.
+    // The stack pointer (SP) points to the end of the stack,
+    // while the frame pointer (FP) points to the start of the current frame.
     data: Vec<u8>,
 
-    // the end position of the stack
+    // The end position of the stack (stack pointer).
     pub sp: usize,
 
-    // the start position of the current frame
+    // The start position of the current frame (frame pointer).
     pub fp: usize,
 
-    // a temporary memory for swaping operands.
+    // A temporary memory area used for swapping operands.
     //
-    // when a new stack frame is created:
+    // When a new stack frame is created:
+    // 1. Move the arguments (operands at the top of the stack) from the stack to the swap area.
+    // 2. Create the new frame (this includes creating frame metadata and allocating space for local variables).
+    // 3. Restore the arguments from the swap area back to the stack.
     //
-    // 1. move the arguments (the operands at the top of the stack)
-    //    from stack to swap.
-    // 2. create the new frame (includes create the frame information, and
-    //    allocates the local variables area).
-    // 3. restore the arguments from the swap to stack.
-    //
-    // when exit a stack frame:
-    //
-    // 1. move the results (the operands at the top of the stack)
-    //    from stack to swap.
-    // 2. remove the stack frame and all operands that follow this frame.
-    // 3. restore the results from the swap to stack.
+    // When exiting a stack frame:
+    // 1. Move the results (operands at the top of the stack) from the stack to the swap area.
+    // 2. Remove the stack frame and all operands that follow it.
+    // 3. Restore the results from the swap area back to the stack.
     swap: Vec<u8>,
 }
 
@@ -255,13 +248,13 @@ impl<'a> FrameInfo<'a> {
 // for local variables load/store
 impl MemoryAccess for SimpleStack {
     #[inline]
-    fn get_ptr(&self, address: usize) -> *const u8 {
-        self.data[address..].as_ptr()
+    fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
+        unsafe { self.data[address..].as_ptr().add(offset_in_bytes) }
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        self.data[address..].as_mut_ptr()
+    fn get_mut_ptr(&mut self, address: usize, offset_in_bytes: usize) -> *mut u8 {
+        unsafe { self.data[address..].as_mut_ptr().add(offset_in_bytes) }
     }
 }
 
@@ -279,6 +272,7 @@ impl Default for SimpleStack {
 }
 
 impl SimpleStack {
+    /// Creates a new `SimpleStack` instance with initialized stack and swap areas.
     pub fn new() -> Self {
         let data: Vec<u8> = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
         let swap: Vec<u8> = vec![0u8; SWAP_SIZE_IN_BYTES];
@@ -290,6 +284,7 @@ impl SimpleStack {
         }
     }
 
+    /// Resets the stack to its initial state by clearing all data and resetting pointers.
     pub fn reset(&mut self) {
         self.data = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
         self.swap = vec![0u8; SWAP_SIZE_IN_BYTES];
@@ -297,10 +292,13 @@ impl SimpleStack {
         self.sp = 0;
     }
 
+    /// Returns the current capacity of the stack in bytes.
     fn get_stack_capacity_in_bytes(&self) -> usize {
         self.data.len()
     }
 
+    /// Doubles the stack capacity if it does not exceed the maximum allowed size.
+    /// Returns the new capacity or an error if the maximum size is exceeded.
     fn increase_stack_capacity(&mut self) -> Result<usize, StackError> {
         let new_size_in_bytes = self.get_stack_capacity_in_bytes() * 2;
         if new_size_in_bytes > MAX_STACK_SIZE_IN_BYTES {
@@ -311,9 +309,8 @@ impl SimpleStack {
         Ok(new_size_in_bytes)
     }
 
-    // check the capacity of the stack to make sure
-    // there is enough space for a stack frame.
-    // call this function before creating a new stack frame.
+    /// Ensures there is enough space for a new stack frame.
+    /// If the stack pointer exceeds half the current capacity, the stack is resized.
     pub fn check_and_increase_stack_capacity(&mut self) -> Result<usize, StackError> {
         let stack_size_in_bytes = self.get_stack_capacity_in_bytes();
         let new_size_in_bytes = if self.sp > stack_size_in_bytes / 2 {
@@ -324,46 +321,51 @@ impl SimpleStack {
         Ok(new_size_in_bytes)
     }
 
-    /// get `FrameInfoData` by the given frame pointer (FP).
+    /// Retrieves a reference to `FrameInfoData` at the specified frame pointer (FP).
     fn get_frame_info_data(&self, frame_pointer: usize) -> &FrameInfoData {
         let ptr = self.data[frame_pointer..].as_ptr();
         unsafe { &*(ptr as *const FrameInfoData) }
     }
 
-    /// get mutable `FrameInfoData` by the given frame pointer (FP).
+    /// Retrieves a mutable reference to `FrameInfoData` at the specified frame pointer (FP).
     fn get_frame_info_data_mutable(&mut self, addr: usize) -> &mut FrameInfoData {
         let ptr = self.data[addr..].as_mut_ptr();
         unsafe { &mut *(ptr as *mut FrameInfoData) }
     }
 
-    // Retrieve `FrameInfo` by the given reversed index.
-    //
-    // since block frames are nested, use the parameter `reversed_index` to specify
-    // the depth of the frame which you want to retrieve, its value is a number relate to the current frame.
-    // e.g., it is 0 to get the latest frame
-    // (i.e. the current frame), it is 2 to get the outside most frame which is 3 nested levels.
-    //
-    // ```diagram
-    // fn {
-    //   ;; frame 0 (function frame)
-    //   block
-    //     ;; frame 1 (block frame)
-    //     block
-    //       ;; frame 2 (block frame)
-    //       block
-    //         ;; frame 3 (block frame)
-    //         ;; assuming this is the current stack frame, then:
-    //         ;; - to get frame 3: reversed index = 0
-    //         ;; - to get frame 2: reversed index = 1
-    //         ;; - to get frame 0: reversed index = 3
-    //       end
-    //     end
-    //   end
-    // }
-    // ```
+    /// Retrieves `FrameInfo` by the given reversed index.
+    ///
+    /// The reversed index specifies the depth of the frame relative to the current frame.
+    /// For example:
+    /// - `0` retrieves the current frame.
+    /// - `1` retrieves the parent frame.
+    /// - `n` retrieves the nth parent frame.
+    ///
+    ///
+    /// ```diagram
+    /// fn {
+    ///   ;; frame 0 (function frame)
+    ///   block
+    ///     ;; frame 1 (block frame)
+    ///     block
+    ///       ;; frame 2 (block frame)
+    ///       block
+    ///         ;; frame 3 (block frame)
+    ///         ;; assuming this is the current stack frame, then:
+    ///         ;; - to get frame 3: reversed index = 0
+    ///         ;; - to get frame 2: reversed index = 1
+    ///         ;; - to get frame 0: reversed index = 3
+    ///       end
+    ///     end
+    ///   end
+    /// }
+    /// ```
+    ///
+    /// Panics if the reversed index exceeds the available frames or crosses function boundaries.
     pub fn get_frame_info_by_reversed_index(&self, reversed_index: u16) -> FrameInfo {
         // the `FP` chain:
         //
+        // ```diagram
         //           |         |           |         |           |         |
         //           |---------|           |---------|           |---------|
         // FrameInfo | prev FP |----\      | prev FP |----\      | ...     |
@@ -372,6 +374,7 @@ impl SimpleStack {
         //           | ...     |           | ...     |           | ...     |
         //           \---------/           \---------/           \---------/
         //          reversed idx 0        reversed idx 1        reversed idx 2
+        // ```
 
         let mut remains = reversed_index;
         let mut fp = self.fp;
@@ -382,7 +385,7 @@ impl SimpleStack {
             if is_function_frame {
                 // crossing function is not allowed
                 panic!(
-                    "The reversed index is out of boundary when getting a stack frame information.
+                    "The reversed index is out of bounds when retrieving stack frame information.
 FP: {}, SP: {}, reversed index: {}.",
                     self.fp, self.sp, reversed_index
                 )
@@ -397,16 +400,20 @@ FP: {}, SP: {}, reversed index: {}.",
         FrameInfo::new(fp, frame_info_data)
     }
 
-    // Retrieve `FrameInfo` of the current function frame.
+    /// Retrieves `FrameInfo` for the current function frame.
+    ///
+    /// Function frames and block frames are distinguished by the `function_frame_address` field
+    /// in `FrameInfoData`. This method identifies the function frame associated with the current frame.
     pub fn get_function_frame_info(&self) -> FrameInfo {
-        // about the frame frame:
+        // Function frames and block frames
+        // --------------------------------
+        // There are two types of stack frames: block frames and function frames.
+        // Both types include the `FunctionFramePointer` field in the `FrameInfoData` structure.
+        // This field makes it straightforward to identify the function frame associated with a given frame.
         //
-        // there are two kinds of stack frame: block frame and function frame.
-        // both of them have the `FunctionFramePointer` field in the `FrameInfoData`,
-        // it is straightforward to get the function frame using this field.
+        // Example 1: A block frame followed by a function frame
         //
-        // Example 1:
-        //
+        // ```diagram
         //               |         |
         //               |---------|
         //               | ...     |
@@ -419,9 +426,11 @@ FP: {}, SP: {}, reversed index: {}.",
         //               |---------| <--/
         //               | ...     |
         //               \---------/
+        // ```
         //
-        // Example 2:
+        // Example 2: A standalone function frame
         //
+        // ```diagram
         //               |         |
         //               |---------|
         //               | ...     |
@@ -430,6 +439,12 @@ FP: {}, SP: {}, reversed index: {}.",
         // current FP -> |---------| <--/
         //               | ...     |
         //               \---------/
+        // ```
+        //
+        // Explanation:
+        // - The `Func FP` field in the block frame points to the start of the function frame.
+        // - The `prev FP` field in the block frame points to the previous frame (if any).
+        // - The function frame contains its own `Func FP` field, which points to itself.
 
         let frame_info_data = self.get_frame_info_data(self.fp);
         if frame_info_data.function_frame_address as usize == self.fp {
@@ -444,11 +459,13 @@ FP: {}, SP: {}, reversed index: {}.",
         }
     }
 
-    /// get the local variables area start address by reversed index.
+    /// Calculates the start address of the local variables area for a frame
+    /// identified by the given reversed index.
     pub fn get_frame_local_variables_start_address_by_reversed_index(
         &self,
         reversed_index: u16,
     ) -> usize {
+        // ```diagram
         // |                 |
         // | local vars      |
         // |-----------------|
@@ -458,9 +475,8 @@ FP: {}, SP: {}, reversed index: {}.",
         // |-----------------| <-- frame pointer
         // | ...             |
         // \-----------------/
+        // ```
 
-        // let frame_info = self.read_frame_info(self.fp);
-        // let function_fp = frame_info.function_frame_address;
         let FrameInfo {
             address: fp,
             info_data: _,
@@ -469,39 +485,39 @@ FP: {}, SP: {}, reversed index: {}.",
         self.get_frame_local_variables_start_address_by_frame_pointer(fp)
     }
 
-    /// get the local variables area start address by frame pointer.
+    /// Calculates the start address of the local variables area for a frame
+    /// identified by the given frame pointer (FP).
     ///
-    /// note that the address is simply calculated by `frame pointer + the size of FrameInfoData`,
-    /// this function always return the calculated address
-    /// even if there is no actual local variables in the current frame.
+    /// The address is computed as `frame pointer + size of FrameInfoData`.
+    /// This method always returns the calculated address, even if no local variables exist.
     pub fn get_frame_local_variables_start_address_by_frame_pointer(&self, fp: usize) -> usize {
         fp + size_of::<FrameInfoData>()
     }
 
-    /// move the specified number of operands to the swap area.
+    /// Moves the specified number of operands from the stack to the swap area.
     ///
-    /// this function is corresponding with function `restore_operands_from_swap`.
-    /// there are 3 cases to call this function:
-    /// - calling a function: move the arguments to swap, creat a new frame, and restore arguments.
-    /// - returning values from a function: move the results to swap, remove the frame, and restore results.
-    /// - self-calling in TCO (tail call optimization): move the results to swap, reset the frame, and restore results as new arguments.
+    /// This method is used in scenarios such as:
+    /// - Function calls: Move arguments to the swap area before creating a new frame.
+    /// - Function returns: Move results to the swap area before removing a frame.
+    /// - Tail call optimization (TCO): Move results to the swap area before resetting the frame.
     fn move_operands_to_swap(&mut self, operands_count: usize) {
         if operands_count == 0 {
             return;
         }
 
         // Note:
-        // the  function `check_if_sufficient_operands_to_pop` requires a stack frame to work,
-        // however at current there is no definitive way to determine whether a stack frame is present,
-        // especially it can not assert by checking the stack pointer (SP) is 0.
-        // since when FP is zero, it is possible the first stack frame is happens located at address 0.
+        // The function `check_if_sufficient_operands_to_pop` requires a stack frame to operate correctly.
+        // However, there is no definitive way to determine whether a stack frame is present,
+        // especially since the stack pointer (SP) being zero does not necessarily indicate the absence of a frame.
+        // This is because when the frame pointer (FP) is zero, it is possible that the first stack frame
+        // is located at address 0.
         #[cfg(feature = "bounds_check")]
         {
             if self.fp == 0 {
                 if self.sp < operands_count * OPERAND_SIZE_IN_BYTES {
                     panic!(
-                        "No sufficient operands on the stack are available for function arguments.
-FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
+                        "Insufficient operands on the stack for function arguments.
+FP: {}, SP: {}, expected operands count: {} (length in bytes: {}).",
                         self.fp,
                         self.sp,
                         operands_count,
@@ -527,6 +543,7 @@ FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
         self.sp = offset;
     }
 
+    /// Restores the specified number of operands from the swap area back to the stack.
     fn restore_operands_from_swap(&mut self, operands_count: usize) {
         if operands_count == 0 {
             return;
@@ -534,7 +551,7 @@ FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
 
         let size_in_bytes = operands_count * OPERAND_SIZE_IN_BYTES;
 
-        // memory copy from swap to stack
+        // Copy memory from swap area to stack.
         let src = self.swap.as_ptr();
         let dst = self.data[self.sp..].as_mut_ptr();
         unsafe {
@@ -545,6 +562,9 @@ FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
         self.sp += size_in_bytes;
     }
 
+    /// Checks if there are sufficient operands on the stack to pop the specified count.
+    ///
+    /// This method ensures that popping operands does not violate stack boundaries.
     #[inline]
     fn check_if_sufficient_operands_to_pop(&self, count: usize) {
         #[cfg(feature = "bounds_check")]
@@ -556,10 +576,10 @@ FP: {}, SP: {}, expect operands count: {} (length in bytes: {}).",
                 < self.fp + size_of::<FrameInfoData>() + local_variables_allocate_bytes
             {
                 panic!(
-                    "No sufficient operands on the stack are available for popping.
-(i.e., expects: SP > FP + frame info length + local vars length + popping length)
+                    "Insufficient operands on the stack for popping.
+Expected: SP > FP + frame info length + local vars length + popping length.
 SP: {}, FP: {}, frame info length (in bytes): {}, local variables area length (in bytes): {},
-expect popping operands count: {} (length in bytes: {}).",
+expected popping operands count: {} (length in bytes: {}).",
                     self.sp,
                     self.fp,
                     size_of::<FrameInfoData>(),
@@ -571,11 +591,10 @@ expect popping operands count: {} (length in bytes: {}).",
         }
     }
 
-    // pop operands without boundary check.
-    //
-    // when "entry function" is finish, there is no "frame" left on the stack, the
-    // regular `is_sufficient_operands_to_pop` will panic.
-    // this function is used to pop operands bypassing the boundary check.
+    /// Pops the specified number of operands from the stack without boundary checks.
+    ///
+    /// This method is used when the stack is empty or when boundary checks are not required,
+    /// such as returning from the "entry" function of application.
     pub fn pop_last_operands(&mut self, count: usize) -> &[u8] {
         let length = count * OPERAND_SIZE_IN_BYTES;
         self.sp -= length;
@@ -585,120 +604,120 @@ expect popping operands count: {} (length in bytes: {}).",
 
 impl Stack for SimpleStack {
     fn push_i64_s(&mut self, value: i64) {
-        self.write_primitive_i64_s(self.sp, value);
+        self.write_primitive_i64_s(self.sp, 0, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn push_i64_u(&mut self, value: u64) {
-        self.write_primitive_i64_u(self.sp, value);
+        self.write_primitive_i64_u(self.sp, 0, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn push_i32_s(&mut self, value: i32) {
         // sign-extend i32 to i64
-        self.write_primitive_i64_s(self.sp, value as i64);
+        self.write_primitive_i64_s(self.sp, 0, value as i64);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn push_i32_u(&mut self, value: u32) {
         // zero-extend u32 to u64
-        self.write_primitive_i64_u(self.sp, value as u64);
+        self.write_primitive_i64_u(self.sp, 0, value as u64);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn push_f64(&mut self, value: f64) {
-        self.write_primitive_f64(self.sp, value);
+        self.write_primitive_f64(self.sp, 0, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn push_f32(&mut self, value: f32) {
-        self.write_primitive_f32(self.sp, value);
+        self.write_primitive_f32(self.sp, 0, value);
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
     fn prepare_pushing_operand_from_memory(&mut self) -> *mut u8 {
-        let ptr = self.get_mut_ptr(self.sp);
+        let ptr = self.get_mut_ptr(self.sp, 0);
         self.sp += OPERAND_SIZE_IN_BYTES;
         ptr
     }
 
     fn prepare_pushing_operands_from_memory(&mut self, count: usize) -> *mut u8 {
-        let ptr = self.get_mut_ptr(self.sp);
+        let ptr = self.get_mut_ptr(self.sp, 0);
         self.sp += OPERAND_SIZE_IN_BYTES * count;
         ptr
     }
 
     fn peek_i64_s(&self) -> i64 {
-        self.read_primitive_i64_s(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_i64_s(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn peek_i64_u(&self) -> u64 {
-        self.read_primitive_i64_u(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_i64_u(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn peek_i32_s(&self) -> i32 {
-        self.read_primitive_i32_s(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_i32_s(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn peek_i32_u(&self) -> u32 {
-        self.read_primitive_i32_u(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_i32_u(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn peek_f64(&self) -> Result<f64, MemoryError> {
-        self.read_primitive_f64(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_f64(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn peek_f32(&self) -> Result<f32, MemoryError> {
-        self.read_primitive_f32(self.sp - OPERAND_SIZE_IN_BYTES)
+        self.read_primitive_f32(self.sp - OPERAND_SIZE_IN_BYTES, 0)
     }
 
     fn pop_i64_s(&mut self) -> i64 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_i64_s(self.sp)
+        self.read_primitive_i64_s(self.sp, 0)
     }
 
     fn pop_i64_u(&mut self) -> u64 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_i64_u(self.sp)
+        self.read_primitive_i64_u(self.sp, 0)
     }
 
     fn pop_i32_s(&mut self) -> i32 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_i32_s(self.sp)
+        self.read_primitive_i32_s(self.sp, 0)
     }
 
     fn pop_i32_u(&mut self) -> u32 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_i32_u(self.sp)
+        self.read_primitive_i32_u(self.sp, 0)
     }
 
     fn pop_f64(&mut self) -> Result<f64, MemoryError> {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_f64(self.sp)
+        self.read_primitive_f64(self.sp, 0)
     }
 
     fn pop_f32(&mut self) -> Result<f32, MemoryError> {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.read_primitive_f32(self.sp)
+        self.read_primitive_f32(self.sp, 0)
     }
 
     fn prepare_popping_operand_to_memory(&mut self) -> *const u8 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
-        self.get_ptr(self.sp)
+        self.get_ptr(self.sp, 0)
     }
 
     fn prepare_popping_operands_to_memory(&mut self, count: usize) -> *const u8 {
@@ -706,7 +725,7 @@ impl Stack for SimpleStack {
 
         let length = count * OPERAND_SIZE_IN_BYTES;
         self.sp -= length;
-        self.get_ptr(self.sp)
+        self.get_ptr(self.sp, 0)
     }
 
     /// Create a new stack frame.
@@ -981,15 +1000,15 @@ mod tests {
     impl SimpleStack {
         fn read_local_by_offset_i32(&self, reversed_index: u16, offset: usize) -> i32 {
             self.read_primitive_i32_s(
-                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index)
-                    + offset,
+                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index),
+                offset,
             )
         }
 
         fn write_local_by_offset_i32(&mut self, reversed_index: u16, offset: usize, value: i32) {
             self.write_primitive_i32_s(
-                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index)
-                    + offset,
+                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index),
+                offset,
                 value,
             )
         }
@@ -1194,10 +1213,10 @@ mod tests {
         stack.push_i32_u(17);
         stack.push_i64_u(19);
 
-        let ptr0 = stack.get_ptr(0) as u64;
-        let ptr1 = stack.get_ptr(8) as u64;
-        let ptr2 = stack.get_ptr(16) as u64;
-        let ptr3 = stack.get_ptr(24) as u64;
+        let ptr0 = stack.get_ptr(0, 0) as u64;
+        let ptr1 = stack.get_ptr(8, 0) as u64;
+        let ptr2 = stack.get_ptr(16, 0) as u64;
+        let ptr3 = stack.get_ptr(24, 0) as u64;
 
         let read_i64 = |addr: u64| -> u64 {
             let ptr = addr as *const u64;
@@ -1297,23 +1316,23 @@ mod tests {
         // ```
 
         // check raw data
-        assert_eq!(stack.read_primitive_i64_u(0), 23);
-        assert_eq!(stack.read_primitive_i64_u(8), 29);
+        assert_eq!(stack.read_primitive_i64_u(0, 0), 23);
+        assert_eq!(stack.read_primitive_i64_u(8, 0), 29);
         // frame info data
-        assert_eq!(stack.read_primitive_i32_u(16), 0);
-        assert_eq!(stack.read_primitive_i32_u(20), 16);
-        assert_eq!(stack.read_primitive_i32_u(24), 2); // `(results count << 16) | (params count)`
-        assert_eq!(stack.read_primitive_i32_u(28), 73);
-        assert_eq!(stack.read_primitive_i32_u(32), 32);
-        assert_eq!(stack.read_primitive_i32_u(36), 83);
-        assert_eq!(stack.read_primitive_i32_u(40), 79);
-        assert_eq!(stack.read_primitive_i32_u(44), 89);
+        assert_eq!(stack.read_primitive_i32_u(16, 0), 0);
+        assert_eq!(stack.read_primitive_i32_u(20, 0), 16);
+        assert_eq!(stack.read_primitive_i32_u(24, 0), 2); // `(results count << 16) | (params count)`
+        assert_eq!(stack.read_primitive_i32_u(28, 0), 73);
+        assert_eq!(stack.read_primitive_i32_u(32, 0), 32);
+        assert_eq!(stack.read_primitive_i32_u(36, 0), 83);
+        assert_eq!(stack.read_primitive_i32_u(40, 0), 79);
+        assert_eq!(stack.read_primitive_i32_u(44, 0), 89);
         // args
-        assert_eq!(stack.read_primitive_i64_u(48), 31);
-        assert_eq!(stack.read_primitive_i64_u(56), 37);
+        assert_eq!(stack.read_primitive_i64_u(48, 0), 31);
+        assert_eq!(stack.read_primitive_i64_u(56, 0), 37);
         // local vars
-        assert_eq!(stack.read_primitive_i64_u(64), 0);
-        assert_eq!(stack.read_primitive_i64_u(72), 0);
+        assert_eq!(stack.read_primitive_i64_u(64, 0), 0);
+        assert_eq!(stack.read_primitive_i64_u(72, 0), 0);
 
         // check status
         let fp0 = 16;
@@ -1448,9 +1467,9 @@ mod tests {
 
         assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 136);
-        assert_eq!(stack.read_primitive_i32_u(128), 47); // one operand has been moved to the top of stack
-        assert_eq!(stack.read_primitive_i32_u(88), 43); // the operands of the previous frame should has no change
-        assert_eq!(stack.read_primitive_i32_u(80), 41); // the operands of the previous frame should has no change
+        assert_eq!(stack.read_primitive_i32_u(128, 0), 47); // one operand has been moved to the top of stack
+        assert_eq!(stack.read_primitive_i32_u(88, 0), 43); // the operands of the previous frame should has no change
+        assert_eq!(stack.read_primitive_i32_u(80, 0), 41); // the operands of the previous frame should has no change
 
         let f1 = stack.get_frame_info_by_reversed_index(0);
         assert_eq!(f1.address, fp1);
@@ -1570,7 +1589,7 @@ mod tests {
 
         assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, fp2 + size_of::<FrameInfoData>());
-        assert_eq!(stack.read_primitive_i32_u(fp2 - 8), 307); // the operands of the previous frame should has no change
+        assert_eq!(stack.read_primitive_i32_u(fp2 - 8, 0), 307); // the operands of the previous frame should has no change
 
         let f2 = stack.get_frame_info_by_reversed_index(0);
         assert_eq!(f2.address, fp2);
@@ -1842,10 +1861,10 @@ mod tests {
         //              | info0  |
         // ```
 
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 8), 263);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 16), 257);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 24), 251);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 32), 239);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 8, 0), 263);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 16, 0), 257);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 24, 0), 251);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 32, 0), 239);
 
         // check local variables start address
         assert_eq!(
@@ -1918,10 +1937,10 @@ mod tests {
         assert_eq!(stack.sp, 112);
 
         // check operands
-        assert_eq!(stack.read_primitive_i32_u(104), 263);
-        assert_eq!(stack.read_primitive_i32_u(96), 257);
-        assert_eq!(stack.read_primitive_i32_u(88), 43);
-        assert_eq!(stack.read_primitive_i32_u(80), 41);
+        assert_eq!(stack.read_primitive_i32_u(104, 0), 263);
+        assert_eq!(stack.read_primitive_i32_u(96, 0), 257);
+        assert_eq!(stack.read_primitive_i32_u(88, 0), 43);
+        assert_eq!(stack.read_primitive_i32_u(80, 0), 41);
 
         assert_eq!(
             stack.get_frame_local_variables_start_address_by_reversed_index(0),

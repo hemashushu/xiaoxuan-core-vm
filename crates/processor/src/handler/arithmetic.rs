@@ -254,10 +254,10 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_process_resource::InMemoryProcessResource,
+        handler::Handler, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
-    use anc_context::process_resource::ProcessResource;
+    use anc_context::process_resource::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
@@ -398,7 +398,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -576,7 +576,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -664,7 +664,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
@@ -730,7 +730,7 @@ mod tests {
         );
 
         let handler = Handler::new();
-        let resource0 = InMemoryProcessResource::new(vec![binary0]);
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
