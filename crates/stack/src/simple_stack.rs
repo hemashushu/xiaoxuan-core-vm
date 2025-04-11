@@ -55,9 +55,9 @@
 // | frame info              |
 // \-------------------------/ <-- frame start
 //
-// The value of `local_variables_allocate_bytes` in the `FrameInfo` includes the length of
+// The value of `local_variables_with_arguments_allocated_bytes` in the `FrameInfo` includes the length of
 // the arguments from functions and blocks. For example, a function with two `i32` arguments
-// and four `i32` local variables will have a `local_variables_allocate_bytes` value of
+// and four `i32` local variables will have a `local_variables_with_arguments_allocated_bytes` value of
 // (4 * 8 bytes) + (2 * 8 bytes) = 48 bytes. (Each `i32` occurs 8 bytes in the stack.)
 //
 // In some stack-based VMs, the arguments of a function or block are placed at the top
@@ -176,7 +176,7 @@ use std::mem::size_of;
 
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 use anc_memory::{
-    indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError
+    memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError,
 };
 
 use crate::{
@@ -214,15 +214,15 @@ pub struct SimpleStack {
 #[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct FrameInfoData {
-    pub previous_frame_address: u32,         //--\  <-- addr low
-    pub function_frame_address: u32,         //--/  8 bytes
-    pub params_count: u16,                   //--\
-    pub results_count: u16,                  //  |  8 bytes
-    pub local_variable_list_index: u32,      //--/
-    pub local_variables_allocate_bytes: u32, //--\
-    pub return_module_index: u32,            //--/  8 bytes
-    pub return_function_internal_index: u32, //--\  8 bytes
-    pub return_instruction_address: u32,     //--/  <-- addr high
+    pub previous_frame_address: u32, // <-- Address low
+    pub function_frame_address: u32,
+    pub params_count: u16,
+    pub results_count: u16,
+    pub local_variable_list_index: u32,
+    pub local_variables_with_arguments_allocated_bytes: u32,
+    pub return_module_index: u32,
+    pub return_function_internal_index: u32,
+    pub return_instruction_address: u32, // <-- Address high
 }
 
 #[derive(Debug, PartialEq)]
@@ -284,13 +284,13 @@ impl SimpleStack {
         }
     }
 
-    /// Resets the stack to its initial state by clearing all data and resetting pointers.
-    pub fn reset(&mut self) {
-        self.data = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
-        self.swap = vec![0u8; SWAP_SIZE_IN_BYTES];
-        self.fp = 0;
-        self.sp = 0;
-    }
+    // /// Resets the stack to its initial state by clearing all data and resetting pointers.
+    // pub fn reset(&mut self) {
+    //     self.data = vec![0u8; INIT_STACK_SIZE_IN_BYTES];
+    //     self.swap = vec![0u8; SWAP_SIZE_IN_BYTES];
+    //     self.fp = 0;
+    //     self.sp = 0;
+    // }
 
     /// Returns the current capacity of the stack in bytes.
     fn get_stack_capacity_in_bytes(&self) -> usize {
@@ -311,7 +311,7 @@ impl SimpleStack {
 
     /// Ensures there is enough space for a new stack frame.
     /// If the stack pointer exceeds half the current capacity, the stack is resized.
-    pub fn check_and_increase_stack_capacity(&mut self) -> Result<usize, StackError> {
+    fn check_and_increase_stack_capacity(&mut self) -> Result<usize, StackError> {
         let stack_size_in_bytes = self.get_stack_capacity_in_bytes();
         let new_size_in_bytes = if self.sp > stack_size_in_bytes / 2 {
             self.increase_stack_capacity()?
@@ -362,7 +362,7 @@ impl SimpleStack {
     /// ```
     ///
     /// Panics if the reversed index exceeds the available frames or crosses function boundaries.
-    pub fn get_frame_info_by_reversed_index(&self, reversed_index: u16) -> FrameInfo {
+    fn get_frame_info_by_reversed_index(&self, reversed_index: u16) -> FrameInfo {
         // the `FP` chain:
         //
         // ```diagram
@@ -404,7 +404,7 @@ FP: {}, SP: {}, reversed index: {}.",
     ///
     /// Function frames and block frames are distinguished by the `function_frame_address` field
     /// in `FrameInfoData`. This method identifies the function frame associated with the current frame.
-    pub fn get_function_frame_info(&self) -> FrameInfo {
+    fn get_function_frame_info(&self) -> FrameInfo {
         // Function frames and block frames
         // --------------------------------
         // There are two types of stack frames: block frames and function frames.
@@ -457,41 +457,6 @@ FP: {}, SP: {}, reversed index: {}.",
             let function_frame_info_data = self.get_frame_info_data(function_fp);
             FrameInfo::new(function_fp, function_frame_info_data)
         }
-    }
-
-    /// Calculates the start address of the local variables area for a frame
-    /// identified by the given reversed index.
-    pub fn get_frame_local_variables_start_address_by_reversed_index(
-        &self,
-        reversed_index: u16,
-    ) -> usize {
-        // ```diagram
-        // |                 |
-        // | local vars      |
-        // |-----------------|
-        // | args            |
-        // |-----------------| <-- local vars start address
-        // | frame info data |
-        // |-----------------| <-- frame pointer
-        // | ...             |
-        // \-----------------/
-        // ```
-
-        let FrameInfo {
-            address: fp,
-            info_data: _,
-        } = self.get_frame_info_by_reversed_index(reversed_index);
-
-        self.get_frame_local_variables_start_address_by_frame_pointer(fp)
-    }
-
-    /// Calculates the start address of the local variables area for a frame
-    /// identified by the given frame pointer (FP).
-    ///
-    /// The address is computed as `frame pointer + size of FrameInfoData`.
-    /// This method always returns the calculated address, even if no local variables exist.
-    pub fn get_frame_local_variables_start_address_by_frame_pointer(&self, fp: usize) -> usize {
-        fp + size_of::<FrameInfoData>()
     }
 
     /// Moves the specified number of operands from the stack to the swap area.
@@ -570,10 +535,13 @@ FP: {}, SP: {}, expected operands count: {} (length in bytes: {}).",
         #[cfg(feature = "bounds_check")]
         {
             let frame_info = self.get_frame_info_data(self.fp);
-            let local_variables_allocate_bytes = frame_info.local_variables_allocate_bytes as usize;
+            let local_variables_with_arguments_allocated_bytes =
+                frame_info.local_variables_with_arguments_allocated_bytes as usize;
 
             if self.sp - (count * OPERAND_SIZE_IN_BYTES)
-                < self.fp + size_of::<FrameInfoData>() + local_variables_allocate_bytes
+                < self.fp
+                    + size_of::<FrameInfoData>()
+                    + local_variables_with_arguments_allocated_bytes
             {
                 panic!(
                     "Insufficient operands on the stack for popping.
@@ -583,22 +551,12 @@ expected popping operands count: {} (length in bytes: {}).",
                     self.sp,
                     self.fp,
                     size_of::<FrameInfoData>(),
-                    local_variables_allocate_bytes,
+                    local_variables_with_arguments_allocated_bytes,
                     count,
                     count * OPERAND_SIZE_IN_BYTES
                 )
             }
         }
-    }
-
-    /// Pops the specified number of operands from the stack without boundary checks.
-    ///
-    /// This method is used when the stack is empty or when boundary checks are not required,
-    /// such as returning from the "entry" function of application.
-    pub fn pop_last_operands(&mut self, count: usize) -> &[u8] {
-        let length = count * OPERAND_SIZE_IN_BYTES;
-        self.sp -= length;
-        &self.data[self.sp..]
     }
 }
 
@@ -738,7 +696,7 @@ impl Stack for SimpleStack {
         local_variable_list_index: u32,
 
         // includes the length of arguments and local variables
-        local_variables_allocate_bytes: u32,
+        local_variables_with_arguments_allocated_bytes: u32,
         optional_return_pc: Option<ProgramCounter>,
     ) -> Result<(), StackError> {
         self.check_and_increase_stack_capacity()?;
@@ -767,7 +725,8 @@ impl Stack for SimpleStack {
         frame_info_data.params_count = params_count;
         frame_info_data.results_count = results_count;
         frame_info_data.local_variable_list_index = local_variable_list_index;
-        frame_info_data.local_variables_allocate_bytes = local_variables_allocate_bytes;
+        frame_info_data.local_variables_with_arguments_allocated_bytes =
+            local_variables_with_arguments_allocated_bytes;
 
         if let Some(return_pc) = optional_return_pc {
             frame_info_data.return_module_index = return_pc.module_index as u32;
@@ -789,14 +748,14 @@ impl Stack for SimpleStack {
 
         // clean the actually local variables slots.
         //
-        // note that can not use `local_variables_allocate_bytes` directly because its value
+        // note that can not use `local_variables_with_arguments_allocated_bytes` directly because its value
         // includes the length of arguments:
         //
         // ```diagram
         //       |                     |
         // ----- |---------------------| <----
         //  ^    | local var 2 (idx 4) |    ^  the actual local variables slots, length:
-        //  |    | local var 1 (idx 3) |    |  'local_variables_allocate_bytes -
+        //  |    | local var 1 (idx 3) |    |  'local_variables_with_arguments_allocated_bytes -
         // local | local var 0 (idx 2) |    v   params_count * OPERAND_SIZE_IN_BYTES'
         // vars  |---------------------|------
         // area  | arg 1 (local idx 1) |    ^   params_count * OPERAND_SIZE_IN_BYTES'
@@ -807,7 +766,8 @@ impl Stack for SimpleStack {
         // ```
         //
         let local_variables_allocate_bytes_without_args =
-            local_variables_allocate_bytes as usize - params_count as usize * OPERAND_SIZE_IN_BYTES;
+            local_variables_with_arguments_allocated_bytes as usize
+                - params_count as usize * OPERAND_SIZE_IN_BYTES;
 
         self.data[self.sp..(self.sp + local_variables_allocate_bytes_without_args)].fill(0);
         self.sp += local_variables_allocate_bytes_without_args;
@@ -856,14 +816,21 @@ impl Stack for SimpleStack {
 
     /// reset the specified function frame or block frame.
     fn reset_frames(&mut self, reversed_index: u16) -> FrameType {
-        let (is_function_frame, frame_addr, params_count, local_variables_allocate_bytes) = {
+        let (
+            is_function_frame,
+            frame_addr,
+            params_count,
+            local_variables_with_arguments_allocated_bytes,
+        ) = {
             let frame_info = self.get_frame_info_by_reversed_index(reversed_index);
             let is_function_frame = frame_info.get_frame_type() == FrameType::Function;
             (
                 is_function_frame,
                 frame_info.address,
                 frame_info.info_data.params_count,
-                frame_info.info_data.local_variables_allocate_bytes as usize,
+                frame_info
+                    .info_data
+                    .local_variables_with_arguments_allocated_bytes as usize,
             )
         };
 
@@ -903,7 +870,7 @@ impl Stack for SimpleStack {
             && (self.sp
                 == self.fp
                     + size_of::<FrameInfoData>()
-                    + local_variables_allocate_bytes
+                    + local_variables_with_arguments_allocated_bytes
                     + params_bytes)
         {
             // move (memory copy) the results to argument slots
@@ -920,7 +887,7 @@ impl Stack for SimpleStack {
             // reset the local variable slots to 0
             let local_variables_addr_start = self.fp + size_of::<FrameInfoData>() + params_bytes;
             let local_variables_allocate_bytes_without_args =
-                local_variables_allocate_bytes - params_bytes;
+                local_variables_with_arguments_allocated_bytes - params_bytes;
             self.data[local_variables_addr_start
                 ..(local_variables_addr_start + local_variables_allocate_bytes_without_args)]
                 .fill(0);
@@ -954,14 +921,14 @@ impl Stack for SimpleStack {
 
             // clean the actually local variables slots.
             //
-            // note that can not use `local_variables_allocate_bytes` directly because its value
+            // note that can not use `local_variables_with_arguments_allocated_bytes` directly because its value
             // includes the length of arguments:
             //
             // ```diagram
             //       |                     |
             // ----- |---------------------| <----
             //  ^    | local var 2 (idx 4) |    ^  the actual local variables slots, length:
-            //  |    | local var 1 (idx 3) |    |  'local_variables_allocate_bytes -
+            //  |    | local var 1 (idx 3) |    |  'local_variables_with_arguments_allocated_bytes -
             // local | local var 0 (idx 2) |    v   params_count * OPERAND_SIZE_IN_BYTES'
             // vars  |---------------------|------
             // area  | arg 1 (local idx 1) |    ^   params_count * OPERAND_SIZE_IN_BYTES'
@@ -972,7 +939,8 @@ impl Stack for SimpleStack {
             // ```
 
             let local_variables_allocate_bytes_without_args =
-                local_variables_allocate_bytes - params_count as usize * OPERAND_SIZE_IN_BYTES;
+                local_variables_with_arguments_allocated_bytes
+                    - params_count as usize * OPERAND_SIZE_IN_BYTES;
             self.data[self.sp..(self.sp + local_variables_allocate_bytes_without_args)].fill(0);
             self.sp += local_variables_allocate_bytes_without_args;
 
@@ -982,6 +950,46 @@ impl Stack for SimpleStack {
                 FrameType::Block
             }
         }
+    }
+
+    /// Calculates the start address of the local variables area for a frame
+    /// identified by the given reversed index.
+    ///
+    /// The address is computed as `frame pointer + size of FrameInfoData`.
+    /// This method always returns the calculated address, even if no local variables exist.
+    fn get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+        &self,
+        reversed_index: u16,
+    ) -> (usize, usize) {
+        // ```diagram
+        // |                 |
+        // | local vars      |
+        // |-----------------|
+        // | args            |
+        // |-----------------| <-- local vars start address
+        // | frame info data |
+        // |-----------------| <-- frame pointer
+        // | ...             |
+        // \-----------------/
+        // ```
+
+        let frame_info = self.get_frame_info_by_reversed_index(reversed_index);
+
+        (
+            frame_info.info_data.local_variable_list_index as usize,
+            frame_info.address + size_of::<FrameInfoData>(),
+        )
+    }
+
+    fn push_first_operands(&mut self, data: &[u8]) {
+        self.data[0..data.len()].copy_from_slice(data);
+        self.sp += data.len()
+    }
+
+    fn pop_last_operands(&mut self, count: usize) -> &[u8] {
+        let length = count * OPERAND_SIZE_IN_BYTES;
+        self.sp -= length;
+        &self.data[self.sp..]
     }
 }
 
@@ -999,18 +1007,21 @@ mod tests {
     // helper functions for unit test
     impl SimpleStack {
         fn read_local_by_offset_i32(&self, reversed_index: u16, offset: usize) -> i32 {
-            self.read_primitive_i32_s(
-                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index),
-                offset,
-            )
+            let (_, address) = self
+                .get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+                    reversed_index,
+                );
+
+            self.read_primitive_i32_s(address, offset)
         }
 
         fn write_local_by_offset_i32(&mut self, reversed_index: u16, offset: usize, value: i32) {
-            self.write_primitive_i32_s(
-                self.get_frame_local_variables_start_address_by_reversed_index(reversed_index),
-                offset,
-                value,
-            )
+            let (_, address) = self
+                .get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+                    reversed_index,
+                );
+
+            self.write_primitive_i32_s(address, offset, value)
         }
 
         fn create_empty_frame(&mut self) {
@@ -1351,7 +1362,7 @@ mod tests {
                 params_count: 2,
                 results_count: 0,
                 local_variable_list_index: 73,
-                local_variables_allocate_bytes: 32,
+                local_variables_with_arguments_allocated_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
                 return_instruction_address: 89
@@ -1378,8 +1389,8 @@ mod tests {
         // ```
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp0 + size_of::<FrameInfoData>()
+            (73, fp0 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0)
         );
 
         // local vars 0
@@ -1481,7 +1492,7 @@ mod tests {
                 params_count: 1,
                 results_count: 2,
                 local_variable_list_index: 97,
-                local_variables_allocate_bytes: 8,
+                local_variables_with_arguments_allocated_bytes: 8,
                 return_module_index: 0,
                 return_function_internal_index: 0,
                 return_instruction_address: 0
@@ -1498,13 +1509,13 @@ mod tests {
 
         // check local variables
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp1 + size_of::<FrameInfoData>()
+            (97, fp1 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(1),
-            fp0 + size_of::<FrameInfoData>()
+            (73, fp0 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
         // local vars 1
@@ -1601,7 +1612,7 @@ mod tests {
                 params_count: 0,
                 results_count: 0,
                 local_variable_list_index: 701,
-                local_variables_allocate_bytes: 0,
+                local_variables_with_arguments_allocated_bytes: 0,
                 return_module_index: 0,
                 return_function_internal_index: 0,
                 return_instruction_address: 0
@@ -1619,18 +1630,18 @@ mod tests {
 
         // check local variables
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp2 + size_of::<FrameInfoData>()
+            (701, fp2 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(1),
-            fp1 + size_of::<FrameInfoData>()
+            (97, fp1 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(2),
-            fp0 + size_of::<FrameInfoData>()
+            (73, fp0 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(2),
         );
 
         // current frame (frame 2) has no local vars
@@ -1743,7 +1754,7 @@ mod tests {
                 params_count: 1,
                 results_count: 3,
                 local_variable_list_index: 709,
-                local_variables_allocate_bytes: 8,
+                local_variables_with_arguments_allocated_bytes: 8,
                 return_module_index: 113,
                 return_function_internal_index: 109,
                 return_instruction_address: 127
@@ -1757,8 +1768,8 @@ mod tests {
 
         // check local variables
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp3 + size_of::<FrameInfoData>()
+            (709, fp3 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         // local vars 3
@@ -1868,18 +1879,18 @@ mod tests {
 
         // check local variables start address
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp2 + size_of::<FrameInfoData>()
+            (701, fp2 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(1),
-            fp1 + size_of::<FrameInfoData>()
+            (97, fp1 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(2),
-            fp0 + size_of::<FrameInfoData>()
+            (73, fp0 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(2),
         );
 
         // frame 2 has no local vars
@@ -1943,8 +1954,8 @@ mod tests {
         assert_eq!(stack.read_primitive_i32_u(80, 0), 41);
 
         assert_eq!(
-            stack.get_frame_local_variables_start_address_by_reversed_index(0),
-            fp0 + size_of::<FrameInfoData>()
+            (73, fp0 + size_of::<FrameInfoData>()),
+            stack.get_frame_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         // local vars 0
@@ -2167,7 +2178,7 @@ mod tests {
                 params_count: 2,
                 results_count: 0,
                 local_variable_list_index: 73,
-                local_variables_allocate_bytes: 32,
+                local_variables_with_arguments_allocated_bytes: 32,
                 return_module_index: 83,
                 return_function_internal_index: 79,
                 return_instruction_address: 89
@@ -2367,7 +2378,7 @@ mod tests {
                 params_count: 1,
                 results_count: 2,
                 local_variable_list_index: 97,
-                local_variables_allocate_bytes: 16,
+                local_variables_with_arguments_allocated_bytes: 16,
                 return_module_index: 0,
                 return_function_internal_index: 0,
                 return_instruction_address: 0

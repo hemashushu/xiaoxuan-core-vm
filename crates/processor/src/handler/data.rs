@@ -67,7 +67,7 @@ fn do_data_load_i64(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -132,7 +132,7 @@ fn do_data_load_i32_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -197,7 +197,7 @@ fn do_data_load_i32_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -262,7 +262,7 @@ fn do_data_load_i16_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -327,7 +327,7 @@ fn do_data_load_i16_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -392,7 +392,7 @@ fn do_data_load_i8_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -457,7 +457,7 @@ fn do_data_load_i8_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -522,7 +522,7 @@ fn do_data_load_f32(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -587,7 +587,7 @@ fn do_data_load_f64(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -658,7 +658,7 @@ fn do_data_store_i64(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -729,7 +729,7 @@ fn do_data_store_i32(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -800,7 +800,7 @@ fn do_data_store_i16(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -871,7 +871,7 @@ fn do_data_store_i8(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,

@@ -4,42 +4,62 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-//                                      runtime (native)
-//  XiaoXuan Core application        /------------------------\
-// /------------------------\        |                        |
-// |                        |        | wrapper func table     |
-// | fn $demo () -> ()      |        | |--------------------| |          libxyz.so
-// |   extcall do_something | -----> | | mod idx | func idx | |        /----------------------\
-// | end                    |        | | 0       | 0        | |   /--> | void do_something {  |
-// |                        |        | | ...     | ...      | |   |    |     ...              |
-// \------------------------/        | |--------------------| |   |    |     ...              |
-//                                   |                        |   |    |     ...              |
-//                                   | wrapper func code 0    | --/    | }                    |
-//                                   | 0x0000 0xb8, 0x34,     |        |                      |
-//                                   | 0x000a 0x12, 0x00...   |        \----------------------/
-//                                   |                        |
-//                                   \------------------------/
+// This module is responsible for managing the external function table.
+//
+// It is a 1:1 mapping to the "unified external function table" in the XiaoXuan Core application.
+// The external function table is used to store the pointers to the external functions
+// and the corresponding wrapper functions.
+//
+// ```diagram
+//                                      XiaoXuan Core Runtime
+//  XiaoXuan Core application        /--------------------------\
+// /------------------------\        |                          |
+// |                        |        | wrapper func table       |
+// | fn demo () -> ()       |        | |----------------------| |          libxyz.so
+// |   extcall do_something | -----> | | mod idx  | func idx  | |        /----------------------\
+// | end                    |        | | 0        | 0         | |   /--> | void do_something {  |
+// |                        |        | | ...      | ...       | |   |    |     ...              |
+// \------------------------/        | |----------------------| |   |    |     ...              |
+//                                   |                          |   |    |     ...              |
+//                                   | wrapper func code 0      |   |    | }                    |
+//                                   | |----------------------| |   |    |                      |
+//                                   | | 0x0000 0xb8, 0x34,   | | --/    |                      |
+//                                   | | 0x000a 0x12, 0x00... | |        \----------------------/
+//                                   | |----------------------| |
+//                                   |                          |
+//                                   \--------------------------/
+// ```
+//
+// The wrapper functions are shared between the external functions which have the same
+// signature (i.e., the same parameters and return values).
+//
+// Wrapper functions are generated dynamically at runtime using JIT compilation
+// when a external function is called for the first time.
 
-use std::{ffi::c_void, sync::Once};
+use std::ffi::c_void;
 
 use anc_isa::OperandDataType;
 
 /// the external function pointer table
-#[derive(Default)]
+// #[derive(Default)]
 pub struct ExternalFunctionTable {
-    // 1:1 to the "unified external library section"
+    // the unified external library pointer list.
+    //
+    // it is 1:1 to the "unified external library section".
     pub unified_external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
 
-    // 1:1 to the "unified external functioa section"
+    // the unified external function pointer list.
+    //
+    // it is 1:1 to the "unified external functioa section".
+    // An external function only load once in a process even if it is
+    // referenced by multiple modules.
     pub unified_external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
 
-    // wrapper function list
+    // wrapper function list.
     //
-    // note that not every external function has a corresponding wrapper function,
-    // in fact, as long as the functions are of the same type (i.e., have the same
-    // parameters and return values), they will share a wrapper function.
-    //
-    // external functions (N) <--> wrapper function (1)
+    // not every external function has a corresponding wrapper function.
+    // The wrapper functions are shared between the external functions which have the same
+    // signature (i.e., the same parameters and return values).
     pub wrapper_function_list: Vec<WrapperFunctionItem>,
 }
 
@@ -67,28 +87,17 @@ pub type WrapperFunction = extern "C" fn(
     results_ptr: *mut u8,  // pointer to a range of bytes
 );
 
-static INIT: Once = Once::new();
-
 impl ExternalFunctionTable {
-    pub fn init(
-        &mut self,
+    pub fn new(
         unified_external_library_count: usize,
         unified_external_function_count: usize,
-    ) {
-        // https://doc.rust-lang.org/reference/conditional-compilation.html#debug_assertions
-        // https://doc.rust-lang.org/reference/conditional-compilation.html#test
-        if cfg!(debug_assertions) {
-            self.unified_external_library_pointer_list
-                .resize(unified_external_library_count, None);
-            self.unified_external_function_pointer_list
-                .resize(unified_external_function_count, None);
-        } else {
-            INIT.call_once(|| {
-                self.unified_external_library_pointer_list
-                    .resize(unified_external_library_count, None);
-                self.unified_external_function_pointer_list
-                    .resize(unified_external_function_count, None);
-            });
+    ) -> Self {
+        let unified_external_library_pointer_list = vec![None; unified_external_library_count];
+        let unified_external_function_pointer_list = vec![None; unified_external_function_count];
+        Self {
+            unified_external_library_pointer_list,
+            unified_external_function_pointer_list,
+            wrapper_function_list: Vec::new(),
         }
     }
 

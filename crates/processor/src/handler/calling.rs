@@ -43,13 +43,13 @@ fn do_call(
     } = thread_context.pc;
 
     let (target_module_index, target_function_internal_index) = thread_context
-        .get_function_target_module_index_and_internal_index(
+        .get_target_function_object(
             module_index,
             function_public_index as usize,
         );
-    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
         thread_context
-            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_info(
                 target_module_index,
                 target_function_internal_index,
             );
@@ -71,7 +71,7 @@ fn do_call(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index as u32,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         Some(return_pc),
     );
 

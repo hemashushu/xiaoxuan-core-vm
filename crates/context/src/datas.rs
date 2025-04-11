@@ -7,8 +7,7 @@
 use anc_image::common_sections::{
     read_only_data_section, read_write_data_section, uninit_data_section,
 };
-
-use crate::{indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess};
+use anc_memory::{indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess};
 
 pub struct ReadOnlyDatas<'a> {
     data_items: &'a [read_only_data_section::DataItem],
@@ -45,60 +44,75 @@ impl<'a> UninitDatas<'a> {
 
 impl MemoryAccess for ReadOnlyDatas<'_> {
     #[inline]
-    fn get_ptr(&self, address: usize) -> *const u8 {
-        self.datas[address..].as_ptr()
+    fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
+        unsafe { self.datas[address..].as_ptr().add(offset_in_bytes) }
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, _address: usize) -> *mut u8 {
+    fn get_mut_ptr(&mut self, _address: usize, _offset_in_bytes: usize) -> *mut u8 {
         panic!("Read-only memory can not be written to.")
     }
 }
 
 impl IndexedMemoryAccess for ReadOnlyDatas<'_> {
     #[inline]
-    fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
+    fn get_start_address_by_index(&self, idx: usize) -> usize {
         let item = &self.data_items[idx];
-        (item.data_offset as usize, item.data_length as usize)
+        item.data_offset as usize
+    }
+
+    fn get_data_length(&self, idx: usize) -> usize {
+        let item = &self.data_items[idx];
+        item.data_length as usize
     }
 }
 
 impl MemoryAccess for ReadWriteDatas<'_> {
     #[inline]
-    fn get_ptr(&self, address: usize) -> *const u8 {
-        self.datas[address..].as_ptr()
+    fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
+        unsafe { self.datas[address..].as_ptr().add(offset_in_bytes) }
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        self.datas[address..].as_mut_ptr()
+    fn get_mut_ptr(&mut self, address: usize, offset_in_bytes: usize) -> *mut u8 {
+        unsafe { self.datas[address..].as_mut_ptr().add(offset_in_bytes) }
     }
 }
 
 impl IndexedMemoryAccess for ReadWriteDatas<'_> {
     #[inline]
-    fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
+    fn get_start_address_by_index(&self, idx: usize) -> usize {
         let item = &self.data_items[idx];
-        (item.data_offset as usize, item.data_length as usize)
+        item.data_offset as usize
+    }
+
+    fn get_data_length(&self, idx: usize) -> usize {
+        let item = &self.data_items[idx];
+        item.data_length as usize
     }
 }
 
 impl MemoryAccess for UninitDatas<'_> {
     #[inline]
-    fn get_ptr(&self, address: usize) -> *const u8 {
-        self.datas[address..].as_ptr()
+    fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
+        unsafe { self.datas[address..].as_ptr().add(offset_in_bytes) }
     }
 
     #[inline]
-    fn get_mut_ptr(&mut self, address: usize) -> *mut u8 {
-        self.datas[address..].as_mut_ptr()
+    fn get_mut_ptr(&mut self, address: usize, offset_in_bytes: usize) -> *mut u8 {
+        unsafe { self.datas[address..].as_mut_ptr().add(offset_in_bytes) }
     }
 }
 
 impl IndexedMemoryAccess for UninitDatas<'_> {
     #[inline]
-    fn get_offset_and_length_by_index(&self, idx: usize) -> (usize, usize) {
+    fn get_start_address_by_index(&self, idx: usize) -> usize {
         let item = &self.data_items[idx];
-        (item.data_offset as usize, item.data_length as usize)
+        item.data_offset as usize
+    }
+
+    fn get_data_length(&self, idx: usize) -> usize {
+        let item = &self.data_items[idx];
+        item.data_length as usize
     }
 }

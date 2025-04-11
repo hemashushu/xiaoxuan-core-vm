@@ -36,10 +36,10 @@ pub fn process_function(
 
     // find the code start address
     let (target_module_index, function_internal_index) = thread_context
-        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
-    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
+        .get_target_function_object(module_index, function_public_index);
+    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
         thread_context
-            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_info(
                 target_module_index,
                 function_internal_index,
             );
@@ -96,7 +96,7 @@ pub fn process_function(
         params.len() as u16,
         results.len() as u16,
         local_variable_list_index as u32,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         Some(ProgramCounter {
             instruction_address: 0,
             function_internal_index: 0,

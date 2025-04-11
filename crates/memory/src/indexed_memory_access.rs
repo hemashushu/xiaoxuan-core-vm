@@ -21,6 +21,11 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     /// implementations may not have a "start address" and handle memory items differently.
     fn get_start_address_by_index(&self, idx: usize) -> usize;
 
+    /// Retrieves the length of the data associated with the given index.
+    ///
+    /// Indexed data contains size, capacity, and other information.
+    fn get_data_length(&self, idx:usize) -> usize;
+
     /// Reads a 64-bit integer from the memory at the specified index and offset.
     fn read_idx_i64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
         self.read_i64(self.get_start_address_by_index(idx), offset, dst_ptr);

@@ -31,14 +31,14 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
     } = thread_context.pc;
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
-    let local_variables_allocate_bytes =
+    let local_variables_with_arguments_allocated_bytes =
         module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         None,
     );
     HandleResult::Move(12)
@@ -58,14 +58,14 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
 
-    let local_variables_allocate_bytes =
+    let local_variables_with_arguments_allocated_bytes =
         module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
 
     thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         None,
     );
 
@@ -91,7 +91,7 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
             module_index,
         } = thread_context.pc;
         let module = &thread_context.module_common_instances[module_index];
-        let local_variables_allocate_bytes = module.local_variable_section.lists
+        let local_variables_with_arguments_allocated_bytes = module.local_variable_section.lists
             [local_variable_list_index as usize]
             .vars_allocate_bytes;
 
@@ -100,7 +100,7 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
             0,
             0,
             local_variable_list_index,
-            local_variables_allocate_bytes,
+            local_variables_with_arguments_allocated_bytes,
             None,
         );
 

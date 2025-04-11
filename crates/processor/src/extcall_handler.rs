@@ -60,7 +60,7 @@ pub fn get_or_create_external_function(
     #[cfg(debug_assertions)]
     {
         let count = thread_context
-            .module_index_instance
+            .module_linking_instance
             .external_function_index_section
             .get_items_count(module_index);
 
@@ -74,18 +74,18 @@ pub fn get_or_create_external_function(
 
     // get the unified external function index
     let unified_external_function_index = thread_context
-        .module_index_instance
+        .module_linking_instance
         .external_function_index_section
         .get_item_unified_external_function_index(module_index, external_function_index);
 
     let (external_function_name, unified_external_library_index, type_index) = thread_context
-        .module_index_instance
+        .module_linking_instance
         .unified_external_function_section
         .get_item_name_and_external_library_index_and_type_index(unified_external_function_index);
 
     // get the data types of "params and results" of the external function
     let (param_datatypes, result_datatypes) = thread_context
-        .module_index_instance
+        .module_linking_instance
         .unified_external_type_section
         .get_item_params_and_results(type_index);
 
@@ -112,13 +112,13 @@ pub fn get_or_create_external_function(
     // // get the name of the external function and
     // // the index of the unified external library
     // // let (external_function_name, unified_external_library_index) = thread_context
-    // //     .module_index_instance
+    // //     .module_linking_instance
     // //     .unified_external_function_section
     // //     .get_item_name_and_unified_external_library_index(unified_external_function_index);
 
     // get the dependent info of the external library
     let (_, _, external_library_value) = thread_context
-        .module_index_instance
+        .module_linking_instance
         .unified_external_library_section
         .get_item_name_and_external_library_dependent_type_and_value(
             unified_external_library_index,
@@ -136,8 +136,8 @@ pub fn get_or_create_external_function(
             // if p.startsWith('~') ...
             // if p.isAbsolutePath() ...
             // if external_library_name is relate path ...
-            let mut path_buf = PathBuf::from(&thread_context.process_config.application_path);
-            if thread_context.process_config.is_script {
+            let mut path_buf = PathBuf::from(&thread_context.program_proerty.application_path);
+            if thread_context.program_proerty.is_script {
                 path_buf.pop();
             }
             path_buf.push(path);

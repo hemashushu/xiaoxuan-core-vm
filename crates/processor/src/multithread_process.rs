@@ -85,7 +85,7 @@ pub fn start_program(
     // use the function 'entry' as the startup function
 
     let function_public_index = if let Some(idx) = thread_context
-        .module_index_instance
+        .module_linking_instance
         .entry_point_section
         .get_function_public_index(internal_entry_point_name)
     {

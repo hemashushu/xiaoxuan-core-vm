@@ -12,6 +12,4 @@ anc-memory = { path = "../memory" }
 pretty_assertions = "1.4.1"
 
 [features]
-# https://doc.rust-lang.org/cargo/reference/features.html
-default = ["bounds_check"]
-bounds_check = []
+

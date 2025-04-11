@@ -6,147 +6,65 @@
 
 use std::sync::Mutex;
 
-use anc_image::module_image::ModuleImage;
+use anc_allocator::{allocator::Allocator, dummy_allocator::DummyAllocator};
+use anc_image::module_image::{ModuleImage, Visibility};
+use anc_isa::DataSectionType;
+use anc_memory::indexed_memory_access::IndexedMemoryAccess;
+use anc_stack::{simple_stack::SimpleStack, stack::Stack, ProgramCounter};
 
 use crate::{
-    external_function_table::ExternalFunctionTable, indexed_memory_access::IndexedMemoryAccess,
-    memory::Memory, module_common_instance::ModuleCommonInstance,
-    module_index_instance::ModuleIndexInstance, process_property::ProcessProperty, stack::Stack,
-    INIT_MEMORY_SIZE_IN_PAGES, INIT_STACK_SIZE_IN_BYTES,
+    delegate_function_table::DelegateFunctionTable, external_function_table::ExternalFunctionTable,
+    module_common_instance::ModuleCommonInstance, module_linking_instance::ModuleLinkingInstance,
+    program_property::ProgramProperty,
 };
 
 /// the thread context of the VM.
 pub struct ThreadContext<'a> {
-    // the operand stack also contains the function/block frame information
-    // when a function is called or a block is entered,
-    //
-    // the default stack capacity is 32 KiB, when a new stack frame is created, the
-    // VM checks the stack capacity and makes sure there is at least 32 KiB
-    // for the current frame.
-    // the stack capacity is incremented in 32 KiB increments, i.e. the capacity will be
-    // 32, 64, 96, 128 KiB and so on.
-    //
-    // the following diagram shows how the stack changs when a function/block
-    // is entered or exited.
-    //
-    // 1. function 1 will call function 2, the arguments are ready.
-    //
-    // |         |
-    // |         |
-    // |  arg 1  | <-- operands that are to be used as arguments
-    // |  arg 0  |
-    // |---------|
-    // |   ###   | <-- other operands of function 1
-    // |---------| <-- current stack frame pointer (FP)
-    // |   ...   |
-    // \---------/ <-- stack start
-    //
-    // 2. called function 2.
-    //
-    // |         |
-    // | local 1 |
-    // | local 0 | <-- allocates the local variable area
-    // |---------|
-    // |  arg 1  | <-- arguments will be moved to the top side of stack, follows the frame info and local variables.
-    // |  arg 0  |
-    // |---------|
-    // |   $$$   | <-- the stack frame information, includes the previous FP, return address (instruction address and module index),
-    // |   $$$   |     also includes the current function information, such as function type, funcion index, and so on.
-    // |   $$$   |     note that the original arguments is moved to the top of stack.
-    // |---------| <-- new stack frame pointer (FP of function 2)
-    // |   ###   | <-- other operands of function 1
-    // |---------| <-- function 1 stack frame pointer (FP of function 1)
-    // |   ...   |
-    // \---------/
-    //
-    // 3. function 2 will return function 1 with two results
-    //
-    // |         |
-    // | resul 1 |
-    // | resul 0 | <-- results
-    // |---------|
-    // |   %%%   | <-- other operands of function 2
-    // |---------|
-    // | local 1 |
-    // | local 0 |
-    // |---------|
-    // |  arg 1  |
-    // |  arg 0  |
-    // |---------|
-    // |   $$$   |
-    // |   $$$   |
-    // |   $$$   |
-    // |---------| <-- FP of function 2
-    // |   ###   | <-- other operands of function 1
-    // |---------| <-- FP of function 1
-    // |   ...   |
-    // \---------/
-    //
-    // 4. returns
-    //
-    // |         |     the results are copied to the position immediately following the
-    // | resul 1 | <-- function 1 operands, all data between the results and FP 2 will be removed or overwrited.
-    // | resul 0 |     i.e., the frame info, local variables and operands (and their host address) after this frame will no longer valid.
-    // |---------|
-    // |   ###   | <-- other operands of function 1
-    // |---------| <-- FP of function 1
-    // |   ...   |
-    // \---------/
-    //
-    // returns multiple values
-    // -----------------------
-    //
-    // on most architectures, only one value or two values can be returned in a function (e.g.
-    // rax/rdx on x86_64, x0/x1 on aarch64, a0/a1 on riscv), but the XiaoXuan Core VM allows
-    // returning multiple values in a function or a block, this is a kind of convenience when building
-    // functions or control flow blocks.
-    // however, when a XiaoXuan program need to interact with other programs built with other languages,
-    // it is recommended that keep the function return only one value.
-    pub stack: Stack,
-
-    // in XiaoXuan Core VM, the data sections (read-only, read-write, uninit) are all thread-local,
-    // and the memory/heap is thread-local also.
-    // threads/processes can communicated through the MessageBox/MessagePipe or the SharedMemory
-    //
-    // note that the initial capacity of memory/heap is 0 byte
-    pub memory: Memory,
-
-    // the position of the next executing instruction (a.k.a. IP/PC)
-    // the XiaoXuan Core VM load multiple modules for a application, thus the
-    // "complete IP" consists of the module index and the instruction position.
+    pub stack: Box<dyn Stack>,
+    pub allocator: Box<dyn Allocator>,
     pub pc: ProgramCounter,
 
-    // runtime generated entries
-    pub bridge_function_module_items: Vec<DelegateFunctionModuleItem>,
-    pub bridge_callback_function_module_items: Vec<DelegateFunctionModuleItem>,
+    // external function table
     pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 
-    // application modules
-    pub module_index_instance: ModuleIndexInstance<'a>,
+    // callback function table
+    pub callback_function_table: DelegateFunctionTable,
+
+    // program modules
+    pub module_linking_instance: ModuleLinkingInstance<'a>,
     pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
-    // application environment
-    pub process_config: &'a ProcessProperty,
+    // program property
+    pub program_property: &'a ProgramProperty,
 }
 
-pub struct DelegateFunctionModuleItem {
+pub struct TargetDataObject<'a> {
+    pub module_index: usize,
+    pub data_section_type: DataSectionType,
+    pub data_internal_index_in_section: usize,
+    pub accessor: &'a mut dyn IndexedMemoryAccess,
+}
+
+pub struct TargetFunctionObject {
     pub target_module_index: usize,
-    pub birdge_function_items: Vec<DelegateFunctionItem>,
+    pub function_internal_index: usize,
 }
 
-pub struct DelegateFunctionItem {
-    pub function_internal_index: usize,
-    pub bridge_function_ptr: *const u8,
+pub struct FunctionInfo {
+    pub type_index: usize,
+    pub local_variable_list_index: usize,
+    pub code_offset: usize,
+    pub local_variables_with_arguments_allocated_bytes: usize,
 }
 
 impl<'a> ThreadContext<'a> {
     pub fn new(
-        environment: &'a ProcessProperty,
+        program_property: &'a ProgramProperty,
         module_images: &'a [ModuleImage<'a>],
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
-        let stack = Stack::new(INIT_STACK_SIZE_IN_BYTES);
-        let memory = Memory::new(INIT_MEMORY_SIZE_IN_PAGES);
+        let stack = SimpleStack::new();
+        let allocator = DummyAllocator::new();
 
         let pc = ProgramCounter {
             instruction_address: 0,
@@ -154,69 +72,88 @@ impl<'a> ThreadContext<'a> {
             module_index: 0,
         };
 
-        let module_index_instance = ModuleIndexInstance::new(module_images);
+        let module_linking_instance = ModuleLinkingInstance::new(module_images);
         let module_common_instances = module_images
             .iter()
             .map(ModuleCommonInstance::new)
             .collect::<Vec<ModuleCommonInstance>>();
 
+        let callback_function_table = DelegateFunctionTable::new();
         Self {
-            stack,
-            memory,
+            stack: Box::new(stack),
+            allocator: Box::new(allocator),
             pc,
-            bridge_function_module_items: vec![],
-            bridge_callback_function_module_items: vec![],
             external_function_table,
-            module_index_instance,
+            callback_function_table,
+            module_linking_instance,
             module_common_instances,
-            process_config: environment,
+            program_property,
         }
     }
 
-    /// return:
-    /// (target_module_index:usize, data_internal_index:usize, dyn IndexedMemory)
-    pub fn get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+    pub fn get_target_data_object(
         &mut self,
         module_index: usize,
         data_public_index: usize,
-        expect_offset_bytes: usize, // for checking the expect data length
-        expect_data_length_in_bytes: usize, // for checking the expect data length
-    ) -> (
-        /* target_module_index */ usize,
-        /* data_internal_index */ usize,
-        &mut dyn IndexedMemoryAccess,
-    ) {
-        // data index bounds check for compilation error
-        #[cfg(debug_assertions)]
-        {
-            let count = self
-                .module_index_instance
-                .data_index_section
-                .get_items_count(module_index);
-            if data_public_index > count as usize {
-                panic!(
+        expect_offset_bytes: usize,         // for checking the data bounds
+        expect_data_length_in_bytes: usize, // for checking the data bounds
+    ) -> TargetDataObject {
+        const MSB_DATA_PUBLIC_INDEX: usize = 1 << 63;
+        const MASK_DATA_PUBLIC_INDEX: usize = !MSB_DATA_PUBLIC_INDEX;
+
+        let target_data_object = if data_public_index & MSB_DATA_PUBLIC_INDEX != 0 {
+            // it is dynamically allocated memory
+            let allocated_memory_index = data_public_index & MASK_DATA_PUBLIC_INDEX; // clear the MSB bit
+
+            TargetDataObject {
+                module_index: 0,
+                data_section_type: DataSectionType::ReadWrite,
+                data_internal_index_in_section: allocated_memory_index,
+                accessor: self.allocator.as_mut(),
+            }
+        } else {
+            // data index bounds check for compilation error
+            #[cfg(debug_assertions)]
+            {
+                let count = self
+                    .module_linking_instance
+                    .data_index_section
+                    .get_items_count(module_index);
+
+                if data_public_index > count as usize {
+                    panic!(
                     "Out of bounds of the data public index, module index: {}, total data items: {}, request data index: {}.",
                     module_index, count, data_public_index
                 );
+                }
             }
-        }
 
-        let (target_module_index, data_internal_index, target_data_section_type) = self
-            .module_index_instance
+            let (target_module_index, target_data_section_type, data_internal_index_in_section, ) = self
+            .module_linking_instance
             .data_index_section
-            .get_item_target_module_index_and_data_internal_index_and_data_section_type(
+            .get_item_target_module_index_and_data_section_type_and_data_internal_index_in_section(
                 module_index,
                 data_public_index,
             );
 
-        let target_module = &mut self.module_common_instances[target_module_index];
-        let data_object = target_module.datas[target_data_section_type as usize].as_mut();
+            let target_module = &mut self.module_common_instances[target_module_index];
+            let accessor = target_module.datas[target_data_section_type as usize].as_mut();
+
+            TargetDataObject {
+                module_index: target_module_index,
+                data_section_type: target_data_section_type,
+                data_internal_index_in_section: data_internal_index_in_section,
+                accessor: accessor,
+            }
+        };
 
         // bounds check
         #[cfg(feature = "bounds_check")]
         {
-            let (_offset, data_actual_length) =
-                data_object.get_offset_and_length_by_index(data_internal_index);
+            let data_actual_length = target_data_object
+                .accessor
+                .get_data_length(target_data_object.data_internal_index_in_section);
+
             if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
                 panic!(
                     "Access exceeds the length of the data.
@@ -226,9 +163,9 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
                     module_index,
                     self.pc.function_internal_index,
                     self.pc.instruction_address,
-                    target_data_section_type,
+                    target_data_object.data_section_type,
                     data_public_index,
-                    data_internal_index,
+                    target_data_object.data_internal_index_in_section,
                     data_actual_length,
                     expect_offset_bytes,
                     expect_data_length_in_bytes,
@@ -236,24 +173,19 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
             }
         }
 
-        (target_module_index, data_internal_index, data_object)
+        target_data_object
     }
 
-    /// return:
-    /// (target_module_index, function_internal_index)
-    pub fn get_function_target_module_index_and_internal_index(
+    pub fn get_target_function_object(
         &self,
         module_index: usize,
         function_public_index: usize,
-    ) -> (
-        /* target_module_index */ usize,
-        /* function_internal_index */ usize,
-    ) {
+    ) -> TargetFunctionObject {
         // function index bounds check for compilation error
         #[cfg(debug_assertions)]
         {
             let count = self
-                .module_index_instance
+                .module_linking_instance
                 .function_index_section
                 .get_items_count(module_index);
 
@@ -267,27 +199,24 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         }
 
         let (target_module_index, function_internal_index) = self
-            .module_index_instance
+            .module_linking_instance
             .function_index_section
             .get_item_target_module_index_and_function_internal_index(
                 module_index,
                 function_public_index,
             );
-        (target_module_index, function_internal_index)
+
+        TargetFunctionObject {
+            target_module_index,
+            function_internal_index,
+        }
     }
 
-    /// return:
-    /// (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes)
-    pub fn get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+    pub fn get_function_info(
         &self,
         module_index: usize,
         function_internal_index: usize,
-    ) -> (
-        /* type_index */ usize,
-        /* local_variable_list_index */ usize,
-        /* code_offset */ usize,
-        /* local_variables_allocate_bytes */ u32,
-    ) {
+    ) -> FunctionInfo {
         let function_item = &self.module_common_instances[module_index]
             .function_section
             .items[function_internal_index];
@@ -296,25 +225,27 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         let local_variable_list_index = function_item.local_variable_list_index as usize;
         let code_offset = function_item.code_offset as usize;
 
-        let local_variables_allocate_bytes = self.module_common_instances[module_index]
+        let local_variables_with_arguments_allocated_bytes = self.module_common_instances
+            [module_index]
             .local_variable_section
             .lists[local_variable_list_index]
-            .vars_allocate_bytes;
+            .allocated_bytes as usize;
 
-        (
+        FunctionInfo {
             type_index,
             local_variable_list_index,
             code_offset,
-            local_variables_allocate_bytes,
-        )
+            local_variables_with_arguments_allocated_bytes,
+        }
     }
 
-    pub fn get_local_variable_address_by_index_and_offset_with_bounds_check(
+    pub fn get_local_variable_start_address(
         &self,
         reversed_index: u16,
-        local_variable_index: usize, // note that this is different from 'local_variable_list_index'
-        offset_bytes: usize,
-        expect_data_length_in_bytes: usize, // for checking the expect data length
+        // the index of a local variable
+        local_variable_index: usize,
+        offset_bytes: usize,                // for check the local variable bounds
+        expect_data_length_in_bytes: usize, // for check the local variable bounds
     ) -> usize {
         // get the local variable info
         let ProgramCounter {
@@ -323,13 +254,11 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
             module_index,
         } = self.pc;
 
-        let (fp, local_variable_list_index) = {
-            let frame_pack = self.stack.get_frame_pack(reversed_index);
-            (
-                frame_pack.address,
-                frame_pack.frame_info.local_variable_list_index,
-            )
-        };
+        let (local_variable_list_index, local_variables_start_address) = self
+            .stack
+            .get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+                reversed_index,
+            );
 
         let variable_item = &self.module_common_instances[module_index]
             .local_variable_section
@@ -357,17 +286,16 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
             }
         }
 
-        let local_start_address = self.stack.get_frame_local_variables_start_address(fp);
-        local_start_address + variable_item.var_offset as usize + offset_bytes
+        local_variables_start_address + variable_item.var_offset as usize
     }
 
-    pub fn find_function_public_index_by_name_path(
+    pub fn find_function_by_full_name(
         &self,
         module_name: &str,
-        expected_function_name_path: &str,
+        expected_function_full_name: &str,
     ) -> Option<(
         /* module index */ usize,
-        /* function public index */ usize,
+        /* function internal index */ usize,
     )> {
         let (module_index, module_common_instance) = self
             .module_common_instances
@@ -375,30 +303,25 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        let (function_internal_index, _) = module_common_instance
-            .export_function_section
-            .get_item_index_and_visibility(expected_function_name_path)?;
+        let (visibility, function_internal_index) = module_common_instance
+            .function_name_section
+            .get_item_visibility_and_function_internal_index(expected_function_full_name)?;
 
-        // the function public index is mixed by the following items:
-        // - the imported functions
-        // - the internal functions
-        //
-        // therefore:
-        // function_public_index = (all import functions) + function_internal_index
-
-        Some((
-            module_index,
-            function_internal_index + module_common_instance.import_function_count,
-        ))
+        if visibility != Visibility::Public {
+            return None;
+        } else {
+            Some((module_index, function_internal_index))
+        }
     }
 
-    pub fn find_data_public_index_by_name_path(
+    pub fn find_data_by_full_name(
         &self,
         module_name: &str,
-        expected_data_path_name: &str,
+        expected_data_full_name: &str,
     ) -> Option<(
         /* module index */ usize,
-        /* data public index */ usize,
+        /* data section type */ DataSectionType,
+        /* data internal index in section */ usize,
     )> {
         let (module_index, module_common_instance) = self
             .module_common_instances
@@ -406,115 +329,50 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
             .enumerate()
             .find(|(_, module)| module.name == module_name)?;
 
-        // the data names in the `data_name_section` is order by:
-        // 1. internal read-only data
-        // 2. internal read-write data
-        // 3. internal uninit data
+        let (visibility, data_section_type, data_internal_index_in_section) =
+            module_common_instance
+                .data_name_section
+                .get_item_visibility_and_section_type_and_data_internal_index_in_section(
+                    expected_data_full_name,
+                )?;
 
-        let (mixed_data_internal_index, _, _) = module_common_instance
-            .export_data_section
-            .get_item_index_and_visibility_and_section_type(expected_data_path_name)?;
-
-        // the data public index is mixed the following items:
-        // - imported read-only data items
-        // - imported read-write data items
-        // - imported uninitilized data items
-        // - internal read-only data items
-        // - internal read-write data items
-        // - internal uninitilized data items
-        //
-        // therefore:
-        // data_public_index = (all import datas) + mixed_data_internal_index
-
-        Some((
-            module_index,
-            mixed_data_internal_index + module_common_instance.import_data_count,
-        ))
+        if visibility != Visibility::Public {
+            return None;
+        } else {
+            Some((
+                module_index,
+                data_section_type,
+                data_internal_index_in_section,
+            ))
+        }
     }
 
-    pub fn find_bridge_function(
-        &self,
-        target_module_index: usize,
-        function_internal_index: usize,
-    ) -> Option<*const u8> {
-        find_delegate_function(
-            &self.bridge_function_module_items,
-            target_module_index,
-            function_internal_index,
-        )
-    }
-
-    pub fn find_bridge_callback_function(
-        &self,
-        target_module_index: usize,
-        function_internal_index: usize,
-    ) -> Option<*const u8> {
-        find_delegate_function(
-            &self.bridge_callback_function_module_items,
-            target_module_index,
-            function_internal_index,
-        )
-    }
-
-    pub fn insert_bridge_function(
-        &mut self,
-        target_module_index: usize,
-        function_internal_index: usize,
-        bridge_function_ptr: *const u8,
-    ) {
-        insert_delegate_function(
-            &mut self.bridge_function_module_items,
-            target_module_index,
-            function_internal_index,
-            bridge_function_ptr,
-        );
-    }
-
-    pub fn insert_callback_function(
-        &mut self,
-        target_module_index: usize,
-        function_internal_index: usize,
-        bridge_function_ptr: *const u8,
-    ) {
-        insert_delegate_function(
-            &mut self.bridge_callback_function_module_items,
-            target_module_index,
-            function_internal_index,
-            bridge_function_ptr,
-        );
-    }
-
-    /// opcode, or
-    /// 16 bits instruction
-    /// [opcode]
+    /// get 16 bits instruction
+    /// returns `[opcode]`.
     pub fn get_opcode_num(&self) -> u16 {
         let data = self.get_instruction(0, 2);
         let ptr_u16 = data.as_ptr() as *const u16;
         unsafe { std::ptr::read(ptr_u16) }
     }
 
-    /// 32 bits instruction
-    /// [opcode + i16]
+    /// get 32 bits instruction
+    /// returns `[opcode + i16]`
     pub fn get_param_i16(&self) -> u16 {
         let data = self.get_instruction(2, 2);
         let ptr_u16 = data.as_ptr() as *const u16;
         unsafe { std::ptr::read(ptr_u16) }
     }
 
-    /// 64 bits instruction
-    /// [opcode + padding + i32]
-    ///
-    /// note that 'i32' in function name means a 32-bit integer, which is equivalent to
-    /// the 'uint32_t' in C or 'u32' in Rust. do not confuse it with 'i32' in Rust.
-    /// the same applies to the i8, i16 and i64.
+    /// get 64 bits instruction
+    /// returns `[opcode + padding + i32]`
     pub fn get_param_i32(&self) -> u32 {
         let data = self.get_instruction(4, 4);
         let ptr_u32 = data.as_ptr() as *const u32;
         unsafe { std::ptr::read(ptr_u32) }
     }
 
-    /// 64 bits instruction
-    /// [opcode + i16 + i32]
+    /// get 64 bits instruction the second variant
+    /// returns `[opcode + i16 + i32]`
     pub fn get_param_i16_i32(&self) -> (u16, u32) {
         let data = self.get_instruction(2, 6);
 
@@ -525,8 +383,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// 64 bits instruction
-    /// [opcode + i16 + i16 + i16]
+    /// get 64 bits instruction the third variant
+    /// returns `[opcode + i16 + i16 + i16]`
     pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
         let data = self.get_instruction(2, 6);
 
@@ -538,8 +396,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// 96 bits instruction
-    /// [opcode + padding + i32 + i32]
+    /// get 96 bits instruction.
+    /// returns `[opcode + padding + i32 + i32]`
     pub fn get_param_i32_i32(&self) -> (u32, u32) {
         let data = self.get_instruction(4, 8);
 
@@ -550,8 +408,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// 128 bits instruction
-    /// [opcode + padding + i32 + i32 + i32]
+    /// get 128 bits instruction.
+    /// returns `[opcode + padding + i32 + i32 + i32]`
     pub fn get_param_i32_i32_i32(&self) -> (u32, u32, u32) {
         let data = self.get_instruction(4, 12);
 
@@ -565,13 +423,17 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
 
     #[inline]
     pub fn get_instruction(&self, offset: usize, len_in_bytes: usize) -> &[u8] {
-        // the instruction schemes:
+        // Instruction encoding table:
         //
-        // - [opcode i16]
-        // - [opcode i16] - [param i16      ]
-        // - [opcode i16] - [param i16      ] + [param i32]
-        // - [opcode i16] - [padding 16 bits] + [param i32]
-        // - [opcode i16] - [padding 16 bits] + [param i32] + [param i32]
+        // | length  | encoding layout                                                             |
+        // |---------|-----------------------------------------------------------------------------|
+        // | 16-bit  | [opcode 16-bit]                                                             |
+        // | 32-bit  | [opcode 16-bit] - [param i16    ]                                           |
+        // | 64-bit  | [opcode 16-bit] - [pading 16-bit] + [param i32]                             |
+        // | 64-bit  | [opcode 16-bit] - [param i16    ] + [param i32]                             |
+        // | 64-bit  | [opcode 16-bit] - [param i16    ] + [param i16] + [param i16]               |
+        // | 96-bit  | [opcode 16-bit] - [pading 16-bit] + [param i32] + [param i32]               |
+        // | 128-bit | [opcode 16-bit] - [pading 16-bit] + [param i32] + [param i32] + [param i32] |
 
         let ProgramCounter {
             instruction_address,
@@ -585,55 +447,4 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         let dst = instruction_address + offset;
         &codes_data[dst..(dst + len_in_bytes)]
     }
-}
-
-fn find_delegate_function(
-    delegate_function_table: &[DelegateFunctionModuleItem],
-    target_module_index: usize,
-    function_internal_index: usize,
-) -> Option<*const u8> {
-    match delegate_function_table
-        .iter()
-        .find(|module_item| module_item.target_module_index == target_module_index)
-    {
-        Some(module_item) => module_item
-            .birdge_function_items
-            .iter()
-            .find(|functione_item| {
-                functione_item.function_internal_index == function_internal_index
-            })
-            .map(|function_item| function_item.bridge_function_ptr),
-        None => None,
-    }
-}
-
-fn insert_delegate_function(
-    delegate_function_table: &mut Vec<DelegateFunctionModuleItem>,
-    target_module_index: usize,
-    function_internal_index: usize,
-    bridge_function_ptr: *const u8,
-) {
-    let idx_m = delegate_function_table
-        .iter()
-        .position(|module_item| module_item.target_module_index == target_module_index)
-        .unwrap_or_else(|| {
-            delegate_function_table.push(DelegateFunctionModuleItem {
-                target_module_index,
-                birdge_function_items: vec![],
-            });
-            delegate_function_table.len() - 1
-        });
-
-    let module_item = &mut delegate_function_table[idx_m];
-
-    // note:
-    //
-    // there is no validation here to check if the function specified
-    // already exists, so make sure you don't add a duplicate function.
-    module_item
-        .birdge_function_items
-        .push(DelegateFunctionItem {
-            function_internal_index,
-            bridge_function_ptr,
-        })
 }

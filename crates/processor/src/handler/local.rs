@@ -61,7 +61,7 @@ fn do_local_load_i64(
 
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -107,7 +107,7 @@ fn do_local_load_i32_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -153,7 +153,7 @@ fn do_local_load_i32_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -199,7 +199,7 @@ fn do_local_load_i16_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -245,7 +245,7 @@ fn do_local_load_i16_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -291,7 +291,7 @@ fn do_local_load_i8_s(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -337,7 +337,7 @@ fn do_local_load_i8_u(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -383,7 +383,7 @@ fn do_local_load_f32(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -429,7 +429,7 @@ fn do_local_load_f64(
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -479,7 +479,7 @@ fn do_local_store_i64(
     src_ptr: *const u8,
 ) -> HandleResult {
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -529,7 +529,7 @@ fn do_local_store_i32(
     src_ptr: *const u8,
 ) -> HandleResult {
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -579,7 +579,7 @@ fn do_local_store_i16(
     src_ptr: *const u8,
 ) -> HandleResult {
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,
@@ -629,7 +629,7 @@ fn do_local_store_i8(
     src_ptr: *const u8,
 ) -> HandleResult {
     let data_address = thread_context
-        .get_local_variable_address_by_index_and_offset_with_bounds_check(
+        .get_local_variable_start_address(
             reversed_index,
             local_variable_index,
             offset_bytes,

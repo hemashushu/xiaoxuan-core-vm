@@ -5,22 +5,14 @@
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 pub mod datas;
-pub mod process_property;
 pub mod external_function_table;
-pub mod indexed_memory_access;
-pub mod memory;
-pub mod memory_access;
 pub mod module_common_instance;
-pub mod module_index_instance;
-pub mod process_context;
-pub mod resizeable_memory;
-pub mod process_resource;
-pub mod stack;
+pub mod module_linking_instance;
+pub mod delegate_function_table;
+// pub mod process_context;
+pub mod program_property;
+// pub mod program_source;
 pub mod thread_context;
-pub mod typed_memory_access;
-
-pub const MEMORY_PAGE_SIZE_IN_BYTES: usize = 64 * 1024;
-pub const INIT_MEMORY_SIZE_IN_PAGES: usize = 0;
 
 // use std::fmt::Display;
 //

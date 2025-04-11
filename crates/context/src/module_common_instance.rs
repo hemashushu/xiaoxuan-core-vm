@@ -6,47 +6,39 @@
 
 use anc_image::{
     common_sections::{
-        export_data_section::ExportDataSection, export_function_section::ExportFunctionSection,
+        data_name_section::DataNameSection, function_name_section::FunctionNameSection,
         function_section::FunctionSection, local_variable_section::LocalVariableSection,
         type_section::TypeSection,
     },
     module_image::ModuleImage,
 };
+use anc_memory::indexed_memory_access::IndexedMemoryAccess;
 
-use crate::{
-    datas::{ReadOnlyDatas, ReadWriteDatas, UninitDatas},
-    indexed_memory_access::IndexedMemoryAccess,
-};
+use crate::datas::{ReadOnlyDatas, ReadWriteDatas, UninitDatas};
 
 pub struct ModuleCommonInstance<'a> {
-    // Note that this is the name of module/package,
-    // it CANNOT be the sub-module name even if the current image is
-    // the object file of a sub-module.
-    // it CANNOT be a name path either.
+    // the name of module/package,
     //
-    // about the "full_name" and "name_path"
+    // note that it CANNOT be the sub-module name even if the current image is
+    // the object file of a sub-module, it CANNOT be a name path either.
+    //
+    // explaintion the "full_name" and "name_path"
     // -------------------------------------
     // - "full_name" = "module_name::name_path"
     // - "name_path" = "namespace::identifier"
     // - "namespace" = "sub_module_name"{0,N}
     pub name: String,
 
-    // import_data_count and import_function_count are used for
-    // calculating the function/data public index.
-    // their values are calculate from the 'import*' sections,
-    // but these sections are omitted in runtime.
-    pub import_data_count: usize,
-    pub import_function_count: usize,
-
-    // essential
     pub type_section: TypeSection<'a>,
     pub local_variable_section: LocalVariableSection<'a>,
     pub function_section: FunctionSection<'a>,
-
-    // source optional
     pub datas: [Box<dyn IndexedMemoryAccess + 'a>; 3],
-    pub export_function_section: ExportFunctionSection<'a>,
-    pub export_data_section: ExportDataSection<'a>,
+
+    // for bridge function feature
+    pub function_name_section: FunctionNameSection<'a>,
+
+    // for bridge function feature
+    pub data_name_section: DataNameSection<'a>,
 }
 
 impl<'a> ModuleCommonInstance<'a> {
@@ -73,6 +65,7 @@ impl<'a> ModuleCommonInstance<'a> {
         let uninit_data = module_image.get_optional_uninit_data_section().map_or_else(
             || UninitDatas::new(&[], Vec::<u8>::new()),
             |section| {
+                // allocate the memory for uninit data
                 let length = section
                     .items
                     .iter()
@@ -83,17 +76,15 @@ impl<'a> ModuleCommonInstance<'a> {
             },
         );
 
-        let export_function_section = module_image
+        let function_name_section = module_image
             .get_optional_export_function_section()
             .unwrap_or_default();
 
-        let export_data_section = module_image
+        let data_name_section = module_image
             .get_optional_export_data_section()
             .unwrap_or_default();
 
         let name = property_section.get_module_name().to_owned();
-        let import_data_count = property_section.import_data_count as usize;
-        let import_function_count = property_section.import_function_count as usize;
 
         Self {
             name,
@@ -105,10 +96,8 @@ impl<'a> ModuleCommonInstance<'a> {
                 Box::new(read_write_data),
                 Box::new(uninit_data),
             ],
-            export_function_section,
-            export_data_section,
-            import_data_count,
-            import_function_count,
+            function_name_section,
+            data_name_section,
         }
     }
 }

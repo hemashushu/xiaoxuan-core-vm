@@ -3,7 +3,7 @@ members = [
     "crates/memory",
     "crates/stack",
     "crates/allocator",
-    # "crates/context",
+    "crates/context",
     # "crates/processor",
 ]
 

@@ -14,7 +14,7 @@ use anc_image::{utils::helper_load_modules_from_binaries, ImageError};
 
 /// An implement of 'ProgramSource' for unit testing only
 pub struct InMemoryProgramSource {
-    process_config: ProcessProperty,
+    program_proerty: ProcessProperty,
     external_function_table: Mutex<ExternalFunctionTable>,
     module_binaries: Vec<Vec<u8>>,
 }
@@ -24,16 +24,16 @@ impl InMemoryProgramSource {
     pub fn new(module_binaries: Vec<Vec<u8>>) -> Self {
         Self {
             module_binaries,
-            process_config: ProcessProperty::default(),
+            program_proerty: ProcessProperty::default(),
             external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_property(module_binaries: Vec<Vec<u8>>, process_config: &ProcessProperty) -> Self {
+    pub fn with_property(module_binaries: Vec<Vec<u8>>, program_proerty: &ProcessProperty) -> Self {
         Self {
             module_binaries,
-            process_config: process_config.clone(),
+            program_proerty: program_proerty.clone(),
             external_function_table: Mutex::new(ExternalFunctionTable::default()),
         }
     }
@@ -50,7 +50,7 @@ impl ProgramSource for InMemoryProgramSource {
         let module_images = helper_load_modules_from_binaries(&binaries_ref)?;
 
         Ok(ProcessContext::new(
-            &self.process_config,
+            &self.program_proerty,
             &self.external_function_table,
             module_images,
         ))
@@ -97,13 +97,13 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let thread_context0 = process_context0.create_thread_context();
 
-        let module_index_instance = &thread_context0.module_index_instance;
+        let module_linking_instance = &thread_context0.module_linking_instance;
 
         // check index sections
-        assert_eq!(module_index_instance.data_index_section.ranges.len(), 1);
-        assert_eq!(module_index_instance.data_index_section.items.len(), 6);
-        assert_eq!(module_index_instance.function_index_section.ranges.len(), 1);
-        assert_eq!(module_index_instance.function_index_section.items.len(), 1);
+        assert_eq!(module_linking_instance.data_index_section.ranges.len(), 1);
+        assert_eq!(module_linking_instance.data_index_section.items.len(), 6);
+        assert_eq!(module_linking_instance.function_index_section.ranges.len(), 1);
+        assert_eq!(module_linking_instance.function_index_section.items.len(), 1);
 
         let module_common_instances = &thread_context0.module_common_instances;
         assert_eq!(module_common_instances.len(), 1);

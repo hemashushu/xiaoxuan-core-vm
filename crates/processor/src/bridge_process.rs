@@ -32,8 +32,9 @@ pub fn get_function<T>(
     module_name: &str,
     function_name: &str,
 ) -> Result<T, FunctionEntryError> {
+    todo!(); // find_function_by_full_name returns target function internal index
     let (module_index, function_public_index) = thread_context
-        .find_function_public_index_by_name_path(module_name, function_name)
+        .find_function_by_full_name(module_name, function_name)
         .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
 
     let function_ptr = get_or_create_bridge_function(

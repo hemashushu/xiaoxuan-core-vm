@@ -178,7 +178,7 @@ pub fn get_or_create_bridge_function(
     function_public_index: usize,
 ) -> Result<*const u8, FunctionEntryError> {
     let (target_module_index, function_internal_index) = thread_context
-        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
+        .get_target_function_object(module_index, function_public_index);
 
     // check if the function specified (target_module_index, function_internal_index)
     // already exists in the "bridge function table"
@@ -240,7 +240,7 @@ pub fn get_or_create_bridge_data(
     data_length_in_bytes: usize,
 ) -> Result<*const u8, FunctionEntryError> {
     let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_data_target_module_index_and_internal_index_and_data_object_with_bounds_check(
+        .get_target_data_object(
             module_index,
             data_public_index,
             offset_bytes,
@@ -261,7 +261,7 @@ pub fn get_or_create_bridge_callback_function(
 ) -> Result<*const u8, FunctionEntryError> {
     // get the internal index of function
     let (target_module_index, function_internal_index) = thread_context
-        .get_function_target_module_index_and_internal_index(module_index, function_public_index);
+        .get_target_function_object(module_index, function_public_index);
 
     // check if the specified (target_module_index, function_internal_index) already
     // exists in the callback function table
@@ -535,9 +535,9 @@ extern "C" fn delegate_bridge_function_call(
     let handler = unsafe { &*(handler_ptr as *const Handler) };
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
         thread_context
-            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_info(
                 target_module_index,
                 function_internal_index,
             );
@@ -566,7 +566,7 @@ extern "C" fn delegate_bridge_function_call(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index as u32,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         Some(ProgramCounter {
             instruction_address: 0,
             function_internal_index: 0,
@@ -623,9 +623,9 @@ extern "C" fn delegate_callback_function_call(
     let handler = unsafe { &*(handler_ptr as *const Handler) };
     let thread_context = unsafe { &mut *(thread_context_ptr as *mut ThreadContext) };
 
-    let (type_index, local_variable_list_index, code_offset, local_variables_allocate_bytes) =
+    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
         thread_context
-            .get_function_type_and_local_variable_list_index_and_code_offset_and_local_variables_allocate_bytes(
+            .get_function_info(
                 target_module_index,
                 function_internal_index,
             );
@@ -683,7 +683,7 @@ extern "C" fn delegate_callback_function_call(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index as u32,
-        local_variables_allocate_bytes,
+        local_variables_with_arguments_allocated_bytes,
         Some(return_pc),
     );
 

@@ -128,10 +128,22 @@ impl MemoryAccess for DummyAllocator {
 
 impl IndexedMemoryAccess for DummyAllocator {
     fn get_start_address_by_index(&self, idx: usize) -> usize {
-        if let Some(item) = self.items.get(idx) {
-            if item.is_some() {
+        if let Some(opt_item) = self.items.get(idx) {
+            if opt_item.is_some() {
                 // Return the index
                 idx
+            } else {
+                panic!("Attempted to access a freed memory item. Index: {}", idx);
+            }
+        } else {
+            panic!("Invalid index for accessing memory. Index: {}", idx);
+        }
+    }
+
+    fn get_data_length(&self, idx: usize) -> usize {
+        if let Some(opt_item) = self.items.get(idx) {
+            if let Some(item) = opt_item {
+                item.size
             } else {
                 panic!("Attempted to access a freed memory item. Index: {}", idx);
             }

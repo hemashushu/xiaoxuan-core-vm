@@ -4,6 +4,91 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+// XiaoXuan Core Calling Convention
+// --------------------------------
+// The following diagrams illustrate how the stack changes when entering and exiting a function or block.
+//
+// 1. Function 1 is preparing to call Function 2 by setting up the arguments.
+//
+// ```diagram
+// |         |
+// |         |
+// |  arg 1  | <-- Operands of Function 1, used as arguments for Function 2.
+// |  arg 0  |
+// |   ###   | <-- Other operands of Function 1.
+// |   ###   |
+// |---------| <-- Stack frame pointer for Function 1 (current FP).
+// |   ...   |
+// \---------/ <-- Stack start.
+// ```
+//
+// 2. Function 2 is called.
+//
+// ```diagram
+// |         |
+// | local 1 |
+// | local 0 | <-- Local variable slots allocated for Function 2.
+// |  arg 1  | <-- Arguments from Function 1 are moved here.
+// |  arg 0  |
+// |---------|
+// |   ...   | <-- Stack frame information, including the previous FP, return PC,
+// |   ...   |     and function metadata (e.g., type, index).
+// |   ...   |
+// |---------| <-- Stack frame pointer for Function 2 (current FP).
+// |   ###   |
+// |   ###   | <-- Remaining operands of Function 1.
+// |---------| <-- Stack frame pointer for Function 1.
+// |   ...   |
+// \---------/ <-- Stack start.
+// ```
+//
+// 3. Function 2 finishes and prepares to return to Function 1.
+//
+// ```diagram
+// |         |
+// | resul 1 |
+// | resul 0 | <-- Results of Function 2.
+// |   ###   | <-- Remaining operands of Function 2.
+// |   ###   |
+// |---------|
+// | local 1 |
+// | local 0 |
+// |  arg 1  |
+// |  arg 0  |
+// |---------|
+// |   ...   |
+// |   ...   |
+// |   ...   |
+// |---------| <-- Stack frame pointer for Function 2 (current FP).
+// |   ###   |
+// |   ###   | <-- Remaining operands of Function 1.
+// |---------| <-- Stack frame pointer for Function 1.
+// |   ...   |
+// \---------/ <-- Stack start.
+// ```
+//
+// 4. Returning to Function 1.
+//
+// ```diagram
+// |         |
+// | resul 1 | <-- Frame of Function 2 is removed,
+// | resul 0 |     and results of Function 2 are moved here.
+// |   ###   |
+// |   ###   | <-- Remaining operands of Function 1.
+// |---------| <-- Stack frame pointer for Function 1 (current FP).
+// |   ...   |
+// \---------/ <-- Stack start.
+// ```
+
+// Returning Multiple Values
+// -------------------------
+// On most architectures, only one or two values can be returned by a function (e.g.,
+// registers `rax/rdx` on x86_64, `x0/x1` on AArch64, `a0/a1` on RISC-V). However, the XiaoXuan Core VM
+// allows functions to return multiple values.
+//
+// When interoperating with other programs (e.g., written in C), it is recommended to limit
+// function returns to a single value for compatibility.
+
 use anc_memory::{memory_access::MemoryAccess, MemoryError};
 
 use crate::{FrameType, ProgramCounter, StackError};
@@ -100,7 +185,7 @@ pub trait Stack: MemoryAccess {
     // - `params_count`: The number of parameters for the frame.
     // - `results_count`: The number of results for the frame.
     // - `local_variable_list_index`: The index of the local variable list.
-    // - `local_variables_allocate_bytes`: The number of bytes to allocate for local variables (includes arguments).
+    // - `local_variables_with_arguments_allocated_bytes`: The number of bytes to allocate for local variables (includes arguments).
     // - `optional_return_pc`: The return program counter, or `None` if creating a block frame.
     //
     // Returns:
@@ -111,7 +196,7 @@ pub trait Stack: MemoryAccess {
         params_count: u16,
         results_count: u16,
         local_variable_list_index: u32,
-        local_variables_allocate_bytes: u32,
+        local_variables_with_arguments_allocated_bytes: u32,
         optional_return_pc: Option<ProgramCounter>,
     ) -> Result<(), StackError>;
 
@@ -132,4 +217,17 @@ pub trait Stack: MemoryAccess {
     // Returns:
     // - The type of the frame that was reset.
     fn reset_frames(&mut self, reversed_index: u16) -> FrameType;
+
+    fn get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+        &self,
+        reversed_index: u16,
+    ) -> (usize, usize);
+
+    fn push_first_operands(&mut self, data: &[u8]);
+
+    /// Pops the specified number of operands from the stack without boundary checks.
+    ///
+    /// This method is used when the stack is empty or when boundary checks are not required,
+    /// such as returning from the "entry" function of application.
+    fn pop_last_operands(&mut self, count: usize) -> &[u8];
 }
