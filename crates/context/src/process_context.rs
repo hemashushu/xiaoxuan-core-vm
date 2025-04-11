@@ -13,37 +13,38 @@ use crate::{
     thread_context::ThreadContext,
 };
 
-/// `ProcessContext` contains all asserts (environment and module images)
-/// when a program is running.
-/// `ThreadContext` is produced by `ProcessContext`.
+/// `ProcessContext` contains the resources required for program execution.
+/// It is responsible for producing `ThreadContext` instances.
 #[non_exhaustive]
 pub struct ProcessContext<'a> {
+    /// Properties of the process, such as configuration and metadata.
     pub process_property: &'a ProcessProperty,
+    /// A collection of module images associated with the process.
     pub module_images: Vec<ModuleImage<'a>>,
 
-    // since the 'loadlibrary' is process-scope, the external function (pointer) table
-    // should be placed at the 'Program' instead of 'ThreadContext'
-    pub external_function_table: &'a Mutex<ExternalFunctionTable>,
+    // Since the pointer retained by the `loadlibrary` function is process-scoped,
+    // the "external function table" must reside in `ProcessContext` instead of `ThreadContext`.
+    pub external_function_table: Mutex<ExternalFunctionTable>,
 }
 
 impl<'a> ProcessContext<'a> {
-    pub fn new(
-        process_property: &'a ProcessProperty,
-        external_function_table: &'a Mutex<ExternalFunctionTable>,
-        module_images: Vec<ModuleImage<'a>>,
-    ) -> Self {
+    /// Creates a new `ProcessContext` with the given process properties and module images.
+    pub fn new(process_property: &'a ProcessProperty, module_images: Vec<ModuleImage<'a>>) -> Self {
+        // Determine the number of unified external libraries from the first module image.
         let unified_external_library_count = module_images[0]
             .get_optional_unified_external_library_section()
             .map_or(0, |section| section.items.len());
 
+        // Determine the number of unified external functions from the first module image.
         let unified_external_function_count = module_images[0]
             .get_optional_unified_external_function_section()
             .map_or(0, |section| section.items.len());
 
-        external_function_table.lock().unwrap().init(
+        // Initialize the external function table with the determined counts.
+        let external_function_table = Mutex::new(ExternalFunctionTable::new(
             unified_external_library_count,
             unified_external_function_count,
-        );
+        ));
 
         Self {
             process_property,
@@ -52,11 +53,12 @@ impl<'a> ProcessContext<'a> {
         }
     }
 
+    /// Creates a new `ThreadContext` associated with this `ProcessContext`.
     pub fn create_thread_context(&'a self) -> ThreadContext<'a> {
         ThreadContext::new(
             self.process_property,
             &self.module_images,
-            self.external_function_table,
+            &self.external_function_table,
         )
     }
 }

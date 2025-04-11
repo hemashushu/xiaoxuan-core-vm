@@ -15,51 +15,59 @@ use anc_stack::{simple_stack::SimpleStack, stack::Stack, ProgramCounter};
 use crate::{
     delegate_function_table::DelegateFunctionTable, external_function_table::ExternalFunctionTable,
     module_common_instance::ModuleCommonInstance, module_linking_instance::ModuleLinkingInstance,
-    program_property::ProgramProperty,
+    process_property::ProcessProperty,
 };
 
-/// the thread context of the VM.
+/// Represents the thread context of the VM, containing the stack, allocator, program counter,
+/// function tables, module instances, and process properties.
 pub struct ThreadContext<'a> {
-    pub stack: Box<dyn Stack>,
-    pub allocator: Box<dyn Allocator>,
-    pub pc: ProgramCounter,
+    pub stack: Box<dyn Stack>, // The stack used for function calls and local variables.
+    pub allocator: Box<dyn Allocator>, // Allocator for dynamic memory management.
+    pub pc: ProgramCounter,    // The program counter, tracking the current instruction.
 
-    // external function table
+    // External function table, shared across threads and protected by a mutex.
     pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 
-    // callback function table
+    // Table for callback functions, used for delegating function calls.
     pub callback_function_table: DelegateFunctionTable,
 
-    // program modules
+    // Instances of "linking sections".
     pub module_linking_instance: ModuleLinkingInstance<'a>,
+
+    // Instances of common modules.
     pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
-    // program property
-    pub program_property: &'a ProgramProperty,
+    // Properties of the process, such as configuration and runtime state.
+    pub process_property: &'a ProcessProperty,
 }
 
+/// Represents a target data object, including its module index, data section type,
+/// internal index within the section, and a mutable accessor for memory operations.
 pub struct TargetDataObject<'a> {
-    pub module_index: usize,
-    pub data_section_type: DataSectionType,
-    pub data_internal_index_in_section: usize,
-    pub accessor: &'a mut dyn IndexedMemoryAccess,
+    pub module_index: usize, // Index of the module containing the data.
+    pub data_section_type: DataSectionType, // Type of the data section (e.g., ReadOnly, ReadWrite).
+    pub data_internal_index_in_section: usize, // Internal index of the data within the section.
+    pub accessor: &'a mut dyn IndexedMemoryAccess, // Accessor for memory operations.
 }
 
+/// Represents a target function object, including its module index and internal function index.
 pub struct TargetFunctionObject {
-    pub target_module_index: usize,
-    pub function_internal_index: usize,
+    pub target_module_index: usize, // Index of the module containing the function.
+    pub function_internal_index: usize, // Internal index of the function within the module.
 }
 
+/// Contains metadata about a function, such as its type, local variables, and code offset.
 pub struct FunctionInfo {
-    pub type_index: usize,
-    pub local_variable_list_index: usize,
-    pub code_offset: usize,
-    pub local_variables_with_arguments_allocated_bytes: usize,
+    pub type_index: usize, // Index of the function's type in the type section.
+    pub local_variable_list_index: usize, // Index of the local variable list.
+    pub code_offset: usize, // Offset of the function's code in the code section.
+    pub local_variables_with_arguments_allocated_bytes: usize, // Total allocated bytes for local variables and arguments.
 }
 
 impl<'a> ThreadContext<'a> {
+    /// Creates a new `ThreadContext` instance, initializing its components.
     pub fn new(
-        program_property: &'a ProgramProperty,
+        process_property: &'a ProcessProperty,
         module_images: &'a [ModuleImage<'a>],
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
@@ -87,16 +95,17 @@ impl<'a> ThreadContext<'a> {
             callback_function_table,
             module_linking_instance,
             module_common_instances,
-            program_property,
+            process_property,
         }
     }
 
+    /// Retrieves a target data object, performing bounds checks if enabled.
     pub fn get_target_data_object(
         &mut self,
         module_index: usize,
         data_public_index: usize,
-        expect_offset_bytes: usize,         // for checking the data bounds
-        expect_data_length_in_bytes: usize, // for checking the data bounds
+        expect_offset_bytes: usize, // Expected offset in bytes for bounds checking.
+        expect_data_length_in_bytes: usize, // Expected data length in bytes for bounds checking.
     ) -> TargetDataObject {
         const MSB_DATA_PUBLIC_INDEX: usize = 1 << 63;
         const MASK_DATA_PUBLIC_INDEX: usize = !MSB_DATA_PUBLIC_INDEX;
@@ -176,6 +185,7 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         target_data_object
     }
 
+    /// Retrieves a target function object, performing bounds checks if enabled.
     pub fn get_target_function_object(
         &self,
         module_index: usize,
@@ -212,6 +222,7 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         }
     }
 
+    /// Retrieves metadata about a function, such as its type and local variable information.
     pub fn get_function_info(
         &self,
         module_index: usize,
@@ -239,13 +250,13 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
         }
     }
 
+    /// Calculates the start address of a local variable within the stack frame.
     pub fn get_local_variable_start_address(
         &self,
-        reversed_index: u16,
-        // the index of a local variable
-        local_variable_index: usize,
-        offset_bytes: usize,                // for check the local variable bounds
-        expect_data_length_in_bytes: usize, // for check the local variable bounds
+        reversed_index: u16,                // Reversed index of the stack frame.
+        local_variable_index: usize,        // Index of the local variable.
+        offset_bytes: usize,                // Offset in bytes for bounds checking.
+        expect_data_length_in_bytes: usize, // Expected data length in bytes for bounds checking.
     ) -> usize {
         // get the local variable info
         let ProgramCounter {
@@ -289,6 +300,7 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         local_variables_start_address + variable_item.var_offset as usize
     }
 
+    /// Finds a function by its fully qualified name, returning its module and internal indices.
     pub fn find_function_by_full_name(
         &self,
         module_name: &str,
@@ -314,6 +326,7 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
+    /// Finds data by its fully qualified name, returning its module index, section type, and internal index.
     pub fn find_data_by_full_name(
         &self,
         module_name: &str,
@@ -347,32 +360,32 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// get 16 bits instruction
-    /// returns `[opcode]`.
+    /// Retrieves a 16-bit instruction opcode.
+    /// Returns `[opcode]`.
     pub fn get_opcode_num(&self) -> u16 {
         let data = self.get_instruction(0, 2);
         let ptr_u16 = data.as_ptr() as *const u16;
         unsafe { std::ptr::read(ptr_u16) }
     }
 
-    /// get 32 bits instruction
-    /// returns `[opcode + i16]`
+    /// Retrieves a 32-bit instruction parameter.
+    /// Returns `[opcode + i16]`.
     pub fn get_param_i16(&self) -> u16 {
         let data = self.get_instruction(2, 2);
         let ptr_u16 = data.as_ptr() as *const u16;
         unsafe { std::ptr::read(ptr_u16) }
     }
 
-    /// get 64 bits instruction
-    /// returns `[opcode + padding + i32]`
+    /// Retrieves a 64-bit instruction parameter.
+    /// Returns `[opcode + padding + i32]`.
     pub fn get_param_i32(&self) -> u32 {
         let data = self.get_instruction(4, 4);
         let ptr_u32 = data.as_ptr() as *const u32;
         unsafe { std::ptr::read(ptr_u32) }
     }
 
-    /// get 64 bits instruction the second variant
-    /// returns `[opcode + i16 + i32]`
+    /// Retrieves a 64-bit instruction parameter variant.
+    /// Returns `[opcode + i16 + i32]`.
     pub fn get_param_i16_i32(&self) -> (u16, u32) {
         let data = self.get_instruction(2, 6);
 
@@ -383,8 +396,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// get 64 bits instruction the third variant
-    /// returns `[opcode + i16 + i16 + i16]`
+    /// Retrieves a 64-bit instruction parameter variant.
+    /// Returns `[opcode + i16 + i16 + i16]`.
     pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
         let data = self.get_instruction(2, 6);
 
@@ -396,8 +409,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// get 96 bits instruction.
-    /// returns `[opcode + padding + i32 + i32]`
+    /// Retrieves a 96-bit instruction parameter.
+    /// Returns `[opcode + padding + i32 + i32]`.
     pub fn get_param_i32_i32(&self) -> (u32, u32) {
         let data = self.get_instruction(4, 8);
 
@@ -408,8 +421,8 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// get 128 bits instruction.
-    /// returns `[opcode + padding + i32 + i32 + i32]`
+    /// Retrieves a 128-bit instruction parameter.
+    /// Returns `[opcode + padding + i32 + i32 + i32]`.
     pub fn get_param_i32_i32_i32(&self) -> (u32, u32, u32) {
         let data = self.get_instruction(4, 12);
 
@@ -421,6 +434,7 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
+    /// Retrieves a slice of instruction bytes from the code section.
     #[inline]
     pub fn get_instruction(&self, offset: usize, len_in_bytes: usize) -> &[u8] {
         // Instruction encoding table:

@@ -17,13 +17,13 @@ use anc_memory::indexed_memory_access::IndexedMemoryAccess;
 use crate::datas::{ReadOnlyDatas, ReadWriteDatas, UninitDatas};
 
 pub struct ModuleCommonInstance<'a> {
-    // the name of module/package,
+    // The name of the module or package.
     //
-    // note that it CANNOT be the sub-module name even if the current image is
-    // the object file of a sub-module, it CANNOT be a name path either.
+    // Note: This must NOT be the name of a sub-module, even if the current image
+    // represents the object file of a sub-module. It also must NOT be a name path.
     //
-    // explaintion the "full_name" and "name_path"
-    // -------------------------------------
+    // Explanation of "full_name" and "name_path":
+    // -------------------------------------------
     // - "full_name" = "module_name::name_path"
     // - "name_path" = "namespace::identifier"
     // - "namespace" = "sub_module_name"{0,N}
@@ -34,10 +34,10 @@ pub struct ModuleCommonInstance<'a> {
     pub function_section: FunctionSection<'a>,
     pub datas: [Box<dyn IndexedMemoryAccess + 'a>; 3],
 
-    // for bridge function feature
+    // Used for the bridge function feature to manage function names.
     pub function_name_section: FunctionNameSection<'a>,
 
-    // for bridge function feature
+    // Used for the bridge function feature to manage data names.
     pub data_name_section: DataNameSection<'a>,
 }
 
@@ -48,6 +48,7 @@ impl<'a> ModuleCommonInstance<'a> {
         let local_variable_section = module_image.get_local_variable_section();
         let function_section = module_image.get_function_section();
 
+        // Initialize read-only data, falling back to empty data if the section is absent.
         let read_only_data = module_image
             .get_optional_read_only_data_section()
             .map_or_else(
@@ -55,6 +56,7 @@ impl<'a> ModuleCommonInstance<'a> {
                 |section| ReadOnlyDatas::new(section.items, section.datas_data),
             );
 
+        // Initialize read-write data, falling back to empty data if the section is absent.
         let read_write_data = module_image
             .get_optional_read_write_data_section()
             .map_or_else(
@@ -62,10 +64,11 @@ impl<'a> ModuleCommonInstance<'a> {
                 |section| ReadWriteDatas::new(section.items, section.datas_data.to_vec()),
             );
 
+        // Initialize uninitialized data, allocating memory if the section is present.
         let uninit_data = module_image.get_optional_uninit_data_section().map_or_else(
             || UninitDatas::new(&[], Vec::<u8>::new()),
             |section| {
-                // allocate the memory for uninit data
+                // Allocate memory for uninitialized data based on the total data length.
                 let length = section
                     .items
                     .iter()
@@ -76,14 +79,17 @@ impl<'a> ModuleCommonInstance<'a> {
             },
         );
 
+        // Retrieve the function name section, defaulting to an empty section if absent.
         let function_name_section = module_image
             .get_optional_export_function_section()
             .unwrap_or_default();
 
+        // Retrieve the data name section, defaulting to an empty section if absent.
         let data_name_section = module_image
             .get_optional_export_data_section()
             .unwrap_or_default();
 
+        // Retrieve the module name from the property section.
         let name = property_section.get_module_name().to_owned();
 
         Self {

@@ -4,24 +4,23 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// This module is responsible for managing the external function table.
+// This module manages the external function table.
 //
-// It is a 1:1 mapping to the "unified external function table" in the XiaoXuan Core application.
-// The external function table is used to store the pointers to the external functions
-// and the corresponding wrapper functions.
+// It provides a 1:1 mapping to the "unified external function table" in the XiaoXuan Core application.
+// The external function table stores pointers to external functions and their corresponding wrapper functions.
 //
 // ```diagram
 //                                      XiaoXuan Core Runtime
 //  XiaoXuan Core application        /--------------------------\
 // /------------------------\        |                          |
-// |                        |        | wrapper func table       |
+// |                        |        | Wrapper Function Table   |
 // | fn demo () -> ()       |        | |----------------------| |          libxyz.so
 // |   extcall do_something | -----> | | mod idx  | func idx  | |        /----------------------\
 // | end                    |        | | 0        | 0         | |   /--> | void do_something {  |
 // |                        |        | | ...      | ...       | |   |    |     ...              |
 // \------------------------/        | |----------------------| |   |    |     ...              |
 //                                   |                          |   |    |     ...              |
-//                                   | wrapper func code 0      |   |    | }                    |
+//                                   | Wrapper Function Code 0  |   |    | }                    |
 //                                   | |----------------------| |   |    |                      |
 //                                   | | 0x0000 0xb8, 0x34,   | | --/    |                      |
 //                                   | | 0x000a 0x12, 0x00... | |        \----------------------/
@@ -30,64 +29,70 @@
 //                                   \--------------------------/
 // ```
 //
-// The wrapper functions are shared between the external functions which have the same
-// signature (i.e., the same parameters and return values).
+// Wrapper functions are shared among external functions with the same signature
+// (i.e., identical parameter and return types).
 //
-// Wrapper functions are generated dynamically at runtime using JIT compilation
-// when a external function is called for the first time.
+// These wrapper functions are generated dynamically at runtime using JIT compilation
+// when an external function is called for the first time.
 
 use std::ffi::c_void;
 
 use anc_isa::OperandDataType;
 
-/// the external function pointer table
-// #[derive(Default)]
+/// Represents the external function table.
 pub struct ExternalFunctionTable {
-    // the unified external library pointer list.
+    // A list of pointers to unified external libraries.
     //
-    // it is 1:1 to the "unified external library section".
+    // This list corresponds 1:1 to the "unified external library section."
     pub unified_external_library_pointer_list: Vec<Option<UnifiedExternalLibraryPointerItem>>,
 
-    // the unified external function pointer list.
+    // A list of pointers to unified external functions.
     //
-    // it is 1:1 to the "unified external functioa section".
-    // An external function only load once in a process even if it is
-    // referenced by multiple modules.
+    // This list corresponds 1:1 to the "unified external function section."
+    // Each external function is loaded only once per process, even if referenced by multiple modules.
     pub unified_external_function_pointer_list: Vec<Option<UnifiedExternalFunctionPointerItem>>,
 
-    // wrapper function list.
+    // A list of wrapper functions.
     //
-    // not every external function has a corresponding wrapper function.
-    // The wrapper functions are shared between the external functions which have the same
-    // signature (i.e., the same parameters and return values).
+    // Not every external function has a corresponding wrapper function.
+    // Wrapper functions are shared among external functions with the same signature
+    // (i.e., identical parameter and return types).
     pub wrapper_function_list: Vec<WrapperFunctionItem>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnifiedExternalLibraryPointerItem {
+    // The memory address of the external library.
     pub address: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnifiedExternalFunctionPointerItem {
+    // The memory address of the external function.
     pub address: usize,
+    // The index of the corresponding wrapper function in the wrapper function list.
     pub wrapper_function_index: usize,
 }
 
 pub struct WrapperFunctionItem {
+    // The parameter data types of the wrapper function.
     pub param_datatypes: Vec<OperandDataType>,
+    // The result data types of the wrapper function.
     pub result_datatypes: Vec<OperandDataType>,
+    // The actual wrapper function.
     pub wrapper_function: WrapperFunction,
 }
 
-// the signature of the wrapper function
+// The signature of a wrapper function.
 pub type WrapperFunction = extern "C" fn(
-    external_function_pointer: *const c_void,
-    params_ptr: *const u8, // pointer to a range of bytes
-    results_ptr: *mut u8,  // pointer to a range of bytes
+    external_function_pointer: *const c_void, // Pointer to the external function.
+    params_ptr: *const u8,                    // Pointer to the input parameters.
+    results_ptr: *mut u8,                     // Pointer to the output results.
 );
 
 impl ExternalFunctionTable {
+    /// Creates a new `ExternalFunctionTable` with the specified number of unified external libraries
+    /// and unified external functions.
     pub fn new(
         unified_external_library_count: usize,
         unified_external_function_count: usize,
@@ -101,6 +106,8 @@ impl ExternalFunctionTable {
         }
     }
 
+    /// Retrieves the external function pointer and its corresponding wrapper function
+    /// for the given unified external function index.
     pub fn get_external_function_pointer_and_wrapper_function(
         &self,
         unified_external_function_index: usize,

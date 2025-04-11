@@ -8,43 +8,41 @@ use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgramSourceType {
-    // a module
+    // Represents a module.
     Module,
-    // a package image
+    // Represents a package image.
     PackageImage,
-    // a script file
+    // Represents a script file.
     ScriptFile,
 }
 
 #[derive(Debug, Clone)]
-pub struct ProgramProperty {
-    // the application path.
-    // it can be a directory path of a module,
-    // a file path of package image,
-    // or a file path of a script file. e.g.
+pub struct ProcessProperty {
+    // The path to the application.
+    // This can be:
+    // - A directory path for a module.
+    // - A file path for a package image.
+    // - A file path for a script file.
     //
-    // - `~/projects/hello-world`     (a folder of module)
-    // - `~/scripts/hello-world.anc`  (source code)
-    // - `~/scripts/hello-world.ancr` (IR)
-    // - `~/scripts/hello-world.anca` (assembly)
-    // - `~/package/hello-world.ancp` (package image)
-    //
-    // when a user launcher an application by file path,
-    // the runtime should check it and its parent folders to determine
-    // whether the file is part of a module.
+    // Examples:
+    // - `~/projects/hello-world`     (a module directory)
+    // - `~/scripts/hello-world.anc`  (source code file)
+    // - `~/scripts/hello-world.ancr` (intermediate representation file)
+    // - `~/scripts/hello-world.anca` (assembly file)
+    // - `~/package/hello-world.ancp` (package image file)
     pub program_path: PathBuf,
 
-    // to indicate the application is single-file script.
+    // Indicates the type of application source (e.g., module, package image, or script file).
     pub program_source_type: ProgramSourceType,
 
-    // program arguments
+    // The arguments passed to the program.
     pub arguments: Vec<String>,
 
-    // environment variables
+    // The environment variables for the program.
     pub environments: HashMap<String, String>,
 }
 
-impl ProgramProperty {
+impl ProcessProperty {
     pub fn new(
         program_path: PathBuf,
         program_source_type: ProgramSourceType,
@@ -60,12 +58,16 @@ impl ProgramProperty {
     }
 }
 
-impl Default for ProgramProperty {
+impl Default for ProcessProperty {
     fn default() -> Self {
         Self {
+            // Default program path is the current directory.
             program_path: PathBuf::from("."),
+            // Default source type is a module.
             program_source_type: ProgramSourceType::Module,
+            // Default arguments are an empty list.
             arguments: Vec::new(),
+            // Default environment variables are an empty map.
             environments: HashMap::new(),
         }
     }
