@@ -4,17 +4,19 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_context::thread_context::ThreadContext;
+use anc_stack::{FrameType, ProgramCounter};
 
-use crate::process::EXIT_CURRENT_HANDLER_LOOP_BIT;
+use crate::{process::EXIT_CURRENT_HANDLER_LOOP_BIT, TERMINATE_CODE_STACK_OVERFLOW};
 
 use super::{HandleResult, Handler};
 
-/// note that both instruction 'end' and 'break' can end
-/// a function or a block, they are the same actually except
-/// the 'break' instruction can specify the 'reversed_index'
-/// and 'next_inst_offset'.
-// thus `end` == `break reversed_index=0 next_inst_offset=2`
+/// end a function or block.
+///
+/// both instruction `end` and `break` can end
+/// a function or a block, they are the same actually except that
+/// the `break` instruction can specify `reversed_index`
+/// and `next_inst_offset` parameters.
 pub fn end(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     const INSTRUCTION_END_LENGTH: u32 = 2;
     do_break(thread_context, 0, INSTRUCTION_END_LENGTH)
@@ -32,16 +34,21 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
     let module = &thread_context.module_common_instances[module_index];
     let type_item = &module.type_section.items[type_index as usize];
     let local_variables_with_arguments_allocated_bytes =
-        module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
+        module.local_variable_section.lists[local_variable_list_index as usize].allocated_bytes;
 
-    thread_context.stack.create_frame(
+    match thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index,
         local_variables_with_arguments_allocated_bytes,
         None,
-    );
-    HandleResult::Move(12)
+    ) {
+        Ok(_) => HandleResult::Move(12),
+        Err(_) => {
+            // stack overflow
+            HandleResult::Terminate(TERMINATE_CODE_STACK_OVERFLOW)
+        }
+    }
 }
 
 pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -59,20 +66,26 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     let type_item = &module.type_section.items[type_index as usize];
 
     let local_variables_with_arguments_allocated_bytes =
-        module.local_variable_section.lists[local_variable_list_index as usize].vars_allocate_bytes;
+        module.local_variable_section.lists[local_variable_list_index as usize].allocated_bytes;
 
-    thread_context.stack.create_frame(
+    match thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
         local_variable_list_index,
         local_variables_with_arguments_allocated_bytes,
         None,
-    );
-
-    if condition == 0 {
-        HandleResult::Move(next_inst_offset as isize)
-    } else {
-        HandleResult::Move(16) // inst length = 16 bytes
+    ) {
+        Ok(_) => {
+            if condition == 0 {
+                HandleResult::Move(next_inst_offset as isize)
+            } else {
+                HandleResult::Move(16) // inst length = 16 bytes
+            }
+        }
+        Err(_) => {
+            // stack overflow
+            HandleResult::Terminate(TERMINATE_CODE_STACK_OVERFLOW)
+        }
     }
 }
 
@@ -91,20 +104,25 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
             module_index,
         } = thread_context.pc;
         let module = &thread_context.module_common_instances[module_index];
-        let local_variables_with_arguments_allocated_bytes = module.local_variable_section.lists
-            [local_variable_list_index as usize]
-            .vars_allocate_bytes;
+        let local_variables_with_arguments_allocated_bytes =
+            module.local_variable_section.lists[local_variable_list_index as usize].allocated_bytes;
 
         // 'block_nez' has no type (i.e. has no params and returns)
-        thread_context.stack.create_frame(
+        match thread_context.stack.create_frame(
             0,
             0,
             local_variable_list_index,
             local_variables_with_arguments_allocated_bytes,
             None,
-        );
-
-        HandleResult::Move(12) // 96 bits instruction
+        ) {
+            Ok(_) => {
+                HandleResult::Move(12) // 96 bits instruction
+            }
+            Err(_) => {
+                // stack overflow
+                HandleResult::Terminate(TERMINATE_CODE_STACK_OVERFLOW)
+            }
+        }
     }
 }
 
@@ -146,12 +164,11 @@ fn do_break(
         // current function end
         //
         // the `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicated
-        // the current function stack is nested, for example,
-        // it's within the callback function call.
+        // the current function is the last function of "calling path" (each
+        // callback function will generate a new calling path).
         //
-        // if the value of the MSB of 'return module index' is '1',
-        // it indicates that the `process_continuous_instructions()` should be terminated
-        // instead of returns to caller.
+        // if the current function is the last function of "calling path",
+        // the `process_continuous_instructions()` should be terminated.
         if return_pc.module_index & EXIT_CURRENT_HANDLER_LOOP_BIT == EXIT_CURRENT_HANDLER_LOOP_BIT {
             const EXIT_CURRENT_HANDLER_LOOP_BIT_INVERT: usize = !EXIT_CURRENT_HANDLER_LOOP_BIT;
 
@@ -198,8 +215,8 @@ fn do_recur(
     reversed_index: u16,
     start_inst_offset: u32,
 ) -> HandleResult {
-    let is_function = thread_context.stack.reset_frames(reversed_index);
-    if is_function {
+    let frame_type = thread_context.stack.reset_frames(reversed_index);
+    if frame_type == FrameType::Function {
         // the target frame is a function frame
         // the value of 'start_inst_offset' is ignored.
         let ProgramCounter {
@@ -220,6 +237,7 @@ fn do_recur(
 
 #[cfg(test)]
 mod tests {
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
@@ -230,9 +248,8 @@ mod tests {
 
     use crate::{
         handler::Handler, in_memory_program_source::InMemoryProgramSource,
-        process::process_function, FunctionEntryError, FunctionEntryErrorType, TERMINATE_CODE_UNREACHABLE,
+        process::process_function, ProcessorError, ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
     };
-    use anc_context::process_resource::ProgramSource;
 
     #[test]
     fn test_handler_control_flow_block() {
@@ -1652,8 +1669,8 @@ mod tests {
         );
         assert!(matches!(
             result2,
-            Err(FunctionEntryError {
-                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
+            Err(ProcessorError {
+                error_type: ProcessorErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
             })
         ));
 
@@ -1666,8 +1683,8 @@ mod tests {
         );
         assert!(matches!(
             result3,
-            Err(FunctionEntryError {
-                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
+            Err(ProcessorError {
+                error_type: ProcessorErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
             })
         ));
     }

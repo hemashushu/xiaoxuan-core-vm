@@ -6,16 +6,17 @@
 
 use std::sync::Mutex;
 
-use anc_allocator::{allocator::Allocator, dummy_allocator::DummyAllocator};
+use anc_allocator::{allocator::Allocator, simple_allocator::SimpleAllocator};
 use anc_image::module_image::{ModuleImage, Visibility};
 use anc_isa::DataSectionType;
 use anc_memory::indexed_memory_access::IndexedMemoryAccess;
-use anc_stack::{simple_stack::SimpleStack, stack::Stack, ProgramCounter};
+use anc_stack::{nostd_stack::NostdStack, stack::Stack, ProgramCounter};
 
 use crate::{
-    delegate_function_table::DelegateFunctionTable, external_function_table::ExternalFunctionTable,
-    module_common_instance::ModuleCommonInstance, module_linking_instance::ModuleLinkingInstance,
-    process_property::ProcessProperty,
+    bridge_function_table::BridgeFunctionTable,
+    callback_delegate_function_table::CallbackDelegateFunctionTable,
+    external_function_table::ExternalFunctionTable, module_common_instance::ModuleCommonInstance,
+    module_linking_instance::ModuleLinkingInstance, process_property::ProcessProperty,
 };
 
 /// Represents the thread context of the VM, containing the stack, allocator, program counter,
@@ -28,8 +29,11 @@ pub struct ThreadContext<'a> {
     // External function table, shared across threads and protected by a mutex.
     pub external_function_table: &'a Mutex<ExternalFunctionTable>,
 
-    // Table for callback functions, used for delegating function calls.
-    pub callback_function_table: DelegateFunctionTable,
+    // Table for callback delegate functions, used for callback function calls.
+    pub callback_delegate_function_table: CallbackDelegateFunctionTable,
+
+    // Table for bridge functions, used for calling functions from outside the VM.
+    pub bridge_function_table: BridgeFunctionTable,
 
     // Instances of "linking sections".
     pub module_linking_instance: ModuleLinkingInstance<'a>,
@@ -52,7 +56,7 @@ pub struct TargetDataObject<'a> {
 
 /// Represents a target function object, including its module index and internal function index.
 pub struct TargetFunctionObject {
-    pub target_module_index: usize, // Index of the module containing the function.
+    pub module_index: usize, // Index of the module containing the function.
     pub function_internal_index: usize, // Internal index of the function within the module.
 }
 
@@ -71,8 +75,8 @@ impl<'a> ThreadContext<'a> {
         module_images: &'a [ModuleImage<'a>],
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
-        let stack = SimpleStack::new();
-        let allocator = DummyAllocator::new();
+        let stack = NostdStack::new();
+        let allocator = SimpleAllocator::new();
 
         let pc = ProgramCounter {
             instruction_address: 0,
@@ -86,13 +90,15 @@ impl<'a> ThreadContext<'a> {
             .map(ModuleCommonInstance::new)
             .collect::<Vec<ModuleCommonInstance>>();
 
-        let callback_function_table = DelegateFunctionTable::new();
+        let callback_delegate_function_table = CallbackDelegateFunctionTable::new();
+        let bridge_function_table = BridgeFunctionTable::new();
         Self {
             stack: Box::new(stack),
             allocator: Box::new(allocator),
             pc,
             external_function_table,
-            callback_function_table,
+            callback_delegate_function_table,
+            bridge_function_table,
             module_linking_instance,
             module_common_instances,
             process_property,
@@ -217,7 +223,7 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
             );
 
         TargetFunctionObject {
-            target_module_index,
+            module_index: target_module_index,
             function_internal_index,
         }
     }
@@ -267,7 +273,7 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
 
         let (local_variable_list_index, local_variables_start_address) = self
             .stack
-            .get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+            .get_local_variable_list_index_and_start_address_by_reversed_index(
                 reversed_index,
             );
 

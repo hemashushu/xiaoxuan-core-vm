@@ -11,8 +11,8 @@
 // image as a library and call the VM function as if it were a native C/Rust function.
 //
 //
-//    C/Rust application                  runtime (native)
-// /------------------------\          /------------------------\          XiaoXuan Core VM module
+//     Rust application                          Runtime
+// /------------------------\          /------------------------\          XiaoXuan Core module
 // |                        |          | bridge func table      |       /------------------------\
 // | int (*add)(int,int)=.. |          | |--------------------| |       |                        |
 // | int c = add(11,13);    | ---\     | | mod idx | func idx | | ----> | fn (i32, i32) -> (i32) |
@@ -29,6 +29,24 @@
 //                                     |                        |
 //                                     \------------------------/
 //
+// ```diagram
+// | module M, function A |             | external func |
+// |----------------------|             |---------------|
+// |                      |    wrapper  |               |
+// | 0x0000 inst_0        |    function |               |
+// | 0x0004 inst_1   extcall   |        |               |
+// | 0x0008 inst_2   ----------O---------> 0x0000       |
+// |     \------------<---------------\ |  0x0004       |
+// |                      |           | |  0x0008       |
+// | HandleResult::Jump(X)            | |  0x000c       |
+// |                   |  |           \--- 0x0010       |
+// |                   |  |             |               |
+// | 0x000c inst_3   <-/  |             |---------------|
+// | 0x0010 inst_4        |
+// | 0x0014 inst_5        |
+// | 0x0018 inst_6        |
+// | ...                  |
+// ```
 
 // 'bridge function' is actually a native function that is built at runtime (it is similar to JIT),
 // the principle of building native function at runtime is quite simple:
@@ -149,6 +167,24 @@
 //                                   |                        |
 //                                   \------------------------/
 //
+// ```diagram
+// | module M, function A |             | external func |       | module N, function B |
+// |----------------------|             |---------------|       |----------------------|
+// |                      |    wrapper  |               | callback delegate            |
+// | 0x0000 inst_0        |    function |               | function                     |
+// | 0x0004 inst_1   extcall   |        |               |   |   |                      |
+// | 0x0008 inst_2   ----------O---------> 0x0000       | /-O----> 0x0000 inst_0       |
+// |     \------------<---------------\ |  0x0004       | |     |  0x0004 inst_1       |
+// |                      |           | |  0x0008  -------/     |  0x0008 inst_2       |
+// | HandleResult::Jump(X)            ^ |               |       |  0x000c inst_3       |
+// |                   |  |           | |               | /------- 0x0010 end          |
+// |                   |  |           | |  0x000c  <------/     |                      |
+// | 0x000c inst_3   <-/  |           \--- 0x0010       |       |----------------------|
+// | 0x0010 inst_4        |             |               |
+// | 0x0014 inst_5        |             |---------------|
+// | 0x0018 inst_6        |
+// | ...                  |
+// ```
 
 use std::sync::Mutex;
 
@@ -166,7 +202,7 @@ use crate::{
     handler::Handler,
     jit_context::convert_vm_operand_data_type_to_jit_type,
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
-    FunctionEntryError, FunctionEntryErrorType,
+    ProcessorError, ProcessorErrorType,
 };
 
 static LAST_BRIDGE_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
@@ -176,7 +212,7 @@ pub fn get_or_create_bridge_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
-) -> Result<*const u8, FunctionEntryError> {
+) -> Result<*const u8, ProcessorError> {
     let (target_module_index, function_internal_index) = thread_context
         .get_target_function_object(module_index, function_public_index);
 
@@ -200,8 +236,8 @@ pub fn get_or_create_bridge_function(
 
     if results.len() > 1 {
         // The specified function has more than 1 return value.
-        return Err(FunctionEntryError::new(
-            FunctionEntryErrorType::ResultsAmountMissmatch,
+        return Err(ProcessorError::new(
+            ProcessorErrorType::ResultsAmountMissmatch,
         ));
     }
 
@@ -238,7 +274,7 @@ pub fn get_or_create_bridge_data(
     data_public_index: usize,
     offset_bytes: usize,
     data_length_in_bytes: usize,
-) -> Result<*const u8, FunctionEntryError> {
+) -> Result<*const u8, ProcessorError> {
     let (_target_module_index, data_internal_index, data_object) = thread_context
         .get_target_data_object(
             module_index,
@@ -258,7 +294,7 @@ pub fn get_or_create_bridge_callback_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
-) -> Result<*const u8, FunctionEntryError> {
+) -> Result<*const u8, ProcessorError> {
     // get the internal index of function
     let (target_module_index, function_internal_index) = thread_context
         .get_target_function_object(module_index, function_public_index);
@@ -282,8 +318,8 @@ pub fn get_or_create_bridge_callback_function(
 
     if results.len() > 1 {
         // The specified function has more than 1 return value.
-        return Err(FunctionEntryError::new(
-            FunctionEntryErrorType::ResultsAmountMissmatch,
+        return Err(ProcessorError::new(
+            ProcessorErrorType::ResultsAmountMissmatch,
         ));
     }
 
@@ -584,7 +620,7 @@ extern "C" fn delegate_bridge_function_call(
 
     // start processing instructions
     if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
-        // there is no way to return the details of FunctionEntryError in the
+        // there is no way to return the details of ProcessorError in the
         // callback function processing, so only the panic can be thrown.
         panic!("Program terminated, code: {}", terminate_code);
     }
@@ -662,22 +698,6 @@ extern "C" fn delegate_callback_function_call(
         module_index: return_module_index | EXIT_CURRENT_HANDLER_LOOP_BIT,
     };
 
-    // module M, function A
-    //
-    // 0x0000 inst_0     callback function     module N, function B
-    // 0x0004 inst_1     interrupt
-    // 0x0008 inst_2   ----------------------> 0x0000 inst_0
-    //     \------------<----------------\     0x0004 inst_1
-    //                                   |     0x0008 inst_2
-    // HandleResult::Move(X) --\      ^     0x000c inst_3
-    //                            |      |     0x0010 end
-    //                            |      |       |
-    // 0x000c inst_3   <----------/      \---<---/
-    // 0x0010 inst_4
-    // 0x0014 inst_5
-    // 0x0018 inst_6
-    // 0x001c end
-
     // create function statck frame
     thread_context.stack.create_frame(
         type_item.params_count,
@@ -694,7 +714,7 @@ extern "C" fn delegate_callback_function_call(
 
     // start processing instructions
     if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
-        // there is no way to return the details of FunctionEntryError in the
+        // there is no way to return the details of ProcessorError in the
         // callback function processing, so only the panic can be thrown.
         panic!("Program terminated, code: {}", terminate_code);
     }

@@ -8,7 +8,7 @@ use anc_context::{memory_access::MemoryAccess, thread_context::ThreadContext};
 
 use crate::{
     bridge_handler::get_or_create_bridge_callback_function,
-    TERMINATE_CODE_FAILED_TO_CREATE_BRIDGE_FUNCTION,
+    TERMINATE_CODE_FAILED_TO_CREATE_DELEGATE_FUNCTION,
 };
 
 use super::{HandleResult, Handler};
@@ -226,7 +226,7 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
         store_pointer_to_operand_stack(thread_context, callback_function_ptr);
         HandleResult::Move(8)
     } else {
-        HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_CREATE_BRIDGE_FUNCTION)
+        HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_CREATE_DELEGATE_FUNCTION)
     }
 }
 

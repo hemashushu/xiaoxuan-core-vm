@@ -30,19 +30,19 @@ impl MemoryItem {
     }
 }
 
-pub struct DummyAllocator {
+pub struct SimpleAllocator {
     // A collection of memory items, where each item is either allocated
     // (Some) or freed (None).
     items: Vec<Option<MemoryItem>>,
 }
 
-impl DummyAllocator {
+impl SimpleAllocator {
     pub fn new() -> Self {
         Self { items: Vec::new() }
     }
 }
 
-impl Allocator for DummyAllocator {
+impl Allocator for SimpleAllocator {
     fn allocate(&mut self, _align_in_bytes: usize, size_in_bytes: usize) -> usize {
         // Search for an empty slot in the collection.
         let pos = self.items.iter().position(|item| item.is_none());
@@ -100,7 +100,7 @@ impl Allocator for DummyAllocator {
     }
 }
 
-impl MemoryAccess for DummyAllocator {
+impl MemoryAccess for SimpleAllocator {
     fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
         // Get a constant pointer to the data of the memory item at the specified address.
         unsafe {
@@ -126,7 +126,7 @@ impl MemoryAccess for DummyAllocator {
     }
 }
 
-impl IndexedMemoryAccess for DummyAllocator {
+impl IndexedMemoryAccess for SimpleAllocator {
     fn get_start_address_by_index(&self, idx: usize) -> usize {
         if let Some(opt_item) = self.items.get(idx) {
             if opt_item.is_some() {
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_allocat_resize_and_free() {
-        let mut allocator = DummyAllocator::new();
+        let mut allocator = SimpleAllocator::new();
 
         // Allocate memory and check the size.
         let index = allocator.allocate(8, 16);
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_access_freed_memory() {
-        let mut allocator = DummyAllocator::new();
+        let mut allocator = SimpleAllocator::new();
 
         // Allocate memory and check the size.
         let index = allocator.allocate(8, 8);
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_access_non_existent_memory() {
-        let allocator = DummyAllocator::new();
+        let allocator = SimpleAllocator::new();
 
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_indexed_access() {
-        let mut allocator = DummyAllocator::new();
+        let mut allocator = SimpleAllocator::new();
 
         let idx0 = allocator.allocate(8, 8);
 

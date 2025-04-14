@@ -6,15 +6,14 @@
 
 use std::sync::Mutex;
 
-use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
 use anc_isa::opcode::{Opcode, MAX_OPCODE_NUMBER};
+use anc_stack::ProgramCounter;
 use cranelift_jit::JITModule;
 
 use crate::{
     code_generator::Generator,
-    envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc},
-    envcall_num::MAX_ENVCALL_CODE_NUMBER,
     jit_context::get_jit_generator_without_imported_symbols,
     syscall_handler::{generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER},
 };
@@ -23,45 +22,68 @@ pub type HandleFunc = fn(&Handler, &mut ThreadContext) -> HandleResult;
 
 mod arithmetic;
 mod bitwise;
-mod calling;
+// mod calling;
 mod comparison;
 mod control_flow;
 mod conversion;
 mod data;
 mod fundamental;
 mod local;
-mod machine;
+// mod machine;
 mod math;
 mod memory;
 
-// mod envcall;
-// mod extcall;
-
+/// The result of a instruction is executed.
 pub enum HandleResult {
-    // move to another address within a function
-    // param (relate_offset_in_bytes:isize)
-    Move(isize),
+    // move to next program counter (PC) within a function.
+    // the parameter `isize` is the offset in bytes.
+    Move(/* relate_offset_in_bytes */ isize),
 
-    // jump to another function (call), or
-    // return from another function (return)
-    // param (return_pc: ProgramCounter)
-    Jump(ProgramCounter),
+    // Move between functions.
+    //
+    // there are two cases:
+    // - Calling: jump to another function.
+    // - Returning: return from another function.
+    //
+    // the parameter `ProgramCounter` is the address of the next instruction.
+    // This result is similar to `Move`, but the `Jump` use an absolute address
+    // instead of a relative offset, and `Jump` can change the module index and
+    // function index.
+    Jump(/* next PC */ ProgramCounter),
 
-    // the current function call end
-    // because the function call could be nested, so there is a
-    // original PC need to be restore.
+    // End the current "function calling path".
     //
-    // if the function is the entry function,
-    // then the program should end when encounter this result.
+    // there are two cases:
     //
-    // if the function call is a nested (in a callback function loop),
-    // then the current handler-loop should be ended.
+    // 1. End of the entry function, the program running is finished.
+    //    The parameter `ProgramCounter` is 0 in this case.
+    // 2. End of a callback function, the execution will return to the external function, and then
+    //    return to the next instruction of the `extcall` instruction.
+    //    The parameter `ProgramCounter` is the address of next instruction.
+    //    The follow diagram illustrates the flow:
     //
-    // param (original_pc: ProgramCounter)
+    // ```diagram
+    // | module M, function A |             | external func |       | module N, function B |
+    // |----------------------|             |---------------|       |----------------------|
+    // |                      |    wrapper  |               | callback delegate            |
+    // | 0x0000 inst_0        |    function |               | function                     |
+    // | 0x0004 inst_1   extcall   |        |               |   |   |                      |
+    // | 0x0008 inst_2   ----------O---------> 0x0000       | /-O----> 0x0000 inst_0       |
+    // |     \------------<---------------\ |  0x0004       | |     |  0x0004 inst_1       |
+    // |                      |           | |  0x0008  -------/     |  0x0008 inst_2       |
+    // | HandleResult::Jump(X)            ^ |               |       |  0x000c inst_3       |
+    // |                   |  |           | |               | /------- 0x0010 end          |
+    // |                   |  |           | |  0x000c  <------/     |                      |
+    // | 0x000c inst_3   <-/  |           \--- 0x0010       |       |----------------------|
+    // | 0x0010 inst_4        |             |               |
+    // | 0x0014 inst_5        |             |---------------|
+    // | 0x0018 inst_6        |
+    // | ...                  |
+    // ```
     End(ProgramCounter),
 
-    // param (terminate_code: i32)
-    Terminate(i32),
+    // Program terminated.
+    Terminate(/* terminate_code */ i32),
 }
 
 fn unreachable_handler(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -95,7 +117,7 @@ Bytecode:
 pub struct Handler {
     pub handlers: [HandleFunc; MAX_OPCODE_NUMBER],
     pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
-    pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
+    // pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
     pub jit_generator: Mutex<Generator<JITModule>>,
 }
 
@@ -197,28 +219,10 @@ impl Handler {
         handlers[Opcode::data_store_dynamic_f64 as usize] = data::data_store_dynamic_i64; // reuse store_i64
         handlers[Opcode::data_store_dynamic_f32 as usize] = data::data_store_dynamic_i32; // reuse store_i32
 
-        // heap
-        handlers[Opcode::memory_load_i64 as usize] = memory::memory_load_i64;
-        handlers[Opcode::memory_load_i32_s as usize] = memory::memory_load_i32_s;
-        handlers[Opcode::memory_load_i32_u as usize] = memory::memory_load_i32_u;
-        handlers[Opcode::memory_load_i16_s as usize] = memory::memory_load_i16_s;
-        handlers[Opcode::memory_load_i16_u as usize] = memory::memory_load_i16_u;
-        handlers[Opcode::memory_load_i8_s as usize] = memory::memory_load_i8_s;
-        handlers[Opcode::memory_load_i8_u as usize] = memory::memory_load_i8_u;
-        handlers[Opcode::memory_load_f64 as usize] = memory::memory_load_f64;
-        handlers[Opcode::memory_load_f32 as usize] = memory::memory_load_f32;
-        handlers[Opcode::memory_store_i64 as usize] = memory::memory_store_i64;
-        handlers[Opcode::memory_store_i32 as usize] = memory::memory_store_i32;
-        handlers[Opcode::memory_store_i16 as usize] = memory::memory_store_i16;
-        handlers[Opcode::memory_store_i8 as usize] = memory::memory_store_i8;
-        handlers[Opcode::memory_store_f64 as usize] = memory::memory_store_i64; // reuse store_i64
-        handlers[Opcode::memory_store_f32 as usize] = memory::memory_store_i32; // reuse store_i32
-
-        // heap memory operations
-        handlers[Opcode::memory_fill as usize] = memory::memory_fill;
-        handlers[Opcode::memory_copy as usize] = memory::memory_copy;
-        handlers[Opcode::memory_capacity as usize] = memory::memory_capacity;
+        // dynamically allocated memory
+        handlers[Opcode::memory_allocate as usize] = memory::memory_allocate;
         handlers[Opcode::memory_resize as usize] = memory::memory_resize;
+        handlers[Opcode::memory_free as usize] = memory::memory_free;
 
         // conversion
         handlers[Opcode::truncate_i64_to_i32 as usize] = conversion::truncate_i64_to_i32;
@@ -411,30 +415,30 @@ impl Handler {
         handlers[Opcode::block_nez as usize] = control_flow::block_nez;
 
         // function call
-        handlers[Opcode::call as usize] = calling::call;
-        handlers[Opcode::call_dynamic as usize] = calling::call_dynamic;
-        handlers[Opcode::syscall as usize] = calling::syscall;
-        handlers[Opcode::envcall as usize] = calling::envcall;
-        handlers[Opcode::extcall as usize] = calling::extcall;
+        // handlers[Opcode::call as usize] = calling::call;
+        // handlers[Opcode::call_dynamic as usize] = calling::call_dynamic;
+        // handlers[Opcode::syscall as usize] = calling::syscall;
+        // //         handlers[Opcode::envcall as usize] = calling::envcall;
+        // handlers[Opcode::extcall as usize] = calling::extcall;
 
-        // machine
-        handlers[Opcode::get_function as usize] = machine::get_function;
-        handlers[Opcode::get_data as usize] = machine::get_data;
-        handlers[Opcode::host_addr_local as usize] = machine::host_addr_local;
-        handlers[Opcode::host_addr_local_extend as usize] = machine::host_addr_local_extend;
-        handlers[Opcode::host_addr_data as usize] = machine::host_addr_data;
-        handlers[Opcode::host_addr_data_extend as usize] = machine::host_addr_data_extend;
-        handlers[Opcode::host_addr_data_dynamic as usize] = machine::host_addr_data_dynamic;
-        handlers[Opcode::host_addr_memory as usize] = machine::host_addr_memory;
-        handlers[Opcode::host_addr_function as usize] = machine::host_addr_function;
-        handlers[Opcode::host_copy_from_memory as usize] = machine::host_copy_from_memory;
-        handlers[Opcode::host_copy_to_memory as usize] = machine::host_copy_to_memory;
-        handlers[Opcode::host_external_memory_copy as usize] = machine::host_external_memory_copy;
+        //         // machine
+        //         handlers[Opcode::get_function as usize] = machine::get_function;
+        //         handlers[Opcode::get_data as usize] = machine::get_data;
+        //         handlers[Opcode::host_addr_local as usize] = machine::host_addr_local;
+        //         handlers[Opcode::host_addr_local_extend as usize] = machine::host_addr_local_extend;
+        //         handlers[Opcode::host_addr_data as usize] = machine::host_addr_data;
+        //         handlers[Opcode::host_addr_data_extend as usize] = machine::host_addr_data_extend;
+        //         handlers[Opcode::host_addr_data_dynamic as usize] = machine::host_addr_data_dynamic;
+        //         handlers[Opcode::host_addr_memory as usize] = machine::host_addr_memory;
+        //         handlers[Opcode::host_addr_function as usize] = machine::host_addr_function;
+        //         handlers[Opcode::host_copy_from_memory as usize] = machine::host_copy_from_memory;
+        //         handlers[Opcode::host_copy_to_memory as usize] = machine::host_copy_to_memory;
+        //         handlers[Opcode::host_external_memory_copy as usize] = machine::host_external_memory_copy;
 
         Handler {
             handlers,
             syscall_handlers: generate_syscall_handlers(),
-            envcall_handlers: generate_envcall_handlers(),
+            // envcall_handlers: generate_envcall_handlers(),
             jit_generator: get_jit_generator_without_imported_symbols(),
         }
     }

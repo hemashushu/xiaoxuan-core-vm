@@ -19,7 +19,7 @@ use anc_context::thread_context::ThreadContext;
 use crate::{
     bridge_handler::{get_or_create_bridge_data, get_or_create_bridge_function},
     handler::Handler,
-    FunctionEntryErrorType, FunctionEntryError,
+    ProcessorErrorType, ProcessorError,
 };
 
 // create a new bridge function and map it to the specified VM function.
@@ -31,11 +31,11 @@ pub fn get_function<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     function_name: &str,
-) -> Result<T, FunctionEntryError> {
+) -> Result<T, ProcessorError> {
     todo!(); // find_function_by_full_name returns target function internal index
     let (module_index, function_public_index) = thread_context
         .find_function_by_full_name(module_name, function_name)
-        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
+        .ok_or(ProcessorError::new(ProcessorErrorType::ItemNotFound))?;
 
     let function_ptr = get_or_create_bridge_function(
         handler,
@@ -51,13 +51,13 @@ pub fn get_data<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     data_name: &str,
-) -> Result<*const T, FunctionEntryError>
+) -> Result<*const T, ProcessorError>
 where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
         .find_data_public_index_by_name_path(module_name, data_name)
-        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
+        .ok_or(ProcessorError::new(ProcessorErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(
         thread_context,
@@ -74,13 +74,13 @@ pub fn get_data_mut<T>(
     thread_context: &mut ThreadContext,
     module_name: &str,
     data_name: &str,
-) -> Result<*mut T, FunctionEntryError>
+) -> Result<*mut T, ProcessorError>
 where
     T: Sized,
 {
     let (module_index, data_public_index) = thread_context
         .find_data_public_index_by_name_path(module_name, data_name)
-        .ok_or(FunctionEntryError::new(FunctionEntryErrorType::ItemNotFound))?;
+        .ok_or(ProcessorError::new(ProcessorErrorType::ItemNotFound))?;
 
     let data_ptr = get_or_create_bridge_data(
         thread_context,

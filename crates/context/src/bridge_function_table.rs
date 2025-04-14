@@ -4,26 +4,26 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-pub struct DelegateFunctionTable {
-    pub delegate_function_by_modules: Vec<DelegateFunctionByModule>,
+pub struct BridgeFunctionTable {
+    pub functions_by_modules: Vec<BridgeFunctionsByModule>,
 }
 
-impl DelegateFunctionTable {
+impl BridgeFunctionTable {
     pub fn new() -> Self {
         Self {
-            delegate_function_by_modules: Vec::new(),
+            functions_by_modules: Vec::new(),
         }
     }
 }
 
-pub struct DelegateFunctionByModule {
-    pub target_module_index: usize,
-    pub delegate_function_items: Vec<DelegateFunctionItem>,
+pub struct BridgeFunctionsByModule {
+    pub module_index: usize,
+    pub bridge_function_items: Vec<BridgeFunctionItem>,
 }
 
-pub struct DelegateFunctionItem {
-    pub target_function_internal_index: usize,
-    pub delegate_function_ptr: *const u8,
+pub struct BridgeFunctionItem {
+    pub function_internal_index: usize,
+    pub bridge_function_ptr: *const u8,
 }
 
 // //     pub fn find_bridge_function(

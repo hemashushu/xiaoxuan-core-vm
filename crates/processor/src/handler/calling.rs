@@ -4,17 +4,15 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_context::thread_context::ThreadContext;
 use anc_isa::OPERAND_SIZE_IN_BYTES;
 
-use crate::{
-    extcall_handler::get_or_create_external_function,
-    TERMINATE_CODE_FAILED_TO_CREATE_EXTERNAL_FUNCTION,
-};
+use crate::TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION;
 
 use super::{HandleResult, Handler};
 
 pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    // (param function_public_index:i32) (operand args...) -> (values)
     let function_public_index = thread_context.get_param_i32();
     do_call(
         thread_context,
@@ -25,6 +23,7 @@ pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRes
 }
 
 pub fn call_dynamic(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    // () (operand function_public_index:i32, args...) -> (values)
     let function_public_index = thread_context.stack.pop_i32_u();
     let module_index = thread_context.stack.pop_i32_u() as usize;
     do_call(thread_context, module_index, function_public_index, 2)
@@ -42,17 +41,14 @@ fn do_call(
         module_index: return_module_index,
     } = thread_context.pc;
 
-    let (target_module_index, target_function_internal_index) = thread_context
-        .get_target_function_object(
-            module_index,
-            function_public_index as usize,
-        );
-    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
-        thread_context
-            .get_function_info(
-                target_module_index,
-                target_function_internal_index,
-            );
+    let (target_module_index, target_function_internal_index) =
+        thread_context.get_target_function_object(module_index, function_public_index as usize);
+    let (
+        type_index,
+        local_variable_list_index,
+        code_offset,
+        local_variables_with_arguments_allocated_bytes,
+    ) = thread_context.get_function_info(target_module_index, target_function_internal_index);
 
     let type_item = &thread_context.module_common_instances[target_module_index]
         .type_section
@@ -85,24 +81,29 @@ fn do_call(
 }
 
 pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (operand args..., syscall_num:i32 params_count: i32) -> (return_value:i64, error_no:i32)
+    // () (operand args..., syscall_num:i32, params_count: i32) -> (return_value:i64, error_number:i32)
     //
-    // the syscall arguments should be pushed on the stack first, e.g.
+    // The "syscall" instruction invokes a system call on Unix-like operating systems.
     //
-    // | params_count   |
+    // The syscall arguments must be pushed onto the stack first, followed by the syscall number, and the number of parameters.
+    //
+    // For example:
+    //
+    // | params_count   | <-- stack end
     // | syscall_num    |
     // | arg6           |
     // | arg5           |
     // | arg4           |
     // | arg3           |
-    // | arg2           |                  | error no       |
-    // | arg1           |     return -->   | return value   |
-    // | ...            |                  | ...            |
-    // \----------------/ <-- stack start  \----------------/
+    // | arg2           |                     | error number   |
+    // | arg1           |    -- returns -->   | return value   |
+    // | ...            |                     | ...            |
+    // \----------------/ <-- stack start --> \----------------/
     //
-    // when a syscall complete, the return value is store into the 'rax' register,
-    // if the operation fails, the value is a negative value (rax < 0).
-    // there is no 'errno' if invoke syscall by assembly directly.
+    // When the syscall completes, the return value is stored in the "rax" register. If the operation fails,
+    // the value is negative (i.e., rax < 0).
+    //
+    // Note: Unlike the C standard library, there is no "errno" when calling syscalls directly from assembly.
 
     let params_count = thread_context.stack.pop_i32_u();
     let syscall_num = thread_context.stack.pop_i32_u();
@@ -126,19 +127,19 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     HandleResult::Move(2)
 }
 
-pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (param envcall_num:i32)
-    let envcall_num = thread_context.get_param_i32();
-    let envcall_handler = handler.envcall_handlers[envcall_num as usize];
-    envcall_handler(handler, thread_context);
-    HandleResult::Move(8)
-}
+// pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+//     // (param envcall_num:i32) (operand args...) -> (values)
+//     let envcall_num = thread_context.get_param_i32();
+//     let envcall_handler = handler.envcall_handlers[envcall_num as usize];
+//     envcall_handler(handler, thread_context);
+//     HandleResult::Move(8)
+// }
 
 pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // (operand external_function_index:i32) -> void/i32/i64/f32/f64
+    // (param external_function_index:i32) (operand args...) -> return_value:void/i32/i64/f32/f64
     //
-    // the 'external_function_index' is the index within a specific module, it is not
-    // the 'unified_external_function_index'.
+    // note that the `external_function_index` is the index within a specific module,
+    // it is NOT the `unified_external_function_index`.
 
     let external_function_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
@@ -152,7 +153,7 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
         ) {
             pwr
         } else {
-            return HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_CREATE_EXTERNAL_FUNCTION);
+            return HandleResult::Terminate(TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION);
         };
 
     // call the wrapper function:
@@ -165,7 +166,9 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     // );
     // ```
 
-    let params_ptr = thread_context.stack.prepare_popping_operands_to_memory(params_count);
+    let params_ptr = thread_context
+        .stack
+        .prepare_popping_operands_to_memory(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
     wrapper_function(
@@ -187,11 +190,14 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
 mod tests {
     use std::collections::HashMap;
 
-    use anc_context::{process_property::ProcessProperty, process_resource::ProgramSource};
+    use anc_context::{
+        process_property::{ProcessProperty, ProgramSourceType},
+        program_source::ProgramSource,
+    };
     use anc_image::{
         bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
-        entry::{ExternalLibraryEntry, InitedDataEntry},
+        entry::{ExternalLibraryEntry, ReadOnlyDataEntry},
         utils::{
             helper_build_module_binary_with_functions_and_blocks,
             helper_build_module_binary_with_functions_and_data_and_external_functions,
@@ -711,7 +717,7 @@ mod tests {
                 local_variable_item_entries_without_args: vec![],
                 code: code0,
             }],
-            &[InitedDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
+            &[ReadOnlyDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
             &[],
             &[],
             &[ExternalLibraryEntry::new(
@@ -808,7 +814,12 @@ mod tests {
         let handler = Handler::new();
         let resource0 = InMemoryProgramSource::with_property(
             vec![binary0],
-            &ProcessProperty::new(pwd, false, vec![], HashMap::<String, String>::new()),
+            ProcessProperty::new(
+                pwd,
+                ProgramSourceType::Module,
+                vec![],
+                HashMap::<String, String>::new(),
+            ),
         );
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();

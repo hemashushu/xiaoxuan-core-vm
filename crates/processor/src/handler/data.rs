@@ -6,6 +6,8 @@
 
 use anc_context::thread_context::ThreadContext;
 
+use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
+
 use super::{HandleResult, Handler};
 
 const DATA_LENGTH_IN_BYTES_64_BIT: usize = 8;
@@ -54,7 +56,7 @@ pub fn data_load_dynamic_i64(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -66,14 +68,17 @@ fn do_data_load_i64(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    data_object.load_idx_i64(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
+    target_data_object.accessor.read_idx_i64(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -119,7 +124,7 @@ pub fn data_load_dynamic_i32_s(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -131,14 +136,17 @@ fn do_data_load_i32_s(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    data_object.load_idx_i32_s(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    target_data_object.accessor.read_idx_i32_s(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -184,7 +192,7 @@ pub fn data_load_dynamic_i32_u(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -196,14 +204,17 @@ fn do_data_load_i32_u(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    data_object.load_idx_i32_u(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    target_data_object.accessor.read_idx_i32_u(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -249,7 +260,7 @@ pub fn data_load_dynamic_i16_s(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -261,14 +272,17 @@ fn do_data_load_i16_s(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    data_object.load_idx_i16_s(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    target_data_object.accessor.read_idx_i16_s(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -314,7 +328,7 @@ pub fn data_load_dynamic_i16_u(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -326,14 +340,17 @@ fn do_data_load_i16_u(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    data_object.load_idx_i16_u(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    target_data_object.accessor.read_idx_i16_u(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -379,7 +396,7 @@ pub fn data_load_dynamic_i8_s(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -391,14 +408,17 @@ fn do_data_load_i8_s(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    data_object.load_idx_i8_s(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    target_data_object.accessor.read_idx_i8_s(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -444,7 +464,7 @@ pub fn data_load_dynamic_i8_u(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -456,14 +476,17 @@ fn do_data_load_i8_u(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    data_object.load_idx_i8_u(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    target_data_object.accessor.read_idx_i8_u(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -509,7 +532,7 @@ pub fn data_load_dynamic_f32(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -521,16 +544,21 @@ fn do_data_load_f32(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    data_object.load_idx_f32(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
 
-    HandleResult::Move(instruction_length_in_bytes)
+    match target_data_object.accessor.read_idx_f32(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    ) {
+        Ok(_) => HandleResult::Move(instruction_length_in_bytes),
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn data_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -574,7 +602,7 @@ pub fn data_load_dynamic_f64(
         module_index as usize,
         data_public_index as usize,
         offset_bytes as usize,
-        4,
+        2,
     )
 }
 
@@ -586,16 +614,21 @@ fn do_data_load_f64(
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    data_object.load_idx_f64(data_internal_index, offset_bytes, dst_ptr);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
 
-    HandleResult::Move(instruction_length_in_bytes)
+    match target_data_object.accessor.read_idx_f64(
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+        dst_ptr,
+    ) {
+        Ok(_) => HandleResult::Move(instruction_length_in_bytes),
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn data_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -645,7 +678,7 @@ pub fn data_store_dynamic_i64(
         data_public_index as usize,
         offset_bytes as usize,
         src_ptr,
-        4,
+        2,
     )
 }
 
@@ -657,14 +690,17 @@ fn do_data_store_i64(
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    data_object.store_idx_i64(src_ptr, data_internal_index, offset_bytes);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
+    target_data_object.accessor.write_idx_i64(
+        src_ptr,
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -716,7 +752,7 @@ pub fn data_store_dynamic_i32(
         data_public_index as usize,
         offset_bytes as usize,
         src_ptr,
-        4,
+        2,
     )
 }
 
@@ -728,14 +764,17 @@ fn do_data_store_i32(
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    data_object.store_idx_i32(src_ptr, data_internal_index, offset_bytes);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    target_data_object.accessor.write_idx_i32(
+        src_ptr,
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -787,7 +826,7 @@ pub fn data_store_dynamic_i16(
         data_public_index as usize,
         offset_bytes as usize,
         src_ptr,
-        4,
+        2,
     )
 }
 
@@ -799,14 +838,17 @@ fn do_data_store_i16(
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    data_object.store_idx_i16(src_ptr, data_internal_index, offset_bytes);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    target_data_object.accessor.write_idx_i16(
+        src_ptr,
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
@@ -858,7 +900,7 @@ pub fn data_store_dynamic_i8(
         data_public_index as usize,
         offset_bytes as usize,
         src_ptr,
-        4,
+        2,
     )
 }
 
@@ -870,24 +912,28 @@ fn do_data_store_i8(
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
-    let (_target_module_index, data_internal_index, data_object) = thread_context
-        .get_target_data_object(
-            module_index,
-            data_public_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    data_object.store_idx_i8(src_ptr, data_internal_index, offset_bytes);
+    let target_data_object = thread_context.get_target_data_object(
+        module_index,
+        data_public_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    target_data_object.accessor.write_idx_i8(
+        src_ptr,
+        target_data_object.data_internal_index_in_section,
+        offset_bytes,
+    );
 
     HandleResult::Move(instruction_length_in_bytes)
 }
 
 #[cfg(test)]
 mod tests {
-    use anc_context::process_resource::ProgramSource;
+
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
-        entry::{InitedDataEntry, UninitDataEntry},
+        entry::{ReadOnlyDataEntry, ReadWriteDataEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data,
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
@@ -999,15 +1045,15 @@ mod tests {
             &[], // local variables
             code0,
             &[
-                InitedDataEntry::from_i32(0x19171311),
-                InitedDataEntry::from_i32(0xf0e0d0c0),
+                ReadOnlyDataEntry::from_i32(0x19171311),
+                ReadOnlyDataEntry::from_i32(0xf0e0d0c0),
             ],
             &[
-                InitedDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
-                InitedDataEntry::from_f32(std::f32::consts::PI),
-                InitedDataEntry::from_f64(std::f64::consts::E),
-                InitedDataEntry::from_i64(0),
-                InitedDataEntry::from_i32(0),
+                ReadWriteDataEntry::from_bytes(vec![0u8, 11, 22, 33, 44, 55, 66, 77], 8), // random init data
+                ReadWriteDataEntry::from_f32(std::f32::consts::PI),
+                ReadWriteDataEntry::from_f64(std::f64::consts::E),
+                ReadWriteDataEntry::from_i64(0),
+                ReadWriteDataEntry::from_i32(0),
             ],
             &[],
         );
@@ -1147,8 +1193,8 @@ mod tests {
             &[],                                           // local variables
             code0,
             &[
-                InitedDataEntry::from_i32(0x19171311),
-                InitedDataEntry::from_i32(0xf0e0d0c0),
+                ReadOnlyDataEntry::from_i32(0x19171311),
+                ReadOnlyDataEntry::from_i32(0xf0e0d0c0),
             ],
             &[],
             &[
@@ -1330,6 +1376,11 @@ mod tests {
     }
 
     #[test]
+    fn test_handler_data_load_and_store_dynamic() {
+        // todo
+    }
+
+    #[test]
     fn test_handler_data_bounds_check_offset_out_of_range() {
         let code0 = BytecodeWriterHelper::new()
             // (param offset_bytes:i16 data_public_index:i32) -> i64
@@ -1343,7 +1394,7 @@ mod tests {
             &[], // local variables
             code0,
             &[],
-            &[InitedDataEntry::from_i32(11)],
+            &[ReadWriteDataEntry::from_i32(11)],
             &[],
         );
 
@@ -1368,7 +1419,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_data_bounds_check_type_length_overflow() {
+    fn test_handler_data_bounds_check_length_overflow() {
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i16_i32(Opcode::data_load_i64, 0, 0)
             .append_opcode(Opcode::end)
@@ -1380,7 +1431,7 @@ mod tests {
             &[], // local variables
             code0,
             &[],
-            &[InitedDataEntry::from_i32(11)],
+            &[ReadWriteDataEntry::from_i32(11)],
             &[],
         );
 
@@ -1416,7 +1467,7 @@ mod tests {
             &[], // local variables
             code0,
             &[],
-            &[InitedDataEntry::from_i32(11)],
+            &[ReadWriteDataEntry::from_i32(11)],
             &[],
         );
 
@@ -1453,7 +1504,7 @@ mod tests {
             &[], // local variables
             code0,
             &[],
-            &[InitedDataEntry::from_i32(11)],
+            &[ReadWriteDataEntry::from_i32(11)],
             &[],
         );
 
@@ -1472,5 +1523,15 @@ mod tests {
         std::panic::set_hook(prev_hook);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_handler_data_bounds_check_dynamic_offset_out_of_range() {
+        // todo
+    }
+
+    #[test]
+    fn test_handler_data_unsupported_floating_point_variant() {
+        // todo
     }
 }

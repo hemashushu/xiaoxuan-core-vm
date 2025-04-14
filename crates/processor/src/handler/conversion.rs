@@ -6,6 +6,8 @@
 
 use anc_context::thread_context::ThreadContext;
 
+use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
+
 use super::{HandleResult, Handler};
 
 // demote i64 to i32
@@ -31,16 +33,24 @@ pub fn extend_i32_u_to_i64(_handler: &Handler, thread_context: &mut ThreadContex
 
 // demote f64 to f32
 pub fn demote_f64_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let value = thread_context.stack.pop_f64();
-    thread_context.stack.push_f32(value as f32);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f64() {
+        Ok(value) => {
+            thread_context.stack.push_f32(value as f32);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 // promote f32 to f64
 pub fn promote_f32_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let value = thread_context.stack.pop_f32();
-    thread_context.stack.push_f64(value as f64);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f32() {
+        Ok(value) => {
+            thread_context.stack.push_f64(value as f64);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 // convert float to int
@@ -49,72 +59,104 @@ pub fn convert_f32_to_i32_s(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f32();
-    thread_context.stack.push_i32_s(value as i32);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f32() {
+        Ok(value) => {
+            thread_context.stack.push_i32_s(value as i32);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f32_to_i32_u(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f32();
-    thread_context.stack.push_i32_u(value as u32);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f32() {
+        Ok(value) => {
+            thread_context.stack.push_i32_u(value as u32);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f64_to_i32_s(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f64();
-    thread_context.stack.push_i32_s(value as i32);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f64() {
+        Ok(value) => {
+            thread_context.stack.push_i32_s(value as i32);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f64_to_i32_u(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f64();
-    thread_context.stack.push_i32_u(value as u32);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f64() {
+        Ok(value) => {
+            thread_context.stack.push_i32_u(value as u32);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f32_to_i64_s(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f32();
-    thread_context.stack.push_i64_s(value as i64);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f32() {
+        Ok(value) => {
+            thread_context.stack.push_i64_s(value as i64);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f32_to_i64_u(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f32();
-    thread_context.stack.push_i64_u(value as u64);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f32() {
+        Ok(value) => {
+            thread_context.stack.push_i64_u(value as u64);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f64_to_i64_s(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f64();
-    thread_context.stack.push_i64_s(value as i64);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f64() {
+        Ok(value) => {
+            thread_context.stack.push_i64_s(value as i64);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn convert_f64_to_i64_u(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let value = thread_context.stack.pop_f64();
-    thread_context.stack.push_i64_u(value as u64);
-    HandleResult::Move(2)
+    match thread_context.stack.pop_f64() {
+        Ok(value) => {
+            thread_context.stack.push_i64_u(value as u64);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 // convert int to float
@@ -197,7 +239,7 @@ mod tests {
         process::process_function,
     };
 
-    use anc_context::process_resource::ProgramSource;
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,

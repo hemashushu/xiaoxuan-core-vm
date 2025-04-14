@@ -6,28 +6,54 @@
 
 use std::fmt::Display;
 
+pub mod nostd_stack;
 pub mod simple_stack;
 pub mod stack;
 
-// The initial size of the stack in bytes.
-// The stack will automatically grow when the available free space
-// is less than half of the current stack size.
-pub const INIT_STACK_SIZE_IN_BYTES: usize = 64 * 1024; // 64KB
+// The Program Counter (PC)
+// ------------------------
+//
+// On real hardware platforms, the program counter (PC), also known as the instruction pointer (IP),
+// is a CPU register that holds the memory address of the next instruction to execute.
+// A single address is sufficient because all code (including applications and shared libraries)
+// resides in a unified memory space.
+//
+// In the XiaoXuan Core VM, however, modules are independent entities, and functions
+// are accessed using their function index. Consequently, the program counter is represented
+// as a tuple: `(module index, function index, instruction address)`.
 
-// The maximum size of the stack in bytes.
-// This value matches the maximum stack size for Linux x86_64 systems.
-pub const MAX_STACK_SIZE_IN_BYTES: usize = 8 * 1024 * 1024; // 8MB
+// The `module_index` in `ProgramCounter` when returning from function calls
+// -------------------------------------------------------------------------
+//
+// When returning from a function call, if the most significant bit (MSB) of `module_index`
+// in the `ProgramCounter` is set to 1, it indicates that this is the first frame in a new
+// "function call path." A stack can have multiple "function call paths" because each callback
+// creates a new path.
+//
+// The following diagram illustrates the concept:
+//
+// ```diagram
+//              stack                      external
+//           |         |                   functions
+// calling | | frame 1 |    callback
+//  path 2 | | frame 0 | <--------------  /--------\
+//           |         |                  |        |
+//           |         |  call external   |  fn 1  |
+//           |         | -------------->  \--------/
+//         | | frame 4 |    function
+//         | | frame 3 |
+//         | | frame 2 |
+// calling | | frame 1 |    callback
+//  path 1 | | frame 0 | <--------------  /--------\
+//           |         |                  |        |
+//           |         |  call external   |  fn 0  |
+//           |         | -------------->  \--------/
+// calling | | frame 1 |    function
+//  path 0 | | frame 0 |
+//           \---------/ <-- stack start
+// ```
 
 /// Represents the location of the next instruction to be executed.
-///
-/// On real hardware platforms, the program counter (PC) or instruction pointer (IP)
-/// is a CPU register that holds the address of the next instruction to execute.
-/// A single address is sufficient since all code (including applications and shared libraries)
-/// resides in a unified memory space.
-///
-/// In the XiaoXuan Core VM, however, modules are independent objects, and functions
-/// are accessed using their function index. As a result, the program counter is represented
-/// as a tuple: `(module index, function index, instruction address)`.
 #[derive(Debug, PartialEq)]
 pub struct ProgramCounter {
     // The offset of the next instruction to be executed within the "FunctionSection".

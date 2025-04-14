@@ -5,4 +5,4 @@
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 pub mod allocator;
-pub mod dummy_allocator;
+pub mod simple_allocator;

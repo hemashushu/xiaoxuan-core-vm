@@ -80,6 +80,40 @@
 // \---------/ <-- Stack start.
 // ```
 
+// Frame Types
+// -----------
+// There are two kinds of frames: function frames and block frames. Block frames
+// are similar to function frames. They also have arguments and local variables,
+// but block frames do not have a return program counter (PC).
+
+// Arguments and local variables
+// -----------------------------
+//
+// Arguments of functions and blocks are also part of the local variables.
+//
+// |                         |
+// |-------------------------| <------
+// | local var 2 (idx 4)     |     ^
+// | local var 1 (idx 3)     |     |
+// | local var 0 (idx 2)     |     local vars area
+// |-------------------------|     |
+// | arg 1 (local var idx 1) |     |
+// | arg 0 (local var idx 0) |     v
+// |-------------------------| <------
+// | frame info              |
+// \-------------------------/ <-- frame start
+//
+// The value of `allocated_bytes` in the `LocalVariableSection` includes the length of
+// the arguments from functions and blocks. For example, a function with two `i32` arguments
+// and four `i32` local variables will have a value of
+// (4 * 8 bytes) + (2 * 8 bytes) = 48 bytes. (Each `i32` occurs 8 bytes in the stack.)
+//
+// In some stack-based VMs, the arguments of a function or block are placed at the top
+// of the stack, allowing direct access using instructions with implicit `pop` behavior
+// (e.g., `eq_i32` or `add_i32`). However, the XiaoXuan Core VM does not guarantee this behavior.
+// Local variables may be placed in a separate memory region. Always use "local_load/store_xxx"
+// instructions to read/write arguments.
+
 // Returning Multiple Values
 // -------------------------
 // On most architectures, only one or two values can be returned by a function (e.g.,
@@ -89,11 +123,13 @@
 // When interoperating with other programs (e.g., written in C), it is recommended to limit
 // function returns to a single value for compatibility.
 
-use anc_memory::{memory_access::MemoryAccess, MemoryError};
+use anc_memory::{
+    memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess, MemoryError,
+};
 
 use crate::{FrameType, ProgramCounter, StackError};
 
-pub trait Stack: MemoryAccess {
+pub trait OperandStack: PrimitiveMemoryAccess {
     fn push_i64_s(&mut self, value: i64);
     fn push_i64_u(&mut self, value: u64);
     fn push_i32_s(&mut self, value: i32);
@@ -179,6 +215,20 @@ pub trait Stack: MemoryAccess {
     // ```
     fn prepare_popping_operands_to_memory(&mut self, count: usize) -> *const u8;
 
+    /// Pushes the specified number of operands onto the operand stack
+    /// when the calling stack is empty.
+    ///
+    /// This method is used for passing arguments to the "entry" function.
+    fn push_first_operands(&mut self, data: &[u8]);
+
+    /// Pops the specified number of operands from the operand stack
+    /// when the calling stack is empty.
+    ///
+    /// This method is used for returning values from the "entry" function.
+    fn pop_last_operands(&mut self, count: usize) -> &[u8];
+}
+
+pub trait CallingStack {
     // Creates a new stack frame.
     //
     // Parameters:
@@ -218,16 +268,15 @@ pub trait Stack: MemoryAccess {
     // - The type of the frame that was reset.
     fn reset_frames(&mut self, reversed_index: u16) -> FrameType;
 
-    fn get_frame_local_variable_list_index_and_start_address_by_reversed_index(
+    /// Resets the stack to its initial state by clearing all data and resetting pointers.
+    fn reset(&mut self);
+
+    fn get_local_variable_list_index_and_start_address_by_reversed_index(
         &self,
         reversed_index: u16,
     ) -> (usize, usize);
-
-    fn push_first_operands(&mut self, data: &[u8]);
-
-    /// Pops the specified number of operands from the stack without boundary checks.
-    ///
-    /// This method is used when the stack is empty or when boundary checks are not required,
-    /// such as returning from the "entry" function of application.
-    fn pop_last_operands(&mut self, count: usize) -> &[u8];
 }
+
+pub trait LocalVariablesStack: MemoryAccess {}
+
+pub trait Stack: OperandStack + CallingStack + LocalVariablesStack {}

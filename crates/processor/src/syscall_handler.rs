@@ -16,9 +16,9 @@ pub type SysCallHandlerFunc = fn(
     &Handler,
     &mut ThreadContext,
     /* call_number */ usize,
-) -> Result</* err_no */ usize, /* ret value */ usize>;
+) -> Result</* error_number */ usize, /* return value */ usize>;
 
-// 1 type no args + 6 types with args = 7 types
+// 1 type without args + 6 types with args = total 7 types
 pub const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6;
 
 pub fn generate_syscall_handlers() -> [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] {

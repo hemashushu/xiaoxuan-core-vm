@@ -5,6 +5,9 @@
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
 use anc_context::thread_context::ThreadContext;
+use anc_memory::MemoryError;
+
+use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
 use super::{HandleResult, Handler};
 
@@ -33,371 +36,577 @@ pub fn neg_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 }
 
 pub fn abs_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.abs());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.abs());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn neg_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, -v);
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, -v);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn ceil_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.ceil());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.ceil());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn floor_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.floor());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.floor());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn round_half_away_from_zero_f32(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.round());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.round());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn round_half_to_even_f32(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let v = load_operand_f32(thread_context);
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            let toint_32: f32 = 1.0 / f32::EPSILON;
 
-    let toint_32: f32 = 1.0 / f32::EPSILON;
+            let e = v.to_bits() >> 23 & 0xff;
+            let r = if e >= 0x7f_u32 + 23 {
+                v
+            } else {
+                (v.abs() + toint_32 - toint_32).copysign(v)
+            };
 
-    let e = v.to_bits() >> 23 & 0xff;
-    let r = if e >= 0x7f_u32 + 23 {
-        v
-    } else {
-        (v.abs() + toint_32 - toint_32).copysign(v)
-    };
-
-    store_f32(thread_context, r);
-    HandleResult::Move(2)
+            store_f32(thread_context, r);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn trunc_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.trunc());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.trunc());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn fract_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.fract());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.fract());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn sqrt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.sqrt());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.sqrt());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn cbrt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.cbrt());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.cbrt());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn exp_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.exp());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.exp());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn exp2_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.exp2());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.exp2());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn ln_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.ln());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.ln());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log2_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.log2());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.log2());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log10_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.log10());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.log10());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn sin_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.sin());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.sin());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn cos_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.cos());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.cos());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn tan_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.tan());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.tan());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn asin_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.asin());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.asin());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn acos_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.acos());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.acos());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn atan_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f32(thread_context);
-    store_f32(thread_context, v.atan());
-    HandleResult::Move(2)
+    match load_operand_f32(thread_context) {
+        Ok(v) => {
+            store_f32(thread_context, v.atan());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn copysign_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (num, sign) = load_operands_f32(thread_context);
-    store_f32(thread_context, num.copysign(sign));
-    HandleResult::Move(2)
+    match load_operands_f32(thread_context) {
+        Ok((num, sign)) => {
+            store_f32(thread_context, num.copysign(sign));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn pow_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (base, exponent) = load_operands_f32(thread_context);
-    store_f32(thread_context, base.powf(exponent));
-    HandleResult::Move(2)
+    match load_operands_f32(thread_context) {
+        Ok((base, exponent)) => {
+            store_f32(thread_context, base.powf(exponent));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (number, base) = load_operands_f32(thread_context);
-    store_f32(thread_context, number.log(base));
-    HandleResult::Move(2)
+    match load_operands_f32(thread_context) {
+        Ok((number, base)) => {
+            store_f32(thread_context, number.log(base));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn min_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f32(thread_context);
-    store_f32(thread_context, f32::min(left, right));
-    HandleResult::Move(2)
+    match load_operands_f32(thread_context) {
+        Ok((left, right)) => {
+            store_f32(thread_context, f32::min(left, right));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn max_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f32(thread_context);
-    store_f32(thread_context, f32::max(left, right));
-    HandleResult::Move(2)
+    match load_operands_f32(thread_context) {
+        Ok((left, right)) => {
+            store_f32(thread_context, f32::max(left, right));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn abs_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.abs());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.abs());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn neg_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, -v);
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, -v);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn ceil_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.ceil());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.ceil());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn floor_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.floor());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.floor());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn round_half_away_from_zero_f64(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.round());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.round());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn round_half_to_even_f64(
     _handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    let v = load_operand_f64(thread_context);
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            let toint_64: f64 = 1.0 / f64::EPSILON;
 
-    let toint_64: f64 = 1.0 / f64::EPSILON;
+            let e = v.to_bits() >> 52 & 0x7ff_u64;
+            let r = if e >= 0x3ff_u64 + 52 {
+                v
+            } else {
+                (v.abs() + toint_64 - toint_64).copysign(v)
+            };
 
-    let e = v.to_bits() >> 52 & 0x7ff_u64;
-    let r = if e >= 0x3ff_u64 + 52 {
-        v
-    } else {
-        (v.abs() + toint_64 - toint_64).copysign(v)
-    };
-
-    store_f64(thread_context, r);
-    HandleResult::Move(2)
+            store_f64(thread_context, r);
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn trunc_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.trunc());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.trunc());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn fract_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.fract());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.fract());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn sqrt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.sqrt());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.sqrt());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn cbrt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.cbrt());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.cbrt());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn exp_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.exp());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.exp());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn exp2_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.exp2());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.exp2());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn ln_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.ln());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.ln());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log2_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.log2());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.log2());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log10_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.log10());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.log10());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn sin_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.sin());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.sin());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn cos_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.cos());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.cos());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn tan_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.tan());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.tan());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn asin_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.asin());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.asin());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn acos_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.acos());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.acos());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn atan_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let v = load_operand_f64(thread_context);
-    store_f64(thread_context, v.atan());
-    HandleResult::Move(2)
+    match load_operand_f64(thread_context) {
+        Ok(v) => {
+            store_f64(thread_context, v.atan());
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn copysign_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (num, sign) = load_operands_f64(thread_context);
-    store_f64(thread_context, num.copysign(sign));
-    HandleResult::Move(2)
+    match load_operands_f64(thread_context) {
+        Ok((num, sign)) => {
+            store_f64(thread_context, num.copysign(sign));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn pow_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (base, exponent) = load_operands_f64(thread_context);
-    store_f64(thread_context, base.powf(exponent));
-    HandleResult::Move(2)
+    match load_operands_f64(thread_context) {
+        Ok((base, exponent)) => {
+            store_f64(thread_context, base.powf(exponent));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn log_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (number, base) = load_operands_f64(thread_context);
-    store_f64(thread_context, number.log(base));
-    HandleResult::Move(2)
+    match load_operands_f64(thread_context) {
+        Ok((number, base)) => {
+            store_f64(thread_context, number.log(base));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn min_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f64(thread_context);
-    store_f64(thread_context, f64::min(left, right));
-    HandleResult::Move(2)
+    match load_operands_f64(thread_context) {
+        Ok((left, right)) => {
+            store_f64(thread_context, f64::min(left, right));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn max_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    let (left, right) = load_operands_f64(thread_context);
-    store_f64(thread_context, f64::max(left, right));
-    HandleResult::Move(2)
+    match load_operands_f64(thread_context) {
+        Ok((left, right)) => {
+            store_f64(thread_context, f64::max(left, right));
+            HandleResult::Move(2)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 #[inline]
-fn load_operand_f32(thread_context: &mut ThreadContext) -> f32 {
+fn load_operand_f32(thread_context: &mut ThreadContext) -> Result<f32, MemoryError> {
     thread_context.stack.pop_f32()
 }
 
 #[inline]
-fn load_operands_f32(thread_context: &mut ThreadContext) -> (f32, f32) {
-    let right = thread_context.stack.pop_f32();
-    let left = thread_context.stack.pop_f32();
-    (left, right)
+fn load_operands_f32(thread_context: &mut ThreadContext) -> Result<(f32, f32), MemoryError> {
+    let right = thread_context.stack.pop_f32()?;
+    let left = thread_context.stack.pop_f32()?;
+    Ok((left, right))
 }
 
 #[inline]
-fn load_operand_f64(thread_context: &mut ThreadContext) -> f64 {
+fn load_operand_f64(thread_context: &mut ThreadContext) -> Result<f64, MemoryError> {
     thread_context.stack.pop_f64()
 }
 
 #[inline]
-fn load_operands_f64(thread_context: &mut ThreadContext) -> (f64, f64) {
-    let right = thread_context.stack.pop_f64();
-    let left = thread_context.stack.pop_f64();
-    (left, right)
+fn load_operands_f64(thread_context: &mut ThreadContext) -> Result<(f64, f64), MemoryError> {
+    let right = thread_context.stack.pop_f64()?;
+    let left = thread_context.stack.pop_f64()?;
+    Ok((left, right))
 }
 
 #[inline]
@@ -412,13 +621,14 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 
 #[cfg(test)]
 mod tests {
+    use anc_context::program_source::ProgramSource;
     use pretty_assertions::assert_eq;
 
     use crate::{
         handler::Handler, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
-    use anc_context::process_resource::ProgramSource;
+
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,

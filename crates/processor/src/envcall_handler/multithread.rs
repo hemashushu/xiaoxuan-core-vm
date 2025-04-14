@@ -125,7 +125,7 @@ pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadCo
                 let result = child_thread.join_handle.join().unwrap();
                 match result {
                     Ok(thread_exit_code) => (thread_exit_code, 0),
-                    // there is no way to return the details of FunctionEntryError in the
+                    // there is no way to return the details of ProcessorError in the
                     // child thread, so only the panic can be thrown.
                     Err(e) => panic!("Child thread panic: {}", e),
                 }

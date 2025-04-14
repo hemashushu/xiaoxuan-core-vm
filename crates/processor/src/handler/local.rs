@@ -4,7 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use anc_context::{memory_access::MemoryAccess, thread_context::ThreadContext};
+use anc_context::thread_context::ThreadContext;
+
+use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
 use super::{HandleResult, Handler};
 
@@ -47,27 +49,28 @@ fn do_local_load_i64(
     offset_bytes: usize,
 ) -> HandleResult {
     // there are two approachs to transfer data from memory to stack, one
-    // is to read data from memory to a (integer) variable and then
-    // push the variable onto the stack, e.g.
+    // is to read data (integer or floating point number) from memory to
+    // a temporary variable, and then push the variable onto the stack, e.g.
     //
     // ```rust
-    // let data = stack.read_u64(data_address);
-    // stack.push_u64(data);
+    // let num = stack.read_u64(data_address, offset);
+    // stack.push_u64(num);
     // ```
     //
-    // the another approach is the 'memcpy'.
-    // the latter has a higher efficiency because it eliminates data conversion,
-    // so the second method is adopted.
+    // the another approach is using "memory copy",
+    // which has a higher efficiency because it eliminates data conversion,
+    // the second method is adopted here.
 
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    thread_context.stack.load_i64(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
+    thread_context
+        .stack
+        .read_i64(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -106,14 +109,15 @@ fn do_local_load_i32_s(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    thread_context.stack.load_i32_s(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    thread_context
+        .stack
+        .read_i32_s(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -152,14 +156,15 @@ fn do_local_load_i32_u(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    thread_context.stack.load_i32_u(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    thread_context
+        .stack
+        .read_i32_u(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -198,14 +203,15 @@ fn do_local_load_i16_s(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    thread_context.stack.load_i16_s(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    thread_context
+        .stack
+        .read_i16_s(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -244,14 +250,15 @@ fn do_local_load_i16_u(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    thread_context.stack.load_i16_u(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    thread_context
+        .stack
+        .read_i16_u(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -290,14 +297,15 @@ fn do_local_load_i8_s(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    thread_context.stack.load_i8_s(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    thread_context
+        .stack
+        .read_i8_s(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -336,14 +344,15 @@ fn do_local_load_i8_u(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    thread_context.stack.load_i8_u(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    thread_context
+        .stack
+        .read_i8_u(data_address, offset_bytes, dst_ptr);
 
     HandleResult::Move(8)
 }
@@ -382,16 +391,20 @@ fn do_local_load_f32(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    thread_context.stack.load_f32(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
 
-    HandleResult::Move(8)
+    match thread_context
+        .stack
+        .read_f32(data_address, offset_bytes, dst_ptr)
+    {
+        Ok(_) => HandleResult::Move(8),
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -428,16 +441,20 @@ fn do_local_load_f64(
     offset_bytes: usize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    thread_context.stack.load_f64(data_address, dst_ptr);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
 
-    HandleResult::Move(8)
+    match thread_context
+        .stack
+        .read_f64(data_address, offset_bytes, dst_ptr)
+    {
+        Ok(_) => HandleResult::Move(8),
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
+    }
 }
 
 pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -478,14 +495,15 @@ fn do_local_store_i64(
     offset_bytes: usize,
     src_ptr: *const u8,
 ) -> HandleResult {
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_64_BIT,
-        );
-    thread_context.stack.store_i64(src_ptr, data_address);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_64_BIT,
+    );
+    thread_context
+        .stack
+        .write_i64(src_ptr, data_address, offset_bytes);
 
     HandleResult::Move(8)
 }
@@ -528,14 +546,15 @@ fn do_local_store_i32(
     offset_bytes: usize,
     src_ptr: *const u8,
 ) -> HandleResult {
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_32_BIT,
-        );
-    thread_context.stack.store_i32(src_ptr, data_address);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_32_BIT,
+    );
+    thread_context
+        .stack
+        .write_i32(src_ptr, data_address, offset_bytes);
 
     HandleResult::Move(8)
 }
@@ -578,14 +597,15 @@ fn do_local_store_i16(
     offset_bytes: usize,
     src_ptr: *const u8,
 ) -> HandleResult {
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_16_BIT,
-        );
-    thread_context.stack.store_i16(src_ptr, data_address);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_16_BIT,
+    );
+    thread_context
+        .stack
+        .write_i16(src_ptr, data_address, offset_bytes);
 
     HandleResult::Move(8)
 }
@@ -628,27 +648,26 @@ fn do_local_store_i8(
     offset_bytes: usize,
     src_ptr: *const u8,
 ) -> HandleResult {
-    let data_address = thread_context
-        .get_local_variable_start_address(
-            reversed_index,
-            local_variable_index,
-            offset_bytes,
-            DATA_LENGTH_IN_BYTES_8_BIT,
-        );
-    thread_context.stack.store_i8(src_ptr, data_address);
+    let data_address = thread_context.get_local_variable_start_address(
+        reversed_index,
+        local_variable_index,
+        offset_bytes,
+        DATA_LENGTH_IN_BYTES_8_BIT,
+    );
+    thread_context
+        .stack
+        .write_i8(src_ptr, data_address, offset_bytes);
 
     HandleResult::Move(8)
 }
 
-// note::
-//
-// all testing here are ignore the 'reversed_index' because it relies on
-// the instruction 'block'.
-// the 'reversed_index' will be tested on the module 'interpreter/control_flow'.
 
+// all testing here are ignore the `reversed_index` parameter because it relies on
+// the instruction `block`.
+// the `reversed_index` will be tested on the module 'interpreter/control_flow'.
 #[cfg(test)]
 mod tests {
-    use anc_context::process_resource::ProgramSource;
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper, entry::LocalVariableEntry,
         utils::helper_build_module_binary_with_single_function,

@@ -63,9 +63,10 @@ pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 mod tests {
     use crate::{
         handler::Handler, in_memory_program_source::InMemoryProgramSource,
-        process::process_function, FunctionEntryError, FunctionEntryErrorType, TERMINATE_CODE_UNREACHABLE,
+        process::process_function, ProcessorError, ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
     };
-    use anc_context::process_resource::ProgramSource;
+
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
@@ -122,8 +123,8 @@ mod tests {
 
         assert!(matches!(
             result0,
-            Err(FunctionEntryError {
-                type_: FunctionEntryErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
+            Err(ProcessorError {
+                error_type: ProcessorErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
             })
         ));
     }

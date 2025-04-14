@@ -15,7 +15,7 @@ use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
 use crate::{
-    handler::Handler, process::process_function, FunctionEntryError, FunctionEntryErrorType,
+    handler::Handler, process::process_function, ProcessorError, ProcessorErrorType,
     GenericError,
 };
 
@@ -185,22 +185,22 @@ pub fn create_thread(
                 &[],
             );
 
-            // returns Result<Vec<ForeignValue>, Box<FunctionEntryError>>.
+            // returns Result<Vec<ForeignValue>, Box<ProcessorError>>.
             //
             // the 'thread start function' should only return one value,
             // it is the user-defined thread exit code.
             let result = match result_foreign_values {
                 Ok(foreign_values) => {
                     if foreign_values.len() != 1 {
-                        Err(FunctionEntryError::new(
-                            FunctionEntryErrorType::ResultsAmountMissmatch,
+                        Err(ProcessorError::new(
+                            ProcessorErrorType::ResultsAmountMissmatch,
                         ))
                     } else {
                         if let ForeignValue::U32(exit_code) = foreign_values[0] {
                             Ok(exit_code)
                         } else {
-                            Err(FunctionEntryError::new(
-                                FunctionEntryErrorType::DataTypeMissmatch,
+                            Err(ProcessorError::new(
+                                ProcessorErrorType::DataTypeMissmatch,
                             ))
                         }
                     }

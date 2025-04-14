@@ -11,7 +11,7 @@ use crate::{
     handler::Handler,
     multithread_handler::{HANDLER_ADDRESS, PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA},
     process::process_function,
-    FunctionEntryError, FunctionEntryErrorType,
+    ProcessorError, ProcessorErrorType,
 };
 
 // pub fn start_with_multiple_thread(
@@ -63,7 +63,7 @@ pub fn start_program(
     process_context: &ProcessContext,
     internal_entry_point_name: &str,
     thread_start_data: Vec<u8>,
-) -> Result<u32, FunctionEntryError> {
+) -> Result<u32, ProcessorError> {
     let handler = Handler::new();
     let handler_address = &handler as *const Handler as *const u8 as usize;
     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
@@ -91,8 +91,8 @@ pub fn start_program(
     {
         idx
     } else {
-        return Err(FunctionEntryError::new(
-            FunctionEntryErrorType::EntryPointNotFound(internal_entry_point_name.to_owned()),
+        return Err(ProcessorError::new(
+            ProcessorErrorType::EntryPointNotFound(internal_entry_point_name.to_owned()),
         ));
     };
 
@@ -112,15 +112,15 @@ pub fn start_program(
     match result_foreign_values {
         Ok(foreign_values) => {
             if foreign_values.len() != 1 {
-                Err(FunctionEntryError::new(
-                    FunctionEntryErrorType::ResultsAmountMissmatch,
+                Err(ProcessorError::new(
+                    ProcessorErrorType::ResultsAmountMissmatch,
                 ))
             } else {
                 if let ForeignValue::U32(exit_code) = foreign_values[0] {
                     Ok(exit_code)
                 } else {
-                    Err(FunctionEntryError::new(
-                        FunctionEntryErrorType::DataTypeMissmatch,
+                    Err(ProcessorError::new(
+                        ProcessorErrorType::DataTypeMissmatch,
                     ))
                 }
             }

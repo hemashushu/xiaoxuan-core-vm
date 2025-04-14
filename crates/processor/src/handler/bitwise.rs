@@ -252,7 +252,7 @@ mod tests {
         handler::Handler, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
-    use anc_context::process_resource::ProgramSource;
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,

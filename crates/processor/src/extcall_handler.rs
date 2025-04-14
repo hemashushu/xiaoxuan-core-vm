@@ -4,26 +4,28 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// the external function
-// ---------------------
+// how to call external functions
+// ------------------------------
 //
-//      VM Runtime
-// /------------------------------------\
-// |                    VM module       |
-// | /----------------------------\     |
-// | | module function (bytecode) |     |
-// | \----------------------------/     |
-// |    |                               |
-// | fn wrapper_0 (...)                 |
-// |    |         (generate by JIT)     |
-// \------------------------------------/
-//      |
-//      V                   Rust/C application
-// /----------------------------------------------\
-// | fn external_func (a:i32, b:i32) -> i32 {...} |
-// |                                              |
-// \----------------------------------------------/
-//
+// ```diagram
+//        VM Runtime
+// /----------------------\
+// |     VM module         |
+// |  /--------------\     |
+// |  | VM functions |     |
+// |  \--------------/     |
+// |     |                 |
+// |     v                 |
+// |  Wrapper functions    | one wrapper function per
+// |     |                 | signature (i.e., params and results),
+// |     |                 | generate by JIT compiler.
+// \-----------------------/
+//       |
+//       V  Rust/C libraries
+// /-----------------------\
+// | external functions    |
+// \-----------------------/
+// ```
 
 use core::str;
 use std::{ffi::c_void, path::PathBuf, sync::Mutex};
@@ -33,6 +35,7 @@ use anc_context::{
         ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
+    process_property::ProgramSourceType,
     thread_context::ThreadContext,
 };
 use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
@@ -41,22 +44,30 @@ use cranelift_frontend::FunctionBuilder;
 use cranelift_jit::JITModule;
 use cranelift_module::{Linkage, Module};
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
+use resolve_path::PathResolveExt;
 
 use crate::{
     code_generator::Generator, handler::Handler,
-    jit_context::convert_vm_operand_data_type_to_jit_type, FunctionEntryError,
-    FunctionEntryErrorType,
+    jit_context::convert_vm_operand_data_type_to_jit_type, ProcessorError, ProcessorErrorType,
 };
 
 static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
-pub fn get_or_create_external_function(
+pub fn get_or_create_external_function_and_wrapper_function(
     handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     external_function_index: usize,
-) -> Result<(*mut c_void, WrapperFunction, usize, bool), FunctionEntryError> {
-    // external function index bounds check for compilation error
+) -> Result<
+    (
+        /* external_function_pointer */ *mut c_void,
+        /* wrapper_function */ WrapperFunction,
+        /* param_count */ usize,
+        /* contains_return_value */ bool,
+    ),
+    ProcessorError,
+> {
+    // external function index bounds check.
     #[cfg(debug_assertions)]
     {
         let count = thread_context
@@ -64,7 +75,7 @@ pub fn get_or_create_external_function(
             .external_function_index_section
             .get_items_count(module_index);
 
-        if external_function_index > range.count as usize {
+        if external_function_index > count as usize {
             panic!("Out of bounds of the external function index, module index:{}, total external functions: {}, request external function index: {}",
                             module_index,
                             count,
@@ -91,75 +102,70 @@ pub fn get_or_create_external_function(
 
     let param_count = param_datatypes.len();
 
-    // note that for the compatible 'C' function call convention, only
+    // for the compatible with C function callinf convention, only
     // one or zero result is allowed.
-    let has_return_value = !result_datatypes.is_empty();
+    if result_datatypes.len() > 1 {
+        return Err(ProcessorError {
+            error_type: ProcessorErrorType::ExternalFunctionMoreThanOneResult,
+        });
+    }
 
-    let opt_func_pointer_and_wrapper = {
+    let contains_return_value = !result_datatypes.is_empty();
+
+    let opt_external_function_pointer_and_wrapper_function = {
         let table = thread_context.external_function_table.lock().unwrap();
         table.get_external_function_pointer_and_wrapper_function(unified_external_function_index)
     };
 
-    if let Some((external_function_pointer, wrapper_function)) = opt_func_pointer_and_wrapper {
+    if let Some((external_function_pointer, wrapper_function)) =
+        opt_external_function_pointer_and_wrapper_function
+    {
         return Ok((
             external_function_pointer,
             wrapper_function,
             param_count,
-            has_return_value,
+            contains_return_value,
         ));
     }
 
-    // // get the name of the external function and
-    // // the index of the unified external library
-    // // let (external_function_name, unified_external_library_index) = thread_context
-    // //     .module_linking_instance
-    // //     .unified_external_function_section
-    // //     .get_item_name_and_unified_external_library_index(unified_external_function_index);
-
     // get the dependent info of the external library
-    let (_, _, external_library_value) = thread_context
+    let (_, _, external_library_value_data) = thread_context
         .module_linking_instance
         .unified_external_library_section
         .get_item_name_and_external_library_dependent_type_and_value(
             unified_external_library_index,
         );
 
-    let value_str = unsafe { str::from_utf8_unchecked(external_library_value) };
-
+    let value_str = unsafe { str::from_utf8_unchecked(external_library_value_data) };
     let value: ExternalLibraryDependency = ason::from_str(value_str).unwrap();
 
     let external_library_file_path_or_file_name = match value {
         ExternalLibraryDependency::Local(dependency_local) => {
             let path = dependency_local.path;
 
-            // todo
-            // if p.startsWith('~') ...
-            // if p.isAbsolutePath() ...
-            // if external_library_name is relate path ...
-            let mut path_buf = PathBuf::from(&thread_context.program_proerty.application_path);
-            if thread_context.program_proerty.is_script {
-                path_buf.pop();
+            let mut module_path_buf = PathBuf::from(&thread_context.process_property.program_path);
+            if thread_context.process_property.program_source_type != ProgramSourceType::Module {
+                module_path_buf.pop();
             }
-            path_buf.push(path);
-            path_buf.as_os_str().to_string_lossy().to_string()
+
+            let library_path = path.try_resolve_in(&module_path_buf).unwrap_or_else(|_| {
+                panic!("Failed to resolve external library path: {}", path);
+            });
+
+            let library_path_str = library_path.to_str().unwrap_or_else(|| {
+                panic!(
+                    "Failed to convert external library path to string: {}",
+                    path
+                )
+            });
+
+            library_path_str.to_owned()
         }
         ExternalLibraryDependency::Remote(_) => {
             todo!()
         }
         ExternalLibraryDependency::Share(_) => {
-            // the local folder for storing the shared modules and libraries which
-            // comes from repository, e.g.
-            //
-            // `~/.anc`
-            //
-            // note the this path SHOULD NOT include the runtime version number.
-            //
-            // thus the computed shared module and libraries path are:
-            // - `~/.anc/1.0/modules/foo/1.0.1/{src,target}`
-            // - `~/.anc/1.0/libraries/bar/1.0.2/{lib,include}`
             todo!()
-
-            // check that each file exists
         }
         ExternalLibraryDependency::System(file_name) => file_name.to_owned(),
     };
@@ -167,27 +173,28 @@ pub fn get_or_create_external_function(
     let mut table = thread_context.external_function_table.lock().unwrap();
     let mut jit_generator = handler.jit_generator.lock().unwrap();
 
-    let (external_function_pointer, wrapper_function) = add_external_function(
-        &mut jit_generator,
-        &mut table,
-        unified_external_function_index,
-        unified_external_library_index,
-        &external_library_file_path_or_file_name,
-        external_function_name,
-        param_datatypes,
-        result_datatypes,
-    )?;
+    let (external_function_pointer, wrapper_function) =
+        add_external_function_and_create_wrapper_function(
+            &mut jit_generator,
+            &mut table,
+            unified_external_function_index,
+            unified_external_library_index,
+            &external_library_file_path_or_file_name,
+            external_function_name,
+            param_datatypes,
+            result_datatypes,
+        )?;
 
     Ok((
         external_function_pointer,
         wrapper_function,
         param_count,
-        has_return_value,
+        contains_return_value,
     ))
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn add_external_function(
+fn add_external_function_and_create_wrapper_function(
     jit_generator: &mut Generator<JITModule>,
     external_function_table: &mut ExternalFunctionTable,
     unified_external_function_index: usize,
@@ -196,14 +203,7 @@ pub fn add_external_function(
     external_function_name: &str,
     param_datatypes: &[OperandDataType],
     result_datatypes: &[OperandDataType],
-) -> Result<(*mut c_void, WrapperFunction), FunctionEntryError> {
-    if result_datatypes.len() > 1 {
-        // The specified function has more than 1 return value.
-        return Err(FunctionEntryError {
-            type_: FunctionEntryErrorType::ResultsAmountMissmatch,
-        });
-    }
-
+) -> Result<(*mut c_void, WrapperFunction), ProcessorError> {
     // find external library pointer
     let library_pointer = if let Some(unified_external_library_pointer_item) =
         &external_function_table.unified_external_library_pointer_list
@@ -222,16 +222,16 @@ pub fn add_external_function(
     let function_pointer = if let Ok(p) = load_symbol(library_pointer, external_function_name) {
         p
     } else {
-        return Err(FunctionEntryError {
-            type_: FunctionEntryErrorType::ItemNotFound,
+        return Err(ProcessorError {
+            error_type: ProcessorErrorType::ItemNotFound,
         });
     };
 
-    // find wrapper function index
+    // find the wrapper function.
     //
     // note that not every external function has a corresponding wrapper function,
-    // in fact, as long as the functions are of the same type (i.e., have the same
-    // parameters and return values), they will share a wrapper function.
+    // since all external functions with the same signature (i.e., the same
+    // parameters and return values) share one wrapper function.
     let wrapper_function_index = if let Some(wrapper_function_index) = external_function_table
         .wrapper_function_list
         .iter()
@@ -241,7 +241,7 @@ pub fn add_external_function(
         }) {
         wrapper_function_index
     } else {
-        add_wrapper_function(
+        create_and_add_wrapper_function(
             jit_generator,
             external_function_table,
             param_datatypes,
@@ -249,11 +249,13 @@ pub fn add_external_function(
         )
     };
 
-    // update external_function_pointer_list
+    // update the table
+
     let unified_external_function_pointer_item = UnifiedExternalFunctionPointerItem {
         address: function_pointer as usize,
         wrapper_function_index,
     };
+
     external_function_table.unified_external_function_pointer_list
         [unified_external_function_index] = Some(unified_external_function_pointer_item);
 
@@ -267,12 +269,12 @@ fn add_external_library(
     external_function_table: &mut ExternalFunctionTable,
     unified_external_library_index: usize,
     external_library_file_path_or_name: &str,
-) -> Result<*mut c_void, FunctionEntryError> {
+) -> Result<*mut c_void, ProcessorError> {
     let library_pointer = if let Ok(p) = load_library(external_library_file_path_or_name) {
         p
     } else {
-        return Err(FunctionEntryError {
-            type_: FunctionEntryErrorType::ItemNotFound,
+        return Err(ProcessorError {
+            error_type: ProcessorErrorType::ItemNotFound,
         });
     };
 
@@ -283,7 +285,7 @@ fn add_external_library(
     Ok(library_pointer)
 }
 
-fn add_wrapper_function(
+fn create_and_add_wrapper_function(
     jit_generator: &mut Generator<JITModule>,
     external_function_table: &mut ExternalFunctionTable,
     param_types: &[OperandDataType],
@@ -292,7 +294,7 @@ fn add_wrapper_function(
     // build wrapper function
     let wrapper_function_index = external_function_table.wrapper_function_list.len();
 
-    let wrapper_function_pointer = build_wrapper_function(
+    let wrapper_function_pointer = create_wrapper_function(
         jit_generator,
         /* wrapper_function_index, */ param_types,
         result_types,
@@ -313,34 +315,36 @@ fn add_wrapper_function(
     wrapper_function_index
 }
 
-// the wrapper function:
+// the signature and body of wrapper function:
 //
+// ```rust
 // extern "C" fn wrapper_function (
 //     external_function_pointer: *const c_void,
 //     params_ptr: *const u8,
 //     results_ptr: *mut u8) {
-//     1. read params from memory of 'params'
-//     2. call external function
-//     3. write return value to memory of 'results'
+//
+//     /* 1. read params from memory pointer `params_ptr` */
+//     /* 2. call external function */
+//     /* 3. write return value to memory pointer `results_ptr` */
+//
 // }
-pub fn build_wrapper_function(
-    /* wrapper_function_index: usize, */
+// ```
+pub fn create_wrapper_function(
     jit_generator: &mut Generator<JITModule>,
     params: &[OperandDataType],
     results: &[OperandDataType],
 ) -> *const u8 {
-    // let mut mutex_jit_generator = get_jit_generator_without_imported_symbols();
-    // let jit_generator = mutex_jit_generator.as_mut().unwrap();
-
     let pointer_type = jit_generator.module.isa().pointer_type();
     let mem_flags = MemFlags::new();
 
-    // the signature of the external function:
+    // build the signature of the external function:
     //
+    // ```rust
     // extern "C" fn external_function (
     //     param0,
     //     param1,
-    //     paramN) -> ?;
+    //     paramN) -> (zero_or_one_result);
+    // ```
     let mut func_external_sig = jit_generator.module.make_signature();
     for dt in params {
         func_external_sig
@@ -355,12 +359,14 @@ pub fn build_wrapper_function(
             )));
     }
 
-    // the signature of the wrapper function:
+    // build the signature of the wrapper function:
     //
+    // ```rust
     // extern "C" fn wrapper_function (
     //     external_function_pointer: *const c_void,
     //     params_ptr: *const u8,
     //     results_ptr: *mut u8);
+    // ```
 
     let mut func_wrapper_sig = jit_generator.module.make_signature();
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // external_function_pointer
@@ -368,7 +374,7 @@ pub fn build_wrapper_function(
     func_wrapper_sig.params.push(AbiParam::new(pointer_type)); // results_ptr
 
     // the name of wrapper function needs to be constructed using a
-    // "process global unique" id, otherwise duplicate ids will be generated
+    // "process global unique id", otherwise, duplicate ids will be generated
     // in unit tests due to parallet running, which will eventually cause
     // the wrapper function construction to fail.
 
@@ -435,7 +441,7 @@ pub fn build_wrapper_function(
 
         // println!("{}", func_wrapper.display());
 
-        // generate the (machine/native) code of func_bridge
+        // generate the (machine/native) code of wrapper function
         jit_generator.context.func = func_wrapper;
 
         jit_generator
@@ -451,7 +457,7 @@ pub fn build_wrapper_function(
     // link
     jit_generator.module.finalize_definitions().unwrap();
 
-    // get func_bridge ptr
+    // get wrapper function pointer
     jit_generator
         .module
         .get_finalized_function(func_wrapper_declare)

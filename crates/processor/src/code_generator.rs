@@ -16,7 +16,7 @@ use cranelift_module::{
 };
 use cranelift_object::{ObjectBuilder, ObjectModule};
 
-// Documents of the Cranelift
+// Documents of the Cranelift:
 //
 // - home: https://cranelift.dev/
 // - source code: https://github.com/bytecodealliance/wasmtime/tree/main/cranelift
@@ -52,7 +52,7 @@ where
 }
 
 impl Generator<JITModule> {
-    // Documents of JITModule
+    // Documents of JITModule:
     //
     // - source code: https://github.com/bytecodealliance/wasmtime/tree/main/cranelift/jit
     // - docs: https://docs.rs/cranelift-jit/latest/cranelift_jit/
@@ -246,13 +246,12 @@ where
     // 2. let target_address = ins().symbol_value(gv)
     // 3. let value = ins().load(target_address)
     #[allow(dead_code)]
-    pub fn define_initialized_data(
+    pub fn define_read_only_data(
         &mut self,
         name: &str,
         data: Vec<u8>,
         align: u64,
         export: bool,
-        writable: bool,
         thread_local: bool,
     ) -> Result<DataId, ModuleError> {
         let linkage = if export {
@@ -267,7 +266,36 @@ where
 
         let data_id = self
             .module
-            .declare_data(name, linkage, writable, thread_local)?;
+            .declare_data(name, linkage, false, thread_local)?;
+
+        self.module.define_data(data_id, &self.data_description)?;
+
+        self.data_description.clear();
+
+        Ok(data_id)
+    }
+
+    #[allow(dead_code)]
+    pub fn define_read_write_data(
+        &mut self,
+        name: &str,
+        data: Vec<u8>,
+        align: u64,
+        export: bool,
+        thread_local: bool,
+    ) -> Result<DataId, ModuleError> {
+        let linkage = if export {
+            Linkage::Export
+        } else {
+            Linkage::Local
+        };
+
+        self.data_description.define(data.into_boxed_slice());
+        self.data_description.set_align(align);
+
+        let data_id = self
+            .module
+            .declare_data(name, linkage, true, thread_local)?;
 
         self.module.define_data(data_id, &self.data_description)?;
 

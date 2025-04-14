@@ -4,57 +4,51 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use anc_context::thread_context::{ProgramCounter, ThreadContext};
+use anc_context::thread_context::ThreadContext;
 use anc_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
+use anc_stack::ProgramCounter;
 
 use crate::{
     handler::{HandleResult, Handler},
-    FunctionEntryError, FunctionEntryErrorType,
+    ProcessorError, ProcessorErrorType,
 };
 
 // the `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicated
-// the current function stack is nested, for example,
-// it's within the callback function call.
+// the current function is the last function of "calling path" (each
+// callback function will generate a new calling path).
 //
-// if the value of the MSB of 'return module index' is '1',
-// it indicates that the `process_continuous_instructions()` should be terminated
-// instead of returns to caller.
+// if the current function is the last function of "calling path",
+// the `process_continuous_instructions()` should be terminated.
 pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
 
-// note:
-// the value of 'function public index' includes the amount of imported functions,
-// it equals to 'amount of imported functions' + 'function internal index'
 pub fn process_function(
     handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
     arguments: &[ForeignValue],
-) -> Result<Vec<ForeignValue>, FunctionEntryError> {
+) -> Result<Vec<ForeignValue>, ProcessorError> {
     // reset the statck
     thread_context.stack.reset();
 
-    // find the code start address
-    let (target_module_index, function_internal_index) = thread_context
-        .get_target_function_object(module_index, function_public_index);
-    let (type_index, local_variable_list_index, code_offset, local_variables_with_arguments_allocated_bytes) =
-        thread_context
-            .get_function_info(
-                target_module_index,
-                function_internal_index,
-            );
+    let target_function_object =
+        thread_context.get_target_function_object(module_index, function_public_index);
+    let function_info = thread_context.get_function_info(
+        target_function_object.module_index,
+        target_function_object.function_internal_index,
+    );
 
     let (params, results) = {
-        let pars = thread_context.module_common_instances[target_module_index]
+        let pars = thread_context.module_common_instances[target_function_object.module_index]
             .type_section
-            .get_item_params_and_results(type_index);
+            .get_item_params_and_results(function_info.type_index);
         (pars.0.to_vec(), pars.1.to_vec())
     };
 
     // the number of arguments does not match the specified funcion.
     if arguments.len() != params.len() {
-        return Err(FunctionEntryError::new(
-            FunctionEntryErrorType::ParametersAmountMissmatch,
+        return Err(ProcessorError::new(
+            ProcessorErrorType::ParametersAmountMissmatch,
         ));
     }
 
@@ -63,24 +57,29 @@ pub fn process_function(
     //
     // the first value will be inserted first, and placed at the stack bottom side:
     //
+    // ```diagram
     // array [0, 1, 2] -> |  2  | <-- high addr
     //                    |  1  |
     //                    |  0  |
     //                    \-----/ <-- low addr
+    // ```
     //
     // the reason why the arguments on the left side are pushed first onto the stack
-    // is to make it easier to copy or move several consecutive arguments.
+    // is because the statck bottom is low address, thus make it easier to copy or move several consecutive arguments
+    // to an array.
     //
     // e.g.
-    // stack[low_addr] = arg 0
-    // stack[low_addr + OPERAND_SIZE] = arg 1
+    //
+    // ```c
+    // stack[low_addr] = arg0
+    // stack[low_addr + OPERAND_SIZE] = arg1
     // ...
-    // stack[high_addr] = arg n
+    // stack[high_addr] = argn
     //
-    // thus:
-    // stack[low_addr:high_addr] = args from 0 to n
+    // memory_copy(stack, array, N)
+    // ```
     //
-    // note that for simplicity, this procdure does not check the data type of arguments.
+    // for simplicity, this procdure does not check the data type of arguments.
 
     for value in arguments {
         match value {
@@ -92,45 +91,54 @@ pub fn process_function(
     }
 
     // create function statck frame
-    thread_context.stack.create_frame(
-        params.len() as u16,
-        results.len() as u16,
-        local_variable_list_index as u32,
-        local_variables_with_arguments_allocated_bytes,
-        Some(ProgramCounter {
-            instruction_address: 0,
-            function_internal_index: 0,
+    thread_context
+        .stack
+        .create_frame(
+            params.len() as u16,
+            results.len() as u16,
+            function_info.local_variable_list_index as u32,
+            function_info.local_variables_with_arguments_allocated_bytes as u32,
+            Some(ProgramCounter {
+                instruction_address: 0,
+                function_internal_index: 0,
 
-            // set MSB of 'return module index' to '1' to indicate that it's the END of the
-            // current function call.
-            module_index: EXIT_CURRENT_HANDLER_LOOP_BIT,
-        }),
-    );
+                // set MSB of 'return module index' to '1' to indicate that it's the END of the
+                // "function call path".
+                module_index: EXIT_CURRENT_HANDLER_LOOP_BIT,
+            }),
+        )
+        .map_err(|_| ProcessorError::new(ProcessorErrorType::StackOverflow))?;
 
     // set new PC
-    thread_context.pc.module_index = target_module_index;
-    thread_context.pc.function_internal_index = function_internal_index;
-    thread_context.pc.instruction_address = code_offset;
+    thread_context.pc.module_index = target_function_object.module_index;
+    thread_context.pc.function_internal_index = target_function_object.function_internal_index;
+    thread_context.pc.instruction_address = function_info.code_offset;
 
     // start processing instructions
     if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
-        return Err(FunctionEntryError::new(FunctionEntryErrorType::Terminate(
+        return Err(ProcessorError::new(ProcessorErrorType::Terminate(
             terminate_code,
         )));
     }
 
-    // pop the results from the stack
+    // pop results
+    // -----------
     //
-    // the values on the stack top will be poped first and became
-    // the LAST element of the array
+    // similar to the pushing arguments,
+    // the values on the stack top should be poped first and became
+    // the LAST element of the result array.
     //
+    // ```diagram
     // |  2  | -> array [0, 1, 2]
     // |  1  |
     // |  0  |
     // \-----/
-    let result_operands = thread_context
-        .stack
-        .pop_last_operands(results.len());
+    // ```
+
+    // don't use the `pop_xxx` functions to pop the results,
+    // because the `pop_xxx` requires a stack frame to work, however,
+    // the stack has no frame after the entry function is finish.
+    let result_operands = thread_context.stack.pop_last_operands(results.len());
     let result_values = results
         .iter()
         .enumerate()
@@ -183,13 +191,11 @@ pub fn process_continuous_instructions(
                 thread_context.pc.function_internal_index = original_pc.function_internal_index;
                 thread_context.pc.instruction_address = original_pc.instruction_address;
 
-                // break the instruction processing loop
-                // break Ok(());
+                // break the instruction processing loop.
                 break None;
             }
             HandleResult::Terminate(terminate_code) => {
-                // break Err(HandlerError::new(HandleErrorType::Terminate(code))),
-                // std::process::exit(terminate_code)
+                // break the instruction processing loop with terminate code.
                 break Some(terminate_code);
             }
         }
