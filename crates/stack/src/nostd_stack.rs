@@ -23,8 +23,8 @@
 // | arg 1 (local var idx 1) |                           | arg 1 (local var idx 1) |
 // | arg 0 (local var idx 0) | <-- args from caller      | arg 0 (local var idx 0) |
 // |-------------------------|                           |-------------------------|
-// | return inst addr        |                           | 0                       | <-- 0
-// | return func idx         |                           | 0                       | <-- 0
+// | return instruction address        |                           | 0                       | <-- 0
+// | return function internal idx         |                           | 0                       | <-- 0
 // | return module idx       |                           | 0                       | <-- 0
 // | local vars alloc bytes  | <-- frame info            | local vars alloc bytes  |
 // | local vars list index   |                           | local vars list index   |
@@ -913,69 +913,32 @@ mod tests {
     use anc_memory::{memory_access::MemoryAccess, primitive_memory_access::PrimitiveMemoryAccess};
 
     use crate::{
+        nostd_stack::FrameInfo,
         stack::{CallingStack, OperandStack},
         FrameType, ProgramCounter,
     };
 
     use super::{FrameInfoData, NostdStack};
 
-    // helper functions for unit test
+    // Helper functions for unit tests
     impl NostdStack {
-        fn read_local_by_offset_i32(&self, reversed_index: u16, offset: usize) -> i32 {
-            let (_, address) = self
-                .get_local_variable_list_index_and_start_address_by_reversed_index(
-                    reversed_index,
-                );
-
-            self.read_primitive_i32_s(address, offset)
-        }
-
-        fn write_local_by_offset_i32(&mut self, reversed_index: u16, offset: usize, value: i32) {
-            let (_, address) = self
-                .get_local_variable_list_index_and_start_address_by_reversed_index(
-                    reversed_index,
-                );
-
-            self.write_primitive_i32_s(address, offset, value)
-        }
-
+        /// Creates an empty frame for testing purposes.
         fn create_empty_frame(&mut self) {
             self.create_frame(0, 0, 0, 0, None).unwrap();
         }
     }
 
-    //     #[test]
-    //     fn test_stack_capacity() {
-    //         let mut stack = SimpleStack::new();
-    //         assert_eq!(stack.fp, 0);
-    //         assert_eq!(stack.sp, 0);
-    //
-    //         const FRAME_INFO_DATA_SIZE_IN_BYTES: usize = size_of::<FrameInfoData>();
-    //
-    //         stack.create_empty_frame();
-    //         assert_eq!(stack.sp, FRAME_INFO_DATA_SIZE_IN_BYTES);
-    //         assert_eq!(stack.fp, 0);
-    //
-    //         let repeat = OPERAND_STACK_SIZE_IN_BYTES / FRAME_INFO_DATA_SIZE_IN_BYTES;
-    //         for _ in 0..repeat {
-    //             stack.create_empty_frame();
-    //         }
-    //
-    //         assert_eq!(stack.fp, repeat * FRAME_INFO_DATA_SIZE_IN_BYTES);
-    //         assert_eq!(stack.sp, (repeat + 1) * FRAME_INFO_DATA_SIZE_IN_BYTES);
-    //     }
-
     #[test]
     fn test_push_pop_and_peek() {
         let mut stack = NostdStack::new();
 
-        // `pop_xxx` functions require a stack frame to work.
+        // `pop_xxx` functions require a stack frame to operate.
         stack.create_empty_frame();
 
         const FRAME_INFO_DATA_SIZE_IN_BYTES: usize = size_of::<FrameInfoData>();
         const INITIAL_SP: usize = FRAME_INFO_DATA_SIZE_IN_BYTES;
 
-        // check push, peek and pop
+        // Test pushing, peeking, and popping values
         stack.push_i32_u(11);
         stack.push_i64_u(13);
         stack.push_f32(std::f32::consts::PI);
@@ -1002,10 +965,10 @@ mod tests {
     fn test_operand_signed_extend() {
         let mut stack = NostdStack::new();
 
-        // `pop_xxx` functions require a stack frame to work.
+        // `pop_xxx` functions require a stack frame to operate.
         stack.create_empty_frame();
 
-        // check signed-extend
+        // Test signed and unsigned extension of i32 to i64
         stack.push_i32_s(0x8000_0000_u32 as i32);
         stack.push_i32_u(0x8000_0000_u32);
         assert_eq!(stack.peek_i64_s(), 0x0000_0000_8000_0000_u64 as i64);
@@ -1015,11 +978,10 @@ mod tests {
     }
 
     #[test]
-    // #[should_panic]
     fn test_operand_stack_boundary_check() {
         let mut stack = NostdStack::new();
 
-        // `pop_xxx` functions require a stack frame to work.
+        // `pop_xxx` functions require a stack frame to operate.
         stack.create_empty_frame();
 
         stack.push_i32_u(11);
@@ -1028,12 +990,13 @@ mod tests {
         assert_eq!(stack.pop_i32_u(), 13);
         assert_eq!(stack.pop_i32_u(), 11);
 
-        let prev_hook = std::panic::take_hook(); // silent panic
+        // Test boundary check by attempting to pop from an empty stack
+        let prev_hook = std::panic::take_hook(); // Silence panic output
         std::panic::set_hook(Box::new(|_| {}));
 
-        let result = std::panic::catch_unwind(move ||
-            // should panic
-            stack.pop_i32_u());
+        let result = std::panic::catch_unwind(move || {
+            stack.pop_i32_u(); // This should panic
+        });
 
         std::panic::set_hook(prev_hook);
 
@@ -1041,8 +1004,19 @@ mod tests {
     }
 
     #[test]
-    fn test_frame_layer_boundary_check() {
+    fn test_frame_depth_boundary_check() {
         let mut stack = NostdStack::new();
+
+        // create frames:
+        //
+        // ```diagram
+        // | block frame 2 | depth: 3
+        // | block frame 1 | depth: 2
+        // | block frame 0 | depth: 1
+        // | func frame 1  | depth: 0
+        // | func frame 0  | depth: 0
+        // \---------------/
+        // ```
 
         // function frame
         stack
@@ -1059,7 +1033,6 @@ mod tests {
             )
             .unwrap();
 
-        // function frame
         stack
             .create_frame(
                 0,
@@ -1074,11 +1047,11 @@ mod tests {
             )
             .unwrap();
 
-        // block frame
         stack.create_frame(0, 0, 2, 16, None).unwrap();
         stack.create_frame(0, 0, 3, 24, None).unwrap();
         stack.create_frame(0, 0, 4, 32, None).unwrap();
 
+        // Verify frame information
         let frame_info0 = stack.get_frame_info_by_reversed_index(0);
         assert_eq!(frame_info0.info_data.local_variable_list_index, 4);
 
@@ -1091,12 +1064,12 @@ mod tests {
         let frame_info3 = stack.get_frame_info_by_reversed_index(3);
         assert_eq!(frame_info3.info_data.local_variable_list_index, 1);
 
-        let prev_hook = std::panic::take_hook(); // silent panic
+        // Test boundary check by attempting to access a non-existent frame
+        let prev_hook = std::panic::take_hook(); // Silence panic output
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            // should panic
-            stack.get_frame_info_by_reversed_index(4);
+            stack.get_frame_info_by_reversed_index(4); // This should panic
         });
 
         std::panic::set_hook(prev_hook);
@@ -1108,15 +1081,16 @@ mod tests {
     fn test_floating_point_variants_check() {
         let mut stack = NostdStack::new();
 
-        // `pop_xxx` functions require a stack frame to work.
+        // `pop_xxx` functions require a stack frame to operate.
         stack.create_empty_frame();
 
-        // check floating point variants
+        // Test pushing and popping floating-point values
         stack.push_f32(std::f32::consts::PI);
         stack.push_f64(std::f64::consts::E);
         assert_eq!(stack.pop_f64().unwrap(), std::f64::consts::E);
         assert_eq!(stack.pop_f32().unwrap(), std::f32::consts::PI);
 
+        // Test handling of NaN and infinity values
         stack.push_i32_u(0xffc0_0000); // NaN
         assert!(stack.peek_f32().is_err());
         assert!(stack.pop_f32().is_err());
@@ -1131,34 +1105,53 @@ mod tests {
     }
 
     #[test]
-    fn test_host_address() {
+    fn test_local_variables_host_address() {
         let mut stack = NostdStack::new();
 
+        // Push arguments onto the stack
         stack.push_i32_u(11);
-        stack.push_i64_u(13);
+        stack.push_i32_u(13);
         stack.push_i32_u(17);
-        stack.push_i64_u(19);
+        stack.push_i32_u(19);
 
-        let ptr0 = stack.get_ptr(0, 0) as u64;
-        let ptr1 = stack.get_ptr(8, 0) as u64;
-        let ptr2 = stack.get_ptr(16, 0) as u64;
-        let ptr3 = stack.get_ptr(24, 0) as u64;
+        // Create a frame with arguments and local variables
+        stack.create_frame(4, 0, 0, 32 + 16, None).unwrap();
 
-        let read_i64 = |addr: u64| -> u64 {
-            let ptr = addr as *const u64;
-            unsafe { std::ptr::read(ptr) }
-        };
+        let (_, local_start) =
+            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
 
-        let read_i32 = |addr: u64| -> u32 {
+        // Write to local variables
+        stack.write_primitive_i32_u(local_start, 4 * 8, 23);
+        stack.write_primitive_i32_u(local_start, 5 * 8, 29);
+
+        // Verify local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start, 0 * 8), 11);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 1 * 8), 13);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 2 * 8), 17);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 3 * 8), 19);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 4 * 8), 23);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 5 * 8), 29);
+
+        // Verify memory addresses of local variables
+        let ptr0 = stack.get_ptr(local_start, 0 * 8);
+        let ptr1 = stack.get_ptr(local_start, 1 * 8);
+        let ptr2 = stack.get_ptr(local_start, 2 * 8);
+        let ptr3 = stack.get_ptr(local_start, 3 * 8);
+        let ptr4 = stack.get_ptr(local_start, 4 * 8);
+        let ptr5 = stack.get_ptr(local_start, 5 * 8);
+
+        let read_i32 = |addr: *const u8| -> u32 {
             let ptr = addr as *const u32;
             unsafe { std::ptr::read(ptr) }
         };
 
-        // each operand occurs 8 bytes.
+        // Each operand occupies 8 bytes
         assert_eq!(read_i32(ptr0), 11);
-        assert_eq!(read_i64(ptr1), 13);
+        assert_eq!(read_i32(ptr1), 13);
         assert_eq!(read_i32(ptr2), 17);
-        assert_eq!(read_i64(ptr3), 19);
+        assert_eq!(read_i32(ptr3), 19);
+        assert_eq!(read_i32(ptr4), 23);
+        assert_eq!(read_i32(ptr5), 29);
     }
 
     #[test]
@@ -1175,7 +1168,7 @@ mod tests {
 
         let mut stack = NostdStack::new();
 
-        // simulate the arguments of first functon call
+        // the arguments for the first functon call
         stack.push_i32_u(23);
         stack.push_i32_u(29);
         stack.push_i32_u(31);
@@ -1206,12 +1199,12 @@ mod tests {
             .create_frame(
                 2, // params count
                 0, // results count
-                73,
-                16 + 16, // local vars len
+                401,
+                16 + 16, // local vars length: 2 args + 2 locals
                 Some(ProgramCounter {
-                    module_index: 83,            // return mod idx
-                    function_internal_index: 79, // func idx
-                    instruction_address: 89,     //return inst addr
+                    module_index: 503,            // return module idx
+                    function_internal_index: 509, // return function internal idx
+                    instruction_address: 521,     // return instruction address
                 }),
             )
             .unwrap();
@@ -1227,11 +1220,11 @@ mod tests {
         //       0d0056 | 37     |
         //       0d0048 | 31     | <-- args 0
         //              |--------|
-        //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | return func idx
-        //       0d0036 | 83     | return module idx
-        //       0d0032 | 32     | local vars len
-        //       0d0028 | 73     | local vars list idx
+        //       0d0044 | 521    | return instruction address
+        //       0d0040 | 509    | return function internal idx
+        //       0d0036 | 503    | return module idx
+        //       0d0032 | 32     | local vars length
+        //       0d0028 | 401    | local vars list idx
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
@@ -1241,52 +1234,33 @@ mod tests {
         //              \--------/
         // ```
 
-        // check raw data
+        // check remain operands
         assert_eq!(stack.read_primitive_i64_u(0, 0), 23);
         assert_eq!(stack.read_primitive_i64_u(8, 0), 29);
-        // frame info data
-        assert_eq!(stack.read_primitive_i32_u(16, 0), 0);
-        assert_eq!(stack.read_primitive_i32_u(20, 0), 16);
-        assert_eq!(stack.read_primitive_i32_u(24, 0), 2); // `(results count << 16) | (params count)`
-        assert_eq!(stack.read_primitive_i32_u(28, 0), 73);
-        assert_eq!(stack.read_primitive_i32_u(32, 0), 32);
-        assert_eq!(stack.read_primitive_i32_u(36, 0), 83);
-        assert_eq!(stack.read_primitive_i32_u(40, 0), 79);
-        assert_eq!(stack.read_primitive_i32_u(44, 0), 89);
-        // args
-        assert_eq!(stack.read_primitive_i64_u(48, 0), 31);
-        assert_eq!(stack.read_primitive_i64_u(56, 0), 37);
-        // local vars
-        assert_eq!(stack.read_primitive_i64_u(64, 0), 0);
-        assert_eq!(stack.read_primitive_i64_u(72, 0), 0);
 
-        // check status
+        // check FP and SP
         let fp0 = 16;
-
         assert_eq!(stack.sp, 80);
         assert_eq!(stack.fp, fp0);
 
-        // check frame
-        let f0_a = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f0_a.address, fp0);
-        assert_eq!(
-            f0_a.info_data,
-            &FrameInfoData {
+        // check frame info
+        let frame_info_0 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_0 = FrameInfo {
+            address: fp0,
+            info_data: &FrameInfoData {
                 previous_frame_address: 0,
                 function_frame_address: fp0 as u32,
                 params_count: 2,
                 results_count: 0,
-                local_variable_list_index: 73,
+                local_variable_list_index: 401,
                 local_variables_with_arguments_allocated_bytes: 32,
-                return_module_index: 83,
-                return_function_internal_index: 79,
-                return_instruction_address: 89
-            }
-        );
+                return_module_index: 503,
+                return_function_internal_index: 509,
+                return_instruction_address: 521,
+            },
+        };
 
-        // // `get_function_frame_info()` should points to the current frame
-        // let f0_b = stack.get_function_frame_info();
-        // assert_eq!(f0_a, f0_b);
+        assert_eq!(frame_info_0, expected_frame_info_0);
 
         // check local variables
 
@@ -1300,27 +1274,27 @@ mod tests {
         //       0d0056 | 37     |
         //       0d0048 | 31     | <-- args 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
+        let local_start_0 = fp0 + size_of::<FrameInfoData>();
         assert_eq!(
-            (73, fp0 + size_of::<FrameInfoData>()),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0)
+            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            (401, local_start_0),
         );
 
-        // local vars 0
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 31);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 37);
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 0);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0);
 
         // update local variables
-        stack.write_local_by_offset_i32(0, 16, 211);
-        stack.write_local_by_offset_i32(0, 24, 223);
+        stack.write_primitive_i32_u(local_start_0, 2 * 8, 211);
+        stack.write_primitive_i32_u(local_start_0, 3 * 8, 223);
 
-        // local vars0
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 211);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 223);
+        // check local variables again
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
         // add more operands
         stack.push_i32_u(41);
@@ -1340,12 +1314,12 @@ mod tests {
         //       0d0064 | 211    | <-- local vars 0
         //              |--------|
         //       0d0056 | 37     |
-        //       0d0048 | 31     | <-- args 0 (local vars 0)
+        //       0d0048 | 31     | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
-        // check status again
+        // check FP and SP
         assert_eq!(stack.fp, fp0);
         assert_eq!(stack.sp, 104);
 
@@ -1359,20 +1333,27 @@ mod tests {
         //   6. remove `f2` and `f1` at once.
         //   7. remove `f0`
 
-        stack.create_frame(1, 2, 97, 8, None).unwrap();
+        stack
+            .create_frame(
+                1, // params count
+                2, // results count
+                419, 8, // local vars length, 1 arg + 0 local
+                None,
+            )
+            .unwrap();
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0136 |        |
-        //       0d0128 | 47     | <-- args 1 (local vars 1)
+        //       0d0128 | 47     | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0124 | 0      | return inst addr
-        //       0d0120 | 0      | return func idx
+        //       0d0124 | 0      | return instruction address
+        //       0d0120 | 0      | return function internal idx
         //       0d0116 | 0      | return module idx
-        //       0d0112 | 8      | local vars len
-        //       0d0108 | 97     | local vars list idx
+        //       0d0112 | 8      | local vars length
+        //       0d0108 | 419    | local vars list idx
         //       0d0104 | 1/2    | params/results count
         //       0d0100 | 16     | func FP
         // FP--> 0d0096 | 16     | prev FP
@@ -1384,85 +1365,88 @@ mod tests {
         //       0d0064 | 211    | <-- local vars 0
         //              |--------|
         //       0d0056 | 37     |
-        //       0d0048 | 31     | <-- args 0 (local vars 0)
+        //       0d0048 | 31     | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
         let fp1 = 96;
 
+        // check FP and SP
         assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 136);
-        assert_eq!(stack.read_primitive_i32_u(128, 0), 47); // one operand has been moved to the top of stack
-        assert_eq!(stack.read_primitive_i32_u(88, 0), 43); // the operands of the previous frame should has no change
-        assert_eq!(stack.read_primitive_i32_u(80, 0), 41); // the operands of the previous frame should has no change
 
-        let f1 = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f1.address, fp1);
-        assert_eq!(
-            f1.info_data,
-            &FrameInfoData {
+        // check remain operands
+        assert_eq!(stack.read_primitive_i32_u(88, 0), 43);
+        assert_eq!(stack.read_primitive_i32_u(80, 0), 41);
+
+        let frame_info_1 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_1 = FrameInfo {
+            address: fp1,
+            info_data: &FrameInfoData {
                 previous_frame_address: 16,
                 function_frame_address: fp0 as u32,
                 params_count: 1,
                 results_count: 2,
-                local_variable_list_index: 97,
+                local_variable_list_index: 419,
                 local_variables_with_arguments_allocated_bytes: 8,
                 return_module_index: 0,
                 return_function_internal_index: 0,
-                return_instruction_address: 0
-            }
+                return_instruction_address: 0,
+            },
+        };
+
+        assert_eq!(frame_info_1, expected_frame_info_1);
+
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(1),
+            expected_frame_info_0
         );
 
-        assert_eq!(stack.get_frame_info_by_reversed_index(1).address, fp0);
-
-        // // `get_function_frame_info()` should points to fp0.
-        // assert_eq!(
-        //     stack.get_function_frame_info(),
-        //     stack.get_frame_info_by_reversed_index(1)
-        // );
-
         // check local variables
+        let local_start_1 = fp1 + size_of::<FrameInfoData>();
+
         assert_eq!(
-            (97, fp1 + size_of::<FrameInfoData>()),
+            (419, local_start_1),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            (73, fp0 + size_of::<FrameInfoData>()),
+            (401, local_start_0),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
-        // local vars 1
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 47);
-        // local vars 0
-        assert_eq!(stack.read_local_by_offset_i32(1, 0), 31);
-        assert_eq!(stack.read_local_by_offset_i32(1, 8), 37);
-        assert_eq!(stack.read_local_by_offset_i32(1, 16), 211);
-        assert_eq!(stack.read_local_by_offset_i32(1, 24), 223);
+        // check local variables, frame 1
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 47);
 
-        // update current frame local vars
-        stack.write_local_by_offset_i32(0, 0, 307);
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 307);
+        // check local variables, frame 0
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
-        // update previous frame local vars
-        stack.write_local_by_offset_i32(1, 0, 311);
-        stack.write_local_by_offset_i32(1, 8, 313);
-        assert_eq!(stack.read_local_by_offset_i32(1, 0), 311);
-        assert_eq!(stack.read_local_by_offset_i32(1, 8), 313);
+        // update and check local variables, frame 1
+        stack.write_primitive_i32_u(local_start_1, 0, 227);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 227);
+
+        // update and check local variables, frame 0
+        stack.write_primitive_i32_u(local_start_0, 0 * 8, 229);
+        stack.write_primitive_i32_u(local_start_0, 1 * 8, 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0136 |        |
-        //       0d0128 | 307    | <-- args 1 (local vars 1)
+        //       0d0128 | 227    | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0124 | 0      | return inst addr
-        //       0d0120 | 0      | return func idx
+        //       0d0124 | 0      | return instruction address
+        //       0d0120 | 0      | return function internal idx
         //       0d0116 | 0      | return module idx
-        //       0d0112 | 8      | local vars len
-        //       0d0108 | 97     | local vars list idx
+        //       0d0112 | 8      | local vars length
+        //       0d0108 | 419    | local vars list idx
         //       0d0104 | 1/2    | params/results count
         //       0d0100 | 16     | func FP
         // FP--> 0d0096 | 16     | prev FP
@@ -1473,10 +1457,10 @@ mod tests {
         //       0d0072 | 223    |
         //       0d0064 | 211    | <-- local vars 0
         //              |--------|
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
         // tasks:
@@ -1489,120 +1473,125 @@ mod tests {
         //   6. remove `f2` and `f1` at once.
         //   7. remove `f0`
 
-        stack.create_frame(0, 0, 701, 0, None).unwrap();
-
-        let fp2 = fp1 + size_of::<FrameInfoData>() + 8; // 1 args in the 1st block frame
+        stack.create_frame(0, 0, 421, 0, None).unwrap();
 
         // the stack data layout:
         //
         // ```diagram
         //
-        // FP--> 0d0136 | info2  |
+        // FP--> 0d0136 | info 2 |
         //              |--------|
-        //       0d0128 | 307    | <-- args 1 (local vars 1)
+        //       0d0128 | 227    | <-- args 1, also local vars 1
         //              |--------|
-        //              | info1  |
+        //              | info 1 |
         //              |--------| <-- fp1
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
         //       0d0072 | 223    |
         //       0d0064 | 211    | <-- local vars 0
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
+        // check FP and SP
+        let fp2 = fp1 + size_of::<FrameInfoData>() + 8; // 1 args in the 1st block frame
         assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, fp2 + size_of::<FrameInfoData>());
-        assert_eq!(stack.read_primitive_i32_u(fp2 - 8, 0), 307); // the operands of the previous frame should has no change
 
-        let f2 = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f2.address, fp2);
-        assert_eq!(
-            f2.info_data,
-            &FrameInfoData {
+        // check frame info
+        let frame_info_2 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_2 = FrameInfo {
+            address: fp2,
+            info_data: &FrameInfoData {
                 previous_frame_address: fp1 as u32,
                 function_frame_address: fp0 as u32,
                 params_count: 0,
                 results_count: 0,
-                local_variable_list_index: 701,
+                local_variable_list_index: 421,
                 local_variables_with_arguments_allocated_bytes: 0,
                 return_module_index: 0,
                 return_function_internal_index: 0,
-                return_instruction_address: 0
-            }
+                return_instruction_address: 0,
+            },
+        };
+
+        assert_eq!(frame_info_2, expected_frame_info_2);
+
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(1),
+            expected_frame_info_1
         );
 
-        assert_eq!(stack.get_frame_info_by_reversed_index(1).address, fp1);
-        assert_eq!(stack.get_frame_info_by_reversed_index(2).address, fp0);
-
-        // // `get_function_frame_info()` should points to fp0.
-        // assert_eq!(
-        //     stack.get_function_frame_info(),
-        //     stack.get_frame_info_by_reversed_index(2)
-        // );
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(2),
+            expected_frame_info_0
+        );
 
         // check local variables
+        let local_start_2 = fp2 + size_of::<FrameInfoData>();
         assert_eq!(
-            (701, fp2 + size_of::<FrameInfoData>()),
+            (421, local_start_2),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            (97, fp1 + size_of::<FrameInfoData>()),
+            (419, local_start_1),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
         assert_eq!(
-            (73, fp0 + size_of::<FrameInfoData>()),
+            (401, local_start_0),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(2),
         );
 
-        // current frame (frame 2) has no local vars
+        // check local variables, frame 2
+        // frame 2 has no local vars
 
-        // local vars 1
-        assert_eq!(stack.read_local_by_offset_i32(1, 0), 307);
+        // check local variables, frame 1
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 227);
 
-        // local vars 0
-        assert_eq!(stack.read_local_by_offset_i32(2, 0), 311);
-        assert_eq!(stack.read_local_by_offset_i32(2, 8), 313);
-        assert_eq!(stack.read_local_by_offset_i32(2, 16), 211);
-        assert_eq!(stack.read_local_by_offset_i32(2, 24), 223);
+        // check local variables, frame 0
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
-        // update local vars
-        stack.write_local_by_offset_i32(1, 0, 317);
-        stack.write_local_by_offset_i32(2, 16, 331);
-        stack.write_local_by_offset_i32(2, 24, 337);
+        // update and check local variables, frame 1
+        stack.write_primitive_i32_u(local_start_1, 0, 239);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 239);
 
-        assert_eq!(stack.read_local_by_offset_i32(1, 0), 317);
-        assert_eq!(stack.read_local_by_offset_i32(2, 16), 331);
-        assert_eq!(stack.read_local_by_offset_i32(2, 24), 337);
+        // update and check local variables, frame 0
+        stack.write_primitive_i32_u(local_start_0, 2 * 8, 241);
+        stack.write_primitive_i32_u(local_start_0, 3 * 8, 251);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 241);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 251);
 
         // add operands
-        stack.push_i32_u(239);
-        stack.push_i32_u(241);
+        stack.push_i32_u(47);
+        stack.push_i32_u(53);
 
         // the stack data layout:
         //
         // ```diagram
-        //              | 241    |
-        //              | 239    |
+        //              | 53     |
+        //              | 47     |
         //              |--------|
-        // FP--> 0d0136 | info2  |
+        // FP--> 0d0136 | info 2 |
         //              |--------|
-        //       0d0128 | 317    | <-- args 1 (local vars 1)
+        //       0d0128 | 239    | <-- args 1, also local vars 1
         //              |--------|
-        //              | info1  |
+        //              | info 1 |
         //              |--------| <-- fp1
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
-        //       0d0072 | 337    |
-        //       0d0064 | 331    | <-- local vars 0
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0072 | 251    |
+        //       0d0064 | 241    | <-- local vars 0
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
         // tasks:
@@ -1619,12 +1608,12 @@ mod tests {
             .create_frame(
                 1, // params count
                 3, // results count
-                709,
-                8, // local vars len
+                431,
+                8, // local vars length
                 Some(ProgramCounter {
-                    module_index: 113,            // ret mod idx
-                    function_internal_index: 109, // func idx
-                    instruction_address: 127,     // ret inst addr
+                    module_index: 47,            // return module idx
+                    function_internal_index: 43, // return function internal idx
+                    instruction_address: 53,     // return instructon address
                 }),
             )
             .unwrap();
@@ -1633,100 +1622,97 @@ mod tests {
         //
         // ```diagram
         //
-        //              | 241    | <-- args 3 (local vars 3)
+        //              | 53     | <-- args 3, also local vars 3
         //              |--------|
-        // FP-->        | info3  |
+        // FP-->        | info 3 |
         //              |--------|
-        //              | 239    | <-- operands 2
+        //              | 47     | <-- operands 2
         //              |--------|
-        //       0d0136 | info2  |
+        //       0d0136 | info 2 |
         //              |--------|
-        //       0d0128 | 317    | <-- args 1 (local vars 1)
+        //       0d0128 | 239    | <-- args 1, also local vars 1
         //              |--------|
-        //              | info1  |
+        //              | info 1 |
         //              |--------|
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
-        //       0d0072 | 337    |
-        //       0d0064 | 331    | <-- local vars 0
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0072 | 251    |
+        //       0d0064 | 241    | <-- local vars 0
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
+        // check FP and SP
         let fp3 = fp2 + size_of::<FrameInfoData>() + 8; // 1 operand in the 2nd block frame
         assert_eq!(stack.fp, fp3);
         assert_eq!(stack.sp, fp3 + size_of::<FrameInfoData>() + 8); // 1 args in the current frame
 
-        let f3 = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f3.address, fp3);
-        assert_eq!(
-            f3.info_data,
-            &FrameInfoData {
+        let frame_info_3 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_3 = FrameInfo {
+            address: fp3,
+            info_data: &FrameInfoData {
                 previous_frame_address: fp2 as u32,
                 function_frame_address: fp3 as u32,
                 params_count: 1,
                 results_count: 3,
-                local_variable_list_index: 709,
+                local_variable_list_index: 431,
                 local_variables_with_arguments_allocated_bytes: 8,
-                return_module_index: 113,
-                return_function_internal_index: 109,
-                return_instruction_address: 127
-            }
-        );
+                return_module_index: 47,
+                return_function_internal_index: 43,
+                return_instruction_address: 53,
+            },
+        };
 
-        // // `get_function_frame_info()` should be updated,
-        // // it is now points to the current frame.
-        // let f3b = stack.get_function_frame_info();
-        // assert_eq!(f3, f3b);
+        assert_eq!(frame_info_3, expected_frame_info_3);
 
         // check local variables
+        let local_start_3 = fp3 + size_of::<FrameInfoData>();
         assert_eq!(
-            (709, fp3 + size_of::<FrameInfoData>()),
+            (431, local_start_3),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
-        // local vars 3
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 241);
+        assert_eq!(stack.read_primitive_i32_u(local_start_3, 0), 53);
 
-        // update local vars
-        stack.write_local_by_offset_i32(0, 0, 401);
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 401);
+        // update and check local varibles
+        stack.write_primitive_i32_u(local_start_3, 0, 257);
+        assert_eq!(stack.read_primitive_i32_u(local_start_3, 0), 257);
 
         // push some oparnds first
-        stack.push_i32_u(251);
-        stack.push_i32_u(257);
-        stack.push_i32_u(263);
+        stack.push_i32_u(53);
+        stack.push_i32_u(59);
+        stack.push_i32_u(61);
 
         // the stack data layout:
         //
         // ```diagram
         //
         //              |        |
-        //              | 263    |
-        //              | 257    |
-        //              | 251    | <-- operands 3
-        //              | 401    | <-- args 3 (local vars 3)
+        //              | 61     |
+        //              | 59     |
+        //              | 53     | <-- operands 3
+        //              | 257    | <-- args 3, also local vars 3
         //              |--------|
-        // FP-->        | info3  |
+        // FP-->        | info 3 |
         //              |--------|
-        //              | 239    | <-- operands 2
+        //              | 47     | <-- operands 2
         //              |--------|
-        //       0d0136 | info2  |
+        //       0d0136 | info 2 |
         //              |--------|
-        //       0d0128 | 317    | <-- args 1 (local vars 1)
+        //       0d0128 | 239    | <-- args 1, also local vars 1
         //              |--------|
-        //              | info1  |
+        //              | info 1 |
         //              |--------|
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
-        //       0d0072 | 337    |
-        //       0d0064 | 331    | <-- local vars 0
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0072 | 251    |
+        //       0d0064 | 241    | <-- local vars 0
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
         // tasks:
@@ -1744,79 +1730,83 @@ mod tests {
         assert_eq!(
             opt_return_pc0,
             Some(ProgramCounter {
-                module_index: 113,
-                function_internal_index: 109,
-                instruction_address: 127,
+                module_index: 47,
+                function_internal_index: 43,
+                instruction_address: 53,
             })
         );
 
-        assert_eq!(stack.get_frame_info_by_reversed_index(0).address, fp2);
-        assert_eq!(stack.get_frame_info_by_reversed_index(1).address, fp1);
-        assert_eq!(stack.get_frame_info_by_reversed_index(2).address, fp0);
-
-        // // `get_function_frame_info()` should points to fp0
-        // assert_eq!(
-        //     stack.get_function_frame_info(),
-        //     stack.get_frame_info_by_reversed_index(2)
-        // );
-
-        // check operands
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(0),
+            expected_frame_info_2
+        );
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(1),
+            expected_frame_info_1
+        );
+        assert_eq!(
+            stack.get_frame_info_by_reversed_index(2),
+            expected_frame_info_0
+        );
 
         // the stack data layout:
         //
         // ```diagram
         //
-        //              | 263    |
-        //              | 257    |
-        //              | 251    | <-- results from operands 3
-        //              | 239    | <-- operands 2
+        //              | 61     |
+        //              | 59     |
+        //              | 53     | <-- results from operands 3
+        //              | 47     | <-- operands 2
         //              |--------|
-        //       0d0136 | info2  |
+        //       0d0136 | info 2 |
         //              |--------|
-        //       0d0128 | 317    | <-- args 1 (local vars 1)
+        //       0d0128 | 239    | <-- args 1, also local vars 1
         //              |--------|
-        //              | info1  |
+        //              | info 1 |
         //              |--------|
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
-        //       0d0072 | 337    |
-        //       0d0064 | 331    | <-- local vars 0
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0072 | 251    |
+        //       0d0064 | 241    | <-- local vars 0
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------|
-        //              | info0  |
+        //              | info 0 |
         // ```
 
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 8, 0), 263);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 16, 0), 257);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 24, 0), 251);
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 32, 0), 239);
+        // check operands
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 8, 0), 61);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 16, 0), 59);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 24, 0), 53);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 32, 0), 47);
 
         // check local variables start address
         assert_eq!(
-            (701, fp2 + size_of::<FrameInfoData>()),
+            (421, local_start_2),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
         assert_eq!(
-            (97, fp1 + size_of::<FrameInfoData>()),
+            (419, local_start_1),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
         );
 
         assert_eq!(
-            (73, fp0 + size_of::<FrameInfoData>()),
+            (401, local_start_0),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(2),
         );
 
+        // check local variables, frame 2
         // frame 2 has no local vars
 
-        // local vars 1
-        assert_eq!(stack.read_local_by_offset_i32(1, 0), 317);
-        // local vars 0
-        assert_eq!(stack.read_local_by_offset_i32(2, 0), 311);
-        assert_eq!(stack.read_local_by_offset_i32(2, 8), 313);
-        assert_eq!(stack.read_local_by_offset_i32(2, 16), 331);
-        assert_eq!(stack.read_local_by_offset_i32(2, 24), 337);
+        // check local variables, frame 1
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 239);
+
+        // check local variables, frame 0
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 241);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 251);
 
         // tasks:
         //
@@ -1843,41 +1833,42 @@ mod tests {
         // ```diagram
         //
         // SP--> 0d0112 |        |
-        //       0d0104 | 263    |
-        //       0d0096 | 257    | <-- results from operands 3 (takes top 2, drops bottom 2)
+        //       0d0104 | 61     |
+        //       0d0096 | 59     | <-- results from operands 3 (takes 2 operands from top)
         //              |--------|
         //       0d0088 | 43     |
         //       0d0080 | 41     | <-- operands 0
         //              |--------|
-        //       0d0072 | 337    |
-        //       0d0064 | 331    | <-- local vars 0
+        //       0d0072 | 251    |
+        //       0d0064 | 241    | <-- local vars 0
         //              |--------|
-        //       0d0056 | 313    |
-        //       0d0048 | 311    | <-- args 0 (local vars 0)
+        //       0d0056 | 233    |
+        //       0d0048 | 229    | <-- args 0, also local vars 0
         //              |--------| <-- fp0
         //              |        | <-- operands
         //              \--------/
         // ```
 
-        assert_eq!(stack.get_frame_info_by_reversed_index(0).address, fp0);
+        // check FP and SP
+        assert_eq!(stack.fp, fp0);
         assert_eq!(stack.sp, 112);
 
         // check operands
-        assert_eq!(stack.read_primitive_i32_u(104, 0), 263);
-        assert_eq!(stack.read_primitive_i32_u(96, 0), 257);
-        assert_eq!(stack.read_primitive_i32_u(88, 0), 43);
-        assert_eq!(stack.read_primitive_i32_u(80, 0), 41);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 1 * 8, 0), 61);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 2 * 8, 0), 59);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 3 * 8, 0), 43);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 4 * 8, 0), 41);
 
+        // check local variables
         assert_eq!(
-            (73, fp0 + size_of::<FrameInfoData>()),
+            (401, local_start_0),
             stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
         );
 
-        // local vars 0
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 311);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 313);
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 331);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 337);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 241);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 251);
 
         // tasks:
         //
@@ -1894,9 +1885,9 @@ mod tests {
         assert_eq!(
             opt_return_pc2,
             Some(ProgramCounter {
-                module_index: 83,
-                function_internal_index: 79,
-                instruction_address: 89,
+                module_index: 503,
+                function_internal_index: 509,
+                instruction_address: 521,
             })
         );
 
@@ -1909,6 +1900,8 @@ mod tests {
         //       0d0000 | 23     |
         //              \--------/
         // ```
+
+        // check FP and SP
 
         assert_eq!(stack.sp, 16);
         assert_eq!(stack.fp, 0);
@@ -1931,6 +1924,7 @@ mod tests {
 
         let mut stack = NostdStack::new();
 
+        // the arguments for the first functon call
         stack.push_i32_u(23);
         stack.push_i32_u(29);
         stack.push_i32_u(31);
@@ -1965,12 +1959,12 @@ mod tests {
             .create_frame(
                 2, // params count
                 0, // results count
-                73,
-                16 + 16, // local vars len
+                401,
+                16 + 16, // local vars length: 2 args + 2 locals
                 Some(ProgramCounter {
-                    instruction_address: 89,     //return inst addr
-                    function_internal_index: 79, // func idx
-                    module_index: 83,            // return mod idx
+                    module_index: 503,            // return module idx
+                    function_internal_index: 509, // return function internal idx
+                    instruction_address: 521,     // return instruction address
                 }),
             )
             .unwrap();
@@ -1984,13 +1978,13 @@ mod tests {
         //       0d0064 | 0      | <-- local vars 0
         //              |--------|
         //       0d0056 | 37     |
-        //       0d0048 | 31     | <-- args 0 (local vars 0)
+        //       0d0048 | 31     | <-- args 0, also local vars 0
         //              |--------|
-        //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | return func idx
-        //       0d0036 | 83     | return module idx
-        //       0d0032 | 32     | local vars len
-        //       0d0028 | 73     | local vars list idx
+        //       0d0044 | 521    | return instruction address
+        //       0d0040 | 509    | return function internal idx
+        //       0d0036 | 503    | return module idx
+        //       0d0032 | 32     | local vars length
+        //       0d0028 | 401    | local vars list idx
         //       0d0024 | 2/0    | params/results count
         //       0d0020 | 16     | func FP
         // FP--> 0d0016 | 0      | prev FP
@@ -2001,45 +1995,49 @@ mod tests {
         // ```
 
         // check local variables
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 31);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 37);
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 0);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 0);
+        let (_, local_start_0) =
+            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0);
 
         // update local variables
-        stack.write_local_by_offset_i32(0, 16, 101);
-        stack.write_local_by_offset_i32(0, 24, 103);
+        stack.write_primitive_i32_u(local_start_0, 2 * 8, 211);
+        stack.write_primitive_i32_u(local_start_0, 3 * 8, 223);
 
-        // check local variables
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 101);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 103);
+        // check local variables again
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
-        // push some operands
-        stack.push_i32_u(107);
-        stack.push_i32_u(109);
-        stack.push_i32_u(113);
-        stack.push_i32_u(127);
+        // add some operands
+        stack.push_i32_u(41);
+        stack.push_i32_u(43);
+        stack.push_i32_u(47);
+        stack.push_i32_u(53);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0112 |        |
-        //       0d0104 | 127    |
-        //       0d0096 | 113    |
-        //       0d0088 | 109    |
-        //       0d0080 | 107    | <-- operands 0
+        //       0d0104 | 53     |
+        //       0d0096 | 47     |
+        //       0d0088 | 43     |
+        //       0d0080 | 41     | <-- operands 0
         //              |--------|
-        //       0d0072 | 103    |
-        //       0d0064 | 101    | <-- local vars 0
+        //       0d0072 | 223    |
+        //       0d0064 | 211    | <-- local vars 0
         //              |--------|
         //       0d0056 | 37     |
-        //       0d0048 | 31     | <-- args 0 (local vars 0)
+        //       0d0048 | 31     | <-- args 0, also local vars 0
         //              |--------|
         // ```
 
-        // check SP
+        // check FP and SP
+        let fp0 = 16;
         assert_eq!(stack.sp, 112);
+        assert_eq!(stack.fp, fp0);
 
         // tasks:
         //
@@ -2065,17 +2063,10 @@ mod tests {
         //       0d0072 | 0      |
         //       0d0064 | 0      | <-- local vars 0, RESET
         //              |--------|
-        //       0d0056 | 127    |
-        //       0d0048 | 113    | <-- args 0 (local vars 0), UPDATED
+        //       0d0056 | 53     |
+        //       0d0048 | 47     | <-- args 0, also local vars 0, UPDATED
         //              |--------|
-        //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | return func idx
-        //       0d0036 | 83     | return module idx
-        //       0d0032 | 32     | local vars len
-        //       0d0028 | 73     | local vars list idx
-        //       0d0024 | 2/0    | params/results count
-        //       0d0020 | 16     | func FP
-        // FP--> 0d0016 | 0      | prev FP
+        // FP--> 0d0016 | info 0 |
         //              |========| <-- fp0
         //       0d0008 | 29     |
         //       0d0000 | 23     |
@@ -2083,41 +2074,42 @@ mod tests {
         // ```
 
         // check frame
-        let f0 = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f0.address, 16);
-        assert_eq!(
-            f0.info_data,
-            &FrameInfoData {
+        let frame_info_0 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_0 = FrameInfo {
+            address: fp0,
+            info_data: &FrameInfoData {
                 previous_frame_address: 0,
                 function_frame_address: 16,
                 params_count: 2,
                 results_count: 0,
-                local_variable_list_index: 73,
+                local_variable_list_index: 401,
                 local_variables_with_arguments_allocated_bytes: 32,
-                return_module_index: 83,
-                return_function_internal_index: 79,
-                return_instruction_address: 89
-            }
-        );
+                return_module_index: 503,
+                return_function_internal_index: 509,
+                return_instruction_address: 521,
+            },
+        };
+        assert_eq!(frame_info_0, expected_frame_info_0);
 
         // check local variables
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 113); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 127); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 0); // reset
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 0); // reset
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 47); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 53); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
 
-        // update local variables (keeps args unchange)
-        stack.write_local_by_offset_i32(0, 16, 307);
-        stack.write_local_by_offset_i32(0, 24, 311);
+        // update local variables (but keeps args unchange)
+        stack.write_primitive_i32_u(local_start_0, 2 * 8, 227);
+        stack.write_primitive_i32_u(local_start_0, 3 * 8, 229);
 
         // check local variables
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 113);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 127);
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 307);
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 311);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 47);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 53);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 227);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 229);
 
-        stack.push_i32_u(114);
-        stack.push_i32_u(128);
+        // add some operands
+        stack.push_i32_u(59);
+        stack.push_i32_u(61);
 
         // tasks:
         //
@@ -2136,32 +2128,32 @@ mod tests {
         // so this reset should be optimizied.
         stack.reset_frames(0);
 
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 114); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 128); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 0); // reset
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 0); // reset
+        // check local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 59); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 61); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
 
-        //
         // prepare for the next reset
         //
+        // update local variables
+        stack.write_primitive_i32_u(local_start_0, 2 * 8, 233);
+        stack.write_primitive_i32_u(local_start_0, 3 * 8, 239);
 
-        // add some operands and change local variables to
-
-        stack.write_local_by_offset_i32(0, 16, 131);
-        stack.write_local_by_offset_i32(0, 24, 137);
-        stack.push_i32_u(139);
+        // add some operands
+        stack.push_i32_u(67);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0088 |        |
-        //       0d0080 | 139    | <-- operands 0
-        //       0d0072 | 137    |
-        //       0d0064 | 131    | <-- local vars 0
+        //       0d0080 | 67     | <-- operands 0
+        //       0d0072 | 239    |
+        //       0d0064 | 233    | <-- local vars 0
         //              |--------|
-        //       0d0056 | 128    |
-        //       0d0048 | 114    | <-- args 0
+        //       0d0056 | 61     |
+        //       0d0048 | 59     | <-- args 0
         //              |--------|
         // ```
 
@@ -2178,7 +2170,15 @@ mod tests {
         //   9. crossing reset, reset to f1
         //  10. crossing reset, reset to f0
 
-        stack.create_frame(1, 2, 97, 8 + 8, None).unwrap();
+        stack
+            .create_frame(
+                1,
+                2,
+                419,
+                8 + 8, // local variables length, 1 arg + 1 local
+                None,
+            )
+            .unwrap();
 
         // the stack data layout:
         //
@@ -2186,61 +2186,77 @@ mod tests {
         //
         // SP--> 0d0128 |        |
         //       0d0120 | 0      | <-- local vars 1
-        //       0d0112 | 139    | <-- args 1 (local vars 1)
+        //       0d0112 | 67     | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0108 | 0      |
-        //       0d0104 | 0      |
-        //       0d0100 | 0      |
-        //       0d0096 | 16     | local vars len
-        //       0d0092 | 97     | local vars list idx
+        //       0d0108 | 0      | return instruction address
+        //       0d0104 | 0      | return function internal idx
+        //       0d0100 | 0      | return module idx
+        //       0d0096 | 16     | local vars length
+        //       0d0092 | 419    | local vars list idx
         //       0d0088 | 1/2    | params/results count
         //       0d0084 | 16     | func FP
         // FP--> 0d0080 | 16     | prev FP
         //              |========| <-- fp1
-        //       0d0072 | 137    |
-        //       0d0064 | 131    | <-- local vars 0
+        //       0d0072 | 239    |
+        //       0d0064 | 233    | <-- local vars 0
         //              |--------|
-        //       0d0056 | 128    |
-        //       0d0048 | 114    | <-- args 0
+        //       0d0056 | 61     |
+        //       0d0048 | 59     | <-- args 0
         //              |--------|
-        //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | return func idx
-        //       0d0036 | 83     | return module idx
-        //       0d0032 | 32     | local vars len
-        //       0d0028 | 73     | local vars list idx
-        //       0d0024 | 2/0    | params/results count
-        //       0d0020 | 16     | func FP
-        //       0d0016 | 0      | prev FP
+        //       0d0016 | info 0 |
         //              |========| <-- fp0
         //       0d0008 | 29     |
         //       0d0000 | 23     |
         //              \--------/
         // ```
 
-        assert_eq!(stack.fp, 80);
+        // check FP and SP
+        let fp1 = 80;
+        assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 128);
 
-        // check local vars
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 139); // arg
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 0); // local var
+        // check frame
+        let frame_info_1 = stack.get_frame_info_by_reversed_index(0);
+        let expected_frame_info_1 = FrameInfo {
+            address: fp1,
+            info_data: &FrameInfoData {
+                previous_frame_address: 16,
+                function_frame_address: 16,
+                params_count: 1,
+                results_count: 2,
+                local_variable_list_index: 419,
+                local_variables_with_arguments_allocated_bytes: 16,
+                return_module_index: 0,
+                return_function_internal_index: 0,
+                return_instruction_address: 0,
+            },
+        };
+        assert_eq!(frame_info_1, expected_frame_info_1);
 
-        // update local vars
-        stack.write_local_by_offset_i32(0, 8, 401);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 401);
+        // check local variables
+        let (_, local_start_1) =
+            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
 
-        // add operands
-        stack.push_i32_u(149);
-        stack.push_i32_u(151);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0 * 8), 67); // argument
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 1 * 8), 0); // local variable
+
+        // update and check local variables
+        stack.write_primitive_i32_u(local_start_1, 8, 241);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 241);
+
+        // add some operands
+        stack.push_i32_u(73);
+        stack.push_i32_u(79);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0144 |        |
-        //       0d0136 | 151    |
-        //       0d0128 | 149    | <-- operands 1
-        //       0d0120 | 401    | <-- local vars 1
-        //       0d0112 | 139    | <-- args 1 (local vars 1)
+        //       0d0136 | 79     |
+        //       0d0128 | 73     | <-- operands 1
+        //       0d0120 | 241    | <-- local vars 1
+        //       0d0112 | 67     | <-- args 1, also local vars 1
         //              |--------|
         // ```
 
@@ -2266,43 +2282,19 @@ mod tests {
         //
         // SP--> 0d0128 |        |
         //       0d0120 | 0      | <-- local vars 1
-        //       0d0112 | 151    | <-- args 1 (local vars 1)
+        //       0d0112 | 79     | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0108 | 0      |
-        //       0d0104 | 0      |
-        //       0d0100 | 0      |
-        //       0d0096 | 16     | local vars len
-        //       0d0092 | 97     | local vars list idx
-        //       0d0088 | 1/2    | params/results count
-        //       0d0084 | 16     | func FP
-        // FP--> 0d0080 | 16     | prev FP
+        // FP--> 0d0080 | info 1 |
         //              |========| <-- fp1
         // ```
 
-        assert_eq!(stack.fp, 80);
+        // check FP and SP
+        assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 128);
 
-        // check frame
-        let f1 = stack.get_frame_info_by_reversed_index(0);
-        assert_eq!(f1.address, 80);
-        assert_eq!(
-            f1.info_data,
-            &FrameInfoData {
-                previous_frame_address: 16,
-                function_frame_address: 16,
-                params_count: 1,
-                results_count: 2,
-                local_variable_list_index: 97,
-                local_variables_with_arguments_allocated_bytes: 16,
-                return_module_index: 0,
-                return_function_internal_index: 0,
-                return_instruction_address: 0
-            }
-        );
-
-        // check local vars
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 151);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 0);
+        // check local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0 * 8), 79);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 1 * 8), 0);
 
         // tasks:
         //
@@ -2317,47 +2309,42 @@ mod tests {
         //   9. crossing reset, reset to f1
         //  10. crossing reset, reset to f0
 
-        stack.push_i32_u(152);
+        // add some operands
+        stack.push_i32_u(83);
 
         let frame_type2 = stack.reset_frames(0);
         assert_eq!(frame_type2, FrameType::Block);
 
-        // nothings changes
-        assert_eq!(stack.fp, 80);
+        // check FP and SP
+        assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 128);
 
-        // check local vars
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 152);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 0);
+        // check local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 83); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 0); // reset
 
         // prepare for next reset
-        // update local vars
-        stack.write_local_by_offset_i32(0, 8, 601);
+        //
+        // update local variables
+        stack.write_primitive_i32_u(local_start_1, 8, 251);
 
-        // check local vars
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 152);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 601);
+        // check local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 83);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 251);
 
-        // add some operands for preparing for the next reset
-        stack.push_i32_u(157);
+        // add some operands
+        stack.push_i32_u(89);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0136 |        |
-        //       0d0128 | 157    | <-- operands 1
-        //       0d0120 | 601    | <-- local vars 1
-        //       0d0112 | 152    | <-- args 1 (local vars 1)
+        //       0d0128 | 89     | <-- operands 1
+        //       0d0120 | 251    | <-- local vars 1
+        //       0d0112 | 83     | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0108 | 0      |
-        //       0d0104 | 0      |
-        //       0d0100 | 0      |
-        //       0d0096 | 16     | local vars len
-        //       0d0092 | 97     | local vars list idx
-        //       0d0088 | 1/2    | params/results count
-        //       0d0084 | 16     | func FP
-        // FP--> 0d0080 | 16     | prev FP
+        // FP--> 0d0080 | info 1 |
         //              |========| <-- fp1
         // ```
 
@@ -2374,7 +2361,7 @@ mod tests {
         //    9. crossing reset, reset to f1
         //   10. crossing reset, reset to f0
 
-        stack.create_frame(0, 0, 701, 0, None).unwrap();
+        stack.create_frame(0, 0, 421, 0, None).unwrap();
 
         // the stack data layout:
         //
@@ -2382,57 +2369,46 @@ mod tests {
         //
         // SP--> 0d0168 |        |
         //              |--------|
-        //       0d0164 | 0      |
-        //       0d0160 | 0      |
-        //       0d0156 | 0      |
-        //       0d0152 | 0      | local vars len
-        //       0d0148 | 701    | local vars list idx
+        //       0d0164 | 0      | return instruction address
+        //       0d0160 | 0      | return function internal idx
+        //       0d0156 | 0      | return module idx
+        //       0d0152 | 0      | local vars length
+        //       0d0148 | 421    | local vars list idx
         //       0d0144 | 0/0    | params/results count
         //       0d0140 | 16     | func FP
         // FP--> 0d0136 | 80     | prev FP
         //              |========| <-- fp2
-        //       0d0128 | 157    | <-- operands 1
-        //       0d0120 | 601    | <-- local vars 1
-        //       0d0112 | 152    | <-- args 1 local vars 1
+        //       0d0128 | 89     | <-- operands 1
+        //       0d0120 | 251    | <-- local vars 1
+        //       0d0112 | 83     | <-- args 1, also local vars 1
         //              |--------|
-        //       0d0108 | 0      |
-        //       0d0104 | 0      |
-        //       0d0100 | 0      |
-        //       0d0096 | 16     | local vars len
-        //       0d0092 | 97     | local vars list idx
-        //       0d0088 | 1/2    | params/results count
-        //       0d0084 | 16     | func FP
-        //       0d0080 | 16     | prev FP
+        //       0d0080 | info 1 |
         //              |========| <-- fp1
         // ```
 
-        assert_eq!(stack.fp, 136);
+        let fp2 = 136;
+
+        // check FP and SP
+        assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, 168);
 
-        // add two operands
-        stack.push_i32_u(167);
-        stack.push_i32_u(173);
+        // add some operands
+        stack.push_i32_u(97);
+        stack.push_i32_u(101);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0184 |        |
-        //       0d0176 | 173    |
-        //       0d0168 | 167    |
+        //       0d0176 | 101    |
+        //       0d0168 | 97     |
         //              |--------|
-        //       0d0164 | 0      |
-        //       0d0160 | 0      |
-        //       0d0156 | 0      |
-        //       0d0152 | 0      | local vars len
-        //       0d0148 | 701    | local vars list idx
-        //       0d0144 | 0/0    | params/results count
-        //       0d0140 | 16     | func FP
-        // FP--> 0d0136 | 80     | prev FP
+        // FP--> 0d0136 | info 2 |
         //              |========| <-- fp2
-        //       0d0128 | 157    | <-- operands 1
-        //       0d0120 | 601    | <-- local vars 1
-        //       0d0112 | 152    | <-- args 1 local vars 1
+        //       0d0128 | 89     | <-- operands 1
+        //       0d0120 | 251    | <-- local vars 1
+        //       0d0112 | 83     | <-- args 1, also local vars 1
         // ```
 
         assert_eq!(stack.sp, 184);
@@ -2450,39 +2426,30 @@ mod tests {
         //    9. crossing reset, reset to f1
         //   10. crossing reset, reset to f0
 
-        // note:
         // the current frame has no local vars, neither args
-
         stack.reset_frames(0);
 
         // check SP
-        assert_eq!(stack.fp, 136);
+        assert_eq!(stack.fp, fp2);
         assert_eq!(stack.sp, 168);
 
-        // add two operands again
-        stack.push_i32_u(503);
-        stack.push_i32_u(509);
+        // add some operands, again
+        stack.push_i32_u(103);
+        stack.push_i32_u(107);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0184 |        |
-        //       0d0176 | 509    |
-        //       0d0168 | 503    |
+        //       0d0176 | 107    |
+        //       0d0168 | 103    |
         //              |--------|
-        //       0d0164 | 0      |
-        //       0d0160 | 0      |
-        //       0d0156 | 0      |
-        //       0d0152 | 0      | local vars len
-        //       0d0148 | 701    | local vars list idx
-        //       0d0144 | 0/0    | params/results count
-        //       0d0140 | 16     | func FP
-        // FP--> 0d0136 | 80     | prev FP
+        // FP--> 0d0136 | info 2 |
         //              |========| <-- fp2
-        //       0d0128 | 157    | <-- operands 1
-        //       0d0120 | 601    | <-- local vars 1
-        //       0d0112 | 152    | <-- args 1 local vars 1
+        //       0d0128 | 89     | <-- operands 1
+        //       0d0120 | 251    | <-- local vars 1
+        //       0d0112 | 83     | <-- args 1, also local vars 1
         // ```
 
         // tasks:
@@ -2508,25 +2475,18 @@ mod tests {
         //
         // SP--> 0d0128 |        |
         //       0d0120 | 0      | <-- local vars 1
-        //       0d0112 | 509    | <-- args 1 from operands 2
+        //       0d0112 | 107    | <-- args 1 (value from operands 2)
         //              |--------|
-        //       0d0108 | 0      |
-        //       0d0104 | 0      |
-        //       0d0100 | 0      |
-        //       0d0096 | 16     | local vars len
-        //       0d0092 | 97     | local vars list idx
-        //       0d0088 | 149    | func type
-        //       0d0084 | 16     | func FP
-        // FP--> 0d0080 | 16     | prev FP
+        // FP--> 0d0080 | info 1 |
         //              |========| <-- fp1
         // ```
 
-        assert_eq!(stack.fp, 80);
+        assert_eq!(stack.fp, fp1);
         assert_eq!(stack.sp, 128);
 
-        // check local vars
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 509);
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 0);
+        // check local variables
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 107);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 0);
 
         // tasks:
         //
@@ -2541,19 +2501,19 @@ mod tests {
         //    9. crossing reset, reset to f1
         // > 10. crossing reset, reset to f0
 
-        // add two operands
-        stack.push_i32_u(181);
-        stack.push_i32_u(191);
+        // add some operands
+        stack.push_i32_u(109);
+        stack.push_i32_u(113);
 
         // the stack data layout:
         //
         // ```diagram
         //
         // SP--> 0d0144 |        |
-        //       0d0136 | 191    |
-        //       0d0128 | 181    |
+        //       0d0136 | 113    |
+        //       0d0128 | 109    |
         //       0d0120 | 0      | <-- local vars 1
-        //       0d0112 | 509    | <-- args 1 from operands 2
+        //       0d0112 | 509    | <-- args 1 (value from operands 2)
         //              |--------|
         // ```
 
@@ -2569,30 +2529,23 @@ mod tests {
         //       0d0072 | 0      |
         //       0d0064 | 0      | <-- local vars 0
         //              |--------|
-        //       0d0056 | 191    |
-        //       0d0048 | 181    | <-- args 0 from operands 1
+        //       0d0056 | 113    |
+        //       0d0048 | 109    | <-- args 0 (value from operands 1)
         //              |--------|
-        //       0d0044 | 89     | return inst addr
-        //       0d0040 | 79     | return func idx
-        //       0d0036 | 83     | return module idx
-        //       0d0032 | 32     | local vars len
-        //       0d0028 | 73     | local vars list idx
-        //       0d0024 | 2/0    | params/results count
-        //       0d0020 | 16     | func FP
-        // FP--> 0d0016 | 0      | prev FP
+        // FP--> 0d0016 | info 0 |
         //              |========| <-- fp0
         //       0d0008 | 29     |
         //       0d0000 | 23     |
         //              \--------/
         // ```
 
-        assert_eq!(stack.fp, 16);
+        assert_eq!(stack.fp, fp0);
         assert_eq!(stack.sp, 80);
 
         // check local variables
-        assert_eq!(stack.read_local_by_offset_i32(0, 0), 181); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 8), 191); // updated
-        assert_eq!(stack.read_local_by_offset_i32(0, 16), 0); // reset
-        assert_eq!(stack.read_local_by_offset_i32(0, 24), 0); // reset
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 109); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 113); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
     }
 }
