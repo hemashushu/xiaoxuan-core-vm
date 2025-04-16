@@ -4,6 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+pub const MAX_ENVCALL_CODE_NUMBER: usize = 128;
+
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -12,7 +14,7 @@ pub enum EnvCallNum {
     //
     // get the VM runtime edition
     // `fn (buf_ptr: i64) -> len:i32`
-    runtime_edition = 0x0100,
+    runtime_edition,
 
     // get the VM runtime version
     // `fn () -> version:i64`
@@ -23,17 +25,6 @@ pub enum EnvCallNum {
     //        |    |minor
     //        |major
     runtime_version,
-
-    // get name list of the runtime features, separated by commas, e.g.
-    // "syscall,extcall"
-    //
-    // `fn (buf_ptr: i64) -> feature_list_len:i32`
-    //
-    // runtime_features,
-
-    // `fn (name_ptr:i64, name_len:i32) -> bool`
-    //
-    // runtime_feature_check,
 
     // host
     //
@@ -77,7 +68,7 @@ pub enum EnvCallNum {
     // it's '0' for the main thread, and '1' for the first child thread.
     //
     // 'fn () -> thread_id:u32'
-    thread_id = 0x0200,
+    thread_id,
 
     // thread model
     // ------------
@@ -286,5 +277,3 @@ pub enum EnvCallNum {
     regex_test,
     regex_remove,
 }
-
-pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0300;

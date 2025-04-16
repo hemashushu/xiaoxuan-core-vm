@@ -296,7 +296,7 @@ fn create_and_add_wrapper_function(
 
     let wrapper_function_pointer = create_wrapper_function(
         jit_generator,
-        /* wrapper_function_index, */ param_types,
+        param_types,
         result_types,
     );
 

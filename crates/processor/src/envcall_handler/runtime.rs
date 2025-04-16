@@ -53,7 +53,8 @@ pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
 
 #[cfg(test)]
 mod tests {
-    use anc_context::process_resource::ProgramSource;
+
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
         entry::LocalVariableEntry, utils::helper_build_module_binary_with_single_function,
@@ -61,8 +62,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler,
-        in_memory_program_source::InMemoryProgramSource, process::process_function,
+        envcall_num::EnvCallNum, handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        process::process_function,
     };
 
     #[test]
@@ -74,7 +75,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                     // params
@@ -117,7 +118,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                                           // params

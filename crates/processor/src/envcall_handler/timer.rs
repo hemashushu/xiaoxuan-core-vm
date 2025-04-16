@@ -83,8 +83,8 @@ mod tests {
         let secs = results0[0].as_u64();
         let nanos = results0[1].as_u64();
 
-        println!("{}", secs);
-        println!("{}", nanos);
+        // println!("{}", secs);
+        // println!("{}", nanos);
 
         let duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

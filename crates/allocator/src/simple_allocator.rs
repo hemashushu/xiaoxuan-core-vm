@@ -42,6 +42,12 @@ impl SimpleAllocator {
     }
 }
 
+impl Default for SimpleAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Allocator for SimpleAllocator {
     fn allocate(&mut self, _align_in_bytes: usize, size_in_bytes: usize) -> usize {
         // Search for an empty slot in the collection.

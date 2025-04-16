@@ -6,8 +6,12 @@
 
 use anc_context::thread_context::ThreadContext;
 use anc_isa::OPERAND_SIZE_IN_BYTES;
+use anc_stack::ProgramCounter;
 
-use crate::TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION;
+use crate::{
+    extcall_handler::get_or_create_external_function_and_wrapper_function,
+    TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION, TERMINATE_CODE_STACK_OVERFLOW,
+};
 
 use super::{HandleResult, Handler};
 
@@ -23,7 +27,7 @@ pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRes
 }
 
 pub fn call_dynamic(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // () (operand function_public_index:i32, args...) -> (values)
+    // () (operand args... function_public_index:i32) -> (values)
     let function_public_index = thread_context.stack.pop_i32_u();
     let module_index = thread_context.stack.pop_i32_u() as usize;
     do_call(thread_context, module_index, function_public_index, 2)
@@ -41,18 +45,16 @@ fn do_call(
         module_index: return_module_index,
     } = thread_context.pc;
 
-    let (target_module_index, target_function_internal_index) =
+    let target_function_object =
         thread_context.get_target_function_object(module_index, function_public_index as usize);
-    let (
-        type_index,
-        local_variable_list_index,
-        code_offset,
-        local_variables_with_arguments_allocated_bytes,
-    ) = thread_context.get_function_info(target_module_index, target_function_internal_index);
+    let function_info = thread_context.get_function_info(
+        target_function_object.module_index,
+        target_function_object.function_internal_index,
+    );
 
-    let type_item = &thread_context.module_common_instances[target_module_index]
+    let type_item = &thread_context.module_common_instances[target_function_object.module_index]
         .type_section
-        .items[type_index];
+        .items[function_info.type_index];
 
     let return_pc = ProgramCounter {
         // the length of instruction 'call' is 8 bytes (while 'dyncall' is 2 bytes).
@@ -63,25 +65,28 @@ fn do_call(
         module_index: return_module_index,
     };
 
-    thread_context.stack.create_frame(
+    match thread_context.stack.create_frame(
         type_item.params_count,
         type_item.results_count,
-        local_variable_list_index as u32,
-        local_variables_with_arguments_allocated_bytes,
+        function_info.local_variable_list_index as u32,
+        function_info.local_variables_with_arguments_allocated_bytes as u32,
         Some(return_pc),
-    );
+    ) {
+        Ok(_) => {
+            let target_pc = ProgramCounter {
+                instruction_address: function_info.code_offset,
+                function_internal_index: target_function_object.function_internal_index,
+                module_index: target_function_object.module_index,
+            };
 
-    let target_pc = ProgramCounter {
-        instruction_address: code_offset,
-        function_internal_index: target_function_internal_index,
-        module_index: target_module_index,
-    };
-
-    HandleResult::Jump(target_pc)
+            HandleResult::Jump(target_pc)
+        }
+        Err(_) => HandleResult::Terminate(TERMINATE_CODE_STACK_OVERFLOW),
+    }
 }
 
 pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // () (operand args..., syscall_num:i32, params_count: i32) -> (return_value:i64, error_number:i32)
+    // () (operand args... params_count:i32 syscall_num:i32) -> (return_value:i64 error_number:i32)
     //
     // The "syscall" instruction invokes a system call on Unix-like operating systems.
     //
@@ -105,8 +110,8 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     //
     // Note: Unlike the C standard library, there is no "errno" when calling syscalls directly from assembly.
 
-    let params_count = thread_context.stack.pop_i32_u();
     let syscall_num = thread_context.stack.pop_i32_u();
+    let params_count = thread_context.stack.pop_i32_u();
 
     let syscall_handler = handler.syscall_handlers[params_count as usize];
     let result = syscall_handler(handler, thread_context, syscall_num as usize);
@@ -127,13 +132,13 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     HandleResult::Move(2)
 }
 
-// pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-//     // (param envcall_num:i32) (operand args...) -> (values)
-//     let envcall_num = thread_context.get_param_i32();
-//     let envcall_handler = handler.envcall_handlers[envcall_num as usize];
-//     envcall_handler(handler, thread_context);
-//     HandleResult::Move(8)
-// }
+pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+    // (param envcall_num:i32) (operand args...) -> (values)
+    let envcall_num = thread_context.get_param_i32();
+    let envcall_handler = handler.envcall_handlers[envcall_num as usize];
+    envcall_handler(handler, thread_context);
+    HandleResult::Move(8)
+}
 
 pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param external_function_index:i32) (operand args...) -> return_value:void/i32/i64/f32/f64
@@ -144,8 +149,8 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     let external_function_index = thread_context.get_param_i32() as usize;
     let module_index = thread_context.pc.module_index;
 
-    let (external_function_pointer, wrapper_function, params_count, has_return_value) =
-        if let Ok(pwr) = get_or_create_external_function(
+    let (external_function_pointer, wrapper_function, params_count, contains_return_value) =
+        if let Ok(pwr) = get_or_create_external_function_and_wrapper_function(
             handler,
             thread_context,
             module_index,
@@ -171,14 +176,10 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
         .prepare_popping_operands_to_memory(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
-    wrapper_function(
-        external_function_pointer,
-        params_ptr as *const usize,
-        results.as_mut_ptr(),
-    );
+    wrapper_function(external_function_pointer, params_ptr, results.as_mut_ptr());
 
     // push the result on the stack
-    if has_return_value {
+    if contains_return_value {
         let dst = thread_context.stack.prepare_pushing_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }
@@ -195,7 +196,6 @@ mod tests {
         program_source::ProgramSource,
     };
     use anc_image::{
-        bytecode_reader::format_bytecode_as_text,
         bytecode_writer::BytecodeWriterHelper,
         entry::{ExternalLibraryEntry, ReadOnlyDataEntry},
         utils::{
@@ -287,7 +287,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code_sum_square));
+        // println!("{}", format_bytecode_as_text(&code_sum_square));
 
         let code_square = BytecodeWriterHelper::new()
             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
@@ -492,7 +492,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                                           // params
@@ -535,7 +535,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[OperandDataType::I64, OperandDataType::I64], // params
@@ -580,7 +580,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_syscall_error_no() {
+    fn test_handler_syscall_error_number() {
         // fn test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
         //
         // syscall:
@@ -599,7 +599,7 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        println!("{}", format_bytecode_as_text(&code0));
+        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[OperandDataType::I64],                       // params

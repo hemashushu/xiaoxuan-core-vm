@@ -413,9 +413,9 @@ impl CallingStack for NostdStack {
     /// returns:
     /// - None: when the target frame is block frame.
     /// - Some(ProgramCounter): when the target frame is function frame.
-    fn remove_frames(&mut self, reversed_index: u16) -> Option<ProgramCounter> {
+    fn remove_frames(&mut self, layers: u16) -> Option<ProgramCounter> {
         let (sp, fp, is_function_frame, results_count, return_pc) = {
-            let frame_info = self.get_frame_info_by_reversed_index(reversed_index);
+            let frame_info = self.get_frame_info_by_layers(layers);
             let is_function_frame = frame_info.get_frame_type() == FrameType::Function;
             (
                 frame_info.address, // current frame start address
@@ -448,14 +448,14 @@ impl CallingStack for NostdStack {
     }
 
     /// reset the specified function frame or block frame.
-    fn reset_frames(&mut self, reversed_index: u16) -> FrameType {
+    fn reset_frames(&mut self, layers: u16) -> FrameType {
         let (
             is_function_frame,
             frame_addr,
             params_count,
             local_variables_with_arguments_allocated_bytes,
         ) = {
-            let frame_info = self.get_frame_info_by_reversed_index(reversed_index);
+            let frame_info = self.get_frame_info_by_layers(layers);
             let is_function_frame = frame_info.get_frame_type() == FrameType::Function;
             (
                 is_function_frame,
@@ -499,7 +499,7 @@ impl CallingStack for NostdStack {
         // move (is memory copy actually) the results to argument slots.
 
         let params_bytes = params_count as usize * OPERAND_SIZE_IN_BYTES;
-        if (reversed_index == 0)
+        if (layers == 0)
             && (self.sp
                 == self.fp
                     + size_of::<FrameInfoData>()
@@ -586,13 +586,13 @@ impl CallingStack for NostdStack {
     }
 
     /// Calculates the start address of the local variables area for a frame
-    /// identified by the given reversed index.
+    /// identified by the given layers.
     ///
     /// The address is computed as `frame pointer + size of FrameInfoData`.
     /// This method always returns the calculated address, even if no local variables exist.
-    fn get_local_variable_list_index_and_start_address_by_reversed_index(
+    fn get_local_variable_list_index_and_start_address_by_layers(
         &self,
-        reversed_index: u16,
+        layers: u16,
     ) -> (usize, usize) {
         // ```diagram
         // |                 |
@@ -606,7 +606,7 @@ impl CallingStack for NostdStack {
         // \-----------------/
         // ```
 
-        let frame_info = self.get_frame_info_by_reversed_index(reversed_index);
+        let frame_info = self.get_frame_info_by_layers(layers);
 
         (
             frame_info.info_data.local_variable_list_index as usize,
@@ -678,14 +678,13 @@ impl NostdStack {
         unsafe { &mut *(ptr as *mut FrameInfoData) }
     }
 
-    /// Retrieves `FrameInfo` by the given reversed index.
+    /// Retrieves `FrameInfo` by the given layers.
     ///
-    /// The reversed index specifies the depth of the frame relative to the current frame.
+    /// The layers specifies the depth of the frame relative to the current frame.
     /// For example:
     /// - `0` retrieves the current frame.
     /// - `1` retrieves the parent frame.
     /// - `n` retrieves the nth parent frame.
-    ///
     ///
     /// ```diagram
     /// fn {
@@ -697,17 +696,17 @@ impl NostdStack {
     ///       block
     ///         ;; frame 3 (block frame)
     ///         ;; assuming this is the current stack frame, then:
-    ///         ;; - to get frame 3: reversed index = 0
-    ///         ;; - to get frame 2: reversed index = 1
-    ///         ;; - to get frame 0: reversed index = 3
+    ///         ;; - to get frame 3: layers = 0
+    ///         ;; - to get frame 2: layers = 1
+    ///         ;; - to get frame 0: layers = 3
     ///       end
     ///     end
     ///   end
     /// }
     /// ```
     ///
-    /// Panics if the reversed index exceeds the available frames or crosses function boundaries.
-    fn get_frame_info_by_reversed_index(&self, reversed_index: u16) -> FrameInfo {
+    /// Panics if the number of layer exceeds the available frames or crosses function boundaries.
+    fn get_frame_info_by_layers(&self, layers: u16) -> FrameInfo {
         // the `FP` chain:
         //
         // ```diagram
@@ -718,10 +717,10 @@ impl NostdStack {
         //     FP -> |---------|    \----> |---------|    \----> |---------|
         //           | ...     |           | ...     |           | ...     |
         //           \---------/           \---------/           \---------/
-        //          reversed idx 0        reversed idx 1        reversed idx 2
+        //             layers 0              layers 1              layers 2
         // ```
 
-        let mut remains = reversed_index;
+        let mut remains = layers;
         let mut fp = self.fp;
         let mut frame_info_data = self.get_frame_info_data(fp);
         let mut is_function_frame = fp == frame_info_data.function_frame_address as usize;
@@ -730,9 +729,9 @@ impl NostdStack {
             if is_function_frame {
                 // crossing function is not allowed
                 panic!(
-                    "The reversed index is out of bounds when retrieving stack frame information.
-FP: {}, SP: {}, reversed index: {}.",
-                    self.fp, self.sp, reversed_index
+                    "The layers is out of bounds when retrieving stack frame information.
+FP: {}, SP: {}, layers: {}.",
+                    self.fp, self.sp, layers
                 )
             }
 
@@ -1052,16 +1051,16 @@ mod tests {
         stack.create_frame(0, 0, 4, 32, None).unwrap();
 
         // Verify frame information
-        let frame_info0 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info0 = stack.get_frame_info_by_layers(0);
         assert_eq!(frame_info0.info_data.local_variable_list_index, 4);
 
-        let frame_info1 = stack.get_frame_info_by_reversed_index(1);
+        let frame_info1 = stack.get_frame_info_by_layers(1);
         assert_eq!(frame_info1.info_data.local_variable_list_index, 3);
 
-        let frame_info2 = stack.get_frame_info_by_reversed_index(2);
+        let frame_info2 = stack.get_frame_info_by_layers(2);
         assert_eq!(frame_info2.info_data.local_variable_list_index, 2);
 
-        let frame_info3 = stack.get_frame_info_by_reversed_index(3);
+        let frame_info3 = stack.get_frame_info_by_layers(3);
         assert_eq!(frame_info3.info_data.local_variable_list_index, 1);
 
         // Test boundary check by attempting to access a non-existent frame
@@ -1069,7 +1068,7 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            stack.get_frame_info_by_reversed_index(4); // This should panic
+            stack.get_frame_info_by_layers(4); // This should panic
         });
 
         std::panic::set_hook(prev_hook);
@@ -1118,23 +1117,23 @@ mod tests {
         stack.create_frame(4, 0, 0, 32 + 16, None).unwrap();
 
         let (_, local_start) =
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
+            stack.get_local_variable_list_index_and_start_address_by_layers(0);
 
         // Write to local variables
         stack.write_primitive_i32_u(local_start, 4 * 8, 23);
         stack.write_primitive_i32_u(local_start, 5 * 8, 29);
 
         // Verify local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start, 0 * 8), 11);
-        assert_eq!(stack.read_primitive_i32_u(local_start, 1 * 8), 13);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 0), 11);
+        assert_eq!(stack.read_primitive_i32_u(local_start, 8), 13);
         assert_eq!(stack.read_primitive_i32_u(local_start, 2 * 8), 17);
         assert_eq!(stack.read_primitive_i32_u(local_start, 3 * 8), 19);
         assert_eq!(stack.read_primitive_i32_u(local_start, 4 * 8), 23);
         assert_eq!(stack.read_primitive_i32_u(local_start, 5 * 8), 29);
 
         // Verify memory addresses of local variables
-        let ptr0 = stack.get_ptr(local_start, 0 * 8);
-        let ptr1 = stack.get_ptr(local_start, 1 * 8);
+        let ptr0 = stack.get_ptr(local_start, 0);
+        let ptr1 = stack.get_ptr(local_start, 8);
         let ptr2 = stack.get_ptr(local_start, 2 * 8);
         let ptr3 = stack.get_ptr(local_start, 3 * 8);
         let ptr4 = stack.get_ptr(local_start, 4 * 8);
@@ -1244,7 +1243,7 @@ mod tests {
         assert_eq!(stack.fp, fp0);
 
         // check frame info
-        let frame_info_0 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_0 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_0 = FrameInfo {
             address: fp0,
             info_data: &FrameInfoData {
@@ -1279,12 +1278,12 @@ mod tests {
 
         let local_start_0 = fp0 + size_of::<FrameInfoData>();
         assert_eq!(
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
             (401, local_start_0),
         );
 
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 37);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0);
 
@@ -1380,7 +1379,7 @@ mod tests {
         assert_eq!(stack.read_primitive_i32_u(88, 0), 43);
         assert_eq!(stack.read_primitive_i32_u(80, 0), 41);
 
-        let frame_info_1 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_1 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_1 = FrameInfo {
             address: fp1,
             info_data: &FrameInfoData {
@@ -1399,7 +1398,7 @@ mod tests {
         assert_eq!(frame_info_1, expected_frame_info_1);
 
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(1),
+            stack.get_frame_info_by_layers(1),
             expected_frame_info_0
         );
 
@@ -1408,20 +1407,20 @@ mod tests {
 
         assert_eq!(
             (419, local_start_1),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
         );
 
         assert_eq!(
             (401, local_start_0),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
+            stack.get_local_variable_list_index_and_start_address_by_layers(1),
         );
 
         // check local variables, frame 1
         assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 47);
 
         // check local variables, frame 0
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 37);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
@@ -1430,10 +1429,10 @@ mod tests {
         assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 227);
 
         // update and check local variables, frame 0
-        stack.write_primitive_i32_u(local_start_0, 0 * 8, 229);
-        stack.write_primitive_i32_u(local_start_0, 1 * 8, 233);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        stack.write_primitive_i32_u(local_start_0, 0, 229);
+        stack.write_primitive_i32_u(local_start_0, 8, 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 233);
 
         // the stack data layout:
         //
@@ -1501,7 +1500,7 @@ mod tests {
         assert_eq!(stack.sp, fp2 + size_of::<FrameInfoData>());
 
         // check frame info
-        let frame_info_2 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_2 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_2 = FrameInfo {
             address: fp2,
             info_data: &FrameInfoData {
@@ -1520,12 +1519,12 @@ mod tests {
         assert_eq!(frame_info_2, expected_frame_info_2);
 
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(1),
+            stack.get_frame_info_by_layers(1),
             expected_frame_info_1
         );
 
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(2),
+            stack.get_frame_info_by_layers(2),
             expected_frame_info_0
         );
 
@@ -1533,17 +1532,17 @@ mod tests {
         let local_start_2 = fp2 + size_of::<FrameInfoData>();
         assert_eq!(
             (421, local_start_2),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
         );
 
         assert_eq!(
             (419, local_start_1),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
+            stack.get_local_variable_list_index_and_start_address_by_layers(1),
         );
 
         assert_eq!(
             (401, local_start_0),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(2),
+            stack.get_local_variable_list_index_and_start_address_by_layers(2),
         );
 
         // check local variables, frame 2
@@ -1553,8 +1552,8 @@ mod tests {
         assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 227);
 
         // check local variables, frame 0
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 233);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 211);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 223);
 
@@ -1649,7 +1648,7 @@ mod tests {
         assert_eq!(stack.fp, fp3);
         assert_eq!(stack.sp, fp3 + size_of::<FrameInfoData>() + 8); // 1 args in the current frame
 
-        let frame_info_3 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_3 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_3 = FrameInfo {
             address: fp3,
             info_data: &FrameInfoData {
@@ -1671,7 +1670,7 @@ mod tests {
         let local_start_3 = fp3 + size_of::<FrameInfoData>();
         assert_eq!(
             (431, local_start_3),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
         );
 
         assert_eq!(stack.read_primitive_i32_u(local_start_3, 0), 53);
@@ -1737,15 +1736,15 @@ mod tests {
         );
 
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(0),
+            stack.get_frame_info_by_layers(0),
             expected_frame_info_2
         );
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(1),
+            stack.get_frame_info_by_layers(1),
             expected_frame_info_1
         );
         assert_eq!(
-            stack.get_frame_info_by_reversed_index(2),
+            stack.get_frame_info_by_layers(2),
             expected_frame_info_0
         );
 
@@ -1783,17 +1782,17 @@ mod tests {
         // check local variables start address
         assert_eq!(
             (421, local_start_2),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
         );
 
         assert_eq!(
             (419, local_start_1),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(1),
+            stack.get_local_variable_list_index_and_start_address_by_layers(1),
         );
 
         assert_eq!(
             (401, local_start_0),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(2),
+            stack.get_local_variable_list_index_and_start_address_by_layers(2),
         );
 
         // check local variables, frame 2
@@ -1803,8 +1802,8 @@ mod tests {
         assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 239);
 
         // check local variables, frame 0
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 233);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 241);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 251);
 
@@ -1854,7 +1853,7 @@ mod tests {
         assert_eq!(stack.sp, 112);
 
         // check operands
-        assert_eq!(stack.read_primitive_i32_u(stack.sp - 1 * 8, 0), 61);
+        assert_eq!(stack.read_primitive_i32_u(stack.sp - 8, 0), 61);
         assert_eq!(stack.read_primitive_i32_u(stack.sp - 2 * 8, 0), 59);
         assert_eq!(stack.read_primitive_i32_u(stack.sp - 3 * 8, 0), 43);
         assert_eq!(stack.read_primitive_i32_u(stack.sp - 4 * 8, 0), 41);
@@ -1862,11 +1861,11 @@ mod tests {
         // check local variables
         assert_eq!(
             (401, local_start_0),
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0),
+            stack.get_local_variable_list_index_and_start_address_by_layers(0),
         );
 
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 229);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 233);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 229);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 233);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 241);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 251);
 
@@ -1996,9 +1995,9 @@ mod tests {
 
         // check local variables
         let (_, local_start_0) =
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 31);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 37);
+            stack.get_local_variable_list_index_and_start_address_by_layers(0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 31);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 37);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0);
 
@@ -2074,7 +2073,7 @@ mod tests {
         // ```
 
         // check frame
-        let frame_info_0 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_0 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_0 = FrameInfo {
             address: fp0,
             info_data: &FrameInfoData {
@@ -2092,8 +2091,8 @@ mod tests {
         assert_eq!(frame_info_0, expected_frame_info_0);
 
         // check local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 47); // updated
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 53); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 47); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 53); // updated
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
 
@@ -2102,8 +2101,8 @@ mod tests {
         stack.write_primitive_i32_u(local_start_0, 3 * 8, 229);
 
         // check local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 47);
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 53);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 47);
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 53);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 227);
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 229);
 
@@ -2129,8 +2128,8 @@ mod tests {
         stack.reset_frames(0);
 
         // check local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 59); // updated
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 61); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 59); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 61); // updated
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
 
@@ -2216,7 +2215,7 @@ mod tests {
         assert_eq!(stack.sp, 128);
 
         // check frame
-        let frame_info_1 = stack.get_frame_info_by_reversed_index(0);
+        let frame_info_1 = stack.get_frame_info_by_layers(0);
         let expected_frame_info_1 = FrameInfo {
             address: fp1,
             info_data: &FrameInfoData {
@@ -2235,10 +2234,10 @@ mod tests {
 
         // check local variables
         let (_, local_start_1) =
-            stack.get_local_variable_list_index_and_start_address_by_reversed_index(0);
+            stack.get_local_variable_list_index_and_start_address_by_layers(0);
 
-        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0 * 8), 67); // argument
-        assert_eq!(stack.read_primitive_i32_u(local_start_1, 1 * 8), 0); // local variable
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 67); // argument
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 0); // local variable
 
         // update and check local variables
         stack.write_primitive_i32_u(local_start_1, 8, 241);
@@ -2293,8 +2292,8 @@ mod tests {
         assert_eq!(stack.sp, 128);
 
         // check local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0 * 8), 79);
-        assert_eq!(stack.read_primitive_i32_u(local_start_1, 1 * 8), 0);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 0), 79);
+        assert_eq!(stack.read_primitive_i32_u(local_start_1, 8), 0);
 
         // tasks:
         //
@@ -2543,8 +2542,8 @@ mod tests {
         assert_eq!(stack.sp, 80);
 
         // check local variables
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0 * 8), 109); // updated
-        assert_eq!(stack.read_primitive_i32_u(local_start_0, 1 * 8), 113); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 0), 109); // updated
+        assert_eq!(stack.read_primitive_i32_u(local_start_0, 8), 113); // updated
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 2 * 8), 0); // reset
         assert_eq!(stack.read_primitive_i32_u(local_start_0, 3 * 8), 0); // reset
     }

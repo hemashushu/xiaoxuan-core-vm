@@ -13,23 +13,14 @@ pub trait MemoryAccess {
     // Returns a mutable pointer to the memory at the specified address.
     fn get_mut_ptr(&mut self, address: usize, offset_in_bytes: usize) -> *mut u8;
 
-    // // Copies a block of memory from the source address to the destination pointer.
-    // // `length_in_bytes` specifies the number of bytes to copy.
-    // #[inline]
-    // #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    // fn read(&self, src_address: usize, offset_in_bytes:usize, dst_ptr: *mut u8, length_in_bytes: usize) {
-    //     let src = self.get_ptr(src_address, offset_in_bytes);
-    //     unsafe {
-    //         std::ptr::copy(src, dst_ptr, length_in_bytes);
-    //     }
-    // }
-
     // Reads an i64 value from the source address and writes it to the destination pointer.
     fn read_i64(&self, src_address: usize, offset_in_bytes: usize, dst_ptr: *mut u8) {
-        // self.read(src_address, offset_in_bytes,dst_ptr, 8);
-        let src = self.get_ptr(src_address, offset_in_bytes);
+        let tp_src = self.get_ptr(src_address, offset_in_bytes) as *const u64;
         unsafe {
-            std::ptr::copy(src, dst_ptr, 8);
+            let val_64 = std::ptr::read(tp_src);
+            let dst_ptr_64 = dst_ptr as *mut u64;
+            // std::ptr::copy(tp_src, dst_ptr, 8);
+            std::ptr::write(dst_ptr_64, val_64);
         }
     }
 

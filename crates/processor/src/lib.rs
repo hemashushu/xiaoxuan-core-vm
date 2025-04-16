@@ -15,7 +15,7 @@ mod jit_context;
 mod syscall_handler;
 
 // pub mod bridge_process;
-// pub mod envcall_num;
+pub mod envcall_num;
 pub mod handler;
 pub mod in_memory_program_source;
 // pub mod multithread_process;

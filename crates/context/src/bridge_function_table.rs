@@ -16,6 +16,12 @@ impl BridgeFunctionTable {
     }
 }
 
+impl Default for BridgeFunctionTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct BridgeFunctionsByModule {
     pub module_index: usize,
     pub bridge_function_items: Vec<BridgeFunctionItem>,

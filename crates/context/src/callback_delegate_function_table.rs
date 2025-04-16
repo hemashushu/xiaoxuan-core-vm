@@ -16,6 +16,12 @@ impl CallbackDelegateFunctionTable {
     }
 }
 
+impl Default for CallbackDelegateFunctionTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct CallbackDelegateFunctionsByModule {
     pub module_index: usize,
     pub callback_delegate_function_items: Vec<CallbackDelegateFunctionItem>,

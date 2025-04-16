@@ -135,7 +135,7 @@ impl<'a> ThreadContext<'a> {
                     .data_index_section
                     .get_items_count(module_index);
 
-                if data_public_index > count as usize {
+                if data_public_index > count {
                     panic!(
                     "Out of bounds of the data public index, module index: {}, total data items: {}, request data index: {}.",
                     module_index, count, data_public_index
@@ -157,8 +157,8 @@ impl<'a> ThreadContext<'a> {
             TargetDataObject {
                 module_index: target_module_index,
                 data_section_type: target_data_section_type,
-                data_internal_index_in_section: data_internal_index_in_section,
-                accessor: accessor,
+                data_internal_index_in_section,
+                accessor,
             }
         };
 
@@ -259,9 +259,9 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
     /// Calculates the start address of a local variable within the stack frame.
     pub fn get_local_variable_start_address(
         &self,
-        reversed_index: u16,                // Reversed index of the stack frame.
-        local_variable_index: usize,        // Index of the local variable.
-        offset_bytes: usize,                // Offset in bytes for bounds checking.
+        layers: u16,                 // The number of layers in the reverse stack frames.
+        local_variable_index: usize, // Index of the local variable.
+        // offset_bytes: usize,         // Offset in bytes for bounds checking.
         expect_data_length_in_bytes: usize, // Expected data length in bytes for bounds checking.
     ) -> usize {
         // get the local variable info
@@ -273,37 +273,36 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
 
         let (local_variable_list_index, local_variables_start_address) = self
             .stack
-            .get_local_variable_list_index_and_start_address_by_reversed_index(
-                reversed_index,
-            );
+            .get_local_variable_list_index_and_start_address_by_layers(layers);
 
         let variable_item = &self.module_common_instances[module_index]
             .local_variable_section
-            .get_local_variable_list(local_variable_list_index as usize)[local_variable_index];
+            .get_local_variable_list(local_variable_list_index)[local_variable_index];
 
         // bounds check
         #[cfg(feature = "bounds_check")]
         {
-            if expect_data_length_in_bytes + offset_bytes > variable_item.var_actual_length as usize
+            if expect_data_length_in_bytes // + offset_bytes
+                > variable_item.variable_actual_size_in_bytes as usize
             {
                 panic!(
                     "Access exceeds the length of the local variable.
 module index: {}, function internal index: {}, instruction address: {},
-block reversed index: {}, local variable index: {},
-variable actual length (in bytes): {}, access offset (in bytes): {}, expect length (in bytes): {}.",
+layers: {}, local variable index: {},
+variable actual length (in bytes): {}, expect length (in bytes): {}.",
                     module_index,
                     function_internal_index,
                     instruction_address,
-                    reversed_index,
+                    layers,
                     local_variable_index,
-                    variable_item.var_actual_length,
-                    offset_bytes,
+                    variable_item.variable_actual_size_in_bytes,
+                    // offset_bytes,
                     expect_data_length_in_bytes,
                 );
             }
         }
 
-        local_variables_start_address + variable_item.var_offset as usize
+        local_variables_start_address + variable_item.variable_offset as usize
     }
 
     /// Finds a function by its fully qualified name, returning its module and internal indices.
@@ -326,7 +325,7 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
             .get_item_visibility_and_function_internal_index(expected_function_full_name)?;
 
         if visibility != Visibility::Public {
-            return None;
+            None
         } else {
             Some((module_index, function_internal_index))
         }
@@ -356,7 +355,7 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
                 )?;
 
         if visibility != Visibility::Public {
-            return None;
+            None
         } else {
             Some((
                 module_index,
@@ -402,18 +401,19 @@ variable actual length (in bytes): {}, access offset (in bytes): {}, expect leng
         }
     }
 
-    /// Retrieves a 64-bit instruction parameter variant.
-    /// Returns `[opcode + i16 + i16 + i16]`.
-    pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
-        let data = self.get_instruction(2, 6);
-
-        unsafe {
-            let p0 = std::ptr::read(data.as_ptr() as *const u16);
-            let p1 = std::ptr::read(data[2..4].as_ptr() as *const u16);
-            let p2 = std::ptr::read(data[4..].as_ptr() as *const u16);
-            (p0, p1, p2)
-        }
-    }
+    // DEPRECATED
+    // // /// Retrieves a 64-bit instruction parameter variant.
+    // // /// Returns `[opcode + i16 + i16 + i16]`.
+    // // pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
+    // //     let data = self.get_instruction(2, 6);
+    // //
+    // //     unsafe {
+    // //         let p0 = std::ptr::read(data.as_ptr() as *const u16);
+    // //         let p1 = std::ptr::read(data[2..4].as_ptr() as *const u16);
+    // //         let p2 = std::ptr::read(data[4..].as_ptr() as *const u16);
+    // //         (p0, p1, p2)
+    // //     }
+    // // }
 
     /// Retrieves a 96-bit instruction parameter.
     /// Returns `[opcode + padding + i32 + i32]`.

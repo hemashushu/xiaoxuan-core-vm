@@ -7,7 +7,7 @@
 use std::fmt::Display;
 
 pub mod nostd_stack;
-pub mod simple_stack;
+// pub mod simple_stack;
 pub mod stack;
 
 // The Program Counter (PC)

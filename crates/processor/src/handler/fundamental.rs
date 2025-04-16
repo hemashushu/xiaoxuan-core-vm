@@ -12,11 +12,6 @@ pub fn nop(_handler: &Handler, _thread: &mut ThreadContext) -> HandleResult {
     HandleResult::Move(2)
 }
 
-pub fn terminate(_handler: &Handler, thread: &mut ThreadContext) -> HandleResult {
-    let terminate_code = thread.get_param_i32() as i32;
-    HandleResult::Terminate(terminate_code)
-}
-
 pub fn imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // note:
     // all i32 will be signed-extended to i64
@@ -63,7 +58,7 @@ pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 mod tests {
     use crate::{
         handler::Handler, in_memory_program_source::InMemoryProgramSource,
-        process::process_function, ProcessorError, ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
+        process::process_function,
     };
 
     use anc_context::program_source::ProgramSource;
@@ -97,36 +92,6 @@ mod tests {
 
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
         assert!(result0.is_ok());
-    }
-
-    #[test]
-    fn test_handler_fundamental_terminate() {
-        // () -> ()
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::terminate, TERMINATE_CODE_UNREACHABLE as u32)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            &[], // params
-            &[], // results
-            &[], // local variables
-            code0,
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProgramSource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-
-        let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-
-        assert!(matches!(
-            result0,
-            Err(ProcessorError {
-                error_type: ProcessorErrorType::Terminate(TERMINATE_CODE_UNREACHABLE)
-            })
-        ));
     }
 
     #[test]

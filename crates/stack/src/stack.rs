@@ -250,30 +250,30 @@ pub trait CallingStack {
         optional_return_pc: Option<ProgramCounter>,
     ) -> Result<(), StackError>;
 
-    // Removes frames from the stack up to the specified reversed index.
+    // Removes frames from the stack up to the specified layers.
     //
     // Parameters:
-    // - `reversed_index`: The reversed index of the frame to remove up to.
+    // - `layers`: The depth of the frame relative to the current frame.
     //
     // Returns:
     // - The program counter of the frame that was removed, if any.
-    fn remove_frames(&mut self, reversed_index: u16) -> Option<ProgramCounter>;
+    fn remove_frames(&mut self, layers: u16) -> Option<ProgramCounter>;
 
-    // Resets frames on the stack up to the specified reversed index.
+    // Resets frames on the stack up to the specified layers.
     //
     // Parameters:
-    // - `reversed_index`: The reversed index of the frame to reset up to.
+    // - `layers`: The depth of the frame relative to the current frame.
     //
     // Returns:
     // - The type of the frame that was reset.
-    fn reset_frames(&mut self, reversed_index: u16) -> FrameType;
+    fn reset_frames(&mut self, layers: u16) -> FrameType;
 
     /// Resets the stack to its initial state by clearing all data and resetting pointers.
     fn reset(&mut self);
 
-    fn get_local_variable_list_index_and_start_address_by_reversed_index(
+    fn get_local_variable_list_index_and_start_address_by_layers(
         &self,
-        reversed_index: u16,
+        layers: u16,
     ) -> (usize, usize);
 }
 
