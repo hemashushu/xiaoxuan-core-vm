@@ -4,7 +4,20 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-pub const MAX_ENVCALL_CODE_NUMBER: usize = 128;
+// Environment Call Number Encoding
+// --------------------------------
+//
+// The number consists of two parts: categories and items, both of which are 8-bit numbers.
+//
+// MSB           LSB
+// 00000000 00000000
+// -------- --------
+// ^        ^
+// |        | items
+// |
+// | categorys
+
+pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x09_00;
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -14,7 +27,7 @@ pub enum EnvCallNum {
     //
     // get the VM runtime edition
     // `fn (buf_ptr: i64) -> len:i32`
-    runtime_edition,
+    runtime_edition = 0x01_00,
 
     // get the VM runtime version
     // `fn () -> version:i64`
@@ -28,25 +41,25 @@ pub enum EnvCallNum {
 
     // host
     //
-    host_arch,         // x86_64/aarch64/riscv64 ...
-    host_os,           // linux/macos/windows/freebsd/android/ios ...
-    host_family,       // unix/windows ...
-    host_endian,       // little/big
-    host_memory_width, // 32bit/64bit ... the size of pointer
+    host_arch = 0x02_00, // x86_64/aarch64/riscv64 ...
+    host_os,             // linux/macos/windows/freebsd/android/ios ...
+    host_family,         // unix/windows ...
+    host_endian,         // little/big
+    host_memory_width,   // 32bit/64bit ... the size of pointer
 
     // ref:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
 
     // arg
-    arg_count,
+    arg_count = 0x03_00,
     arg_get_item_size,
     arg_get_item_text,
 
     // env
     //
-    env_count,         // get the number of items.
-    env_get_item_size, // get the length of the specified item, in bytes
-    env_get_item_text, // get the text content of the specified item
+    env_count = 0x04_00, // get the number of items.
+    env_get_item_size,   // get the length of the specified item, in bytes
+    env_get_item_text,   // get the text content of the specified item
     env_update, // update the value of an existing item by name-value pair (i.e., "name=value")
     env_add,    // add a new item with name-value pair (i.e., "name=value")
     env_remove, // remove an item by name
@@ -56,10 +69,10 @@ pub enum EnvCallNum {
     // get the current time (elapse from epoch)
     // `fn () -> (seconds:u64, nano_seconds:u64)`
     // valid values of 'nano_seconds' are [0, 999_999_999]
-    time_now,
+    time_now = 0x05_00,
 
     // random
-    random_init,
+    random_init = 0x06_00,
     random_int,
 
     // thread
@@ -68,7 +81,7 @@ pub enum EnvCallNum {
     // it's '0' for the main thread, and '1' for the first child thread.
     //
     // 'fn () -> thread_id:u32'
-    thread_id,
+    thread_id = 0x07_00,
 
     // thread model
     // ------------
@@ -272,7 +285,7 @@ pub enum EnvCallNum {
     // regex
     //
     // ref: https://github.com/rust-lang/regex
-    regex_create,
+    regex_create = 0x08_00,
     regex_match,
     regex_test,
     regex_remove,

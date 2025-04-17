@@ -650,13 +650,13 @@ mod tests {
         // (i32 i32) -> (i32 i32 i32 i32)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_s, 0, 0)
             .append_opcode(Opcode::abs_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_i32_s, 0, 1)
             .append_opcode(Opcode::abs_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_s, 0, 0)
             .append_opcode(Opcode::neg_i32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_s, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_i32_s, 0, 1)
             .append_opcode(Opcode::neg_i32)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -711,13 +711,13 @@ mod tests {
         // (i64 i64) -> (i64 i64 i64 i64)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0)
             .append_opcode(Opcode::abs_i64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 1)
             .append_opcode(Opcode::abs_i64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0)
             .append_opcode(Opcode::neg_i64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 1)
             .append_opcode(Opcode::neg_i64)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -812,65 +812,65 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 0)
             .append_opcode(Opcode::abs_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 1)
             .append_opcode(Opcode::abs_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 0)
             .append_opcode(Opcode::neg_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 1)
             .append_opcode(Opcode::neg_f32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 2)
             .append_opcode(Opcode::ceil_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::ceil_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::ceil_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 8)
             .append_opcode(Opcode::ceil_f32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 2)
             .append_opcode(Opcode::floor_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::floor_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::floor_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 8)
             .append_opcode(Opcode::floor_f32)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 2)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 7)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 8)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 9)
             .append_opcode(Opcode::round_half_away_from_zero_f32)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 2)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 7)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 8)
             .append_opcode(Opcode::round_half_to_even_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 9)
             .append_opcode(Opcode::round_half_to_even_f32)
             //
             .append_opcode(Opcode::end)
@@ -1020,11 +1020,11 @@ mod tests {
         //
         //   group 2:
         //   - sin     9        -> 0.5
-        //   - cos     9        -> 0.866_025_4
-        //   - tan     9        -> 0.577_350_3
-        //   - asin    imm(0.5)     -> deg 30
-        //   - acos    imm(0.86..)  -> deg 30
-        //   - atab    imm(0.57..)  -> deg 30
+        //   - cos     10       -> 0.5
+        //   - tan     11       -> 1.0
+        //   - asin    imm(0.5) -> deg 30
+        //   - acos    imm(0.5) -> deg 60
+        //   - atab    imm(1)   -> deg 45
         //
         //   group 3:
         //   - pow      1 3      -> 64.0 (4^3)
@@ -1042,7 +1042,7 @@ mod tests {
         //   - max      4 5      -> 9.0
         //   - max      5 6      -> -3.0
         //
-        // (f32 f32 f32 f32  f32 f32 f32 f32  f32 f32) ->
+        // (f32 f32 f32 f32  f32 f32 f32 f32  f32 f32 f32 f32) ->
         // (f32 f32 f32 f32  f32 f32 f32 f32 f32  f32 f32 f32 f32 f32 f32
         //  f32 f32
         //  f32 f32 f32 f32
@@ -1050,70 +1050,70 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 0)
             .append_opcode(Opcode::trunc_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 0)
             .append_opcode(Opcode::fract_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 1)
             .append_opcode(Opcode::sqrt_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 2)
             .append_opcode(Opcode::cbrt_f32)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::exp_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::exp2_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 8)
             .append_opcode(Opcode::ln_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 1)
             .append_opcode(Opcode::log2_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 7)
             .append_opcode(Opcode::log10_f32)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 9)
             .append_opcode(Opcode::sin_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 10)
             .append_opcode(Opcode::cos_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 11)
             .append_opcode(Opcode::tan_f32)
             .append_opcode_f32(Opcode::imm_f32, 0.5)
             .append_opcode(Opcode::asin_f32)
-            .append_opcode_f32(Opcode::imm_f32, 0.866_025_4)
+            .append_opcode_f32(Opcode::imm_f32, 0.5)
             .append_opcode(Opcode::acos_f32)
-            .append_opcode_f32(Opcode::imm_f32, 0.577_350_3)
+            .append_opcode_f32(Opcode::imm_f32, 1.0)
             .append_opcode(Opcode::atan_f32)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::pow_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::log_f32)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
             .append_opcode(Opcode::copysign_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
             .append_opcode(Opcode::copysign_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::copysign_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::copysign_f32)
             // group 5
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
             .append_opcode(Opcode::min_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
             .append_opcode(Opcode::min_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
             .append_opcode(Opcode::max_f32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f32, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f32, 0, 6)
             .append_opcode(Opcode::max_f32)
             //
             .append_opcode(Opcode::end)
@@ -1125,9 +1125,12 @@ mod tests {
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
-                OperandDataType::F32,
                 //
                 OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                OperandDataType::F32,
+                //
                 OperandDataType::F32,
                 OperandDataType::F32,
                 OperandDataType::F32,
@@ -1184,12 +1187,16 @@ mod tests {
                 ForeignValue::F32(4.0),
                 ForeignValue::F32(27.0),
                 ForeignValue::F32(3.0),
+                //
                 ForeignValue::F32(9.0),
                 ForeignValue::F32(-3.0),
                 ForeignValue::F32(-9.0),
                 ForeignValue::F32(100.0),
+                //
                 ForeignValue::F32(std::f32::consts::E),
-                ForeignValue::F32(std::f32::consts::FRAC_PI_6),
+                ForeignValue::F32(std::f32::consts::FRAC_PI_6), // 30'
+                ForeignValue::F32(std::f32::consts::FRAC_PI_3), // 60'
+                ForeignValue::F32(std::f32::consts::FRAC_PI_4), // 45'
             ],
         );
         assert_eq!(
@@ -1208,11 +1215,11 @@ mod tests {
                 ForeignValue::F32(2.0),
                 // group 2
                 ForeignValue::F32(0.5),
-                ForeignValue::F32(0.866_025_4),
-                ForeignValue::F32(0.577_350_3), // 0.577_350_26
+                ForeignValue::F32(0.49999997), // 0.5
+                ForeignValue::F32(1.0), // 1.0
                 ForeignValue::F32(std::f32::consts::FRAC_PI_6),
-                ForeignValue::F32(std::f32::consts::FRAC_PI_6),
-                ForeignValue::F32(std::f32::consts::FRAC_PI_6),
+                ForeignValue::F32(std::f32::consts::FRAC_PI_3),
+                ForeignValue::F32(std::f32::consts::FRAC_PI_4),
                 // group 3
                 ForeignValue::F32(64.0),
                 ForeignValue::F32(2.0),
@@ -1285,65 +1292,65 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
             .append_opcode(Opcode::abs_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
             .append_opcode(Opcode::abs_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
             .append_opcode(Opcode::neg_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
             .append_opcode(Opcode::neg_f64)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
             .append_opcode(Opcode::ceil_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::ceil_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::ceil_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 8)
             .append_opcode(Opcode::ceil_f64)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
             .append_opcode(Opcode::floor_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::floor_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::floor_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 8)
             .append_opcode(Opcode::floor_f64)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 8)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 9)
             .append_opcode(Opcode::round_half_away_from_zero_f64)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 8)
             .append_opcode(Opcode::round_half_to_even_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 9)
             .append_opcode(Opcode::round_half_to_even_f64)
             //
             .append_opcode(Opcode::end)
@@ -1493,11 +1500,11 @@ mod tests {
         //
         //   group 2:
         //   - sin     9        -> 0.5
-        //   - cos     9        -> 0.866_025_403_784_438_6
-        //   - tan     9        -> 0.577_350_269_189_625_8
-        //   - asin    imm(0.5)     -> deg 30
-        //   - acos    imm(0.86..)  -> deg 30
-        //   - atab    imm(0.57..)  -> deg 30
+        //   - cos     10       -> 0.5
+        //   - tan     11       -> 0.5
+        //   - asin    imm(0.5) -> deg 30
+        //   - acos    imm(0.5) -> deg 60
+        //   - atab    imm(1)   -> deg 45
         //
         //   group 3:
         //   - pow     1 3      -> 64.0 (4^3)
@@ -1515,7 +1522,7 @@ mod tests {
         //   - max      4 5      -> 9.0
         //   - max      5 6      -> -3.0
         //
-        // (f64 f64 f64 f64  f64 f64 f64 f64  f64 f64) ->
+        // (f64 f64 f64 f64  f64 f64 f64 f64  f64 f64 f64 f64) ->
         // (f64 f64 f64 f64  f64 f64 f64 f64 f64  f64 f64 f64 f64 f64 f64
         //  f64 f64
         //  f64 f64 f64 f64
@@ -1523,70 +1530,70 @@ mod tests {
 
         let code0 = BytecodeWriterHelper::new()
             // group 0
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
             .append_opcode(Opcode::trunc_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 0)
             .append_opcode(Opcode::fract_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
             .append_opcode(Opcode::sqrt_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 2)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 2)
             .append_opcode(Opcode::cbrt_f64)
             // group 1
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::exp_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::exp2_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 8)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 8)
             .append_opcode(Opcode::ln_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
             .append_opcode(Opcode::log2_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 7)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 7)
             .append_opcode(Opcode::log10_f64)
             // group 2
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 9)
             .append_opcode(Opcode::sin_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 10)
             .append_opcode(Opcode::cos_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 9)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 11)
             .append_opcode(Opcode::tan_f64)
             .append_opcode_f64(Opcode::imm_f64, 0.5)
             .append_opcode(Opcode::asin_f64)
-            .append_opcode_f64(Opcode::imm_f64, 0.8660254037844386)
+            .append_opcode_f64(Opcode::imm_f64, 0.5)
             .append_opcode(Opcode::acos_f64)
-            .append_opcode_f64(Opcode::imm_f64, 0.5773502691896258)
+            .append_opcode_f64(Opcode::imm_f64, 1.0)
             .append_opcode(Opcode::atan_f64)
             // group 3
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 1)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::pow_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::log_f64)
             // group 4
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
             .append_opcode(Opcode::copysign_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
             .append_opcode(Opcode::copysign_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::copysign_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::copysign_f64)
             // group 5
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 3)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 3)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
             .append_opcode(Opcode::min_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
             .append_opcode(Opcode::min_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 4)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 4)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
             .append_opcode(Opcode::max_f64)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 5)
-            .append_opcode_i16_i16_i16(Opcode::local_load_f64, 0, 0, 6)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 5)
+            .append_opcode_i16_i32(Opcode::local_load_f64, 0, 6)
             .append_opcode(Opcode::max_f64)
             //
             .append_opcode(Opcode::end)
@@ -1598,9 +1605,12 @@ mod tests {
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
-                OperandDataType::F64,
                 //
                 OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                OperandDataType::F64,
+                //
                 OperandDataType::F64,
                 OperandDataType::F64,
                 OperandDataType::F64,
@@ -1657,12 +1667,16 @@ mod tests {
                 ForeignValue::F64(4.0),
                 ForeignValue::F64(27.0),
                 ForeignValue::F64(3.0),
+                //
                 ForeignValue::F64(9.0),
                 ForeignValue::F64(-3.0),
                 ForeignValue::F64(-9.0),
                 ForeignValue::F64(100.0),
+                //
                 ForeignValue::F64(std::f64::consts::E),
                 ForeignValue::F64(std::f64::consts::FRAC_PI_6),
+                ForeignValue::F64(std::f64::consts::FRAC_PI_3),
+                ForeignValue::F64(std::f64::consts::FRAC_PI_4),
             ],
         );
         assert_eq!(
@@ -1681,11 +1695,11 @@ mod tests {
                 ForeignValue::F64(2.0),
                 // group 2
                 ForeignValue::F64(0.5),
-                ForeignValue::F64(0.8660254037844386),
-                ForeignValue::F64(0.5773502691896258),
+                ForeignValue::F64(0.4999999999999999), // 0.5
+                ForeignValue::F64(0.9999999999999999), // 1.0
                 ForeignValue::F64(std::f64::consts::FRAC_PI_6),
-                ForeignValue::F64(std::f64::consts::FRAC_PI_6),
-                ForeignValue::F64(std::f64::consts::FRAC_PI_6),
+                ForeignValue::F64(std::f64::consts::FRAC_PI_3),
+                ForeignValue::F64(std::f64::consts::FRAC_PI_4),
                 // group 3
                 ForeignValue::F64(64.0),
                 ForeignValue::F64(2.0),

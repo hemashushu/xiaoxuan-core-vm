@@ -27,7 +27,7 @@ pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRes
 }
 
 pub fn call_dynamic(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
-    // () (operand args... function_public_index:i32) -> (values)
+    // () (operand args... function_module_index:i32 function_public_index:i32) -> (values)
     let function_public_index = thread_context.stack.pop_i32_u();
     let module_index = thread_context.stack.pop_i32_u() as usize;
     do_call(thread_context, module_index, function_public_index, 2)
@@ -173,14 +173,14 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
 
     let params_ptr = thread_context
         .stack
-        .prepare_popping_operands_to_memory(params_count);
+        .pop_operands_to_memory(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
     wrapper_function(external_function_pointer, params_ptr, results.as_mut_ptr());
 
     // push the result on the stack
     if contains_return_value {
-        let dst = thread_context.stack.prepare_pushing_operand_from_memory();
+        let dst = thread_context.stack.push_operand_from_memory();
         unsafe { std::ptr::copy(results.as_ptr(), dst, OPERAND_SIZE_IN_BYTES) };
     }
 
@@ -219,41 +219,41 @@ mod tests {
 
     #[test]
     fn test_handler_function_call() {
+        // pesudo code:
+        //
         // fn test (num/0:i32) -> (i32)             ;; type 0
-        //     call(sum_square)
+        //     call(sum_square)                     ;; call (sum_square, n)
         // end
         //
         // fn sum_square (count/0:i32) -> (i32)     ;; type 1
-        //     imm_i32(0)
-        //     local_load32(0, 0)
-        //     block (sum/0:i32, n/1:i32) -> (i32)  ;; type 3
-        //                                          ;; if n == 0
-        //         local_load32(0, 1)
-        //         eqz_i32
-        //         block_alt () -> (i32)            ;; type 4
-        //             local_load32(1, 0)           ;; then sum
+        //     imm_i32(0)                           ;;
+        //     local_load32(0, 0)                   ;;
+        //     block (sum/0:i32, n/1:i32) -> (i32)  ;; type 3, let (sum,n) = (0,count)
+        //         local_load32(0, 1)               ;;
+        //         eqz_i32                          ;;
+        //         block_alt () -> (i32)            ;; type 4, if n == 0 then
+        //             local_load32(1, 0)           ;; sum
         //         break_alt()                      ;; else
-        //                                          ;; sum + n^2
-        //             local_load32(1, 0)
-        //             local_load32(1, 1)
-        //             call(square)
-        //             add_i32
-        //                                          ;; n - 1
-        //             local_load32(1, 1)
-        //             sub_imm_i32(1)
-        //                                          ;; recur 1
-        //             recur(1)
-        //         end
+        //             local_load32(1, 1)           ;;
+        //             call(square)                 ;;
+        //             local_load32(1, 0)           ;;
+        //             add_i32                      ;; call(square, n) + sum
+        //             local_load32(1, 1)           ;;
+        //             sub_imm_i32(1)               ;; n - 1
+        //             recur(1)                     ;; recur 1
+        //         end                              ;; end if
         //     end
         // end
         //
-        // fn square (num/0:i32) -> (i32)         // type 2
-        //     local_load_i32s(0, 0)
-        //     local_load_i32s(0, 0)
-        //     mul_i32()
+        // fn square (num/0:i32) -> (i32)           ;; type 2
+        //     local_load_i32s(0, 0)                ;;
+        //     local_load_i32s(0, 0)                ;;
+        //     mul_i32()                            ;; n * n
         // end
         //
-        // expect (5) -> 1 + 2^2 + 3^2 + 4^2 + 5^2 -> 1 + 4 + 9 + 16 + 25 -> 55
+        // expect:
+        // arg: 5
+        // returns: 55 (= 1 + 2^2 + 3^2 + 4^2 + 5^2)
 
         let code_main = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::call, 1)
@@ -261,42 +261,46 @@ mod tests {
             .to_bytes();
 
         let code_sum_square = BytecodeWriterHelper::new()
+            // let (sum,n) = (0,count)
             .append_opcode_i32(Opcode::imm_i32, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0)
             .append_opcode_i32_i32(Opcode::block, 3, 3)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            // if n == 0
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1)
             .append_opcode(Opcode::eqz_i32)
             .append_opcode_i32_i32_i32(Opcode::block_alt, 4, 4, 0x20)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+            // then sum
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0)
+            // else
             .append_opcode_i32(Opcode::break_alt, 0x3a)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+            // call(square, n)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 1)
             .append_opcode_i32(Opcode::call, 2)
+            // + sum
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0)
             .append_opcode(Opcode::add_i32)
-            //
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+            // n - 1
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 1)
             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-            //
+            // recur
             .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
-            //
+            // end if
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // println!("{}", format_bytecode_as_text(&code_sum_square));
-
         let code_square = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+            // n * n
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0)
             .append_opcode(Opcode::mul_i32)
             .append_opcode(Opcode::end)
             .to_bytes();
 
         let binary0 = helper_build_module_binary_with_functions_and_blocks(
+            // the binary building helper does not support merge types,
+            // each function requires its own type item.
             &[
                 HelperFunctionEntry {
                     params: vec![OperandDataType::I32],
@@ -317,6 +321,8 @@ mod tests {
                     code: code_square,
                 },
             ],
+            // the binary building helper does not support merge types,
+            // each block requires its own type item.
             &[
                 HelperBlockEntry {
                     params: vec![OperandDataType::I32, OperandDataType::I32],
@@ -348,7 +354,9 @@ mod tests {
 
     #[test]
     fn test_handler_function_call_dynamic() {
-        // fn test () -> (i32, i32, i32, i32, i32)  ;; pub idx: 0
+        // pesudo code:
+        //
+        // fn test () -> (i32, i32, i32, i32, i32)  ;; function public idx: 0
         //     get_function(thirteen)
         //     call_dynamic()
         //     get_function(nineteen)
@@ -361,23 +369,25 @@ mod tests {
         //     call_dynamic()
         // end
         //
-        // fn eleven () -> (i32)        ;; pub idx: 1
+        // fn eleven () -> (i32)        ;; function public idx: 1
         //     imm_i32(11)
         // end
         //
-        // fn thirteen () -> (i32)      ;; pub idx: 2
+        // fn thirteen () -> (i32)      ;; function public idx: 2
         //     imm_i32(13)
         // end
         //
-        // fn seventeen () -> (i32)     ;; pub idx: 3
+        // fn seventeen () -> (i32)     ;; function public idx: 3
         //     imm_i32(17)
         // end
         //
-        // fn nineteen () -> (i32)      ;; pub idx: 4
+        // fn nineteen () -> (i32)      ;; function public idx: 4
         //     imm_i32(19)
         // end
         //
-        // expect (13, 19, 17, 11, 13)
+        // expect:
+        // args: ()
+        // returns: (13, 19, 17, 11, 13)
 
         let code_main = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::get_function, 2)
@@ -475,24 +485,19 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_without_args() {
-        // fn test () -> (result:i64 errno:i32)
+        // pesudo code:
         //
-        // syscall:
-        // `pid_t getpid(void);`
+        // fn test () -> (result:i64 errno:i32)
+        // syscall getpid()
 
         let code0 = BytecodeWriterHelper::new()
-            // push syscall args from 1 to 6
-            // -none-
-            // prepare syscall
-            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getpid as u32) // syscall num
             .append_opcode_i32(Opcode::imm_i32, 0) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getpid as u32) // syscall num
             //
             .append_opcode(Opcode::syscall)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                                           // params
@@ -517,25 +522,23 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_with_2_args() {
-        // fn test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
+        // pesudo code:
         //
-        // syscall:
-        // `char *getcwd(char buf[.size], size_t size);`
+        // fn test (buf_addr:i64, buf_len:i32) -> (result:i64 errno:i32)
+        // syscall getcwd(buf_addr, buf_len)
 
         let code0 = BytecodeWriterHelper::new()
-            // push syscall args from 1 to 6
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
-            // prepare syscall
-            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getcwd as u32) // syscall num
+            // syscall args from 1 to 6
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1)
+            // "number of args" and "syscall number"
             .append_opcode_i32(Opcode::imm_i32, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::getcwd as u32) // syscall num
             //
             .append_opcode(Opcode::syscall)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[OperandDataType::I64, OperandDataType::I64], // params
@@ -581,25 +584,23 @@ mod tests {
 
     #[test]
     fn test_handler_syscall_error_number() {
-        // fn test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
+        // pesudo code:
         //
-        // syscall:
-        // `int open(const char *pathname, int flags)`
+        // fn test (file_path_buf_addr:i64) -> (result:i64 errno:i32)
+        // syscall open(file_path_buf_addr, flags)
 
         let code0 = BytecodeWriterHelper::new()
-            // push syscall args from 1 to 6
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0) // file path addr
+            // args from 1 to 6
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0) // file path addr
             .append_opcode_i32(Opcode::imm_i32, 0) // open flags
-            // prepare syscall
-            .append_opcode_i32(Opcode::imm_i32, SysCallNum::open as u32) // syscall num
+            // "number of args" and "syscall number"
             .append_opcode_i32(Opcode::imm_i32, 2) // the amount of syscall args
+            .append_opcode_i32(Opcode::imm_i32, SysCallNum::open as u32) // syscall num
             //
             .append_opcode(Opcode::syscall)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[OperandDataType::I64],                       // params
@@ -657,9 +658,8 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // ref:
-        // `man 3 getuid`
-        // 'uid_t getuid(void);'
+        // ref: `man 3 getuid`
+        // signature: `uid_t getuid(void);`
 
         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
             &[HelperFunctionEntry {
@@ -691,9 +691,6 @@ mod tests {
         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
 
         assert!(result0.is_ok());
-
-        // let results0 = result0.unwrap();
-        // assert!(matches!(results0[0], ForeignValue::U32(uid) if uid > 0 ));
     }
 
     #[test]
@@ -706,9 +703,8 @@ mod tests {
             .append_opcode(Opcode::end)
             .to_bytes();
 
-        // ref:
-        // `man 3 getenv`
-        // 'char *getenv(const char *name);'
+        // ref: `man 3 getenv`
+        // signature: `char *getenv(const char *name);`
 
         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
             &[HelperFunctionEntry {
@@ -748,14 +744,15 @@ mod tests {
 
     #[test]
     fn test_handler_extcall_with_user_lib() {
-        // (i32,i32) -> (i32)
+        // pesudo code:
         //
-        // 'libtest0.so.1'
-        // 'int add(int, int)'
+        // import fn add (int,int) -> int from "libtest0.so.1"
+        // fn add (left:i32, right:i32) -> (i32)
+        // extcall add(left, right)
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0) // external function param 0
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1) // external function param 1
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0) // external function param 0
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1) // external function param 1
             //
             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
             //
@@ -809,7 +806,6 @@ mod tests {
             pwd.push(crate_folder_name);
         }
         pwd.push("tests");
-        // let application_path = pwd.to_str().unwrap();
 
         let handler = Handler::new();
         let resource0 = InMemoryProgramSource::with_property(

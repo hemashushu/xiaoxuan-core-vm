@@ -213,13 +213,13 @@ impl OperandStack for NostdStack {
         self.sp += OPERAND_SIZE_IN_BYTES;
     }
 
-    fn prepare_pushing_operand_from_memory(&mut self) -> *mut u8 {
+    fn push_operand_from_memory(&mut self) -> *mut u8 {
         let ptr = self.get_mut_ptr(self.sp, 0);
         self.sp += OPERAND_SIZE_IN_BYTES;
         ptr
     }
 
-    fn prepare_pushing_operands_from_memory(&mut self, count: usize) -> *mut u8 {
+    fn push_operands_from_memory(&mut self, count: usize) -> *mut u8 {
         let ptr = self.get_mut_ptr(self.sp, 0);
         self.sp += OPERAND_SIZE_IN_BYTES * count;
         ptr
@@ -291,14 +291,14 @@ impl OperandStack for NostdStack {
         self.read_primitive_f32(self.sp, 0)
     }
 
-    fn prepare_popping_operand_to_memory(&mut self) -> *const u8 {
+    fn pop_operand_to_memory(&mut self) -> *const u8 {
         self.check_if_sufficient_operands_to_pop(1);
 
         self.sp -= OPERAND_SIZE_IN_BYTES;
         self.get_ptr(self.sp, 0)
     }
 
-    fn prepare_popping_operands_to_memory(&mut self, count: usize) -> *const u8 {
+    fn pop_operands_to_memory(&mut self, count: usize) -> *const u8 {
         self.check_if_sufficient_operands_to_pop(count);
 
         let length = count * OPERAND_SIZE_IN_BYTES;

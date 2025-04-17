@@ -57,7 +57,7 @@ mod tests {
     use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
-        entry::LocalVariableEntry, utils::helper_build_module_binary_with_single_function,
+         utils::helper_build_module_binary_with_single_function,
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
@@ -74,8 +74,6 @@ mod tests {
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_version as u32)
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                     // params
@@ -112,13 +110,11 @@ mod tests {
         //        |name length
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::host_addr_local, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::host_addr_local, 0, 0, 0)
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_edition as u32)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i64, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0, 0)
             .append_opcode(Opcode::end)
             .to_bytes();
-
-        // println!("{}", format_bytecode_as_text(&code0));
 
         let binary0 = helper_build_module_binary_with_single_function(
             &[],                                           // params

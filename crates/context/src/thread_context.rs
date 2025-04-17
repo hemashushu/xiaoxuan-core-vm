@@ -172,9 +172,9 @@ impl<'a> ThreadContext<'a> {
             if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
                 panic!(
                     "Access exceeds the length of the data.
-module index: {}, function internal index: {}, instruction address: {},
+module index: {}, function internal index: {}, instruction address: 0x{:04x},
 data section type: {}, data public index: {}, data internal index: {},
-data actual length (in bytes): {}, access offset (in bytes): {}, expect length (in bytes): {}.",
+data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
                     module_index,
                     self.pc.function_internal_index,
                     self.pc.instruction_address,
@@ -287,7 +287,7 @@ data actual length (in bytes): {}, access offset (in bytes): {}, expect length (
             {
                 panic!(
                     "Access exceeds the length of the local variable.
-module index: {}, function internal index: {}, instruction address: {},
+module index: {}, function internal index: {}, instruction address: 0x{:04x},
 layers: {}, local variable index: {},
 variable actual length (in bytes): {}, expect length (in bytes): {}.",
                     module_index,
@@ -400,20 +400,6 @@ variable actual length (in bytes): {}, expect length (in bytes): {}.",
             (p0, p1)
         }
     }
-
-    // DEPRECATED
-    // // /// Retrieves a 64-bit instruction parameter variant.
-    // // /// Returns `[opcode + i16 + i16 + i16]`.
-    // // pub fn get_param_i16_i16_i16(&self) -> (u16, u16, u16) {
-    // //     let data = self.get_instruction(2, 6);
-    // //
-    // //     unsafe {
-    // //         let p0 = std::ptr::read(data.as_ptr() as *const u16);
-    // //         let p1 = std::ptr::read(data[2..4].as_ptr() as *const u16);
-    // //         let p2 = std::ptr::read(data[4..].as_ptr() as *const u16);
-    // //         (p0, p1, p2)
-    // //     }
-    // // }
 
     /// Retrieves a 96-bit instruction parameter.
     /// Returns `[opcode + padding + i32 + i32]`.

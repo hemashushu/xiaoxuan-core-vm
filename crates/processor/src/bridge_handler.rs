@@ -588,7 +588,7 @@ extern "C" fn delegate_bridge_function_call(
     thread_context.stack.reset();
 
     // push arguments
-    let stack_push_ptr = thread_context.stack.prepare_pushing_operands_from_memory(params_count);
+    let stack_push_ptr = thread_context.stack.push_operands_from_memory(params_count);
     unsafe {
         std::ptr::copy(
             params_ptr,
@@ -673,7 +673,7 @@ extern "C" fn delegate_callback_function_call(
     let results_count = type_item.results_count as usize;
 
     // push arguments
-    let stack_push_ptr = thread_context.stack.prepare_pushing_operands_from_memory(params_count);
+    let stack_push_ptr = thread_context.stack.push_operands_from_memory(params_count);
     unsafe {
         std::ptr::copy(
             params_ptr,

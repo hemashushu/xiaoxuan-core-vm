@@ -31,7 +31,7 @@ pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     // 2. Use "memory copy," which is more efficient as it avoids data conversion.
     //    This method is used here.
 
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -45,7 +45,7 @@ pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -59,7 +59,7 @@ pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -73,7 +73,7 @@ pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i16
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -87,7 +87,7 @@ pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i16
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -101,7 +101,7 @@ pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) 
 pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i8
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -115,7 +115,7 @@ pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i8
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -129,7 +129,7 @@ pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> f32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -146,7 +146,7 @@ pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> f64
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let dst_ptr = thread_context.stack.prepare_pushing_operand_from_memory();
+    let dst_ptr = thread_context.stack.push_operand_from_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -162,7 +162,7 @@ pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) ->
 pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i64) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -176,7 +176,7 @@ pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -190,7 +190,7 @@ pub fn local_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,
@@ -204,7 +204,7 @@ pub fn local_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -
 pub fn local_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
-    let src_ptr = thread_context.stack.prepare_popping_operand_to_memory();
+    let src_ptr = thread_context.stack.pop_operand_to_memory();
     let data_address = thread_context.get_local_variable_start_address(
         layers,
         local_variable_index as usize,

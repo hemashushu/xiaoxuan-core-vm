@@ -125,8 +125,8 @@ mod tests {
         // 0x0008 local_load32         0 0 1
         // 0x0010 add_i32
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-            .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
             .append_opcode(Opcode::add_i32)
             .append_opcode(Opcode::end)
             .to_bytes();

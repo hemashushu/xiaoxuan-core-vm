@@ -436,7 +436,7 @@ mod tests {
             .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_wait_and_collect as u32)
             // now the operand(s) on the top of stack is: (child thread exit code, thread result)
             // .append_opcode(Opcode::drop)
-            .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 0)
             // now the operand(s) on the top of stack is: (child thread exit code)
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -489,7 +489,7 @@ mod tests {
             .append_opcode_i32(Opcode::envcall, EnvCallNum::thread_wait_and_collect as u32)
             // now the operand(s) on the top of stack is: (child thread exit code, thread result)
             // .append_opcode(Opcode::drop)
-            .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 0)
+            .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 0)
             // now the operand(s) on the top of stack is: (child thread exit code)
             .append_opcode(Opcode::end)
             .to_bytes();

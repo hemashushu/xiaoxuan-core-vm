@@ -341,7 +341,7 @@ fn do_recur(
 //             .append_opcode_i32(Opcode::imm_i32, 11)
 //             .append_opcode_i32(Opcode::imm_i32, 13)
 //             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1, local list index = 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 17)
 //             .append_opcode(Opcode::add_i32)
 //             .append_opcode(Opcode::end)
@@ -466,66 +466,66 @@ fn do_recur(
 //
 //         let code0 = BytecodeWriterHelper::new()
 //             // c=a+1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             .append_opcode_i16(Opcode::add_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 2)
 //             // d=b+1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode_i16(Opcode::add_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 3)
 //             // block 1
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             // a=a-1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 0)
 //             // b=b-1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 1)
 //             // p=c+d
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 2)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 3)
 //             .append_opcode(Opcode::add_i32)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 0)
 //             // q=c-d
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 2)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 3)
 //             .append_opcode(Opcode::sub_i32)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 1)
 //             // load c, d
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 2)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 3)
 //             // block 2
 //             .append_opcode_i32_i32(Opcode::block, 2, 2)
 //             // d=d+1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 2, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 2, 0, 3)
 //             .append_opcode_i16(Opcode::add_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 2, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 2, 0, 3)
 //             // q=q-1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 1)
 //             // x+q
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode(Opcode::add_i32)
 //             // y+p
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode(Opcode::add_i32)
 //             //
 //             .append_opcode(Opcode::end)
 //             // load p, q
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             //
 //             .append_opcode(Opcode::end)
 //             // load a, b, c, d
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 3)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 3)
 //             //
 //             .append_opcode(Opcode::end)
 //             .to_bytes();
@@ -850,18 +850,18 @@ fn do_recur(
 //         // 0x004a  c0 03                       end
 //
 //         let code0 = BytecodeWriterHelper::new()
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 2)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::lt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 1, 0x1e)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 2)
 //             .append_opcode(Opcode::end)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 2)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 2)
 //             .append_opcode(Opcode::end)
 //             .to_bytes();
 //
@@ -963,7 +963,7 @@ fn do_recur(
 //             .append_opcode_i32_i32(Opcode::block, 1, 1) // block type = 1
 //             .append_opcode_i32(Opcode::imm_i32, 17)
 //             .append_opcode_i32(Opcode::imm_i32, 19)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x36) // block type = 2
 //             .append_opcode_i32(Opcode::imm_i32, 23)
 //             .append_opcode_i32(Opcode::imm_i32, 29)
@@ -1076,13 +1076,13 @@ fn do_recur(
 //         // 0x003e  c0 03                       end
 //
 //         let code0 = BytecodeWriterHelper::new()
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::break_alt, 0x12)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode(Opcode::end)
 //             .append_opcode(Opcode::end)
 //             .to_bytes();
@@ -1192,19 +1192,19 @@ fn do_recur(
 //         // 0x00aa  c0 03                       end
 //
 //         let code0 = BytecodeWriterHelper::new()
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 85)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
 //             .append_opcode_i32(Opcode::imm_i32, 65)
 //             .append_opcode_i32(Opcode::break_alt, 0x7e)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 70)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x20)
 //             .append_opcode_i32(Opcode::imm_i32, 66)
 //             .append_opcode_i32(Opcode::break_alt, 0x48)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 2, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 2, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 55)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 3, 3, 0x20)
@@ -1384,7 +1384,7 @@ fn do_recur(
 //         let code0 = BytecodeWriterHelper::new()
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             // case 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 85)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
@@ -1392,7 +1392,7 @@ fn do_recur(
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x7e)
 //             .append_opcode(Opcode::end)
 //             // case 2
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 70)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
@@ -1400,7 +1400,7 @@ fn do_recur(
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x4a)
 //             .append_opcode(Opcode::end)
 //             // case 3
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 55)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 4, 0x1e)
@@ -1569,7 +1569,7 @@ fn do_recur(
 //         let code0 = BytecodeWriterHelper::new()
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             // case 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 85)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
@@ -1577,7 +1577,7 @@ fn do_recur(
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x4a)
 //             .append_opcode(Opcode::end)
 //             // case 2
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::imm_i32, 70)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 3, 0x1e)
@@ -1725,26 +1725,26 @@ fn do_recur(
 //         let code0 = BytecodeWriterHelper::new()
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode(Opcode::eqz_i32)
 //             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x16)
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x42)
 //             .append_opcode(Opcode::end)
 //             // sum = sum + n
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode(Opcode::add_i32)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 1)
 //             // n = n - 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 1, 0, 0)
 //             //
 //             .append_opcode_i16_i32(Opcode::recur, 0, 0x50)
 //             // block end
 //             .append_opcode(Opcode::end)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::end)
 //             .to_bytes();
 //
@@ -1846,24 +1846,24 @@ fn do_recur(
 //
 //         let code0 = BytecodeWriterHelper::new()
 //             .append_opcode_i32(Opcode::imm_i32, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             // block start
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             // if n==0
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::eqz_i32)
 //             .append_opcode_i32_i32(Opcode::block_nez, 2, 0x1e)
 //             // load sum, break sum
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x32)
 //             .append_opcode(Opcode::end)
 //             // end if
 //             // sum + n
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::add_i32)
 //             // n - 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //             // recur
 //             .append_opcode_i16_i32(Opcode::recur, 0, 0x48)
@@ -1970,21 +1970,21 @@ fn do_recur(
 //     //         let code0 = BytecodeWriterHelper::new()
 //     //             // .append_opcode(Opcode::zero)
 //     //             .append_opcode_i32(Opcode::imm_i32, 0)
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //     //             //
 //     //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //     //             // load sum
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //     //             // break if n==0
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode(Opcode::eqz_i32)
 //     //             .append_opcode_i16_i32(Opcode::break_nez, 0, 0x32)
 //     //             // sum + n
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode(Opcode::add_i32)
 //     //             // n - 1
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //     //             // recur
 //     //             .append_opcode_i16_i32(Opcode::recur, 0, 0x3c)
@@ -2087,24 +2087,24 @@ fn do_recur(
 //
 //         let code0 = BytecodeWriterHelper::new()
 //             .append_opcode_i32(Opcode::imm_i32, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             //
 //             .append_opcode_i32_i32(Opcode::block, 1, 1)
 //             // if
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::eqz_i32)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 2, 2, 0x28)
 //             // then
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i16_i32(Opcode::break_, 1, 0x3c)
 //             // else
 //             .append_opcode_i32(Opcode::break_alt, 0x32)
 //             // sum + n
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode(Opcode::add_i32)
 //             // n - 1
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //             .append_opcode_i16_i32(Opcode::recur, 1, 0x54)
 //             // end if
@@ -2211,27 +2211,27 @@ fn do_recur(
 //         // 0x0072  c0 03                       end
 //
 //         let code0 = BytecodeWriterHelper::new()
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::add_i32)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 0)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
-//             .append_opcode_i16_i16_i16(Opcode::local_store_i32, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_store_i32, 0, 0, 1)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             // .append_opcode(Opcode::zero)
 //             .append_opcode_i32(Opcode::imm_i32, 0)
 //             .append_opcode(Opcode::gt_i32_u)
 //             .append_opcode_i32_i32(Opcode::block_nez, 1, 0x26)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode_i16_i32(Opcode::recur, 1, 0)
 //             // block end
 //             .append_opcode(Opcode::end)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
 //             .append_opcode(Opcode::end)
 //             .to_bytes();
 //
@@ -2316,18 +2316,18 @@ fn do_recur(
 //
 //         let code0 = BytecodeWriterHelper::new()
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //             .append_opcode(Opcode::eqz_i32)
 //             .append_opcode_i32_i32_i32(Opcode::block_alt, 1, 1, 0x20)
 //             // then
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
 //             .append_opcode_i32(Opcode::break_alt, 0x32)
 //             // else
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 0)
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 0)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode(Opcode::add_i32)
 //             //
-//             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 1, 0, 1)
+//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 1, 0, 1)
 //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //             //
 //             .append_opcode_i16_i32(Opcode::recur, 1, 0)
@@ -2420,14 +2420,14 @@ fn do_recur(
 //     //
 //     //         let code0 = BytecodeWriterHelper::new()
 //     //             // sum + n
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 0)
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 0)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode(Opcode::add_i32)
 //     //             // n - 1
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //     //             // n - 1
-//     //             .append_opcode_i16_i16_i16(Opcode::local_load_i32_u, 0, 0, 1)
+//     //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0, 1)
 //     //             .append_opcode_i16(Opcode::sub_imm_i32, 1)
 //     //             //
 //     //             // .append_opcode(Opcode::zero)

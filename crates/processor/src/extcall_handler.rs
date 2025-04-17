@@ -439,8 +439,6 @@ pub fn create_wrapper_function(
         function_builder.seal_all_blocks();
         function_builder.finalize();
 
-        // println!("{}", func_wrapper.display());
-
         // generate the (machine/native) code of wrapper function
         jit_generator.context.func = func_wrapper;
 

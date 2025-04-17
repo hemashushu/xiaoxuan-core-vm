@@ -8,7 +8,7 @@ use std::fmt::Display;
 
 // mod bridge_handler;
 mod code_generator;
-// mod envcall_handler;
+mod envcall_handler;
 mod extcall_handler;
 mod jit_context;
 // mod multithread_handler;

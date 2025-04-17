@@ -145,10 +145,10 @@ pub trait OperandStack: PrimitiveMemoryAccess {
     //
     // Example:
     // ```rust
-    // let ptr = stack.prepare_pushing_operand_from_memory();
+    // let ptr = stack.push_operand_from_memory();
     // some_memory.load_64(address, ptr);
     // ```
-    fn prepare_pushing_operand_from_memory(&mut self) -> *mut u8;
+    fn push_operand_from_memory(&mut self) -> *mut u8;
 
     // Prepares the stack to write multiple operands from memory.
     //
@@ -158,10 +158,10 @@ pub trait OperandStack: PrimitiveMemoryAccess {
     //
     // Example:
     // ```rust
-    // let ptr = stack.prepare_pushing_operands_from_memory(count);
+    // let ptr = stack.push_operands_from_memory(count);
     // some_memory.load_multiple(address, ptr, count);
     // ```
-    fn prepare_pushing_operands_from_memory(&mut self, count: usize) -> *mut u8;
+    fn push_operands_from_memory(&mut self, count: usize) -> *mut u8;
 
     fn peek_i64_s(&self) -> i64;
     fn peek_i64_u(&self) -> u64;
@@ -197,10 +197,10 @@ pub trait OperandStack: PrimitiveMemoryAccess {
     //
     // Example:
     // ```rust
-    // let ptr = stack.prepare_popping_operand_to_memory();
+    // let ptr = stack.pop_operand_to_memory();
     // some_memory.store_64(ptr, address);
     // ```
-    fn prepare_popping_operand_to_memory(&mut self) -> *const u8;
+    fn pop_operand_to_memory(&mut self) -> *const u8;
 
     // Prepares the stack to read multiple operands to memory.
     //
@@ -210,10 +210,10 @@ pub trait OperandStack: PrimitiveMemoryAccess {
     //
     // Example:
     // ```rust
-    // let ptr = stack.prepare_popping_operands_to_memory(count);
+    // let ptr = stack.pop_operands_to_memory(count);
     // some_memory.store_multiple(ptr, address, count);
     // ```
-    fn prepare_popping_operands_to_memory(&mut self, count: usize) -> *const u8;
+    fn pop_operands_to_memory(&mut self, count: usize) -> *const u8;
 
     /// Pushes the specified number of operands onto the operand stack
     /// when the calling stack is empty.
