@@ -10,10 +10,12 @@ use std::{collections::HashMap, path::PathBuf};
 pub enum ProgramSourceType {
     // Represents a module.
     Module,
-    // Represents a package image.
-    PackageImage,
     // Represents a script file.
     ScriptFile,
+    // Represents a program from memory.
+    Memory,
+    // Represents a package image.
+    PackageImage,
 }
 
 #[derive(Debug, Clone)]
@@ -25,11 +27,11 @@ pub struct ProcessProperty {
     // - A file path for a script file.
     //
     // Examples:
-    // - `~/projects/hello-world`     (a module directory)
-    // - `~/scripts/hello-world.anc`  (source code file)
-    // - `~/scripts/hello-world.ancr` (intermediate representation file)
-    // - `~/scripts/hello-world.anca` (assembly file)
-    // - `~/package/hello-world.ancp` (package image file)
+    // - `/path/to/projects/hello-world`     (a module directory)
+    // - `/path/to/scripts/hello-world.anc`  (source code file)
+    // - `/path/to/scripts/hello-world.ancr` (intermediate representation file)
+    // - `/path/to/scripts/hello-world.anca` (assembly file)
+    // - `/path/to/package/hello-world.ancp` (package image file)
     pub program_path: PathBuf,
 
     // Indicates the type of application source (e.g., module, package image, or script file).

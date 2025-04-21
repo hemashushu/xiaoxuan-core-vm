@@ -218,7 +218,7 @@ pub fn thread_receive_msg_from_parent(_handler: &Handler, thread_context: &mut T
                 };
             }
             None => {
-                unreachable!("RX is not set.")
+                unreachable!("RX of channel to parent is not set.")
             }
         };
     });
@@ -243,7 +243,7 @@ pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut Thread
                     .expect("Send message to parent thread failed.");
             }
             None => {
-                unreachable!("TX is not set.")
+                unreachable!("TX of channel to parent thread is not set.")
             }
         };
     });

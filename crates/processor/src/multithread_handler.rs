@@ -60,11 +60,33 @@ thread_local! {
     // the data (an u8 array) that comes from the parent thread
     pub static THREAD_START_DATA:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 
-    // the message that comes from other threads
+    // a temporary memory for storing the message comed from other threads.
     //
     // the data comes from other thread (includes the parent thread and child threads) is
-    // temporary stored in LAST_MESSAGE each time the function 'thread_receive_msg' or
-    // 'thread_receive_msg_from_parent' is called.
+    // stored in this temporary memory each time the function `thread_receive_msg` or
+    // `thread_receive_msg_from_parent` is called.
+    //
+    //
+    // ```diagram
+    //
+    //              | thread_receive_msg_from_parent
+    //              | thread_receive_msg
+    //              |
+    // /---------\  |                   /-----------\
+    // | message |--------------------->| temporary |
+    // | box     |                      | memory    |
+    // \---------/                      \-----------/
+    //                                       |
+    //                                       | thread_msg_read
+    //                                       v
+    //                                 writable data
+    //
+    // ```
+    //
+    // note:
+    // this temporary memory will be replaced with new message each time the function
+    // `thread_receive_msg` or `thread_receive_msg_from_parent` is called,
+    // a function `thread_msg_read` should be called asap to read the message.
     pub static LAST_THREAD_MESSAGE:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 }
 

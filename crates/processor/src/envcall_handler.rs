@@ -9,7 +9,7 @@
 // mod multithread;
 // mod random;
 // mod regex;
-// mod runtime;
+mod runtime;
 // mod timer;
 
 use anc_context::thread_context::ThreadContext;
@@ -34,9 +34,10 @@ fn envcall_unreachable_handler(_handler: &Handler, thread_context: &mut ThreadCo
     let code_text = format_bytecode_as_text(codes);
 
     unreachable!(
-        "Invalid EnvCall number: 0x{:04x}
+        "\
+Invalid EnvCall number: 0x{:04x}
 Module index: {}
-Function index: {}
+Function internal index: {}
 Instruction address: 0x{:04x}
 Bytecode:
 {}",
@@ -53,8 +54,8 @@ pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMB
         [envcall_unreachable_handler; MAX_ENVCALL_CODE_NUMBER];
 
     // runtime info
-    // handlers[EnvCallNum::runtime_edition as usize] = runtime::runtime_edition;
-    // handlers[EnvCallNum::runtime_version as usize] = runtime::runtime_version;
+    handlers[EnvCallNum::runtime_edition as usize] = runtime::runtime_edition;
+    handlers[EnvCallNum::runtime_version as usize] = runtime::runtime_version;
 
 //     // timer
 //     handlers[EnvCallNum::time_now as usize] = timer::time_now;

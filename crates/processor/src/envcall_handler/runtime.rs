@@ -9,23 +9,29 @@ use anc_context::thread_context::ThreadContext;
 use anc_isa::RUNTIME_EDITION;
 
 pub fn runtime_edition(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // `fn (buf_ptr: u64) -> len:u32`
+    // `fn (data_module_index:i32, data_public_index:i32)`
 
-    let buf_ptr_value = thread_context.stack.pop_i64_u();
+    const CONTENT_LENGTH_IN_BYTES: usize = RUNTIME_EDITION.len();
 
-    let len = if let Some(len) = RUNTIME_EDITION.iter().position(|c| *c == 0) {
-        len
-    } else {
-        RUNTIME_EDITION.len()
-    };
+    let data_public_index = thread_context.stack.pop_i32_u();
+    let module_index = thread_context.stack.pop_i32_u();
+
+    let target_data_object = thread_context.get_target_data_object(
+        module_index as usize,
+        data_public_index as usize,
+        0,
+        CONTENT_LENGTH_IN_BYTES,
+    );
+
+    let start_address = target_data_object
+        .accessor
+        .get_start_address_by_index(target_data_object.data_internal_index_in_section);
+    let dst_ptr = target_data_object.accessor.get_mut_ptr(start_address, 0);
 
     let src_ptr = RUNTIME_EDITION.as_ptr();
-    let dst_ptr = buf_ptr_value as *mut u8;
     unsafe {
-        std::ptr::copy(src_ptr, dst_ptr, len);
+        std::ptr::copy(src_ptr, dst_ptr, CONTENT_LENGTH_IN_BYTES);
     }
-
-    thread_context.stack.push_i32_u(len as u32);
 }
 
 pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
@@ -56,8 +62,12 @@ mod tests {
 
     use anc_context::program_source::ProgramSource;
     use anc_image::{
-        bytecode_reader::format_bytecode_as_text, bytecode_writer::BytecodeWriterHelper,
-         utils::helper_build_module_binary_with_single_function,
+        bytecode_writer::BytecodeWriterHelper,
+        entry::ReadWriteDataEntry,
+        utils::{
+            helper_build_module_binary_with_single_function,
+            helper_build_module_binary_with_single_function_and_data,
+        },
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
@@ -67,8 +77,54 @@ mod tests {
     };
 
     #[test]
+    fn test_envcall_runtime_edition() {
+        // ```code
+        // fn test () -> (i64)
+        //                ^
+        //                |data pointer
+        // ```
+
+        let code0 = BytecodeWriterHelper::new()
+            .append_opcode_i32(Opcode::get_data, 0)
+            .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_edition as u32)
+            // get the data pointer
+            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
+            .append_opcode(Opcode::end)
+            .to_bytes();
+
+        let binary0 = helper_build_module_binary_with_single_function_and_data(
+            &[],                     // params
+            &[OperandDataType::I64], // results
+            &[],                     // local variables
+            code0,
+            &[],
+            &[ReadWriteDataEntry::from_bytes(vec![0u8; 8], 8)],
+            &[],
+        );
+
+        let handler = Handler::new();
+        let resource0 = InMemoryProgramSource::new(vec![binary0]);
+        let process_context0 = resource0.create_process_context().unwrap();
+        let mut thread_context0 = process_context0.create_thread_context();
+
+        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let fvs1 = result0.unwrap();
+
+        let data_ptr_value = fvs1[0].as_u64();
+        let mut buffer = [0u8; 8];
+
+        let src_ptr = data_ptr_value as *const u8;
+        let dst_ptr = buffer.as_mut_ptr();
+
+        unsafe {
+            std::ptr::copy(src_ptr, dst_ptr, buffer.len());
+        }
+        assert_eq!(RUNTIME_EDITION, &buffer);
+    }
+
+    #[test]
     fn test_envcall_runtime_version() {
-        // () -> (i64)
+        // `fn test () -> (i64)`
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_version as u32)
@@ -99,45 +155,6 @@ mod tests {
         assert_eq!(
             result0.unwrap(),
             vec![ForeignValue::U64(expect_version_number)]
-        );
-    }
-
-    #[test]
-    fn test_envcall_runtime_edition() {
-        // () -> (i32, i64)
-        //        ^    ^
-        //        |    |name buffer (8 bytes)
-        //        |name length
-
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i32(Opcode::host_addr_local, 0, 0, 0)
-            .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_edition as u32)
-            .append_opcode_i16_i32(Opcode::local_load_i64, 0, 0, 0)
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_single_function(
-            &[],                                           // params
-            &[OperandDataType::I32, OperandDataType::I64], // results
-            &[LocalVariableEntry::from_bytes(8, 8)],       // local variables
-            code0,
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProgramSource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-        let fvs1 = result0.unwrap();
-        let name_len = fvs1[0].as_u32();
-        let name_u64 = fvs1[1].as_u64();
-
-        let name_data = name_u64.to_le_bytes();
-        assert_eq!(RUNTIME_EDITION, &name_data);
-        assert_eq!(
-            RUNTIME_EDITION.iter().position(|c| *c == 0).unwrap(),
-            name_len as usize
         );
     }
 }

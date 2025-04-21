@@ -101,9 +101,9 @@ fn unreachable_handler(_handler: &Handler, thread_context: &mut ThreadContext) -
 
     unreachable!(
         "\
-Invalid opcode: 0x{:04x}
+Invalid Opcode: 0x{:04x}
 Module index: {}
-Function index: {}
+Function internal index: {}
 Instruction address: 0x{:04x}
 Bytecode:
 {}",
