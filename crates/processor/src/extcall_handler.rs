@@ -28,14 +28,13 @@
 // ```
 
 use core::str;
-use std::{ffi::c_void, path::PathBuf, sync::Mutex};
+use std::{ffi::c_void, sync::Mutex};
 
 use anc_context::{
     external_function_table::{
         ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
-    process_property::ProgramSourceType,
     thread_context::ThreadContext,
 };
 use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
@@ -139,36 +138,11 @@ pub fn get_or_create_external_function_and_wrapper_function(
     let value_str = unsafe { str::from_utf8_unchecked(external_library_value_data) };
     let value: ExternalLibraryDependency = ason::from_str(value_str).unwrap();
 
-    let external_library_file_path_or_file_name = match value {
-        ExternalLibraryDependency::Local(dependency_local) => {
-            let path = dependency_local.path;
+    // let external_library_file_path_or_file_name = match value {
+    //    todo!()
+    // };
 
-            let mut module_path_buf = PathBuf::from(&thread_context.process_property.program_path);
-            if thread_context.process_property.program_source_type != ProgramSourceType::Module {
-                module_path_buf.pop();
-            }
-
-            let library_path = path.try_resolve_in(&module_path_buf).unwrap_or_else(|_| {
-                panic!("Failed to resolve external library path: {}", path);
-            });
-
-            let library_path_str = library_path.to_str().unwrap_or_else(|| {
-                panic!(
-                    "Failed to convert external library path to string: {}",
-                    path
-                )
-            });
-
-            library_path_str.to_owned()
-        }
-        ExternalLibraryDependency::Remote(_) => {
-            todo!()
-        }
-        ExternalLibraryDependency::Share(_) => {
-            todo!()
-        }
-        ExternalLibraryDependency::System(file_name) => file_name.to_owned(),
-    };
+    let external_library_file_path_or_file_name = ""; // todo
 
     let mut table = thread_context.external_function_table.lock().unwrap();
     let mut jit_generator = handler.jit_generator.lock().unwrap();
@@ -294,11 +268,8 @@ fn create_and_add_wrapper_function(
     // build wrapper function
     let wrapper_function_index = external_function_table.wrapper_function_list.len();
 
-    let wrapper_function_pointer = create_wrapper_function(
-        jit_generator,
-        param_types,
-        result_types,
-    );
+    let wrapper_function_pointer =
+        create_wrapper_function(jit_generator, param_types, result_types);
 
     let wrapper_function_item = WrapperFunctionItem {
         param_datatypes: param_types.to_vec(),

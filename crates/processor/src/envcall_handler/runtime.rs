@@ -9,7 +9,7 @@ use anc_context::thread_context::ThreadContext;
 use anc_isa::RUNTIME_EDITION;
 
 pub fn runtime_edition(_handler: &Handler, thread_context: &mut ThreadContext) {
-    // `fn (data_module_index:i32, data_public_index:i32)`
+    // `fn (module_index: i32, data_public_index: i32)`
 
     const CONTENT_LENGTH_IN_BYTES: usize = RUNTIME_EDITION.len();
 

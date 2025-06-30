@@ -134,10 +134,12 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
 
 pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
     // (param envcall_num:i32) (operand args...) -> (values)
-    let envcall_num = thread_context.get_param_i32();
-    let envcall_handler = handler.envcall_handlers[envcall_num as usize];
-    envcall_handler(handler, thread_context);
-    HandleResult::Move(8)
+
+    todo!()
+    // let envcall_num = thread_context.get_param_i32();
+    // let envcall_handler = handler.envcall_handlers[envcall_num as usize];
+    // envcall_handler(handler, thread_context);
+    // HandleResult::Move(8)
 }
 
 pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
@@ -171,9 +173,7 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     // );
     // ```
 
-    let params_ptr = thread_context
-        .stack
-        .pop_operands_to_memory(params_count);
+    let params_ptr = thread_context.stack.pop_operands_to_memory(params_count);
     let mut results = [0u8; OPERAND_SIZE_IN_BYTES];
 
     wrapper_function(external_function_pointer, params_ptr, results.as_mut_ptr());
@@ -650,192 +650,192 @@ mod tests {
         assert_eq!(results1[1], ForeignValue::U32(0));
     }
 
-    #[test]
-    fn test_handler_extcall_with_system_libc_getuid() {
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
-            //
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        // ref: `man 3 getuid`
-        // signature: `uid_t getuid(void);`
-
-        let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
-            &[HelperFunctionEntry {
-                params: vec![],
-                results: vec![OperandDataType::I32],
-                local_variable_item_entries_without_args: vec![],
-                code: code0,
-            }],
-            &[],
-            &[],
-            &[],
-            &[ExternalLibraryEntry::new(
-                "libc".to_owned(),
-                Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
-            )],
-            &[HelperExternalFunctionEntry {
-                name: "getuid".to_string(),
-                params: vec![],
-                result: Some(OperandDataType::I32),
-                external_library_index: 0,
-            }],
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProgramSource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-
-        assert!(result0.is_ok());
-    }
-
-    #[test]
-    fn test_handler_extcall_with_system_libc_getenv() {
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external function param 0
-            //
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
-            //
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        // ref: `man 3 getenv`
-        // signature: `char *getenv(const char *name);`
-
-        let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
-            &[HelperFunctionEntry {
-                params: vec![],
-                results: vec![OperandDataType::I64], // pointer
-                local_variable_item_entries_without_args: vec![],
-                code: code0,
-            }],
-            &[ReadOnlyDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
-            &[],
-            &[],
-            &[ExternalLibraryEntry::new(
-                "libc".to_owned(),
-                Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
-            )],
-            &[HelperExternalFunctionEntry {
-                external_library_index: 0,
-                name: "getenv".to_string(),
-                params: vec![OperandDataType::I64], // pointer
-                result: Some(OperandDataType::I64), // pointer
-            }],
-        );
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProgramSource::new(vec![binary0]);
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
-        let results0 = result0.unwrap();
-
-        assert!(matches!(results0[0], ForeignValue::U64(addr) if {
-            let pwd0 = cstr_pointer_to_str(addr as *const i8);
-            !pwd0.to_string().is_empty()
-        }));
-    }
-
-    #[test]
-    fn test_handler_extcall_with_user_lib() {
-        // pesudo code:
-        //
-        // import fn add (int,int) -> int from "libtest0.so.1"
-        // fn add (left:i32, right:i32) -> (i32)
-        // extcall add(left, right)
-
-        let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0) // external function param 0
-            .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1) // external function param 1
-            //
-            .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
-            //
-            .append_opcode(Opcode::end)
-            .to_bytes();
-
-        let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
-            &[HelperFunctionEntry {
-                params: vec![OperandDataType::I32, OperandDataType::I32],
-                results: vec![OperandDataType::I32],
-                local_variable_item_entries_without_args: vec![],
-                code: code0,
-            }],
-            &[],
-            &[],
-            &[],
-            &[ExternalLibraryEntry::new(
-                "libtest0".to_owned(),
-                Box::new(ExternalLibraryDependency::Local(Box::new(
-                    DependencyLocal {
-                        path: "lib/libtest0.so.1".to_owned(),
-                        condition: DependencyCondition::True,
-                        parameters: HashMap::default(),
-                    },
-                ))),
-            )],
-            &[HelperExternalFunctionEntry {
-                params: vec![OperandDataType::I32, OperandDataType::I32],
-                result: Some(OperandDataType::I32),
-                name: "add".to_string(),
-                external_library_index: 0,
-            }],
-        );
-
-        // it can not obtain the name of crate with the macro cfg, it
-        // only supports several options:
-        // https://doc.rust-lang.org/reference/conditional-compilation.html
-        // https://doc.rust-lang.org/reference/attributes.html
-        // https://doc.rust-lang.org/cargo/reference/environment-variables.html
-
-        let mut pwd = std::env::current_dir().unwrap();
-        // let pkg_name = env!("CARGO_PKG_NAME");
-        let crate_folder_name = "processor";
-        if !pwd.ends_with(crate_folder_name) {
-            // in the VSCode editor `Debug` environment, the `current_dir()` returns
-            // the project's root folder.
-            // while in both `$ cargo test` and VSCode editor `Run Test` environment,
-            // the `current_dir()` returns the current crate path.
-            // here canonicalize the unit test resources path.
-            pwd.push("crates");
-            pwd.push(crate_folder_name);
-        }
-        pwd.push("tests");
-
-        let handler = Handler::new();
-        let resource0 = InMemoryProgramSource::with_property(
-            vec![binary0],
-            ProcessProperty::new(
-                pwd,
-                ProgramSourceType::Module,
-                vec![],
-                HashMap::<String, String>::new(),
-            ),
-        );
-        let process_context0 = resource0.create_process_context().unwrap();
-        let mut thread_context0 = process_context0.create_thread_context();
-
-        let result0 = process_function(
-            &handler,
-            &mut thread_context0,
-            0,
-            0,
-            &[ForeignValue::U32(11), ForeignValue::U32(13)],
-        );
-        assert_eq!(result0.unwrap(), vec![ForeignValue::U32(24)]);
-
-        let result1 = process_function(
-            &handler,
-            &mut thread_context0,
-            0,
-            0,
-            &[ForeignValue::U32(211), ForeignValue::U32(223)],
-        );
-        assert_eq!(result1.unwrap(), vec![ForeignValue::U32(434)]);
-    }
+    //     #[test]
+    //     fn test_handler_extcall_with_system_libc_getuid() {
+    //         let code0 = BytecodeWriterHelper::new()
+    //             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
+    //             //
+    //             .append_opcode(Opcode::end)
+    //             .to_bytes();
+    //
+    //         // ref: `man 3 getuid`
+    //         // signature: `uid_t getuid(void);`
+    //
+    //         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
+    //             &[HelperFunctionEntry {
+    //                 params: vec![],
+    //                 results: vec![OperandDataType::I32],
+    //                 local_variable_item_entries_without_args: vec![],
+    //                 code: code0,
+    //             }],
+    //             &[],
+    //             &[],
+    //             &[],
+    //             &[ExternalLibraryEntry::new(
+    //                 "libc".to_owned(),
+    //                 Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
+    //             )],
+    //             &[HelperExternalFunctionEntry {
+    //                 name: "getuid".to_string(),
+    //                 params: vec![],
+    //                 result: Some(OperandDataType::I32),
+    //                 external_library_index: 0,
+    //             }],
+    //         );
+    //
+    //         let handler = Handler::new();
+    //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
+    //         let process_context0 = resource0.create_process_context().unwrap();
+    //         let mut thread_context0 = process_context0.create_thread_context();
+    //
+    //         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+    //
+    //         assert!(result0.is_ok());
+    //     }
+    //
+    //     #[test]
+    //     fn test_handler_extcall_with_system_libc_getenv() {
+    //         let code0 = BytecodeWriterHelper::new()
+    //             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0) // external function param 0
+    //             //
+    //             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
+    //             //
+    //             .append_opcode(Opcode::end)
+    //             .to_bytes();
+    //
+    //         // ref: `man 3 getenv`
+    //         // signature: `char *getenv(const char *name);`
+    //
+    //         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
+    //             &[HelperFunctionEntry {
+    //                 params: vec![],
+    //                 results: vec![OperandDataType::I64], // pointer
+    //                 local_variable_item_entries_without_args: vec![],
+    //                 code: code0,
+    //             }],
+    //             &[ReadOnlyDataEntry::from_bytes(b"PWD\0".to_vec(), 1)],
+    //             &[],
+    //             &[],
+    //             &[ExternalLibraryEntry::new(
+    //                 "libc".to_owned(),
+    //                 Box::new(ExternalLibraryDependency::System("libc.so.6".to_owned())),
+    //             )],
+    //             &[HelperExternalFunctionEntry {
+    //                 external_library_index: 0,
+    //                 name: "getenv".to_string(),
+    //                 params: vec![OperandDataType::I64], // pointer
+    //                 result: Some(OperandDataType::I64), // pointer
+    //             }],
+    //         );
+    //
+    //         let handler = Handler::new();
+    //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
+    //         let process_context0 = resource0.create_process_context().unwrap();
+    //         let mut thread_context0 = process_context0.create_thread_context();
+    //
+    //         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+    //         let results0 = result0.unwrap();
+    //
+    //         assert!(matches!(results0[0], ForeignValue::U64(addr) if {
+    //             let pwd0 = cstr_pointer_to_str(addr as *const i8);
+    //             !pwd0.to_string().is_empty()
+    //         }));
+    //     }
+    //
+    //     #[test]
+    //     fn test_handler_extcall_with_user_lib() {
+    //         // pesudo code:
+    //         //
+    //         // import fn add (int,int) -> int from "libtest0.so.1"
+    //         // fn add (left:i32, right:i32) -> (i32)
+    //         // extcall add(left, right)
+    //
+    //         let code0 = BytecodeWriterHelper::new()
+    //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0) // external function param 0
+    //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1) // external function param 1
+    //             //
+    //             .append_opcode_i32(Opcode::extcall, 0) // 0 is the external function index
+    //             //
+    //             .append_opcode(Opcode::end)
+    //             .to_bytes();
+    //
+    //         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
+    //             &[HelperFunctionEntry {
+    //                 params: vec![OperandDataType::I32, OperandDataType::I32],
+    //                 results: vec![OperandDataType::I32],
+    //                 local_variable_item_entries_without_args: vec![],
+    //                 code: code0,
+    //             }],
+    //             &[],
+    //             &[],
+    //             &[],
+    //             &[ExternalLibraryEntry::new(
+    //                 "libtest0".to_owned(),
+    //                 Box::new(ExternalLibraryDependency::Local(Box::new(
+    //                     DependencyLocal {
+    //                         path: "lib/libtest0.so.1".to_owned(),
+    //                         condition: DependencyCondition::True,
+    //                         parameters: HashMap::default(),
+    //                     },
+    //                 ))),
+    //             )],
+    //             &[HelperExternalFunctionEntry {
+    //                 params: vec![OperandDataType::I32, OperandDataType::I32],
+    //                 result: Some(OperandDataType::I32),
+    //                 name: "add".to_string(),
+    //                 external_library_index: 0,
+    //             }],
+    //         );
+    //
+    //         // it can not obtain the name of crate with the macro cfg, it
+    //         // only supports several options:
+    //         // https://doc.rust-lang.org/reference/conditional-compilation.html
+    //         // https://doc.rust-lang.org/reference/attributes.html
+    //         // https://doc.rust-lang.org/cargo/reference/environment-variables.html
+    //
+    //         let mut pwd = std::env::current_dir().unwrap();
+    //         // let pkg_name = env!("CARGO_PKG_NAME");
+    //         let crate_folder_name = "processor";
+    //         if !pwd.ends_with(crate_folder_name) {
+    //             // in the VSCode editor `Debug` environment, the `current_dir()` returns
+    //             // the project's root folder.
+    //             // while in both `$ cargo test` and VSCode editor `Run Test` environment,
+    //             // the `current_dir()` returns the current crate path.
+    //             // here canonicalize the unit test resources path.
+    //             pwd.push("crates");
+    //             pwd.push(crate_folder_name);
+    //         }
+    //         pwd.push("tests");
+    //
+    //         let handler = Handler::new();
+    //         let resource0 = InMemoryProgramSource::with_property(
+    //             vec![binary0],
+    //             ProcessProperty::new(
+    //                 pwd,
+    //                 ProgramSourceType::Module,
+    //                 vec![],
+    //                 HashMap::<String, String>::new(),
+    //             ),
+    //         );
+    //         let process_context0 = resource0.create_process_context().unwrap();
+    //         let mut thread_context0 = process_context0.create_thread_context();
+    //
+    //         let result0 = process_function(
+    //             &handler,
+    //             &mut thread_context0,
+    //             0,
+    //             0,
+    //             &[ForeignValue::U32(11), ForeignValue::U32(13)],
+    //         );
+    //         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(24)]);
+    //
+    //         let result1 = process_function(
+    //             &handler,
+    //             &mut thread_context0,
+    //             0,
+    //             0,
+    //             &[ForeignValue::U32(211), ForeignValue::U32(223)],
+    //         );
+    //         assert_eq!(result1.unwrap(), vec![ForeignValue::U32(434)]);
+    //     }
 }

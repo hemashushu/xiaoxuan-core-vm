@@ -65,8 +65,8 @@ impl Allocator for SimpleAllocator {
         }
     }
 
-    fn resize(&mut self, data_public_index: usize, new_size_in_bytes: usize) -> usize {
-        if let Some(item) = self.items.get_mut(data_public_index) {
+    fn resize(&mut self, data_internal_index: usize, new_size_in_bytes: usize) -> usize {
+        if let Some(item) = self.items.get_mut(data_internal_index) {
             if let Some(last_item) = item {
                 if new_size_in_bytes > last_item.size {
                     // Replace the memory item with a new one if the new size is larger.
@@ -78,31 +78,31 @@ impl Allocator for SimpleAllocator {
                     // If the new size is smaller, just update the size.
                     last_item.size = new_size_in_bytes;
                 }
-                data_public_index
+                data_internal_index
             } else {
                 panic!(
                     "Attempted to access a freed memory item. Index: {}",
-                    data_public_index
+                    data_internal_index
                 );
             }
         } else {
             panic!(
                 "Invalid index for accessing memory. Index: {}",
-                data_public_index
+                data_internal_index
             );
         }
     }
 
-    fn get_size(&self, data_public_index: usize) -> Option<usize> {
+    fn get_size(&self, data_internal_index: usize) -> Option<usize> {
         // Retrieve the size of the memory item at the specified index, if it exists.
         self.items
-            .get(data_public_index)
+            .get(data_internal_index)
             .and_then(|item| item.as_ref().map(|item| item.size))
     }
 
-    fn free(&mut self, data_public_index: usize) {
+    fn free(&mut self, data_internal_index: usize) {
         // Mark the memory item at the specified index as freed.
-        self.items[data_public_index] = None;
+        self.items[data_internal_index] = None;
     }
 }
 

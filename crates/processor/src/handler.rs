@@ -14,8 +14,8 @@ use cranelift_jit::JITModule;
 
 use crate::{
     code_generator::Generator,
-    envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc},
-    envcall_num::MAX_ENVCALL_CODE_NUMBER,
+    // envcall_handler::{generate_envcall_handlers, EnvCallHandlerFunc},
+    // envcall_num::MAX_ENVCALL_CODE_NUMBER,
     jit_context::get_jit_generator_without_imported_symbols,
     syscall_handler::{generate_syscall_handlers, SysCallHandlerFunc, MAX_SYSCALL_TYPE_NUMBER},
 };
@@ -119,7 +119,7 @@ Bytecode:
 pub struct Handler {
     pub handlers: [HandleFunc; MAX_OPCODE_NUMBER],
     pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
-    pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
+    // pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
     pub jit_generator: Mutex<Generator<JITModule>>,
 }
 
@@ -406,7 +406,7 @@ impl Handler {
         Handler {
             handlers,
             syscall_handlers: generate_syscall_handlers(),
-            envcall_handlers: generate_envcall_handlers(),
+            // envcall_handlers: generate_envcall_handlers(),
             jit_generator: get_jit_generator_without_imported_symbols(),
         }
     }

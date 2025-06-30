@@ -4,8 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// mod env;
-// mod host;
+// mod program;
+mod host;
 // mod multithread;
 // mod random;
 // mod regex;
@@ -53,9 +53,18 @@ pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMB
     let mut handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER] =
         [envcall_unreachable_handler; MAX_ENVCALL_CODE_NUMBER];
 
-    // runtime info
+    // Category: Runtime information
     handlers[EnvCallNum::runtime_edition as usize] = runtime::runtime_edition;
     handlers[EnvCallNum::runtime_version as usize] = runtime::runtime_version;
+
+    // Category: Host Information
+    handlers[EnvCallNum::host_arch as usize] = host::host_arch;
+    handlers[EnvCallNum::host_os as usize] = host::host_os;
+    handlers[EnvCallNum::host_family as usize] = host::host_family;
+    handlers[EnvCallNum::host_endian as usize] = host::host_endian;
+    handlers[EnvCallNum::host_memory_width as usize] = host::host_memory_width;
+
+
 
 //     // timer
 //     handlers[EnvCallNum::time_now as usize] = timer::time_now;

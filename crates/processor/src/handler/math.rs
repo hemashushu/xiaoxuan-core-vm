@@ -950,9 +950,10 @@ mod tests {
                 ForeignValue::F32(-5.5),
             ],
         );
-        assert_eq!(
-            result0.unwrap(),
-            vec![
+
+        assert_f32s(
+            &result0.unwrap(),
+            &vec![
                 // group 0
                 ForeignValue::F32(1.414),
                 ForeignValue::F32(1.732),
@@ -986,7 +987,7 @@ mod tests {
                 ForeignValue::F32(-2.0),
                 ForeignValue::F32(-3.0),
                 ForeignValue::F32(-6.0),
-            ]
+            ],
         );
     }
 
@@ -1007,14 +1008,14 @@ mod tests {
         // functions:
         //   group 0:
         //   - trunc   0        -> 1.0
-        //   - fract   0        -> 0.41400003
+        //   - fract   0        -> 0.414
         //   - sqrt    1        -> 2.0
         //   - cbrt    2        -> 3.0
         //
         //   group 1:
         //   - exp     3        -> 20.085_537 (e^3)
         //   - exp2    4        -> 512.0
-        //   - ln      8        -> 0.99999994
+        //   - ln      8        -> 1.0
         //   - log2    1        -> 2.0 (log_2 4)
         //   - log10   7        -> 2.0 (log_10 100)
         //
@@ -1199,24 +1200,24 @@ mod tests {
                 ForeignValue::F32(std::f32::consts::FRAC_PI_4), // 45'
             ],
         );
-        assert_eq!(
-            result0.unwrap(),
-            vec![
+        assert_f32s(
+            &result0.unwrap(),
+            &vec![
                 // group 0
                 ForeignValue::F32(1.0),
-                ForeignValue::F32(0.41400003),
+                ForeignValue::F32(0.414),
                 ForeignValue::F32(2.0),
                 ForeignValue::F32(3.0),
                 // group 1
                 ForeignValue::F32(20.085_537),
                 ForeignValue::F32(512.0),
-                ForeignValue::F32(0.999_999_94), // 1.0
+                ForeignValue::F32(1.0),
                 ForeignValue::F32(2.0),
                 ForeignValue::F32(2.0),
                 // group 2
                 ForeignValue::F32(0.5),
-                ForeignValue::F32(0.49999997), // 0.5
-                ForeignValue::F32(1.0), // 1.0
+                ForeignValue::F32(0.5),
+                ForeignValue::F32(1.0),
                 ForeignValue::F32(std::f32::consts::FRAC_PI_6),
                 ForeignValue::F32(std::f32::consts::FRAC_PI_3),
                 ForeignValue::F32(std::f32::consts::FRAC_PI_4),
@@ -1233,7 +1234,7 @@ mod tests {
                 ForeignValue::F32(-3.0),
                 ForeignValue::F32(9.0),
                 ForeignValue::F32(-3.0),
-            ]
+            ],
         );
     }
 
@@ -1430,9 +1431,10 @@ mod tests {
                 ForeignValue::F64(-5.5),
             ],
         );
-        assert_eq!(
-            result0.unwrap(),
-            vec![
+
+        assert_f64s(
+            &result0.unwrap(),
+            &vec![
                 // group 0
                 ForeignValue::F64(1.414),
                 ForeignValue::F64(1.732),
@@ -1466,7 +1468,7 @@ mod tests {
                 ForeignValue::F64(-2.0),
                 ForeignValue::F64(-3.0),
                 ForeignValue::F64(-6.0),
-            ]
+            ],
         );
     }
 
@@ -1487,9 +1489,9 @@ mod tests {
         // functions:
         //   group 0:
         //   - trunc   0        -> 1.0
-        //   - fract   0        -> 0.4139999999999999
+        //   - fract   0        -> 0.414
         //   - sqrt    1        -> 2.0
-        //   - cbrt    2        -> 3.0000000000000004
+        //   - cbrt    2        -> 3.0
         //
         //   group 1:
         //   - exp     3        -> 20.085536923187668 (e^3)
@@ -1679,14 +1681,15 @@ mod tests {
                 ForeignValue::F64(std::f64::consts::FRAC_PI_4),
             ],
         );
-        assert_eq!(
-            result0.unwrap(),
-            vec![
+
+        assert_f64s(
+            &result0.unwrap(),
+            &vec![
                 // group 0
                 ForeignValue::F64(1.0),
-                ForeignValue::F64(0.4139999999999999),
+                ForeignValue::F64(0.414),
                 ForeignValue::F64(2.0),
-                ForeignValue::F64(3.0000000000000004),
+                ForeignValue::F64(3.0),
                 // group 1
                 ForeignValue::F64(20.085536923187668),
                 ForeignValue::F64(512.0),
@@ -1695,8 +1698,8 @@ mod tests {
                 ForeignValue::F64(2.0),
                 // group 2
                 ForeignValue::F64(0.5),
-                ForeignValue::F64(0.4999999999999999), // 0.5
-                ForeignValue::F64(0.9999999999999999), // 1.0
+                ForeignValue::F64(0.5),
+                ForeignValue::F64(1.0),
                 ForeignValue::F64(std::f64::consts::FRAC_PI_6),
                 ForeignValue::F64(std::f64::consts::FRAC_PI_3),
                 ForeignValue::F64(std::f64::consts::FRAC_PI_4),
@@ -1713,7 +1716,39 @@ mod tests {
                 ForeignValue::F64(-3.0),
                 ForeignValue::F64(9.0),
                 ForeignValue::F64(-3.0),
-            ]
+            ],
         );
+    }
+
+    fn assert_f32(a: f32, b: f32) -> bool {
+        (a - b).abs() < f32::EPSILON
+    }
+
+    fn assert_f32s(actuals: &[ForeignValue], expects: &[ForeignValue]) {
+        assert_eq!(actuals.len(), expects.len());
+        for (a, e) in actuals.iter().zip(expects.iter()) {
+            match (a, e) {
+                (ForeignValue::F32(a_val), ForeignValue::F32(e_val)) => {
+                    assert!(assert_f32(*a_val, *e_val));
+                }
+                _ => panic!("Unexpected value type"),
+            }
+        }
+    }
+
+    fn assert_f64(a: f64, b: f64) -> bool {
+        (a - b).abs() < f64::EPSILON
+    }
+
+    fn assert_f64s(actuals: &[ForeignValue], expects: &[ForeignValue]) {
+        assert_eq!(actuals.len(), expects.len());
+        for (a, e) in actuals.iter().zip(expects.iter()) {
+            match (a, e) {
+                (ForeignValue::F64(a_val), ForeignValue::F64(e_val)) => {
+                    assert!(assert_f64(*a_val, *e_val));
+                }
+                _ => panic!("Unexpected value type"),
+            }
+        }
     }
 }

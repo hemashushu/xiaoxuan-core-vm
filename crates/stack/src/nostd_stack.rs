@@ -23,8 +23,8 @@
 // | arg 1 (local var idx 1) |                           | arg 1 (local var idx 1) |
 // | arg 0 (local var idx 0) | <-- args from caller      | arg 0 (local var idx 0) |
 // |-------------------------|                           |-------------------------|
-// | return instruction address        |                           | 0                       | <-- 0
-// | return function internal idx         |                           | 0                       | <-- 0
+// | return instruction address   |                      | 0                       | <-- 0
+// | return function internal idx |                      | 0                       | <-- 0
 // | return module idx       |                           | 0                       | <-- 0
 // | local vars alloc bytes  | <-- frame info            | local vars alloc bytes  |
 // | local vars list index   |                           | local vars list index   |

@@ -118,12 +118,43 @@ impl<'a> ThreadContext<'a> {
 
         let target_data_object = if data_public_index & MSB_DATA_PUBLIC_INDEX != 0 {
             // it is dynamically allocated memory
-            let allocated_memory_index = data_public_index & MASK_DATA_PUBLIC_INDEX; // clear the MSB bit
+            let data_internal_index = data_public_index & MASK_DATA_PUBLIC_INDEX; // clear the MSB bit
+
+            let opt_size = self.allocator.get_size(data_internal_index);
+
+            let data_actual_length = if let Some(size) = opt_size {
+                size
+            } else {
+                panic!(
+                    "Out of bounds of the dynamically allocated data index, request data index: {}.",
+                    data_internal_index
+                );
+            };
+
+            // bounds check
+            #[cfg(feature = "bounds_check")]
+            {
+                if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
+                    panic!(
+                    "Access exceeds the length of the dynamically allocated data.
+function internal index: {}, instruction address: 0x{:04x},
+data internal index: {},
+data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
+
+                    self.pc.function_internal_index,
+                    self.pc.instruction_address,
+                    data_internal_index,
+                    data_actual_length,
+                    expect_offset_bytes,
+                    expect_data_length_in_bytes,
+                );
+                }
+            }
 
             TargetDataObject {
                 module_index: 0,
                 data_section_type: DataSectionType::ReadWrite,
-                data_internal_index_in_section: allocated_memory_index,
+                data_internal_index_in_section: data_internal_index,
                 accessor: self.allocator.as_mut(),
             }
         } else {
