@@ -6,14 +6,14 @@
 
 use anc_context::thread_context::ThreadContext;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn nop(_handler: &Handler, _thread: &mut ThreadContext) -> HandleResult {
+pub fn nop(/* _handler: &Handler, */ _thread: &mut ThreadContext) -> HandleResult {
     // No operation. Simply moves the instruction pointer forward by 2 bytes.
     HandleResult::Move(2)
 }
 
-pub fn imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // Pushes a 32-bit signed integer (i32) onto the stack.
     // Note: All i32 values are sign-extended to i64.
     let value = thread_context.get_param_i32();
@@ -21,7 +21,7 @@ pub fn imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     HandleResult::Move(8) // Move instruction pointer forward by 8 bytes.
 }
 
-pub fn imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // Pushes a 64-bit unsigned integer (i64) onto the stack.
     // Combines two 32-bit integers (low and high) into a single 64-bit value.
     let (low, high) = thread_context.get_param_i32_i32();
@@ -33,7 +33,7 @@ pub fn imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     HandleResult::Move(12) // Move instruction pointer forward by 12 bytes.
 }
 
-pub fn imm_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // Pushes a 32-bit floating-point number (f32) onto the stack.
     // Converts the raw bits of an i32 value into an f32.
     let i32_value = thread_context.get_param_i32();
@@ -43,7 +43,7 @@ pub fn imm_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     HandleResult::Move(8) // Move instruction pointer forward by 8 bytes.
 }
 
-pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn imm_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // Pushes a 64-bit floating-point number (f64) onto the stack.
     // Combines two 32-bit integers (low and high) into an f64 value.
     let (low, high) = thread_context.get_param_i32_i32();
@@ -63,10 +63,7 @@ pub fn imm_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
-        process::process_function,
-    };
+    use crate::{in_memory_program_source::InMemoryProgramSource, process::process_function};
 
     use anc_context::program_source::ProgramSource;
     use anc_image::{
@@ -91,12 +88,12 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert!(result0.is_ok());
     }
 
@@ -124,12 +121,12 @@ mod tests {
             code0,
         );
 
-        let interpreter = Handler::new();
+        // let interpreter = Handler::new();
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&interpreter, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -165,12 +162,11 @@ mod tests {
             code0,
         );
 
-        let interpreter = Handler::new();
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&interpreter, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![

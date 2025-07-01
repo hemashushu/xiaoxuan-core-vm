@@ -10,32 +10,47 @@ use syscall_util::call::{
     syscall_with_5_args, syscall_with_6_args, syscall_without_args,
 };
 
-use crate::handler::Handler;
+// use crate::instruction_handler::Handler;
 
 pub type SysCallHandlerFunc = fn(
-    &Handler,
+    // &Handler,
     &mut ThreadContext,
     /* call_number */ usize,
 ) -> Result</* error_number */ usize, /* return value */ usize>;
 
 // 1 type without args + 6 types with args = total 7 types
-pub const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6;
+// pub const MAX_SYSCALL_TYPE_NUMBER: usize = 1 + 6;
 
-pub fn generate_syscall_handlers() -> [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] {
-    let mut handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
-        [syscall_unreachable_handler; MAX_SYSCALL_TYPE_NUMBER];
-    handlers[0] = handle_syscall_without_args;
-    handlers[1] = handle_syscall_with_1_arg;
-    handlers[2] = handle_syscall_with_2_args;
-    handlers[3] = handle_syscall_with_3_args;
-    handlers[4] = handle_syscall_with_4_args;
-    handlers[5] = handle_syscall_with_5_args;
-    handlers[6] = handle_syscall_with_6_args;
-    handlers
+// pub fn generate_syscall_handlers() -> [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] {
+//     let mut handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER] =
+//         [syscall_unreachable_handler; MAX_SYSCALL_TYPE_NUMBER];
+//     handlers[0] = handle_syscall_without_args;
+//     handlers[1] = handle_syscall_with_1_arg;
+//     handlers[2] = handle_syscall_with_2_args;
+//     handlers[3] = handle_syscall_with_3_args;
+//     handlers[4] = handle_syscall_with_4_args;
+//     handlers[5] = handle_syscall_with_5_args;
+//     handlers[6] = handle_syscall_with_6_args;
+//     handlers
+// }
+
+pub fn get_syscall_handler(
+    arg_count: usize,
+) -> SysCallHandlerFunc {
+    match arg_count {
+        0 => handle_syscall_without_args,
+        1 => handle_syscall_with_1_arg,
+        2 => handle_syscall_with_2_args,
+        3 => handle_syscall_with_3_args,
+        4 => handle_syscall_with_4_args,
+        5 => handle_syscall_with_5_args,
+        6 => handle_syscall_with_6_args,
+        _ => syscall_unreachable_handler,
+    }
 }
 
 fn syscall_unreachable_handler(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     _thread_context: &mut ThreadContext,
     _number: usize,
 ) -> Result<usize, usize> {
@@ -43,7 +58,7 @@ fn syscall_unreachable_handler(
 }
 
 fn handle_syscall_without_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     _thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -51,7 +66,7 @@ fn handle_syscall_without_args(
 }
 
 fn handle_syscall_with_1_arg(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -62,7 +77,7 @@ fn handle_syscall_with_1_arg(
 }
 
 fn handle_syscall_with_2_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -73,7 +88,7 @@ fn handle_syscall_with_2_args(
 }
 
 fn handle_syscall_with_3_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -84,7 +99,7 @@ fn handle_syscall_with_3_args(
 }
 
 fn handle_syscall_with_4_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -95,7 +110,7 @@ fn handle_syscall_with_4_args(
 }
 
 fn handle_syscall_with_5_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {
@@ -106,7 +121,7 @@ fn handle_syscall_with_5_args(
 }
 
 fn handle_syscall_with_6_args(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
     number: usize,
 ) -> Result<usize, usize> {

@@ -6,27 +6,27 @@
 
 use anc_context::thread_context::ThreadContext;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn memory_allocate(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_allocate(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand align_in_bytes:i16 size_in_bytes:i64) -> i32
 
     HandleResult::Move(2)
 }
 
-pub fn memory_resize(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_resize(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand data_public_index:i32 new_size_in_bytes:i64) -> i32
 
     HandleResult::Move(2)
 }
 
-pub fn memory_free(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_free(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand data_public_index:i32) -> ()
 
     HandleResult::Move(2)
 }
 
-pub fn memory_fill(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_fill(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand
     // data_module_index:i32 data_public_index:i32 offset_in_bytes:i64
     // size_in_bytes:i64 value:i8) -> ()
@@ -34,7 +34,7 @@ pub fn memory_fill(_handler: &Handler, thread_context: &mut ThreadContext) -> Ha
     HandleResult::Move(2)
 }
 
-pub fn memory_copy(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn memory_copy(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand
     // source_data_module_index:i32 source_data_public_index:i32 source_offset_in_bytes:i64
     // dest_data_module_index:i32 dest_data_public_index:i32 dest_offset_in_bytes:i64

@@ -10,12 +10,13 @@ use anc_stack::ProgramCounter;
 
 use crate::{
     extcall_handler::get_or_create_external_function_and_wrapper_function,
-    TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION, TERMINATE_CODE_STACK_OVERFLOW,
+    syscall_handler::get_syscall_handler, TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION,
+    TERMINATE_CODE_STACK_OVERFLOW,
 };
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn call(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) (operand args...) -> (values)
     let function_public_index = thread_context.get_param_i32();
     do_call(
@@ -26,7 +27,7 @@ pub fn call(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRes
     )
 }
 
-pub fn call_dynamic(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn call_dynamic(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand args... function_module_index:i32 function_public_index:i32) -> (values)
     let function_public_index = thread_context.stack.pop_i32_u();
     let module_index = thread_context.stack.pop_i32_u() as usize;
@@ -85,7 +86,7 @@ fn do_call(
     }
 }
 
-pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn syscall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand args... params_count:i32 syscall_num:i32) -> (return_value:i64 error_number:i32)
     //
     // The "syscall" instruction invokes a system call on Unix-like operating systems.
@@ -113,8 +114,8 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     let syscall_num = thread_context.stack.pop_i32_u();
     let params_count = thread_context.stack.pop_i32_u();
 
-    let syscall_handler = handler.syscall_handlers[params_count as usize];
-    let result = syscall_handler(handler, thread_context, syscall_num as usize);
+    let function = get_syscall_handler(params_count as usize);
+    let result = function( thread_context, syscall_num as usize);
 
     // push the result on the stack
 
@@ -132,7 +133,7 @@ pub fn syscall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     HandleResult::Move(2)
 }
 
-pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn envcall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param envcall_num:i32) (operand args...) -> (values)
 
     todo!()
@@ -142,7 +143,7 @@ pub fn envcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     // HandleResult::Move(8)
 }
 
-pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extcall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param external_function_index:i32) (operand args...) -> return_value:void/i32/i64/f32/f64
     //
     // note that the `external_function_index` is the index within a specific module,
@@ -153,7 +154,7 @@ pub fn extcall(handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
 
     let (external_function_pointer, wrapper_function, params_count, contains_return_value) =
         if let Ok(pwr) = get_or_create_external_function_and_wrapper_function(
-            handler,
+            // handler,
             thread_context,
             module_index,
             external_function_index,
@@ -213,7 +214,7 @@ mod tests {
     use syscall_util::{errno::Errno, number::SysCallNum};
 
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -337,13 +338,13 @@ mod tests {
             ],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -465,12 +466,12 @@ mod tests {
             &[],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -506,12 +507,12 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let result_values0 = result0.unwrap();
 
         let pid = std::process::id();
@@ -547,7 +548,7 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -557,7 +558,7 @@ mod tests {
         let buf_addr = buf.as_ptr() as u64;
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -609,7 +610,7 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -621,7 +622,7 @@ mod tests {
         let file_path_addr1 = file_path1.as_ptr() as usize;
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -638,7 +639,7 @@ mod tests {
         );
 
         let result1 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -683,12 +684,12 @@ mod tests {
     //             }],
     //         );
     //
-    //         let handler = Handler::new();
+    //         /* let handler = Handler::new(); */
     //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
     //         let process_context0 = resource0.create_process_context().unwrap();
     //         let mut thread_context0 = process_context0.create_thread_context();
     //
-    //         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+    //         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
     //
     //         assert!(result0.is_ok());
     //     }
@@ -728,12 +729,12 @@ mod tests {
     //             }],
     //         );
     //
-    //         let handler = Handler::new();
+    //         /* let handler = Handler::new(); */
     //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
     //         let process_context0 = resource0.create_process_context().unwrap();
     //         let mut thread_context0 = process_context0.create_thread_context();
     //
-    //         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+    //         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
     //         let results0 = result0.unwrap();
     //
     //         assert!(matches!(results0[0], ForeignValue::U64(addr) if {
@@ -807,7 +808,7 @@ mod tests {
     //         }
     //         pwd.push("tests");
     //
-    //         let handler = Handler::new();
+    //         /* let handler = Handler::new(); */
     //         let resource0 = InMemoryProgramSource::with_property(
     //             vec![binary0],
     //             ProcessProperty::new(

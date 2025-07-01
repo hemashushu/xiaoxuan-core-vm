@@ -138,7 +138,7 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -173,7 +173,7 @@ mod tests {
             &[],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -189,7 +189,7 @@ mod tests {
             *data1_ptr = 0x17;
         }
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(0x17),]);
     }
 }

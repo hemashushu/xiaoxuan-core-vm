@@ -12,6 +12,13 @@ anc-memory = { path = "../memory" }
 anc-stack = { path = "../stack" }
 anc-allocator = { path = "../allocator" }
 
+cranelift-codegen = "0.121.1"
+cranelift-frontend = "0.121.1"
+cranelift-module = "0.121.1"
+cranelift-jit = "0.121.1"
+cranelift-native = "0.121.1"
+cranelift-object = "0.121.1"
+
 [dev-dependencies]
 pretty_assertions = "1.4.1"
 

@@ -8,31 +8,31 @@ use anc_context::thread_context::ThreadContext;
 
 use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
 // demote i64 to i32
 // discard the high 32 bits of an i64 number directly
-pub fn truncate_i64_to_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn truncate_i64_to_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     thread_context.stack.push_i32_u(value as u32);
     HandleResult::Move(2)
 }
 
 // promote i32 to i64
-pub fn extend_i32_s_to_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extend_i32_s_to_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i64_s(value as i64);
     HandleResult::Move(2)
 }
 
-pub fn extend_i32_u_to_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extend_i32_u_to_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     thread_context.stack.push_i64_u(value as u64);
     HandleResult::Move(2)
 }
 
 // demote f64 to f32
-pub fn demote_f64_to_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn demote_f64_to_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match thread_context.stack.pop_f64() {
         Ok(value) => {
             thread_context.stack.push_f32(value as f32);
@@ -43,7 +43,7 @@ pub fn demote_f64_to_f32(_handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 // promote f32 to f64
-pub fn promote_f32_to_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn promote_f32_to_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match thread_context.stack.pop_f32() {
         Ok(value) => {
             thread_context.stack.push_f64(value as f64);
@@ -56,7 +56,7 @@ pub fn promote_f32_to_f64(_handler: &Handler, thread_context: &mut ThreadContext
 // convert float to int
 // truncate fractional part
 pub fn convert_f32_to_i32_s(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f32() {
@@ -69,7 +69,7 @@ pub fn convert_f32_to_i32_s(
 }
 
 pub fn convert_f32_to_i32_u(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f32() {
@@ -82,7 +82,7 @@ pub fn convert_f32_to_i32_u(
 }
 
 pub fn convert_f64_to_i32_s(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f64() {
@@ -95,7 +95,7 @@ pub fn convert_f64_to_i32_s(
 }
 
 pub fn convert_f64_to_i32_u(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f64() {
@@ -108,7 +108,7 @@ pub fn convert_f64_to_i32_u(
 }
 
 pub fn convert_f32_to_i64_s(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f32() {
@@ -121,7 +121,7 @@ pub fn convert_f32_to_i64_s(
 }
 
 pub fn convert_f32_to_i64_u(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f32() {
@@ -134,7 +134,7 @@ pub fn convert_f32_to_i64_u(
 }
 
 pub fn convert_f64_to_i64_s(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f64() {
@@ -147,7 +147,7 @@ pub fn convert_f64_to_i64_s(
 }
 
 pub fn convert_f64_to_i64_u(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     match thread_context.stack.pop_f64() {
@@ -161,7 +161,7 @@ pub fn convert_f64_to_i64_u(
 
 // convert int to float
 pub fn convert_i32_s_to_f32(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
@@ -170,7 +170,7 @@ pub fn convert_i32_s_to_f32(
 }
 
 pub fn convert_i32_u_to_f32(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
@@ -179,7 +179,7 @@ pub fn convert_i32_u_to_f32(
 }
 
 pub fn convert_i64_s_to_f32(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
@@ -188,7 +188,7 @@ pub fn convert_i64_s_to_f32(
 }
 
 pub fn convert_i64_u_to_f32(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
@@ -197,7 +197,7 @@ pub fn convert_i64_u_to_f32(
 }
 
 pub fn convert_i32_s_to_f64(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i32_s();
@@ -206,7 +206,7 @@ pub fn convert_i32_s_to_f64(
 }
 
 pub fn convert_i32_u_to_f64(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
@@ -215,7 +215,7 @@ pub fn convert_i32_u_to_f64(
 }
 
 pub fn convert_i64_s_to_f64(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i64_s();
@@ -224,7 +224,7 @@ pub fn convert_i64_s_to_f64(
 }
 
 pub fn convert_i64_u_to_f64(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
@@ -235,7 +235,7 @@ pub fn convert_i64_u_to_f64(
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -275,13 +275,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -323,13 +323,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -433,13 +433,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -561,13 +561,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,

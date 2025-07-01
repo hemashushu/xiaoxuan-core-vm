@@ -19,7 +19,7 @@ use crate::{
 //     entry_point_name: &str,
 //     thread_start_data: Vec<u8>,
 // ) -> Result<u32, GenericError> {
-//     let handler = Handler::new();
+//     /* let handler = Handler::new(); */
 //     let handler_address = &handler as *const Handler as *const u8 as usize;
 //     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
 //
@@ -64,7 +64,7 @@ pub fn start_program(
     internal_entry_point_name: &str,
     thread_start_data: Vec<u8>,
 ) -> Result<u32, ProcessorError> {
-    let handler = Handler::new();
+    /* let handler = Handler::new(); */
     let handler_address = &handler as *const Handler as *const u8 as usize;
     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
 

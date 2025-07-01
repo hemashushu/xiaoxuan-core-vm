@@ -8,7 +8,7 @@ use crate::handler::Handler;
 use anc_context::thread_context::ThreadContext;
 use anc_isa::RUNTIME_EDITION;
 
-pub fn runtime_edition(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn runtime_edition(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn (module_index: i32, data_public_index: i32)`
 
     const CONTENT_LENGTH_IN_BYTES: usize = RUNTIME_EDITION.len();
@@ -34,7 +34,7 @@ pub fn runtime_edition(_handler: &Handler, thread_context: &mut ThreadContext) {
     }
 }
 
-pub fn runtime_version(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn runtime_version(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn () -> version:u64`
     //
     // 0x0000_0000_0000_0000
@@ -102,12 +102,12 @@ mod tests {
             &[],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let fvs1 = result0.unwrap();
 
         let data_ptr_value = fvs1[0].as_u64();
@@ -138,12 +138,12 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 
         let version_patch = env!("CARGO_PKG_VERSION_PATCH").parse::<u16>().unwrap();
         let version_minor = env!("CARGO_PKG_VERSION_MINOR").parse::<u16>().unwrap();

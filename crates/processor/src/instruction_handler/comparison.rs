@@ -9,153 +9,153 @@ use anc_memory::MemoryError;
 
 use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn eqz_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eqz_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     store_bool(thread_context, value == 0);
     HandleResult::Move(2)
 }
 
-pub fn nez_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn nez_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i32_u();
     store_bool(thread_context, value != 0);
     HandleResult::Move(2)
 }
 
-pub fn eq_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left == right);
     HandleResult::Move(2)
 }
 
-pub fn ne_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn lt_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn lt_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn gt_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn gt_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn le_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn le_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn ge_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn ge_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn eqz_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eqz_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     store_bool(thread_context, value == 0);
     HandleResult::Move(2)
 }
 
-pub fn nez_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn nez_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let value = thread_context.stack.pop_i64_u();
     store_bool(thread_context, value != 0);
     HandleResult::Move(2)
 }
 
-pub fn eq_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left == right);
     HandleResult::Move(2)
 }
 
-pub fn ne_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left != right);
     HandleResult::Move(2)
 }
 
-pub fn lt_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn lt_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left < right);
     HandleResult::Move(2)
 }
 
-pub fn gt_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn gt_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left > right);
     HandleResult::Move(2)
 }
 
-pub fn le_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn le_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left <= right);
     HandleResult::Move(2)
 }
 
-pub fn ge_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn ge_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_bool(thread_context, left >= right);
     HandleResult::Move(2)
 }
 
-pub fn eq_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left == right);
@@ -165,7 +165,7 @@ pub fn eq_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn ne_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left != right);
@@ -175,7 +175,7 @@ pub fn ne_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn lt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left < right);
@@ -185,7 +185,7 @@ pub fn lt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn gt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left > right);
@@ -195,7 +195,7 @@ pub fn gt_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn le_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left <= right);
@@ -205,7 +205,7 @@ pub fn le_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn ge_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left >= right);
@@ -215,7 +215,7 @@ pub fn ge_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn eq_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn eq_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left == right);
@@ -225,7 +225,7 @@ pub fn eq_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn ne_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ne_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left != right);
@@ -235,7 +235,7 @@ pub fn ne_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn lt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn lt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left < right);
@@ -245,7 +245,7 @@ pub fn lt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn gt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn gt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left > right);
@@ -255,7 +255,7 @@ pub fn gt_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn le_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn le_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left <= right);
@@ -265,7 +265,7 @@ pub fn le_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleR
     }
 }
 
-pub fn ge_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ge_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_bool(thread_context, left >= right);
@@ -326,7 +326,7 @@ fn store_bool(thread_context: &mut ThreadContext, b: bool) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -481,13 +481,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -674,13 +674,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -826,13 +826,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -965,13 +965,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,

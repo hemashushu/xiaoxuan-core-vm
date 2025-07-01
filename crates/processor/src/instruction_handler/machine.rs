@@ -6,14 +6,14 @@
 
 use anc_context::thread_context::ThreadContext;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn terminate(_handler: &Handler, thread: &mut ThreadContext) -> HandleResult {
+pub fn terminate(/* _handler: &Handler, */ thread: &mut ThreadContext) -> HandleResult {
     let terminate_code = thread.get_param_i32() as i32;
     HandleResult::Terminate(terminate_code)
 }
 
-pub fn get_function(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn get_function(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> (module_index:i32, function_public_index:i32)
     let function_public_index = thread_context.get_param_i32();
     let module_index = thread_context.pc.module_index as u32;
@@ -22,7 +22,7 @@ pub fn get_function(_handler: &Handler, thread_context: &mut ThreadContext) -> H
     HandleResult::Move(8)
 }
 
-pub fn get_data(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn get_data(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) -> (module_index:i32, data_public_index:i32)
     let data_public_index = thread_context.get_param_i32();
     let module_index = thread_context.pc.module_index as u32;
@@ -31,7 +31,7 @@ pub fn get_data(_handler: &Handler, thread_context: &mut ThreadContext) -> Handl
     HandleResult::Move(8)
 }
 
-pub fn host_addr_data(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_data(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> pointer
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_host_addr_data(
@@ -44,7 +44,7 @@ pub fn host_addr_data(_handler: &Handler, thread_context: &mut ThreadContext) ->
 }
 
 pub fn host_addr_data_extend(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> pointer
@@ -60,7 +60,7 @@ pub fn host_addr_data_extend(
 }
 
 pub fn host_addr_data_dynamic(
-    _handler: &Handler,
+/*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> pointer
@@ -95,7 +95,7 @@ fn do_host_addr_data(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_function( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> pointer
     //
     //     let function_public_index = thread_context.get_param_i32() as usize;
@@ -116,7 +116,7 @@ pub fn host_addr_function(handler: &Handler, thread_context: &mut ThreadContext)
 }
 
 pub fn host_addr_function_dynamic(
-    handler: &Handler,
+    // handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // () (operand function_module_index:i32 function_public_index:i32) -> pointer
@@ -153,7 +153,7 @@ mod tests {
     };
 
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function, ProcessorError, ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
     };
 
@@ -208,12 +208,12 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 
         assert!(matches!(
             result0,
@@ -318,12 +318,12 @@ mod tests {
             ],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -435,12 +435,12 @@ mod tests {
             ],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -564,12 +564,12 @@ mod tests {
             ],
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -702,7 +702,7 @@ mod tests {
 //         pwd.push("tests");
 //         // let application_path = pwd.to_str().unwrap();
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::with_property(
 //             vec![binary0],
 //             ProcessProperty::new(

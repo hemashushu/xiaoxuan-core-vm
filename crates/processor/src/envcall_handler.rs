@@ -22,7 +22,7 @@ use crate::{
 
 pub type EnvCallHandlerFunc = fn(&Handler, &mut ThreadContext);
 
-fn envcall_unreachable_handler(_handler: &Handler, thread_context: &mut ThreadContext) {
+fn envcall_unreachable_handler(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
     let func_item = &thread_context.module_common_instances[pc.module_index]
         .function_section

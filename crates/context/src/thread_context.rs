@@ -11,12 +11,15 @@ use anc_image::module_image::{ModuleImage, Visibility};
 use anc_isa::DataSectionType;
 use anc_memory::indexed_memory_access::IndexedMemoryAccess;
 use anc_stack::{nostd_stack::NostdStack, stack::Stack, ProgramCounter};
+use cranelift_jit::JITModule;
 
 use crate::{
     bridge_function_table::BridgeFunctionTable,
-    callback_delegate_function_table::CallbackDelegateFunctionTable,
-    external_function_table::ExternalFunctionTable, module_common_instance::ModuleCommonInstance,
-    module_linking_instance::ModuleLinkingInstance, process_property::ProcessProperty,
+    callback_delegate_function_table::CallbackDelegateFunctionTable, code_generator::Generator,
+    external_function_table::ExternalFunctionTable,
+    jit_context::get_jit_generator_without_imported_symbols,
+    module_common_instance::ModuleCommonInstance, module_linking_instance::ModuleLinkingInstance,
+    process_property::ProcessProperty,
 };
 
 /// Represents the thread context of the VM, containing the stack, allocator, program counter,
@@ -34,6 +37,8 @@ pub struct ThreadContext<'a> {
 
     // Table for bridge functions, used for calling functions from outside the VM.
     pub bridge_function_table: BridgeFunctionTable,
+
+    pub jit_generator: Mutex<Generator<JITModule>>,
 
     // Instances of "linking sections".
     pub module_linking_instance: ModuleLinkingInstance<'a>,
@@ -92,6 +97,8 @@ impl<'a> ThreadContext<'a> {
 
         let callback_delegate_function_table = CallbackDelegateFunctionTable::new();
         let bridge_function_table = BridgeFunctionTable::new();
+        let jit_generator = get_jit_generator_without_imported_symbols();
+
         Self {
             stack: Box::new(stack),
             allocator: Box::new(allocator),
@@ -99,6 +106,7 @@ impl<'a> ThreadContext<'a> {
             external_function_table,
             callback_delegate_function_table,
             bridge_function_table,
+            jit_generator,
             module_linking_instance,
             module_common_instances,
             process_property,

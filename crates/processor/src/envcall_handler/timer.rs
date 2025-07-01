@@ -13,7 +13,7 @@ use crate::handler::Handler;
 
 // ref:
 // https://linux.die.net/man/3/clock_gettime
-pub fn time_now(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn time_now(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn () -> (seconds:u64, nano_seconds:u64)`
 
     let total_nanos = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
@@ -72,12 +72,12 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         let results0 = result0.unwrap();
 
         let secs = results0[0].as_u64();

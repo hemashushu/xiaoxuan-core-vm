@@ -92,7 +92,7 @@ impl Generator<JITModule> {
         // Enable Position-Independent Code generation.
         // ref:
         // https://docs.rs/cranelift-codegen/latest/cranelift_codegen/settings/struct.Flags.html#method.is_pic
-        flag_builder.set("is_pic", "true").unwrap();
+        flag_builder.set("is_pic", "false").unwrap();
 
         // Optimization level for generated code.
         //

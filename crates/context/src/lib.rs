@@ -6,8 +6,10 @@
 
 pub mod bridge_function_table;
 pub mod callback_delegate_function_table;
+pub mod code_generator;
 pub mod datas;
 pub mod external_function_table;
+pub mod jit_context;
 pub mod module_common_instance;
 pub mod module_linking_instance;
 pub mod process_context;

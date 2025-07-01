@@ -31,10 +31,12 @@ use core::str;
 use std::{ffi::c_void, sync::Mutex};
 
 use anc_context::{
+    code_generator::Generator,
     external_function_table::{
         ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
+    jit_context::convert_vm_operand_data_type_to_jit_type,
     thread_context::ThreadContext,
 };
 use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
@@ -45,15 +47,12 @@ use cranelift_module::{Linkage, Module};
 use dyncall_util::{load_library, load_symbol, transmute_symbol_to};
 use resolve_path::PathResolveExt;
 
-use crate::{
-    code_generator::Generator, handler::Handler,
-    jit_context::convert_vm_operand_data_type_to_jit_type, ProcessorError, ProcessorErrorType,
-};
+use crate::{ProcessorError, ProcessorErrorType};
 
 static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
 pub fn get_or_create_external_function_and_wrapper_function(
-    handler: &Handler,
+    // handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     external_function_index: usize,
@@ -145,7 +144,7 @@ pub fn get_or_create_external_function_and_wrapper_function(
     let external_library_file_path_or_file_name = ""; // todo
 
     let mut table = thread_context.external_function_table.lock().unwrap();
-    let mut jit_generator = handler.jit_generator.lock().unwrap();
+    let mut jit_generator = thread_context.jit_generator.lock().unwrap();
 
     let (external_function_pointer, wrapper_function) =
         add_external_function_and_create_wrapper_function(

@@ -8,14 +8,14 @@ use anc_context::thread_context::ThreadContext;
 
 use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
 const DATA_LENGTH_IN_BYTES_64_BIT: usize = 8;
 const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
 const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
 const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
 
-pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (params: layers: i16, local_variable_index: i32) -> i64
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
 
@@ -42,7 +42,7 @@ pub fn local_load_i64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     HandleResult::Move(8)
 }
 
-pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -56,7 +56,7 @@ pub fn local_load_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) 
     HandleResult::Move(8)
 }
 
-pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -70,7 +70,7 @@ pub fn local_load_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) 
     HandleResult::Move(8)
 }
 
-pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i16_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i16
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -84,7 +84,7 @@ pub fn local_load_i16_s(_handler: &Handler, thread_context: &mut ThreadContext) 
     HandleResult::Move(8)
 }
 
-pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i16_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i16
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -98,7 +98,7 @@ pub fn local_load_i16_u(_handler: &Handler, thread_context: &mut ThreadContext) 
     HandleResult::Move(8)
 }
 
-pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i8_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i8
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -112,7 +112,7 @@ pub fn local_load_i8_s(_handler: &Handler, thread_context: &mut ThreadContext) -
     HandleResult::Move(8)
 }
 
-pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_i8_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> i8
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -126,7 +126,7 @@ pub fn local_load_i8_u(_handler: &Handler, thread_context: &mut ThreadContext) -
     HandleResult::Move(8)
 }
 
-pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> f32
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -143,7 +143,7 @@ pub fn local_load_f32(_handler: &Handler, thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_load_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) -> f64
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let dst_ptr = thread_context.stack.push_operand_from_memory();
@@ -159,7 +159,7 @@ pub fn local_load_f64(_handler: &Handler, thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i64) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -173,7 +173,7 @@ pub fn local_store_i64(_handler: &Handler, thread_context: &mut ThreadContext) -
     HandleResult::Move(8)
 }
 
-pub fn local_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -187,7 +187,7 @@ pub fn local_store_i32(_handler: &Handler, thread_context: &mut ThreadContext) -
     HandleResult::Move(8)
 }
 
-pub fn local_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_i16(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -201,7 +201,7 @@ pub fn local_store_i16(_handler: &Handler, thread_context: &mut ThreadContext) -
     HandleResult::Move(8)
 }
 
-pub fn local_store_i8(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn local_store_i8(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 local_variable_index:i32) (operand value:i32) -> (remain_values)
     let (layers, local_variable_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -228,7 +228,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function, ProcessorError, ProcessorErrorType,
         TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS,
     };
@@ -318,13 +318,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -371,12 +371,12 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let handler = Handler::new();
+            /* let handler = Handler::new(); */
             let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // Error: Attempting to load `i64` from an `i32` variable (data length exceeded).
-            let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+            let _ = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook); // Restore the original panic hook.
@@ -406,13 +406,13 @@ mod tests {
         std::panic::set_hook(Box::new(|_| {}));
 
         let result = std::panic::catch_unwind(move || {
-            let handler = Handler::new();
+            /* let handler = Handler::new(); */
             let resource0 = InMemoryProgramSource::new(vec![binary0]);
             let process_context0 = resource0.create_process_context().unwrap();
 
             let mut thread_context0 = process_context0.create_thread_context();
             // Error: Attempting to access a non-existent local variable (index out of range).
-            let _ = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+            let _ = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook); // Restore the original panic hook.
@@ -434,14 +434,14 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let mut thread_context0 = process_context0.create_thread_context();
         // Error: Attempting to access an unsupported floating-point variant.
         let result = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,

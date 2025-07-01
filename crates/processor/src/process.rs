@@ -9,7 +9,7 @@ use anc_isa::{ForeignValue, OperandDataType, OPERAND_SIZE_IN_BYTES};
 use anc_stack::ProgramCounter;
 
 use crate::{
-    handler::{HandleResult, Handler},
+    instruction_handler::{get_instruction_handler, HandleResult},
     ProcessorError, ProcessorErrorType,
 };
 
@@ -22,7 +22,7 @@ use crate::{
 pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
 
 pub fn process_function(
-    handler: &Handler,
+    // handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
@@ -115,7 +115,9 @@ pub fn process_function(
     thread_context.pc.instruction_address = function_info.code_offset;
 
     // start processing instructions
-    if let Some(terminate_code) = process_continuous_instructions(handler, thread_context) {
+    if let Some(terminate_code) =
+        process_continuous_instructions(/* handler, */ thread_context)
+    {
         return Err(ProcessorError::new(ProcessorErrorType::Terminate(
             terminate_code,
         )));
@@ -170,11 +172,11 @@ pub fn process_function(
 }
 
 pub fn process_continuous_instructions(
-    handler: &Handler,
+    // handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> Option<i32> /* terminate code */ {
     loop {
-        let result = process_instruction(handler, thread_context);
+        let result = process_instruction(/*handler, */ thread_context);
         match result {
             HandleResult::Move(relate_offset_in_bytes) => {
                 let next_instruction_offset =
@@ -203,8 +205,10 @@ pub fn process_continuous_instructions(
 }
 
 #[inline]
-fn process_instruction(handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+fn process_instruction(
+    /* handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     let opcode_num = thread_context.get_opcode_num();
-    let function = handler.handlers[opcode_num as usize]; //  unsafe { &INTERPRETERS[opcode_num as usize] };
-    function(handler, thread_context)
+    let function = get_instruction_handler(opcode_num);
+    function(/* handler, */ thread_context)
 }

@@ -9,122 +9,122 @@ use anc_memory::MemoryError;
 
 use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
-pub fn add_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand left:i32 right:i32) -> i32
     let (left, right) = load_operands_i32_u(thread_context);
     store_i32_u(thread_context, left.wrapping_add(right));
     HandleResult::Move(2)
 }
 
-pub fn sub_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_i32_u(thread_context, left.wrapping_sub(right));
     HandleResult::Move(2)
 }
 
-pub fn add_imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_imm_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let imm = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, value.wrapping_add(imm as u32));
     HandleResult::Move(4)
 }
 
-pub fn sub_imm_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_imm_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let imm = thread_context.get_param_i16();
     let value = load_operand_i32_u(thread_context);
     store_i32_u(thread_context, value.wrapping_sub(imm as u32));
     HandleResult::Move(4)
 }
 
-pub fn mul_i32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn mul_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_i32_u(thread_context, left.wrapping_mul(right));
     HandleResult::Move(2)
 }
 
-pub fn div_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_i32_s(thread_context, left / right);
     HandleResult::Move(2)
 }
 
-pub fn div_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_i32_u(thread_context, left / right);
     HandleResult::Move(2)
 }
 
-pub fn rem_i32_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rem_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_s(thread_context);
     store_i32_s(thread_context, left % right);
     HandleResult::Move(2)
 }
 
-pub fn rem_i32_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rem_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i32_u(thread_context);
     store_i32_u(thread_context, left % right);
     HandleResult::Move(2)
 }
 
-pub fn add_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left.wrapping_add(right));
     HandleResult::Move(2)
 }
 
-pub fn sub_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left.wrapping_sub(right));
     HandleResult::Move(2)
 }
 
-pub fn add_imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_imm_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let imm = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, value.wrapping_add(imm as u64));
     HandleResult::Move(4)
 }
 
-pub fn sub_imm_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_imm_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let imm = thread_context.get_param_i16();
     let value = load_operand_i64_u(thread_context);
     store_i64_u(thread_context, value.wrapping_sub(imm as u64));
     HandleResult::Move(4)
 }
 
-pub fn mul_i64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn mul_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left.wrapping_mul(right));
     HandleResult::Move(2)
 }
 
-pub fn div_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_i64_s(thread_context, left / right);
     HandleResult::Move(2)
 }
 
-pub fn div_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left / right);
     HandleResult::Move(2)
 }
 
-pub fn rem_i64_s(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rem_i64_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_s(thread_context);
     store_i64_s(thread_context, left % right);
     HandleResult::Move(2)
 }
 
-pub fn rem_i64_u(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn rem_i64_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     let (left, right) = load_operands_i64_u(thread_context);
     store_i64_u(thread_context, left % right);
     HandleResult::Move(2)
 }
 
-pub fn add_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, left + right);
@@ -134,7 +134,7 @@ pub fn add_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn sub_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, left - right);
@@ -144,7 +144,7 @@ pub fn sub_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn mul_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn mul_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, left * right);
@@ -154,7 +154,7 @@ pub fn mul_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn div_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, left / right);
@@ -164,7 +164,7 @@ pub fn div_f32(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn add_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn add_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, left + right);
@@ -174,7 +174,7 @@ pub fn add_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn sub_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sub_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, left - right);
@@ -184,7 +184,7 @@ pub fn sub_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn mul_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn mul_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, left * right);
@@ -194,7 +194,7 @@ pub fn mul_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> Handle
     }
 }
 
-pub fn div_f64(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn div_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, left / right);
@@ -289,7 +289,7 @@ fn store_f64(thread_context: &mut ThreadContext, v: f64) {
 #[cfg(test)]
 mod tests {
     use crate::{
-        handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -433,13 +433,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -611,13 +611,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -699,13 +699,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -765,13 +765,13 @@ mod tests {
             code0,
         );
 
-        let handler = Handler::new();
+        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            &handler,
+            /* &handler, */
             &mut thread_context0,
             0,
             0,

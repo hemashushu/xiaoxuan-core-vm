@@ -9,7 +9,7 @@ use anc_stack::{FrameType, ProgramCounter};
 
 use crate::{process::EXIT_CURRENT_HANDLER_LOOP_BIT, TERMINATE_CODE_STACK_OVERFLOW};
 
-use super::{HandleResult, Handler};
+use super::HandleResult;
 
 /// end a function or block.
 ///
@@ -17,13 +17,13 @@ use super::{HandleResult, Handler};
 /// a function or a block, they are the same actually except that
 /// the `break` instruction can specify `layers`
 /// and `next_inst_offset` parameters.
-pub fn end(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn end(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () -> NO_RETURN
     const INSTRUCTION_END_LENGTH: u32 = 2;
     do_break(thread_context, 0, INSTRUCTION_END_LENGTH)
 }
 
-pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param type_index:i32 local_variable_list_index:i32)
     let (type_index, local_variable_list_index) = thread_context.get_param_i32_i32();
 
@@ -52,7 +52,7 @@ pub fn block(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleRe
     }
 }
 
-pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block_alt(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param type_index:i32 local_variable_list_index:i32 next_inst_offset:i32)
     let condition = thread_context.stack.pop_i32_u();
     let (type_index, local_variable_list_index, next_inst_offset) =
@@ -90,7 +90,7 @@ pub fn block_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
     }
 }
 
-pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn block_nez(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param local_variable_list_index:i32 next_inst_offset:i32) NO_RETURN
 
     let condition = thread_context.stack.pop_i32_u();
@@ -132,14 +132,14 @@ pub fn block_nez(_handler: &Handler, thread_context: &mut ThreadContext) -> Hand
 /// the 'break' instruction can specify the 'layers'
 /// and 'next_inst_offset'.
 // thus `end` == `break layers=0 next_inst_offset=2`
-pub fn break_(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn break_(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 next_inst_offset:i32) NO_RETURN
     let (layers, next_inst_offset) = thread_context.get_param_i16_i32();
     do_break(thread_context, layers, next_inst_offset)
 }
 
 // `break_alt next` == `break 0 next`
-pub fn break_alt(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn break_alt(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param next_inst_offset:i32) -> NO_RETURN
     let next_inst_offset = thread_context.get_param_i32();
     do_break(thread_context, 0, next_inst_offset)
@@ -186,7 +186,7 @@ fn do_break(
     }
 }
 
-pub fn recur(_handler: &Handler, thread_context: &mut ThreadContext) -> HandleResult {
+pub fn recur(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param layers:i16 start_inst_offset:i32) -> NO_RETURN
     let (layers, start_inst_offset) = thread_context.get_param_i16_i32();
     do_recur(thread_context, layers, start_inst_offset)
@@ -292,12 +292,12 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
 //
-//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 //         assert_eq!(
 //             result0.unwrap(),
 //             vec![
@@ -367,12 +367,12 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
 //
-//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 //         assert_eq!(
 //             result0.unwrap(),
 //             vec![
@@ -571,7 +571,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -638,12 +638,12 @@ fn do_recur(
 //             vec![],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
 //
-//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 //         assert_eq!(
 //             result0.unwrap(),
 //             vec![ForeignValue::U32(11), ForeignValue::U32(13),]
@@ -719,12 +719,12 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
 //
-//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 //         assert_eq!(
 //             result0.unwrap(),
 //             vec![
@@ -800,12 +800,12 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
 //
-//         let result0 = process_function(&handler, &mut thread_context0, 0, 0, &[]);
+//         let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
 //         assert_eq!(
 //             result0.unwrap(),
 //             vec![ForeignValue::U32(17), ForeignValue::U32(19),]
@@ -879,7 +879,7 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1005,7 +1005,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1101,7 +1101,7 @@ fn do_recur(
 //             }],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1243,7 +1243,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1446,7 +1446,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1618,7 +1618,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1769,7 +1769,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -1896,7 +1896,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -2008,7 +2008,7 @@ fn do_recur(
 //     //             }],
 //     //         );
 //     //
-//     //         let handler = Handler::new();
+//     //         /* let handler = Handler::new(); */
 //     //         let resource0 = InMemoryResource::new(vec![binary0]);
 //     //         let process_context0 = resource0.create_process_context().unwrap();
 //     //         let mut thread_context0 = process_context0.create_thread_context();
@@ -2136,7 +2136,7 @@ fn do_recur(
 //             ],
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -2249,7 +2249,7 @@ fn do_recur(
 //             }], // blocks
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -2351,7 +2351,7 @@ fn do_recur(
 //             }], // blocks
 //         );
 //
-//         let handler = Handler::new();
+//         /* let handler = Handler::new(); */
 //         let resource0 = InMemoryProgramSource::new(vec![binary0]);
 //         let process_context0 = resource0.create_process_context().unwrap();
 //         let mut thread_context0 = process_context0.create_thread_context();
@@ -2454,7 +2454,7 @@ fn do_recur(
 //     //             vec![], // blocks
 //     //         );
 //     //
-//     //         let handler = Handler::new();
+//     //         /* let handler = Handler::new(); */
 //     //         let resource0 = InMemoryResource::new(vec![binary0]);
 //     //         let process_context0 = resource0.create_process_context().unwrap();
 //     //         let mut thread_context0 = process_context0.create_thread_context();

@@ -23,7 +23,7 @@ pub const MESSAGE_SEND_RESULT_FAILURE: u32 = 1;
 pub const MESSAGE_RECEIVE_RESULT_SUCCESS: u32 = 0;
 pub const MESSAGE_RECEIVE_RESULT_FAILURE: u32 = 1;
 
-pub fn thread_id(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_id(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn () -> thread_id:u64`
 
     // the Rust std function `thread::id()` is unstable, ref:
@@ -41,7 +41,7 @@ pub fn thread_id(_handler: &Handler, thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_create(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_create(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // ```
     // fn (function_public_index:u32,
     //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
@@ -71,7 +71,7 @@ pub fn thread_create(_handler: &Handler, thread_context: &mut ThreadContext) {
     thread_context.stack.push_i32_u(child_thread_id);
 }
 
-pub fn thread_start_data_length(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_start_data_length(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
 
     let data_length = THREAD_START_DATA.with(|data_cell| {
@@ -82,7 +82,7 @@ pub fn thread_start_data_length(_handler: &Handler, thread_context: &mut ThreadC
     thread_context.stack.push_i32_u(data_length as u32);
 }
 
-pub fn thread_start_data_read(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_start_data_read(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> (actual_read_length: u32)'
 
     let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
@@ -109,7 +109,7 @@ pub fn thread_start_data_read(_handler: &Handler, thread_context: &mut ThreadCon
     thread_context.stack.push_i32_u(actual_read_length as u32);
 }
 
-pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_wait_and_collect(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (thread_exit_code:u32, thread_not_found:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -138,7 +138,7 @@ pub fn thread_wait_and_collect(_handler: &Handler, thread_context: &mut ThreadCo
     thread_context.stack.push_i32_u(thread_not_found);
 }
 
-pub fn thread_running_status(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_running_status(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (running_status:u32, thread_not_found:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -165,7 +165,7 @@ pub fn thread_running_status(_handler: &Handler, thread_context: &mut ThreadCont
     thread_context.stack.push_i32_u(thread_not_found);
 }
 
-pub fn thread_terminate(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_terminate(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> ()'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -191,7 +191,7 @@ pub fn thread_terminate(_handler: &Handler, thread_context: &mut ThreadContext) 
     });
 }
 
-pub fn thread_receive_msg_from_parent(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_receive_msg_from_parent(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
     RX.with(|rx_refcell| {
         let rx_ref = rx_refcell.borrow();
@@ -224,7 +224,7 @@ pub fn thread_receive_msg_from_parent(_handler: &Handler, thread_context: &mut T
     });
 }
 
-pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_send_msg_to_parent(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (src_memory_ptr:u64, length:u32) -> ()'
 
     let length = thread_context.stack.pop_i32_u();
@@ -249,7 +249,7 @@ pub fn thread_send_msg_to_parent(_handler: &Handler, thread_context: &mut Thread
     });
 }
 
-pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_receive_msg(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32) -> (length:u32, receive_result:u32)'
 
     let child_thread_id = thread_context.stack.pop_i32_u();
@@ -281,7 +281,7 @@ pub fn thread_receive_msg(_handler: &Handler, thread_context: &mut ThreadContext
     });
 }
 
-pub fn thread_send_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_send_msg(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (child_thread_id:u32, src_memory_ptr:u64, length:u32) -> send_result:u32'
 
     let length = thread_context.stack.pop_i32_u();
@@ -311,7 +311,7 @@ pub fn thread_send_msg(_handler: &Handler, thread_context: &mut ThreadContext) {
     });
 }
 
-pub fn thread_msg_length(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_msg_length(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn () -> length:u32'
 
     LAST_THREAD_MESSAGE.with(|msg_refcell| {
@@ -323,7 +323,7 @@ pub fn thread_msg_length(_handler: &Handler, thread_context: &mut ThreadContext)
     });
 }
 
-pub fn thread_msg_read(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_msg_read(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // 'fn (offset:u32, length:u32, dst_memory_ptr:u64) -> actual_read_length:u32'
 
     let dst_memory_ptr = thread_context.stack.pop_i64_u() as usize;
@@ -353,7 +353,7 @@ pub fn thread_msg_read(_handler: &Handler, thread_context: &mut ThreadContext) {
 
 // ref:
 // https://linux.die.net/man/2/nanosleep
-pub fn thread_sleep(_handler: &Handler, thread_context: &mut ThreadContext) {
+pub fn thread_sleep(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn (milliseconds:u64) -> ()`
 
     let milliseconds = thread_context.stack.pop_i64_u();
