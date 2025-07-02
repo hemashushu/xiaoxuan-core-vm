@@ -4,7 +4,7 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use std::sync::Mutex;
+// use std::sync::Mutex;
 
 use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
@@ -12,7 +12,7 @@ use anc_isa::opcode::Opcode;
 use anc_stack::ProgramCounter;
 // use cranelift_jit::JITModule;
 
-pub type HandleFunc = fn(/* &Handler, */ &mut ThreadContext) -> HandleResult;
+pub type HandlerFunc = fn(/* &Handler, */ &mut ThreadContext) -> HandleResult;
 
 mod arithmetic;
 mod bitwise;
@@ -135,9 +135,9 @@ Bytecode:
 
 // impl Handler {
 #[inline]
-pub fn get_instruction_handler(opcode_num: u16) -> HandleFunc {
-    let opcode = unsafe { std::mem::transmute::<u16, Opcode>(opcode_num) };
-    let category = opcode_num >> 8;
+pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
+    let opcode = unsafe { std::mem::transmute::<u16, Opcode>(opcode_integer) };
+    let category = opcode_integer >> 8;
     match category {
         0x01 => {
             // fundamental

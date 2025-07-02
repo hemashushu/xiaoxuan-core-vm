@@ -4,7 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use crate::handler::Handler;
 use anc_context::thread_context::ThreadContext;
 
 pub fn host_arch(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
@@ -86,7 +85,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, OperandDataType};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        envcall_num::EnvCallNum, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
@@ -121,7 +120,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         let fvs1 = result0.unwrap();
 
         let data_ptr_value = fvs1[0].as_u64();

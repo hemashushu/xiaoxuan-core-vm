@@ -4,7 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use crate::handler::Handler;
 use anc_context::thread_context::ThreadContext;
 use anc_isa::RUNTIME_EDITION;
 
@@ -72,7 +71,7 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
-        envcall_num::EnvCallNum, handler::Handler, in_memory_program_source::InMemoryProgramSource,
+        envcall_num::EnvCallNum,  in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 

@@ -8,13 +8,34 @@ use anc_memory::{indexed_memory_access::IndexedMemoryAccess, memory_access::Memo
 
 use crate::allocator::Allocator;
 
+/// A simple allocator implemented using a vector to store memory items.
+/// For debugging and testing purposes.
+pub struct VecAllocator {
+    // A collection of memory items, where each item is either allocated
+    // (Some) or freed (None).
+    items: Vec<Option<MemoryItem>>,
+}
+
+impl VecAllocator {
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
+    }
+}
+
+impl Default for VecAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 struct MemoryItem {
-    // The actual size of the memory item.
+    // The logical size of the memory item.
     //
-    // In some cases, the memory item may be reduced to a smaller size
-    // after the user resizes it. However, for performance reasons, the
-    // allocated memory is not reallocated. As a result, the size of the
-    // memory item may be smaller than the allocated memory.
+    // When a user requests to shrink a memory item (e.g., via reallocation),
+    // the logical size may be reduced. However, for performance reasons,
+    // the underlying allocated memory is not actually resized.
+    // As a result, the logical size of the memory item may be smaller than
+    // the physical size of the allocated memory buffer.
     size: usize,
 
     // The data and capacity of the memory item.
@@ -30,26 +51,8 @@ impl MemoryItem {
     }
 }
 
-pub struct SimpleAllocator {
-    // A collection of memory items, where each item is either allocated
-    // (Some) or freed (None).
-    items: Vec<Option<MemoryItem>>,
-}
-
-impl SimpleAllocator {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-}
-
-impl Default for SimpleAllocator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Allocator for SimpleAllocator {
-    fn allocate(&mut self, _align_in_bytes: usize, size_in_bytes: usize) -> usize {
+impl Allocator for VecAllocator {
+    fn allocate(&mut self, size_in_bytes: usize, _alignment_in_bytes: usize) -> usize {
         // Search for an empty slot in the collection.
         let pos = self.items.iter().position(|item| item.is_none());
 
@@ -65,7 +68,12 @@ impl Allocator for SimpleAllocator {
         }
     }
 
-    fn resize(&mut self, data_internal_index: usize, new_size_in_bytes: usize) -> usize {
+    fn reallocate(
+        &mut self,
+        data_internal_index: usize,
+        new_size_in_bytes: usize,
+        _alignment_in_bytes: usize,
+    ) -> usize {
         if let Some(item) = self.items.get_mut(data_internal_index) {
             if let Some(last_item) = item {
                 if new_size_in_bytes > last_item.size {
@@ -93,20 +101,13 @@ impl Allocator for SimpleAllocator {
         }
     }
 
-    fn get_size(&self, data_internal_index: usize) -> Option<usize> {
-        // Retrieve the size of the memory item at the specified index, if it exists.
-        self.items
-            .get(data_internal_index)
-            .and_then(|item| item.as_ref().map(|item| item.size))
-    }
-
     fn free(&mut self, data_internal_index: usize) {
         // Mark the memory item at the specified index as freed.
         self.items[data_internal_index] = None;
     }
 }
 
-impl MemoryAccess for SimpleAllocator {
+impl MemoryAccess for VecAllocator {
     fn get_ptr(&self, address: usize, offset_in_bytes: usize) -> *const u8 {
         // Get a constant pointer to the data of the memory item at the specified address.
         unsafe {
@@ -132,7 +133,7 @@ impl MemoryAccess for SimpleAllocator {
     }
 }
 
-impl IndexedMemoryAccess for SimpleAllocator {
+impl IndexedMemoryAccess for VecAllocator {
     fn get_start_address_by_index(&self, idx: usize) -> usize {
         if let Some(opt_item) = self.items.get(idx) {
             if opt_item.is_some() {
@@ -146,56 +147,78 @@ impl IndexedMemoryAccess for SimpleAllocator {
         }
     }
 
-    fn get_data_length(&self, idx: usize) -> usize {
-        if let Some(opt_item) = self.items.get(idx) {
-            if let Some(item) = opt_item {
-                item.size
-            } else {
-                panic!("Attempted to access a freed memory item. Index: {}", idx);
-            }
-        } else {
-            panic!("Invalid index for accessing memory. Index: {}", idx);
-        }
+    fn get_data_length(&self, _idx: usize) -> usize {
+        panic!("SimpleAllocator does not support data length retrieval");
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::allocator::Allocator;
+    use anc_memory::{indexed_memory_access::IndexedMemoryAccess, memory_access::MemoryAccess};
+
+    use crate::{allocator::Allocator, vec_allocator::VecAllocator};
 
     #[test]
-    fn test_allocat_resize_and_free() {
-        let mut allocator = SimpleAllocator::new();
+    fn test_allocat_reallocate_and_free() {
+        let mut allocator = VecAllocator::new();
 
-        // Allocate memory and check the size.
-        let index = allocator.allocate(8, 16);
-        assert_eq!(allocator.get_size(index), Some(16));
+        let data0 = [0x02u8, 0x03, 0x05, 0x07];
 
-        // Enlarge the memory and check the size.
-        let new_index0 = allocator.resize(index, 32);
-        assert_eq!(allocator.get_size(new_index0), Some(32));
+        // Allocate memory
+        let index0 = allocator.allocate(4, 1);
 
-        // Reduce the memory and check the size.
-        let new_index1 = allocator.resize(new_index0, 24);
-        assert_eq!(allocator.get_size(new_index1), Some(24));
+        // Write data to the allocated memory.
+        allocator.write_i32(data0.as_ptr(), index0, 0);
+
+        // Read and verify the data.
+        let mut buf0 = [0u8; 4];
+        allocator.read_i32_u(index0, 0, buf0.as_mut_ptr());
+        assert_eq!(buf0, data0);
+
+        // Reallocate the memory to a larger size
+        let new_index0 = allocator.reallocate(index0, 8, 1);
+
+        // Read and verify the data after reallocation.
+        let mut buf1 = [0u8; 4];
+        allocator.read_i32_u(new_index0, 0, buf1.as_mut_ptr());
+        assert_eq!(buf1, data0);
+
+        // Append additional data to the reallocated memory.
+        let data1 = [0x011u8, 0x13, 0x17, 0x19];
+        allocator.write_i32(data1.as_ptr(), new_index0, 4);
+
+        // Read and verify the total data after reallocation.
+        let mut buf2 = [0u8; 8];
+        allocator.read_i64(new_index0, 0, buf2.as_mut_ptr());
+        assert_eq!(buf2[0..4], data0);
+        assert_eq!(buf2[4..8], data1);
+
+        // Reallocate the memory to a smaller size.
+        let new_index1 = allocator.reallocate(new_index0, 2, 1);
+
+        // Read and verify the data after shrinking.
+        let mut buf3 = [0u8; 2];
+        allocator.read_i16_u(new_index1, 0, buf3.as_mut_ptr());
+        assert_eq!(buf3, [0x02, 0x03]);
 
         // Free the memory and check the size.
         allocator.free(new_index1);
-        assert_eq!(allocator.get_size(new_index1), None);
+    }
+
+    #[test]
+    fn test_access_out_of_bounds() {
+        // No bounds checking in SimpleAllocator,
     }
 
     #[test]
     fn test_access_freed_memory() {
-        let mut allocator = SimpleAllocator::new();
+        let mut allocator = VecAllocator::new();
 
         // Allocate memory and check the size.
         let index = allocator.allocate(8, 8);
-        assert_eq!(allocator.get_size(index), Some(8));
 
         // Free the memory and check the size.
         allocator.free(index);
-        assert_eq!(allocator.get_size(index), None);
 
         // Access the freed memory
         let prev_hook = std::panic::take_hook(); // silent panic
@@ -204,7 +227,7 @@ mod tests {
         let result = std::panic::catch_unwind(move || {
             let mut buf = [0u8; 8];
             // should panic
-            allocator.read_idx_i64(index, 0, buf.as_mut_ptr());
+            allocator.read_i64(index, 0, buf.as_mut_ptr());
         });
 
         std::panic::set_hook(prev_hook);
@@ -214,7 +237,8 @@ mod tests {
 
     #[test]
     fn test_access_non_existent_memory() {
-        let allocator = SimpleAllocator::new();
+        let allocator = VecAllocator::new();
+        let non_existent_index = 1001; // Non-existent index
 
         let prev_hook = std::panic::take_hook(); // silent panic
         std::panic::set_hook(Box::new(|_| {}));
@@ -222,7 +246,7 @@ mod tests {
         let result = std::panic::catch_unwind(move || {
             let mut buf = [0u8; 8];
             // should panic
-            allocator.read_idx_i64(99, 0, buf.as_mut_ptr());
+            allocator.read_i64(non_existent_index, 0, buf.as_mut_ptr());
         });
 
         std::panic::set_hook(prev_hook);
@@ -232,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_indexed_access() {
-        let mut allocator = SimpleAllocator::new();
+        let mut allocator = VecAllocator::new();
 
         let idx0 = allocator.allocate(8, 8);
 
@@ -271,10 +295,9 @@ mod tests {
             assert_eq!(i64::from_le_bytes(buf), 0x37_31_29_23_19_17_13_11)
         }
 
-        // Enlarge the memory item and then reduce it.
-        let idx1 = {
-            let enlarge_idx = allocator.resize(idx0, 16);
-            assert_eq!(allocator.get_size(enlarge_idx), Some(16));
+        // Change the size of the memory item.
+        let new_idx0 = {
+            let enlarge_idx = allocator.reallocate(idx0, 16, 8);
 
             // Read i64 data from the enlarged memory.
             // The data should be the same as before.
@@ -300,8 +323,8 @@ mod tests {
                 assert_eq!(i64::from_le_bytes(buf), 0x37_31_29_23_19_17_13_11);
             }
 
-            // Reduce the memory item and check the size.
-            let reduce_idx = allocator.resize(enlarge_idx, 4);
+            // Reduce the memory item.
+            let reduce_idx = allocator.reallocate(enlarge_idx, 4, 8);
 
             // Read i32 data from the reduced memory.
             {
@@ -313,31 +336,32 @@ mod tests {
             reduce_idx
         };
 
-        // Create a new memory item and check the size.
-        let idx2 = allocator.allocate(8, 8);
-        assert_eq!(allocator.get_size(idx2), Some(8));
+        // Create a new memory item
+        let idx1 = allocator.allocate(8, 8);
 
         // Write i32 data to the new memory item.
         {
             let i: i32 = 0x07_05_03_02;
             let data = i.to_le_bytes();
-            allocator.write_idx_i32(data.as_ptr(), idx2, 0);
+            allocator.write_idx_i32(data.as_ptr(), idx1, 0);
         }
 
         // Read i32 data from the new memory item.
         {
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(idx2, 0, buf.as_mut_ptr());
+            allocator.read_idx_i32_u(idx1, 0, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x07_05_03_02)
         }
 
         // Check the previous memory item.
         {
-            assert_eq!(allocator.get_size(idx1), Some(4));
-
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(idx1, 0, buf.as_mut_ptr());
+            allocator.read_idx_i32_u(new_idx0, 0, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x19_17_13_11)
         }
+
+        // Free the memory items.
+        allocator.free(idx1);
+        allocator.free(new_idx0);
     }
 }

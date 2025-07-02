@@ -9,6 +9,7 @@ use anc_isa::OPERAND_SIZE_IN_BYTES;
 use anc_stack::ProgramCounter;
 
 use crate::{
+    envcall_handler::get_envcall_handlers,
     extcall_handler::get_or_create_external_function_and_wrapper_function,
     syscall_handler::get_syscall_handler, TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION,
     TERMINATE_CODE_STACK_OVERFLOW,
@@ -27,7 +28,7 @@ pub fn call(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> Han
     )
 }
 
-pub fn call_dynamic(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn call_dynamic(/* _handler: &Handler, */ thread_context: &mut ThreadContext,) -> HandleResult {
     // () (operand args... function_module_index:i32 function_public_index:i32) -> (values)
     let function_public_index = thread_context.stack.pop_i32_u();
     let module_index = thread_context.stack.pop_i32_u() as usize;
@@ -86,7 +87,7 @@ fn do_call(
     }
 }
 
-pub fn syscall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn syscall(/* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand args... params_count:i32 syscall_num:i32) -> (return_value:i64 error_number:i32)
     //
     // The "syscall" instruction invokes a system call on Unix-like operating systems.
@@ -115,7 +116,7 @@ pub fn syscall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     let params_count = thread_context.stack.pop_i32_u();
 
     let function = get_syscall_handler(params_count as usize);
-    let result = function( thread_context, syscall_num as usize);
+    let result = function(thread_context, syscall_num as usize);
 
     // push the result on the stack
 
@@ -133,17 +134,16 @@ pub fn syscall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     HandleResult::Move(2)
 }
 
-pub fn envcall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn envcall(/* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param envcall_num:i32) (operand args...) -> (values)
 
-    todo!()
-    // let envcall_num = thread_context.get_param_i32();
-    // let envcall_handler = handler.envcall_handlers[envcall_num as usize];
-    // envcall_handler(handler, thread_context);
-    // HandleResult::Move(8)
+    let envcall_num = thread_context.get_param_i32();
+    let function = get_envcall_handlers(envcall_num);
+    function(thread_context);
+    HandleResult::Move(8)
 }
 
-pub fn extcall( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn extcall(/* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
     // (param external_function_index:i32) (operand args...) -> return_value:void/i32/i64/f32/f64
     //
     // note that the `external_function_index` is the index within a specific module,
@@ -213,10 +213,7 @@ mod tests {
     use dyncall_util::cstr_pointer_to_str;
     use syscall_util::{errno::Errno, number::SysCallNum};
 
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource,
-        process::process_function,
-    };
+    use crate::{in_memory_program_source::InMemoryProgramSource, process::process_function};
 
     #[test]
     fn test_handler_function_call() {
@@ -471,7 +468,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -512,7 +509,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         let result_values0 = result0.unwrap();
 
         let pid = std::process::id();

@@ -24,74 +24,84 @@ pub trait IndexedMemoryAccess: MemoryAccess {
     /// Retrieves the length of the data associated with the given index.
     ///
     /// Indexed data contains size, capacity, and other information.
-    fn get_data_length(&self, idx:usize) -> usize;
+    fn get_data_length(&self, idx: usize) -> usize;
 
     /// Reads a 64-bit integer from the memory at the specified index and offset.
-    fn read_idx_i64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i64(self.get_start_address_by_index(idx), offset, dst_ptr);
+    fn read_idx_i64(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i64(self.get_start_address_by_index(idx), src_offset, dst_ptr);
     }
 
     /// Reads a signed 32-bit integer from the memory at the specified index and offset.
-    fn read_idx_i32_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i32_s(self.get_start_address_by_index(idx), offset, dst_ptr);
+    fn read_idx_i32_s(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i32_s(self.get_start_address_by_index(idx), src_offset, dst_ptr);
     }
 
     /// Reads an unsigned 32-bit integer from the memory at the specified index and offset.
-    fn read_idx_i32_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i32_u(self.get_start_address_by_index(idx), offset, dst_ptr);
+    fn read_idx_i32_u(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i32_u(self.get_start_address_by_index(idx), src_offset, dst_ptr);
     }
 
     /// Reads a signed 16-bit integer from the memory at the specified index and offset.
-    fn read_idx_i16_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i16_s(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_i16_s(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i16_s(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Reads an unsigned 16-bit integer from the memory at the specified index and offset.
-    fn read_idx_i16_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i16_u(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_i16_u(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i16_u(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Reads a signed 8-bit integer from the memory at the specified index and offset.
-    fn read_idx_i8_s(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i8_s(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_i8_s(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i8_s(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Reads an unsigned 8-bit integer from the memory at the specified index and offset.
-    fn read_idx_i8_u(&self, idx: usize, offset: usize, dst_ptr: *mut u8) {
-        self.read_i8_u(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_i8_u(&self, idx: usize, src_offset: usize, dst_ptr: *mut u8) {
+        self.read_i8_u(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Reads a 64-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f64(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
-        self.read_f64(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_f64(
+        &self,
+        idx: usize,
+        src_offset: usize,
+        dst_ptr: *mut u8,
+    ) -> Result<(), MemoryError> {
+        self.read_f64(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Reads a 32-bit floating-point number from the memory at the specified index and offset.
-    fn read_idx_f32(&self, idx: usize, offset: usize, dst_ptr: *mut u8) -> Result<(), MemoryError> {
-        self.read_f32(self.get_start_address_by_index(idx), offset, dst_ptr)
+    fn read_idx_f32(
+        &self,
+        idx: usize,
+        src_offset: usize,
+        dst_ptr: *mut u8,
+    ) -> Result<(), MemoryError> {
+        self.read_f32(self.get_start_address_by_index(idx), src_offset, dst_ptr)
     }
 
     /// Writes a 64-bit integer to the memory at the specified index and offset.
     /// This function is also used to write 64-bit floating-point numbers.
     /// Note: No validation checks are performed during memory write operations.
-    fn write_idx_i64(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.write_i64(src_ptr, self.get_start_address_by_index(idx), offset);
+    fn write_idx_i64(&mut self, src_ptr: *const u8, idx: usize, dst_offset: usize) {
+        self.write_i64(src_ptr, self.get_start_address_by_index(idx), dst_offset);
     }
 
     /// Writes a 32-bit integer to the memory at the specified index and offset.
     /// This function is also used to write 32-bit floating-point numbers.
     /// Note: No validation checks are performed during memory write operations.
-    fn write_idx_i32(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.write_i32(src_ptr, self.get_start_address_by_index(idx), offset);
+    fn write_idx_i32(&mut self, src_ptr: *const u8, idx: usize, dst_offset: usize) {
+        self.write_i32(src_ptr, self.get_start_address_by_index(idx), dst_offset);
     }
 
     /// Writes a 16-bit integer to the memory at the specified index and offset.
-    fn write_idx_i16(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.write_i16(src_ptr, self.get_start_address_by_index(idx), offset);
+    fn write_idx_i16(&mut self, src_ptr: *const u8, idx: usize, dst_offset: usize) {
+        self.write_i16(src_ptr, self.get_start_address_by_index(idx), dst_offset);
     }
 
     /// Writes an 8-bit integer to the memory at the specified index and offset.
-    fn write_idx_i8(&mut self, src_ptr: *const u8, idx: usize, offset: usize) {
-        self.write_i8(src_ptr, self.get_start_address_by_index(idx), offset);
+    fn write_idx_i8(&mut self, src_ptr: *const u8, idx: usize, dst_offset: usize) {
+        self.write_i8(src_ptr, self.get_start_address_by_index(idx), dst_offset);
     }
 }

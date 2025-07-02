@@ -6,7 +6,7 @@
 
 use std::sync::Mutex;
 
-use anc_allocator::{allocator::Allocator, simple_allocator::SimpleAllocator};
+use anc_allocator::{allocator::Allocator, vec_allocator::VecAllocator};
 use anc_image::module_image::{ModuleImage, Visibility};
 use anc_isa::DataSectionType;
 use anc_memory::indexed_memory_access::IndexedMemoryAccess;
@@ -81,7 +81,7 @@ impl<'a> ThreadContext<'a> {
         external_function_table: &'a Mutex<ExternalFunctionTable>,
     ) -> Self {
         let stack = NostdStack::new();
-        let allocator = SimpleAllocator::new();
+        let allocator = VecAllocator::new();
 
         let pc = ProgramCounter {
             instruction_address: 0,
@@ -128,36 +128,36 @@ impl<'a> ThreadContext<'a> {
             // it is dynamically allocated memory
             let data_internal_index = data_public_index & MASK_DATA_PUBLIC_INDEX; // clear the MSB bit
 
-            let opt_size = self.allocator.get_size(data_internal_index);
-
-            let data_actual_length = if let Some(size) = opt_size {
-                size
-            } else {
-                panic!(
-                    "Out of bounds of the dynamically allocated data index, request data index: {}.",
-                    data_internal_index
-                );
-            };
-
-            // bounds check
-            #[cfg(feature = "bounds_check")]
-            {
-                if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
-                    panic!(
-                    "Access exceeds the length of the dynamically allocated data.
-function internal index: {}, instruction address: 0x{:04x},
-data internal index: {},
-data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
-
-                    self.pc.function_internal_index,
-                    self.pc.instruction_address,
-                    data_internal_index,
-                    data_actual_length,
-                    expect_offset_bytes,
-                    expect_data_length_in_bytes,
-                );
-                }
-            }
+//             let opt_size = self.allocator.get_size(data_internal_index);
+//
+//             let data_actual_length = if let Some(size) = opt_size {
+//                 size
+//             } else {
+//                 panic!(
+//                     "Out of bounds of the dynamically allocated data index, request data index: {}.",
+//                     data_internal_index
+//                 );
+//             };
+//
+//             // bounds check
+//             #[cfg(feature = "bounds_check")]
+//             {
+//                 if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
+//                     panic!(
+//                         "Access exceeds the length of the dynamically allocated data.
+// function internal index: {}, instruction address: 0x{:04x},
+// data internal index: {},
+// data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
+//
+//                         self.pc.function_internal_index,
+//                         self.pc.instruction_address,
+//                         data_internal_index,
+//                         data_actual_length,
+//                         expect_offset_bytes,
+//                         expect_data_length_in_bytes,
+//                     );
+//                 }
+//             }
 
             TargetDataObject {
                 module_index: 0,

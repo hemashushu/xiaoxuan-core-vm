@@ -9,15 +9,13 @@
 //
 // The number consists of two parts: categories and items, both of which are 8-bit numbers.
 //
-// MSB           LSB
-// 00000000 00000000
-// -------- --------
-// ^        ^
-// |        | items
+// MSB                             LSB
+// 00000000 00000000 00000000 00000000 <-- bits
+// -------- -------- -------- --------
+// ^                 ^
+// |                 | items
 // |
 // | categories
-
-pub const MAX_ENVCALL_CODE_NUMBER: usize = 0x0a_00;
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -31,7 +29,7 @@ pub enum EnvCallNum {
     //
     // The data must be 8 bytes long.
     // The content is either a string with 8 characters or a null-terminated string.
-    runtime_edition = 0x01_00,
+    runtime_edition = 0x0001_0000,
 
     // Retrieve the VM runtime version.
     //
@@ -55,7 +53,7 @@ pub enum EnvCallNum {
     // The content is either a string with 16 characters or a null-terminated string.
     // Possible values include: x86_64, aarch64, riscv64, etc.
     // Returns the actual number of characters.
-    host_arch = 0x02_00,
+    host_arch = 0x0002_0000,
 
     // Retrieve the host's operating system.
     //
@@ -95,7 +93,7 @@ pub enum EnvCallNum {
     // Reference:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
 
-    // Category: Program Information
+    // Category: Process environment
 
     // Retrieve the length of the program path in bytes.
     //
@@ -104,7 +102,7 @@ pub enum EnvCallNum {
     // The "program_path" is the file path of the currently running program.
     // It may be a directory path for an application module, a file path for a script or image file,
     // or an empty string if the program is built in memory.
-    program_path_size = 0x03_00,
+    program_path_size = 0x0003_0000,
 
     // Retrieve the data of the "program_path".
     //
@@ -125,33 +123,28 @@ pub enum EnvCallNum {
     // - 3: package image
     program_source_type,
 
-    // Retrieve the number of arguments.
+    // Retrieve the length of the program all arguments in bytes.
     //
     // `fn () -> i32`
-    arg_count,
+    argument_size,
 
-    // Retrieve the length of the specified argument by index.
+    // Retrieve the data of program all arguments.
     //
-    // `fn (argument_index: i32) -> i32`
-    arg_item_size,
-
-    // Retrieve the data of the specified argument by index.
-    //
-    // `fn (argument_index: i32, module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_public_index: i32) -> i32`
     //
     // Returns the actual length of the data read.
     // If the data length is less than the content length, the VM will panic.
-    arg_item_text,
+    argument_text,
 
     // Retrieve the number of environment variables.
     //
     // `fn () -> i32`
-    env_count,
+    environment_variable_count,
 
     // Retrieve the length of the specified environment variable by index.
     //
     // `fn (environment_variable_index: i32) -> i32`
-    env_item_size,
+    environment_variable_item_size,
 
     // Retrieve the data of the specified environment variable by index.
     //
@@ -159,21 +152,21 @@ pub enum EnvCallNum {
     //
     // Returns the actual length of the data read.
     // If the data length is less than the content length, the VM will panic.
-    env_item_text,
+    environment_variable_item_text,
 
     // Set a specific environment variable.
     //
     // `fn (module_index: i32, data_public_index: i32, data_length_in_bytes: i32)`
     //
     // The data content is a string in the format "name=value", e.g., "EDITOR=vim".
-    env_set,
+    environment_variable_set,
 
     // Remove the environment variable with the specified name.
     //
     // `fn (module_index: i32, data_public_index: i32, data_length_in_bytes: i32)`
     //
     // The data content is a string representing the name of the environment variable.
-    env_remove,
+    environment_variable_remove,
 
     // Category: Time
 
@@ -182,14 +175,14 @@ pub enum EnvCallNum {
     // `fn () -> (seconds: i64, nano_seconds: i64)`
     //
     // The value of "nano_seconds" is in the range [0, 999_999_999].
-    time_now = 0x04_00,
+    time_now = 0x0004_0000,
 
-    // Category: Random
+    // Category: Random number generation
 
     // Retrieve a random number of type i32.
     //
     // `fn () -> i32`
-    random_i32 = 0x05_00,
+    random_i32 = 0x0005_0000,
 
     // Retrieve a random number of type i64.
     //
@@ -237,7 +230,7 @@ pub enum EnvCallNum {
     // but cannot include shell-specific paths like `~/Downloads/123.dat` or `${HOME}/projects`.
     //
     // Returns `(file_index: i32, io_error_number: i32)`.
-    file_open = 0x06_00,
+    file_open = 0x0006_0000,
 
     // Access mode (bit flags)
     // -----------------------
@@ -355,7 +348,7 @@ pub enum EnvCallNum {
     // The stream is positioned at the first entry in the directory.
     //
     // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> (dir_index: i32, fs_error_number: i32)`
-    fs_open_dir = 0x07_00,
+    fs_open_dir = 0x0007_0000,
 
     // Retrieve the next directory entry in the directory stream.
     //
@@ -413,7 +406,7 @@ pub enum EnvCallNum {
     // 2 for the second child thread, and so on.
     //
     // Signature: `fn () -> i32`
-    thread_index = 0x08_00,
+    thread_index = 0x0008_0000,
 
     // XiaoXuan Core Thread Model
     // --------------------------
@@ -700,7 +693,7 @@ pub enum EnvCallNum {
     // 0 for traditional, 1 for the "XiaoXuan Regular Expression (ANRE)."
     //
     // Returns `(regex_index:i32, regex_error_number:i32)`.
-    regex_create = 0x09_00,
+    regex_create = 0x0009_0000,
 
     // Get the number of capture groups.
     //

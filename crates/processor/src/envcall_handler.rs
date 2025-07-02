@@ -15,12 +15,9 @@ mod runtime;
 use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
 
-use crate::{
-    envcall_num::{EnvCallNum, MAX_ENVCALL_CODE_NUMBER},
-    handler::Handler,
-};
+use crate::envcall_num::EnvCallNum;
 
-pub type EnvCallHandlerFunc = fn(&Handler, &mut ThreadContext);
+pub type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
 fn envcall_unreachable_handler(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
@@ -49,43 +46,127 @@ Bytecode:
     );
 }
 
-pub fn generate_envcall_handlers() -> [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER] {
-    let mut handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER] =
-        [envcall_unreachable_handler; MAX_ENVCALL_CODE_NUMBER];
+#[inline]
+pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
+    let envcall_num = unsafe { std::mem::transmute::<u32, EnvCallNum>(envcall_num_integer) };
+    let category = envcall_num_integer >> 16;
 
-    // Category: Runtime information
-    handlers[EnvCallNum::runtime_edition as usize] = runtime::runtime_edition;
-    handlers[EnvCallNum::runtime_version as usize] = runtime::runtime_version;
-
-    // Category: Host Information
-    handlers[EnvCallNum::host_arch as usize] = host::host_arch;
-    handlers[EnvCallNum::host_os as usize] = host::host_os;
-    handlers[EnvCallNum::host_family as usize] = host::host_family;
-    handlers[EnvCallNum::host_endian as usize] = host::host_endian;
-    handlers[EnvCallNum::host_memory_width as usize] = host::host_memory_width;
-
-
-
-//     // timer
-//     handlers[EnvCallNum::time_now as usize] = timer::time_now;
-//
-//     // multiple thread
-//     handlers[EnvCallNum::thread_id as usize] = multithread::thread_id;
-//     handlers[EnvCallNum::thread_start_data_length as usize] = multithread::thread_start_data_length;
-//     handlers[EnvCallNum::thread_start_data_read as usize] = multithread::thread_start_data_read;
-//     handlers[EnvCallNum::thread_create as usize] = multithread::thread_create;
-//     handlers[EnvCallNum::thread_wait_and_collect as usize] = multithread::thread_wait_and_collect;
-//     handlers[EnvCallNum::thread_running_status as usize] = multithread::thread_running_status;
-//     handlers[EnvCallNum::thread_terminate as usize] = multithread::thread_terminate;
-//     handlers[EnvCallNum::thread_receive_msg_from_parent as usize] =
-//         multithread::thread_receive_msg_from_parent;
-//     handlers[EnvCallNum::thread_send_msg_to_parent as usize] =
-//         multithread::thread_send_msg_to_parent;
-//     handlers[EnvCallNum::thread_receive_msg as usize] = multithread::thread_receive_msg;
-//     handlers[EnvCallNum::thread_send_msg as usize] = multithread::thread_send_msg;
-//     handlers[EnvCallNum::thread_msg_length as usize] = multithread::thread_msg_length;
-//     handlers[EnvCallNum::thread_msg_read as usize] = multithread::thread_msg_read;
-//     handlers[EnvCallNum::thread_sleep as usize] = multithread::thread_sleep;
-
-    handlers
+    match category {
+        0x0001 => {
+            // Category: Runtime information
+            match envcall_num {
+                EnvCallNum::runtime_edition => runtime::runtime_edition,
+                EnvCallNum::runtime_version => runtime::runtime_version,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0002 => {
+            // Category: Host Information
+            match envcall_num {
+                EnvCallNum::host_arch => host::host_arch,
+                EnvCallNum::host_os => host::host_os,
+                EnvCallNum::host_family => host::host_family,
+                EnvCallNum::host_endian => host::host_endian,
+                EnvCallNum::host_memory_width => host::host_memory_width,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0003 => {
+            // Category: Process environment
+            match envcall_num {
+                EnvCallNum::program_path_size => envcall_unreachable_handler,
+                EnvCallNum::program_path_text => envcall_unreachable_handler,
+                EnvCallNum::program_source_type => envcall_unreachable_handler,
+                EnvCallNum::argument_size => envcall_unreachable_handler,
+                EnvCallNum::argument_text => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_count => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_item_size => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_item_text => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_set => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_remove => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0004 => {
+            // Category: Time
+            match envcall_num {
+                EnvCallNum::time_now => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0005 => {
+            // Category: Random number generation
+            match envcall_num {
+                EnvCallNum::random_i32 => envcall_unreachable_handler,
+                EnvCallNum::random_i64 => envcall_unreachable_handler,
+                EnvCallNum::random_f32 => envcall_unreachable_handler,
+                EnvCallNum::random_f64 => envcall_unreachable_handler,
+                EnvCallNum::random_range_i32 => envcall_unreachable_handler,
+                EnvCallNum::random_range_i64 => envcall_unreachable_handler,
+                EnvCallNum::random_range_f32 => envcall_unreachable_handler,
+                EnvCallNum::random_range_f64 => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0006 => {
+            // Category: I/O
+            match envcall_num {
+                EnvCallNum::file_open => envcall_unreachable_handler,
+                EnvCallNum::file_read => envcall_unreachable_handler,
+                EnvCallNum::file_write => envcall_unreachable_handler,
+                EnvCallNum::file_seek => envcall_unreachable_handler,
+                EnvCallNum::file_flush => envcall_unreachable_handler,
+                EnvCallNum::file_close => envcall_unreachable_handler,
+                EnvCallNum::file_is_terminal => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0007 => {
+            // Category: File system
+            match envcall_num {
+                EnvCallNum::fs_open_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_read_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_create_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_remove_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_remove_file => envcall_unreachable_handler,
+                EnvCallNum::fs_rename => envcall_unreachable_handler,
+                EnvCallNum::fs_exists => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0008 => {
+            // Category: Thread
+            match envcall_num {
+                EnvCallNum::thread_index => envcall_unreachable_handler,
+                EnvCallNum::thread_create => envcall_unreachable_handler,
+                EnvCallNum::thread_start_data_length => envcall_unreachable_handler,
+                EnvCallNum::thread_start_data_text => envcall_unreachable_handler,
+                EnvCallNum::thread_wait_and_collect => envcall_unreachable_handler,
+                EnvCallNum::thread_running_status => envcall_unreachable_handler,
+                EnvCallNum::thread_terminate => envcall_unreachable_handler,
+                EnvCallNum::thread_receive_msg_from_parent => envcall_unreachable_handler,
+                EnvCallNum::thread_send_msg_to_parent => envcall_unreachable_handler,
+                EnvCallNum::thread_receive_msg => envcall_unreachable_handler,
+                EnvCallNum::thread_send_msg => envcall_unreachable_handler,
+                EnvCallNum::thread_msg_length => envcall_unreachable_handler,
+                EnvCallNum::thread_msg_read => envcall_unreachable_handler,
+                EnvCallNum::thread_sleep => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0009 => {
+            // Category: Regular expressions
+            match envcall_num {
+                EnvCallNum::regex_create => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_count => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_names_length => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_names_text => envcall_unreachable_handler,
+                EnvCallNum::regex_match => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_groups => envcall_unreachable_handler,
+                EnvCallNum::regex_remove => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        _ => envcall_unreachable_handler,
+    }
 }
