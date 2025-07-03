@@ -28,7 +28,7 @@
 // ```
 
 use core::str;
-use std::{ffi::c_void, sync::Mutex};
+use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
 use anc_context::{
     code_generator::Generator,
@@ -37,6 +37,7 @@ use anc_context::{
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
     jit_context::convert_vm_operand_data_type_to_jit_type,
+    process_property::ProgramSourceType,
     thread_context::ThreadContext,
 };
 use anc_isa::{ExternalLibraryDependency, OperandDataType, OPERAND_SIZE_IN_BYTES};
@@ -137,11 +138,41 @@ pub fn get_or_create_external_function_and_wrapper_function(
     let value_str = unsafe { str::from_utf8_unchecked(external_library_value_data) };
     let value: ExternalLibraryDependency = ason::from_str(value_str).unwrap();
 
-    // let external_library_file_path_or_file_name = match value {
-    //    todo!()
-    // };
+    let local_library_file_path_or_system_library_so_name = match value {
+        ExternalLibraryDependency::Local(_dependency_local) => todo!(),
+        ExternalLibraryDependency::Remote(_dependency_remote) => todo!(),
+        ExternalLibraryDependency::Share(_dependency_share) => todo!(),
+        ExternalLibraryDependency::Runtime => todo!(),
+        ExternalLibraryDependency::File(library_path) => {
+            if library_path.starts_with("system:") {
+                // system library, e.g., `libc.so.6`
+                library_path.trim_start_matches("system:").to_string()
+            } else {
+                let mut module_path_buf =
+                    PathBuf::from(&thread_context.process_property.program_path);
 
-    let external_library_file_path_or_file_name = ""; // todo
+                if thread_context.process_property.program_source_type
+                    == ProgramSourceType::ScriptFile
+                    || thread_context.process_property.program_source_type
+                        == ProgramSourceType::PackageImage
+                {
+                    // if the program is a script file or a package image,
+                    // we need to pop the last path component, which is the script or image file name.
+                    // this is because the external library path is relative to the module directory.
+
+                    module_path_buf.pop();
+                }
+
+                let full_path = library_path
+                    .try_resolve_in(&module_path_buf)
+                    .unwrap_or_else(|_| {
+                        panic!("Failed to resolve external library path: {}", library_path);
+                    });
+
+                full_path.to_str().unwrap().to_owned()
+            }
+        }
+    };
 
     let mut table = thread_context.external_function_table.lock().unwrap();
     let mut jit_generator = thread_context.jit_generator.lock().unwrap();
@@ -152,7 +183,7 @@ pub fn get_or_create_external_function_and_wrapper_function(
             &mut table,
             unified_external_function_index,
             unified_external_library_index,
-            &external_library_file_path_or_file_name,
+            &local_library_file_path_or_system_library_so_name,
             external_function_name,
             param_datatypes,
             result_datatypes,
