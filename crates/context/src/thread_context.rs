@@ -6,7 +6,9 @@
 
 use std::sync::Mutex;
 
-use anc_allocator::{allocator::Allocator, vec_allocator::VecAllocator};
+use anc_allocator::{
+    allocator::Allocator, mimallocator::MiMAllocator, vec_allocator::VecAllocator,
+};
 use anc_image::module_image::{ModuleImage, Visibility};
 use anc_isa::DataSectionType;
 use anc_memory::indexed_memory_access::IndexedMemoryAccess;
@@ -16,18 +18,25 @@ use cranelift_jit::JITModule;
 use crate::{
     bridge_function_table::BridgeFunctionTable,
     callback_delegate_function_table::CallbackDelegateFunctionTable, code_generator::Generator,
-    external_function_table::ExternalFunctionTable,
-    jit_context::get_jit_generator_without_imported_symbols,
-    module_common_instance::ModuleCommonInstance, module_linking_instance::ModuleLinkingInstance,
-    process_property::ProcessProperty,
+    external_function_table::ExternalFunctionTable, module_common_instance::ModuleCommonInstance,
+    module_linking_instance::ModuleLinkingInstance, process_property::ProcessProperty,
 };
+
+// The index of the most significant bit for memory data access.
+// This bit is used to indicate that the data is dynamically allocated memory.
+// If this bit is set, the data access index is treated as a dynamically allocated memory index
+// (the MSB is set to 1), and the actual index is the remaining bits (the MSB is cleared).
+// If this bit is not set, the data access index is treated as a public index in the module's data section.
+// The MSB is used to distinguish between dynamically allocated memory and pre-defined data item.
+pub const MEMORY_DATA_ACCESS_INDEX_MSB: usize = 1 << 63;
+pub const MEMORY_DATA_ACCESS_INDEX_MASK: usize = !MEMORY_DATA_ACCESS_INDEX_MSB;
 
 /// Represents the thread context of the VM, containing the stack, allocator, program counter,
 /// function tables, module instances, and process properties.
 pub struct ThreadContext<'a> {
     pub stack: Box<dyn Stack>, // The stack used for function calls and local variables.
-    pub allocator: Box<dyn Allocator>, // Allocator for dynamic memory management.
     pub pc: ProgramCounter,    // The program counter, tracking the current instruction.
+    pub allocator: Box<dyn Allocator>, // Allocator for dynamic memory management.
 
     // External function table, shared across threads and protected by a mutex.
     pub external_function_table: &'a Mutex<ExternalFunctionTable>,
@@ -38,7 +47,7 @@ pub struct ThreadContext<'a> {
     // Table for bridge functions, used for calling functions from outside the VM.
     pub bridge_function_table: BridgeFunctionTable,
 
-    pub jit_generator: Mutex<Generator<JITModule>>,
+    pub jit_generator: &'a Mutex<Generator<JITModule>>,
 
     // Instances of "linking sections".
     pub module_linking_instance: ModuleLinkingInstance<'a>,
@@ -79,9 +88,11 @@ impl<'a> ThreadContext<'a> {
         process_property: &'a ProcessProperty,
         module_images: &'a [ModuleImage<'a>],
         external_function_table: &'a Mutex<ExternalFunctionTable>,
+        jit_generator: &'a Mutex<Generator<JITModule>>,
     ) -> Self {
+        // Initialize the stack and allocator.
         let stack = NostdStack::new();
-        let allocator = VecAllocator::new();
+        let allocator = MiMAllocator::new(); // alternative: VecAllocator::new();
 
         let pc = ProgramCounter {
             instruction_address: 0,
@@ -97,7 +108,6 @@ impl<'a> ThreadContext<'a> {
 
         let callback_delegate_function_table = CallbackDelegateFunctionTable::new();
         let bridge_function_table = BridgeFunctionTable::new();
-        let jit_generator = get_jit_generator_without_imported_symbols();
 
         Self {
             stack: Box::new(stack),
@@ -117,47 +127,46 @@ impl<'a> ThreadContext<'a> {
     pub fn get_target_data_object(
         &mut self,
         module_index: usize,
-        data_public_index: usize,
+        data_access_index: usize,
         expect_offset_bytes: usize, // Expected offset in bytes for bounds checking.
         expect_data_length_in_bytes: usize, // Expected data length in bytes for bounds checking.
     ) -> TargetDataObject {
-        const MSB_DATA_PUBLIC_INDEX: usize = 1 << 63;
-        const MASK_DATA_PUBLIC_INDEX: usize = !MSB_DATA_PUBLIC_INDEX;
-
-        let target_data_object = if data_public_index & MSB_DATA_PUBLIC_INDEX != 0 {
+        if data_access_index & MEMORY_DATA_ACCESS_INDEX_MSB != 0 {
             // it is dynamically allocated memory
-            let data_internal_index = data_public_index & MASK_DATA_PUBLIC_INDEX; // clear the MSB bit
+            // boundary check is implemented in the allocator
 
-//             let opt_size = self.allocator.get_size(data_internal_index);
-//
-//             let data_actual_length = if let Some(size) = opt_size {
-//                 size
-//             } else {
-//                 panic!(
-//                     "Out of bounds of the dynamically allocated data index, request data index: {}.",
-//                     data_internal_index
-//                 );
-//             };
-//
-//             // bounds check
-//             #[cfg(feature = "bounds_check")]
-//             {
-//                 if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
-//                     panic!(
-//                         "Access exceeds the length of the dynamically allocated data.
-// function internal index: {}, instruction address: 0x{:04x},
-// data internal index: {},
-// data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
-//
-//                         self.pc.function_internal_index,
-//                         self.pc.instruction_address,
-//                         data_internal_index,
-//                         data_actual_length,
-//                         expect_offset_bytes,
-//                         expect_data_length_in_bytes,
-//                     );
-//                 }
-//             }
+            let data_internal_index = data_access_index & MEMORY_DATA_ACCESS_INDEX_MASK; // clear the MSB bit
+
+            //             let opt_size = self.allocator.get_size(data_internal_index);
+            //
+            //             let data_actual_length = if let Some(size) = opt_size {
+            //                 size
+            //             } else {
+            //                 panic!(
+            //                     "Out of bounds of the dynamically allocated data index, request data index: {}.",
+            //                     data_internal_index
+            //                 );
+            //             };
+            //
+            //             // bounds check
+            //             #[cfg(feature = "bounds_check")]
+            //             {
+            //                 if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
+            //                     panic!(
+            //                         "Access exceeds the length of the dynamically allocated data.
+            // function internal index: {}, instruction address: 0x{:04x},
+            // data internal index: {},
+            // data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
+            //
+            //                         self.pc.function_internal_index,
+            //                         self.pc.instruction_address,
+            //                         data_internal_index,
+            //                         data_actual_length,
+            //                         expect_offset_bytes,
+            //                         expect_data_length_in_bytes,
+            //                     );
+            //                 }
+            //             }
 
             TargetDataObject {
                 module_index: 0,
@@ -174,13 +183,15 @@ impl<'a> ThreadContext<'a> {
                     .data_index_section
                     .get_items_count(module_index);
 
-                if data_public_index > count {
+                if data_access_index > count {
                     panic!(
-                    "Out of bounds of the data public index, module index: {}, total data items: {}, request data index: {}.",
-                    module_index, count, data_public_index
-                );
+                        "Out of bounds of the data public index, module index: {}, total data items: {}, request data index: {}.",
+                        module_index, count, data_access_index
+                    );
                 }
             }
+
+            let data_public_index = data_access_index;
 
             let (target_module_index, target_data_section_type, data_internal_index_in_section, ) = self
             .module_linking_instance
@@ -193,41 +204,37 @@ impl<'a> ThreadContext<'a> {
             let target_module = &mut self.module_common_instances[target_module_index];
             let accessor = target_module.datas[target_data_section_type as usize].as_mut();
 
+            // bounds check
+            #[cfg(feature = "bounds_check")]
+            {
+                let data_actual_length = accessor.get_data_length(data_internal_index_in_section);
+
+                if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
+                    panic!(
+                        "Access exceeds the length of the data.
+module index: {}, function internal index: {}, instruction address: 0x{:04x},
+data section type: {}, data public index: {}, data internal index: {},
+data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
+                        module_index,
+                        self.pc.function_internal_index,
+                        self.pc.instruction_address,
+                        target_data_section_type,
+                        data_access_index,
+                        data_internal_index_in_section,
+                        data_actual_length,
+                        expect_offset_bytes,
+                        expect_data_length_in_bytes,
+                    );
+                }
+            }
+
             TargetDataObject {
                 module_index: target_module_index,
                 data_section_type: target_data_section_type,
                 data_internal_index_in_section,
                 accessor,
             }
-        };
-
-        // bounds check
-        #[cfg(feature = "bounds_check")]
-        {
-            let data_actual_length = target_data_object
-                .accessor
-                .get_data_length(target_data_object.data_internal_index_in_section);
-
-            if expect_data_length_in_bytes + expect_offset_bytes > data_actual_length {
-                panic!(
-                    "Access exceeds the length of the data.
-module index: {}, function internal index: {}, instruction address: 0x{:04x},
-data section type: {}, data public index: {}, data internal index: {},
-data actual length (in bytes): {}, access offset (in bytes): 0x{:02x}, expect length (in bytes): {}.",
-                    module_index,
-                    self.pc.function_internal_index,
-                    self.pc.instruction_address,
-                    target_data_object.data_section_type,
-                    data_public_index,
-                    target_data_object.data_internal_index_in_section,
-                    data_actual_length,
-                    expect_offset_bytes,
-                    expect_data_length_in_bytes,
-                );
-            }
         }
-
-        target_data_object
     }
 
     /// Retrieves a target function object, performing bounds checks if enabled.

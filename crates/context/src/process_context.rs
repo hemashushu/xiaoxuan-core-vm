@@ -7,10 +7,11 @@
 use std::sync::Mutex;
 
 use anc_image::module_image::ModuleImage;
+use cranelift_jit::JITModule;
 
 use crate::{
-    external_function_table::ExternalFunctionTable, process_property::ProcessProperty,
-    thread_context::ThreadContext,
+    code_generator::Generator, external_function_table::ExternalFunctionTable,
+    process_property::ProcessProperty, thread_context::ThreadContext,
 };
 
 /// `ProcessContext` contains the resources required for program execution.
@@ -25,6 +26,8 @@ pub struct ProcessContext<'a> {
     // Since the pointer retained by the `loadlibrary` function is process-scoped,
     // the "external function table" must reside in `ProcessContext` instead of `ThreadContext`.
     pub external_function_table: Mutex<ExternalFunctionTable>,
+
+    pub jit_generator: Mutex<Generator<JITModule>>,
 }
 
 impl<'a> ProcessContext<'a> {
@@ -46,10 +49,14 @@ impl<'a> ProcessContext<'a> {
             unified_external_function_count,
         ));
 
+        // create JIT generator without imported symbols
+        let jit_generator = Mutex::new(Generator::<JITModule>::new(vec![]));
+
         Self {
             process_property,
             module_images,
             external_function_table,
+            jit_generator,
         }
     }
 
@@ -59,6 +66,7 @@ impl<'a> ProcessContext<'a> {
             self.process_property,
             &self.module_images,
             &self.external_function_table,
+            &self.jit_generator,
         )
     }
 }

@@ -21,7 +21,3 @@ pub fn convert_vm_operand_data_type_to_jit_type(dt: OperandDataType) -> Type {
         OperandDataType::F64 => types::F64,
     }
 }
-
-pub fn get_jit_generator_without_imported_symbols() -> Mutex<Generator<JITModule>> {
-    Mutex::new(Generator::<JITModule>::new(vec![]))
-}

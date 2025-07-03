@@ -148,7 +148,7 @@ impl IndexedMemoryAccess for VecAllocator {
     }
 
     fn get_data_length(&self, _idx: usize) -> usize {
-        panic!("SimpleAllocator does not support data length retrieval");
+        panic!("VecAllocator does not support data length retrieval");
     }
 }
 

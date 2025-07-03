@@ -98,13 +98,13 @@ mod tests {
     use crate::{allocator::Allocator, mimallocator::MiMAllocator};
 
     #[test]
-    fn test_allocat_reallocate_and_free() {
+    fn test_allocate_reallocate_and_free() {
         let mut allocator = MiMAllocator::new();
 
         let data0 = [0x02u8, 0x03, 0x05, 0x07];
 
         // Allocate memory
-        let index0 = allocator.allocate(4, 1);
+        let index0 = allocator.allocate(4, 4);
 
         // Write data to the allocated memory.
         allocator.write_i32(data0.as_ptr(), index0, 0);
@@ -115,7 +115,7 @@ mod tests {
         assert_eq!(buf0, data0);
 
         // Reallocate the memory to a larger size
-        let new_index0 = allocator.reallocate(index0, 8, 1);
+        let new_index0 = allocator.reallocate(index0, 8, 8);
 
         // Read and verify the data after reallocation.
         let mut buf1 = [0u8; 4];
@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(buf2[4..8], data1);
 
         // Reallocate the memory to a smaller size.
-        let new_index1 = allocator.reallocate(new_index0, 2, 1);
+        let new_index1 = allocator.reallocate(new_index0, 2, 2);
 
         // Read and verify the data after shrinking.
         let mut buf3 = [0u8; 2];

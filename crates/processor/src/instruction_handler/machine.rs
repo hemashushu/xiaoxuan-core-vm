@@ -59,18 +59,18 @@ pub fn host_addr_data_extend(
     )
 }
 
-pub fn host_addr_data_dynamic(
+pub fn host_addr_memory(
 /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> pointer
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> pointer
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_host_addr_data(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -79,12 +79,12 @@ pub fn host_addr_data_dynamic(
 fn do_host_addr_data(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let target_data_object =
-        thread_context.get_target_data_object(module_index, data_public_index, 0, 0);
+        thread_context.get_target_data_object(module_index, data_access_index, 0, 0);
     let start_address = target_data_object
         .accessor
         .get_start_address_by_index(target_data_object.data_internal_index_in_section);
@@ -513,27 +513,27 @@ mod tests {
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 1) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 2) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 3) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 4) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 5) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::host_addr_data_dynamic)
+            .append_opcode(Opcode::host_addr_memory)
             //
             .append_opcode(Opcode::end)
             .to_bytes();

@@ -204,22 +204,6 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::data_store_extend_i8 => data::data_store_extend_i8,
                 Opcode::data_store_extend_f64 => data::data_store_extend_i64, // reuse store_i64
                 Opcode::data_store_extend_f32 => data::data_store_extend_i32, // reuse store_i32
-                Opcode::data_load_dynamic_i64 => data::data_load_dynamic_i64,
-                Opcode::data_load_dynamic_i32_s => data::data_load_dynamic_i32_s,
-                Opcode::data_load_dynamic_i32_u => data::data_load_dynamic_i32_u,
-                Opcode::data_load_dynamic_i16_s => data::data_load_dynamic_i16_s,
-                Opcode::data_load_dynamic_i16_u => data::data_load_dynamic_i16_u,
-                Opcode::data_load_dynamic_i8_s => data::data_load_dynamic_i8_s,
-                Opcode::data_load_dynamic_i8_u => data::data_load_dynamic_i8_u,
-                Opcode::data_load_dynamic_f64 => data::data_load_dynamic_f64,
-                Opcode::data_load_dynamic_f32 => data::data_load_dynamic_f32,
-                Opcode::data_store_dynamic_i64 => data::data_store_dynamic_i64,
-                Opcode::data_store_dynamic_i32 => data::data_store_dynamic_i32,
-                Opcode::data_store_dynamic_i16 => data::data_store_dynamic_i16,
-                Opcode::data_store_dynamic_i8 => data::data_store_dynamic_i8,
-                Opcode::data_store_dynamic_f64 => data::data_store_dynamic_i64, // reuse store_i64
-                Opcode::data_store_dynamic_f32 => data::data_store_dynamic_i32, // reuse store_i32
-
                 _ => unreachable_handler,
             }
         }
@@ -252,7 +236,6 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::sub_f64 => arithmetic::sub_f64,
                 Opcode::mul_f64 => arithmetic::mul_f64,
                 Opcode::div_f64 => arithmetic::div_f64,
-
                 _ => unreachable_handler,
             }
         }
@@ -281,7 +264,6 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::shift_right_i64_u => bitwise::shift_right_i64_u,
                 Opcode::rotate_left_i64 => bitwise::rotate_left_i64,
                 Opcode::rotate_right_i64 => bitwise::rotate_right_i64,
-
                 _ => unreachable_handler,
             }
         }
@@ -373,7 +355,6 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::convert_i32_u_to_f64 => conversion::convert_i32_u_to_f64,
                 Opcode::convert_i64_s_to_f64 => conversion::convert_i64_s_to_f64,
                 Opcode::convert_i64_u_to_f64 => conversion::convert_i64_u_to_f64,
-
                 _ => unreachable_handler,
             }
         }
@@ -429,7 +410,6 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::block_alt => control_flow::block_alt,
                 Opcode::break_alt => control_flow::break_alt,
                 Opcode::block_nez => control_flow::block_nez,
-
                 _ => unreachable_handler,
             }
         }
@@ -441,19 +421,33 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::syscall => calling::syscall,
                 Opcode::envcall => calling::envcall,
                 Opcode::extcall => calling::extcall,
-
                 _ => unreachable_handler,
             }
         }
         0x0B => {
             // memory
             match opcode {
+                Opcode::memory_load_i64 => data::memory_load_i64,
+                Opcode::memory_load_i32_s => data::memory_load_i32_s,
+                Opcode::memory_load_i32_u => data::memory_load_i32_u,
+                Opcode::memory_load_i16_s => data::memory_dynamic_i16_s,
+                Opcode::memory_load_i16_u => data::memory_load_i16_u,
+                Opcode::memory_load_i8_s => data::memory_load_i8_s,
+                Opcode::memory_load_i8_u => data::memory_load_i8_u,
+                Opcode::memory_load_f64 => data::memory_load_f64,
+                Opcode::memory_load_f32 => data::memory_load_f32,
+                Opcode::memory_store_i64 => data::memory_store_i64,
+                Opcode::memory_store_i32 => data::memory_store_i32,
+                Opcode::memory_store_i16 => data::memory_store_i16,
+                Opcode::memory_store_i8 => data::memory_store_i8,
+                Opcode::memory_store_f64 => data::memory_store_i64, // reuse store_i64
+                Opcode::memory_store_f32 => data::memory_store_i32, // reuse store_i32
+                // manipulation
                 Opcode::memory_allocate => memory::memory_allocate,
-                Opcode::memory_resize => memory::memory_resize,
+                Opcode::memory_reallocate => memory::memory_reallocate,
                 Opcode::memory_free => memory::memory_free,
                 Opcode::memory_fill => memory::memory_fill,
                 Opcode::memory_copy => memory::memory_copy,
-
                 _ => unreachable_handler,
             }
         }
@@ -467,8 +461,7 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
                 Opcode::host_addr_function_dynamic => machine::host_addr_function_dynamic,
                 Opcode::host_addr_data => machine::host_addr_data,
                 Opcode::host_addr_data_extend => machine::host_addr_data_extend,
-                Opcode::host_addr_data_dynamic => machine::host_addr_data_dynamic,
-
+                Opcode::host_addr_memory => machine::host_addr_memory,
                 _ => unreachable_handler,
             }
         }

@@ -15,7 +15,9 @@ const DATA_LENGTH_IN_BYTES_32_BIT: usize = 4;
 const DATA_LENGTH_IN_BYTES_16_BIT: usize = 2;
 const DATA_LENGTH_IN_BYTES_8_BIT: usize = 1;
 
-pub fn data_load_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i64(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i64
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i64(
@@ -28,7 +30,7 @@ pub fn data_load_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContex
 }
 
 pub fn data_load_extend_i64(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i64
@@ -43,18 +45,18 @@ pub fn data_load_extend_i64(
     )
 }
 
-pub fn data_load_dynamic_i64(
-/*    _handler: &Handler, */
+pub fn memory_load_i64(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i64
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i64
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i64(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -63,14 +65,14 @@ pub fn data_load_dynamic_i64(
 fn do_data_load_i64(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_64_BIT,
     );
@@ -83,7 +85,9 @@ fn do_data_load_i64(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i32_s(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i32
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i32_s(
@@ -96,7 +100,7 @@ pub fn data_load_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 }
 
 pub fn data_load_extend_i32_s(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i32
@@ -111,18 +115,18 @@ pub fn data_load_extend_i32_s(
     )
 }
 
-pub fn data_load_dynamic_i32_s(
-/*    _handler: &Handler, */
+pub fn memory_load_i32_s(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i32
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i32
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i32_s(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -131,14 +135,14 @@ pub fn data_load_dynamic_i32_s(
 fn do_data_load_i32_s(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
@@ -151,7 +155,9 @@ fn do_data_load_i32_s(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i32_u(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i32
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i32_u(
@@ -164,7 +170,7 @@ pub fn data_load_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 }
 
 pub fn data_load_extend_i32_u(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i32
@@ -179,18 +185,18 @@ pub fn data_load_extend_i32_u(
     )
 }
 
-pub fn data_load_dynamic_i32_u(
-/*    _handler: &Handler, */
+pub fn memory_load_i32_u(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i32
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i32
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i32_u(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -199,14 +205,14 @@ pub fn data_load_dynamic_i32_u(
 fn do_data_load_i32_u(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
@@ -219,7 +225,9 @@ fn do_data_load_i32_u(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i16_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i16_s(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i16
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i16_s(
@@ -232,7 +240,7 @@ pub fn data_load_i16_s(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 }
 
 pub fn data_load_extend_i16_s(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i16
@@ -247,18 +255,18 @@ pub fn data_load_extend_i16_s(
     )
 }
 
-pub fn data_load_dynamic_i16_s(
-/*    _handler: &Handler, */
+pub fn memory_dynamic_i16_s(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i16
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i16
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i16_s(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -267,14 +275,14 @@ pub fn data_load_dynamic_i16_s(
 fn do_data_load_i16_s(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
@@ -287,7 +295,9 @@ fn do_data_load_i16_s(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i16_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i16_u(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i16
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i16_u(
@@ -300,7 +310,7 @@ pub fn data_load_i16_u(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 }
 
 pub fn data_load_extend_i16_u(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i16
@@ -315,18 +325,18 @@ pub fn data_load_extend_i16_u(
     )
 }
 
-pub fn data_load_dynamic_i16_u(
-/*    _handler: &Handler, */
+pub fn memory_load_i16_u(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i16
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i16
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i16_u(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -335,14 +345,14 @@ pub fn data_load_dynamic_i16_u(
 fn do_data_load_i16_u(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
@@ -355,7 +365,9 @@ fn do_data_load_i16_u(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i8_s(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i8_s(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i8
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i8_s(
@@ -368,7 +380,7 @@ pub fn data_load_i8_s(/* _handler: &Handler, */ thread_context: &mut ThreadConte
 }
 
 pub fn data_load_extend_i8_s(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i8
@@ -383,18 +395,18 @@ pub fn data_load_extend_i8_s(
     )
 }
 
-pub fn data_load_dynamic_i8_s(
-/*    _handler: &Handler, */
+pub fn memory_load_i8_s(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i8
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i8
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i8_s(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -403,14 +415,14 @@ pub fn data_load_dynamic_i8_s(
 fn do_data_load_i8_s(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
@@ -423,7 +435,9 @@ fn do_data_load_i8_s(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_i8_u(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_i8_u(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> i8
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_i8_u(
@@ -436,7 +450,7 @@ pub fn data_load_i8_u(/* _handler: &Handler, */ thread_context: &mut ThreadConte
 }
 
 pub fn data_load_extend_i8_u(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> i8
@@ -451,18 +465,18 @@ pub fn data_load_extend_i8_u(
     )
 }
 
-pub fn data_load_dynamic_i8_u(
-/*    _handler: &Handler, */
+pub fn memory_load_i8_u(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> i8
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> i8
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_i8_u(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -471,14 +485,14 @@ pub fn data_load_dynamic_i8_u(
 fn do_data_load_i8_u(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
@@ -491,7 +505,9 @@ fn do_data_load_i8_u(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_load_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_f32(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> f32
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_f32(
@@ -504,7 +520,7 @@ pub fn data_load_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContex
 }
 
 pub fn data_load_extend_f32(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> f32
@@ -519,18 +535,18 @@ pub fn data_load_extend_f32(
     )
 }
 
-pub fn data_load_dynamic_f32(
-/*    _handler: &Handler, */
+pub fn memory_load_f32(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> f32
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> f32
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_f32(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -539,14 +555,14 @@ pub fn data_load_dynamic_f32(
 fn do_data_load_f32(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
@@ -561,7 +577,9 @@ fn do_data_load_f32(
     }
 }
 
-pub fn data_load_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_load_f64(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> f64
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_data_load_f64(
@@ -574,7 +592,7 @@ pub fn data_load_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContex
 }
 
 pub fn data_load_extend_f64(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> f64
@@ -589,18 +607,18 @@ pub fn data_load_extend_f64(
     )
 }
 
-pub fn data_load_dynamic_f64(
-/*    _handler: &Handler, */
+pub fn memory_load_f64(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand module_index:i32 data_public_index:i32 offset_bytes:i64) -> f64
+    // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> f64
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     do_data_load_f64(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         2,
     )
@@ -609,14 +627,14 @@ pub fn data_load_dynamic_f64(
 fn do_data_load_f64(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let dst_ptr = thread_context.stack.push_operand_from_memory();
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_64_BIT,
     );
@@ -631,7 +649,9 @@ fn do_data_load_f64(
     }
 }
 
-pub fn data_store_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_i64(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) (operand value:i64) -> (remain_values)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -646,7 +666,7 @@ pub fn data_store_i64(/* _handler: &Handler, */ thread_context: &mut ThreadConte
 }
 
 pub fn data_store_extend_i64(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand value:i64 offset_bytes:i64) -> (remain_values)
@@ -663,19 +683,19 @@ pub fn data_store_extend_i64(
     )
 }
 
-pub fn data_store_dynamic_i64(
-/*    _handler: &Handler, */
+pub fn memory_store_i64(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand value:i64 module_index:i32 data_public_index:i32 offset_bytes:i64) -> (remain_values)
+    // () (operand value:i64 module_index:i32 data_access_index:i64 offset_bytes:i64) -> (remain_values)
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_data_store_i64(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         src_ptr,
         2,
@@ -685,14 +705,14 @@ pub fn data_store_dynamic_i64(
 fn do_data_store_i64(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_64_BIT,
     );
@@ -705,7 +725,9 @@ fn do_data_store_i64(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_store_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_i32(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) (operand value:i32) -> (remain_values)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -720,7 +742,7 @@ pub fn data_store_i32(/* _handler: &Handler, */ thread_context: &mut ThreadConte
 }
 
 pub fn data_store_extend_i32(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand value:i32 offset_bytes:i64) -> (remain_values)
@@ -737,19 +759,19 @@ pub fn data_store_extend_i32(
     )
 }
 
-pub fn data_store_dynamic_i32(
-/*    _handler: &Handler, */
+pub fn memory_store_i32(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand value:i32 module_index:i32 data_public_index:i32 offset_bytes:i64) -> (remain_values)
+    // () (operand value:i32 module_index:i32 data_access_index:i64 offset_bytes:i64) -> (remain_values)
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_data_store_i32(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         src_ptr,
         2,
@@ -759,14 +781,14 @@ pub fn data_store_dynamic_i32(
 fn do_data_store_i32(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
@@ -779,7 +801,9 @@ fn do_data_store_i32(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_store_i16(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_i16(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) (operand value:i32) -> (remain_values)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -794,7 +818,7 @@ pub fn data_store_i16(/* _handler: &Handler, */ thread_context: &mut ThreadConte
 }
 
 pub fn data_store_extend_i16(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand value:i32 offset_bytes:i64) -> (remain_values)
@@ -811,19 +835,19 @@ pub fn data_store_extend_i16(
     )
 }
 
-pub fn data_store_dynamic_i16(
-/*    _handler: &Handler, */
+pub fn memory_store_i16(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand value:i32 module_index:i32 data_public_index:i32 offset_bytes:i64) -> (remain_values)
+    // () (operand value:i32 module_index:i32 data_access_index:i64 offset_bytes:i64) -> (remain_values)
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_data_store_i16(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         src_ptr,
         2,
@@ -833,14 +857,14 @@ pub fn data_store_dynamic_i16(
 fn do_data_store_i16(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
@@ -853,7 +877,9 @@ fn do_data_store_i16(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn data_store_i8(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn data_store_i8(
+    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
+) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) (operand value:i32) -> (remain_values)
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
@@ -868,7 +894,7 @@ pub fn data_store_i8(/* _handler: &Handler, */ thread_context: &mut ThreadContex
 }
 
 pub fn data_store_extend_i8(
-/*    _handler: &Handler, */
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // (param data_public_index:i32) (operand value:i32 offset_bytes:i64) -> (remain_values)
@@ -885,19 +911,19 @@ pub fn data_store_extend_i8(
     )
 }
 
-pub fn data_store_dynamic_i8(
-/*    _handler: &Handler, */
+pub fn memory_store_i8(
+    /*    _handler: &Handler, */
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
-    // () (operand value:i32 module_index:i32 data_public_index:i32 offset_bytes:i64) -> (remain_values)
+    // () (operand value:i32 module_index:i32 data_access_index:i64 offset_bytes:i64) -> (remain_values)
     let offset_bytes = thread_context.stack.pop_i64_u();
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
     let src_ptr = thread_context.stack.pop_operand_to_memory();
     do_data_store_i8(
         thread_context,
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         offset_bytes as usize,
         src_ptr,
         2,
@@ -907,14 +933,14 @@ pub fn data_store_dynamic_i8(
 fn do_data_store_i8(
     thread_context: &mut ThreadContext,
     module_index: usize,
-    data_public_index: usize,
+    data_access_index: usize,
     offset_bytes: usize,
     src_ptr: *const u8,
     instruction_length_in_bytes: isize,
 ) -> HandleResult {
     let target_data_object = thread_context.get_target_data_object(
         module_index,
-        data_public_index,
+        data_access_index,
         offset_bytes,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
@@ -939,9 +965,8 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};
 
     use crate::{
-        in_memory_program_source::InMemoryProgramSource,
-        process::process_function, ProcessorError, ProcessorErrorType,
-        TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS,
+        in_memory_program_source::InMemoryProgramSource, process::process_function, ProcessorError,
+        ProcessorErrorType, TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS,
     };
 
     #[test]
@@ -1031,7 +1056,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1173,7 +1198,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1323,7 +1348,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1489,7 +1514,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1515,7 +1540,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handler_data_load_and_store_dynamic() {
+    fn test_handler_memory_load_and_store() {
         //        read-write data section
         //        =======================
         //
@@ -1551,111 +1576,111 @@ mod tests {
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i32)
+            .append_opcode(Opcode::memory_store_i32)
             // step 1, store i16
             .append_opcode_i32(Opcode::imm_i32, 0xd0c0)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i16)
+            .append_opcode(Opcode::memory_store_i16)
             // step 2, store i8
             .append_opcode_i32(Opcode::imm_i32, 0xe0)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 6) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i8)
+            .append_opcode(Opcode::memory_store_i8)
             // step 3, store i8
             .append_opcode_i32(Opcode::imm_i32, 0xf0)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 7) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i8)
+            .append_opcode(Opcode::memory_store_i8)
             // step 4, load i64 and store i64
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i64)
+            .append_opcode(Opcode::memory_load_i64)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 3) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i64)
+            .append_opcode(Opcode::memory_store_i64)
             // step 5, load i32u and store i64
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_u)
+            .append_opcode(Opcode::memory_load_i32_u)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 4) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i64)
+            .append_opcode(Opcode::memory_store_i64)
             // step 6, load i32s and store i64
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_s)
+            .append_opcode(Opcode::memory_load_i32_s)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 5) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_store_dynamic_i64)
+            .append_opcode(Opcode::memory_store_i64)
             // load group 0
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i64)
+            .append_opcode(Opcode::memory_load_i64)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_u)
+            .append_opcode(Opcode::memory_load_i32_u)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_s)
+            .append_opcode(Opcode::memory_load_i32_s)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 6) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i16_u)
+            .append_opcode(Opcode::memory_load_i16_u)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 6) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i16_s)
+            .append_opcode(Opcode::memory_load_i16_s)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 7) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i8_u)
+            .append_opcode(Opcode::memory_load_i8_u)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 0) // data public index
             .append_opcode_i64(Opcode::imm_i64, 7) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i8_s)
+            .append_opcode(Opcode::memory_load_i8_s)
             // load group 1
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 1) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_f32)
+            .append_opcode(Opcode::memory_load_f32)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 2) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_f64)
+            .append_opcode(Opcode::memory_load_f64)
             // load group 2
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 3) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i64)
+            .append_opcode(Opcode::memory_load_i64)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 3) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_u)
+            .append_opcode(Opcode::memory_load_i32_u)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 3) // data public index
             .append_opcode_i64(Opcode::imm_i64, 4) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i32_s)
+            .append_opcode(Opcode::memory_load_i32_s)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 4) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i64)
+            .append_opcode(Opcode::memory_load_i64)
             .append_opcode_i32(Opcode::imm_i32, 0) // module index
             .append_opcode_i32(Opcode::imm_i32, 5) // data public index
             .append_opcode_i64(Opcode::imm_i64, 0) // offset in bytes
-            .append_opcode(Opcode::data_load_dynamic_i64)
+            .append_opcode(Opcode::memory_load_i64)
             //
             .append_opcode(Opcode::end)
             .to_bytes();
@@ -1703,7 +1728,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         assert_eq!(
             result0.unwrap(),
             vec![
@@ -1760,7 +1785,7 @@ mod tests {
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // Error: Attempting to load `i32` data with offset 2 (data length exceeded).
-            let _ = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+            let _ = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -1797,7 +1822,7 @@ mod tests {
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // Error: Attempting to load `i64` from an `i32` variable (data length exceeded).
-            let _ = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+            let _ = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -1835,7 +1860,7 @@ mod tests {
             let process_context0 = resource0.create_process_context().unwrap();
             let mut thread_context0 = process_context0.create_thread_context();
             // Error: Attempting to access a non-existent local variable (index out of range).
-            let _ = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+            let _ = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
         });
 
         std::panic::set_hook(prev_hook);
@@ -1866,7 +1891,7 @@ mod tests {
 
         let mut thread_context0 = process_context0.create_thread_context();
         // Error: Attempting to access an unsupported floating-point variant.
-        let result = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
 
         assert!(matches!(
             result,
