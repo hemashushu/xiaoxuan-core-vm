@@ -4,6 +4,61 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+// the callback function
+// ---------------------
+//
+// it's used to pass XiaoXuan Core VM functions as a callback function to the external C library
+// on the 'extcall'.
+//
+//                                      runtime (native)
+//                                   /------------------------\
+//                                   |                        |
+//                                   | external func list     |
+//                                   | |--------------------| |
+//                                   | | idx | lib  | name  | |
+//                              /--> | | 0   | ".." | ".."  | |
+//                              |    | |--------------------| |
+//                              |    |                        |
+//                              |    | wrapper func code 0    |
+//  XiaoXuan Core application   |    | 0x0000 0xb8, 0x34,     |
+// /------------------------\   |    | 0x000a 0x12, 0x00...   | --\
+// |                        |   |    |                        |   |
+// | fn $demo () -> ()      |   |    |                        |   |
+// |   extcall do_something | --/    | callback func table    |   |
+// | end                    |        | |--------------------| |   |
+// |                        |        | | mod idx | func idx | |   |      libxyz.so
+// | fn $callback () -> ()  | <----- | | 0       | 0        | |   |    /----------------------\
+// |   ...                  |        | | ...     | ...      | |   \--> | void do_something (  |
+// | end                    |        | |--------------------| |        |     void* () cb) {   |
+// |                        |        |                        |        |     ...              |
+// \------------------------/        | bridge func code 0     | <----- |     (cb)(11, 13)     |
+//                                   | 0x0000 0xb8, 0x34,     |        | }                    |
+//                                   | 0x000a 0x12, 0x00...   |        |                      |
+//                                   |                        |        \----------------------/
+//                                   | bridge func code 1     |
+//                                   | ...                    |
+//                                   |                        |
+//                                   \------------------------/
+//
+// ```diagram
+// | module M, function A |             | external func |       | module N, function B |
+// |----------------------|             |---------------|       |----------------------|
+// |                      |    wrapper  |               | callback delegate            |
+// | 0x0000 inst_0        |    function |               | function                     |
+// | 0x0004 inst_1   extcall   |        |               |   |   |                      |
+// | 0x0008 inst_2   ----------O---------> 0x0000       | /-O----> 0x0000 inst_0       |
+// |     \------------<---------------\ |  0x0004       | |     |  0x0004 inst_1       |
+// |                      |           | |  0x0008  -------/     |  0x0008 inst_2       |
+// | HandleResult::Jump(X)            ^ |               |       |  0x000c inst_3       |
+// |                   |  |           | |               | /------- 0x0010 end          |
+// |                   |  |           | |  0x000c  <------/     |                      |
+// | 0x000c inst_3   <-/  |           \--- 0x0010       |       |----------------------|
+// | 0x0010 inst_4        |             |               |
+// | 0x0014 inst_5        |             |---------------|
+// | 0x0018 inst_6        |
+// | ...                  |
+// ```
+
 use std::sync::Mutex;
 
 use anc_context::thread_context::{ProgramCounter, ThreadContext};
@@ -546,3 +601,31 @@ extern "C" fn delegate_callback_function_call(
         unsafe { std::ptr::copy(result_operands.as_ptr(), results_ptr, OPERAND_SIZE_IN_BYTES) };
     }
 }
+
+
+// fn insert_delegate_function(
+//     delegate_function_table: &mut Vec<DelegateFunctionByModule>,
+//     target_module_index: usize,
+//     function_internal_index: usize,
+//     bridge_function_ptr: *const u8,
+// ) {
+//     let idx_m = delegate_function_table
+//         .iter()
+//         .position(|module_item| module_item.target_module_index == target_module_index)
+//         .unwrap_or_else(|| {
+//             delegate_function_table.push(DelegateFunctionByModule {
+//                 target_module_index,
+//                 delegate_function_items: vec![],
+//             });
+//             delegate_function_table.len() - 1
+//         });
+//
+//     let module_item = &mut delegate_function_table[idx_m];
+//
+//     module_item
+//         .delegate_function_items
+//         .push(DelegateFunctionItem {
+//             target_function_internal_index: function_internal_index,
+//             delegate_function_ptr: bridge_function_ptr,
+//         })
+// }

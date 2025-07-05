@@ -4,6 +4,70 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+// Callback Delegate Function
+// -------------------------
+//
+// Callback delegate functions allow XiaoXuan Core VM functions to be passed as callbacks
+// to external C/Rust libraries via the 'extcall' instruction.
+//
+// The following diagram illustrates how a XiaoXuan Core Application invokes external functions
+// and how external functions can invoke VM callback functions:
+//
+// ```diagram
+//                                      XiaoXuan Core Runtime
+//                                   /------------------------\
+//                                   |                        |
+//                                   | external func list     |
+//                                   | |--------------------| |
+//                                   | | idx | lib  | name  | |
+//                              /--> | | 0   | ".." | ".."  | |
+//                              |    | |--------------------| |
+//                              |    |                        |
+//                              |    | wrapper func code 0    |
+//  XiaoXuan Core Application   |    | 0x0000 0xb8, 0x34,     |
+// /------------------------\   |    | 0x000a 0x12, 0x00...   | --\
+// |                        |   |    |                        |   |
+// | fn $demo () -> ()      |   |    |                        |   |
+// |   extcall do_something | --/    | callback func table    |   |
+// | end                    |        | |--------------------| |   |      External Library,
+// |                        |        | | mod idx | func idx | |   |      such as `libxyz.so`
+// | fn $callback () -> ()  | <----- | | 0       | 0        | |   |    /----------------------\
+// |   ...                  |        | | ...     | ...      | |   \--> | void do_something (  |
+// | end                    |        | |--------------------| |        |     void* () cb) {   |
+// |                        |        |                        |        |     ...              |
+// \------------------------/        | delegate func code 0   | <----- |     (cb)(11, 13)     |
+//                                   | 0x0000 0xb8, 0x34,     |        | }                    |
+//                                   | 0x000a 0x12, 0x00...   |        |                      |
+//                                   |                        |        \----------------------/
+//                                   | delegate func code 1   |
+//                                   | ...                    |
+//                                   |                        |
+//                                   \------------------------/
+// ```
+//
+// How the `extcall` instruction and callback delegate are executed
+// ----------------------------------------------------------------
+//
+// ```diagram
+// | module M, function A |             | external func |       | module N, function B |
+// |----------------------|             |---------------|       |----------------------|
+// |                      |    wrapper  |               | delegate                     |
+// | 0x0000 push args     |    function |               | function                     |
+// | 0x0004 push delegate |    |        |               |   |   |                      |
+// | 0x0008 extcall idx -------O---------> 0x0000       | /-O----> 0x0000 inst_0       |
+// |                    /-------------\ |  0x0004       | |     |  0x0004 inst_1       |
+// |                    | |           | |  0x0008  -------/     |  0x0008 inst_2       |
+// |                    | |           | |               |       |  0x000c inst_3       |
+// |                    | |           | |               | /------- 0x0010 end          |
+// | 0x0010 ...      <--/ |           | |               | |     |                      |
+// |                      |           | |  0x000c  <------/     |----------------------|
+// |                      |           \--- 0x0010       |
+// |                      |             |---------------|
+// ```
+//
+// Callback delegate functions are generated dynamically at runtime.
+// For more details, see the `bridge_function_table` module.
+
 pub struct CallbackDelegateFunctionTable {
     pub functions_by_modules: Vec<CallbackDelegateFunctionsByModule>,
 }
@@ -32,101 +96,28 @@ pub struct CallbackDelegateFunctionItem {
     pub callback_delegate_function_ptr: *const u8,
 }
 
-// //     pub fn find_bridge_function(
-// //         &self,
-// //         target_module_index: usize,
-// //         function_internal_index: usize,
-// //     ) -> Option<*const u8> {
-// //         find_delegate_function(
-// //             &self.bridge_function_module_items,
-// //             target_module_index,
-// //             function_internal_index,
-// //         )
-// //     }
-// //
-// //     pub fn find_bridge_callback_function(
-// //         &self,
-// //         target_module_index: usize,
-// //         function_internal_index: usize,
-// //     ) -> Option<*const u8> {
-// //         find_delegate_function(
-// //             &self.callback_function_entries,
-// //             target_module_index,
-// //             function_internal_index,
-// //         )
-// //     }
-// //
-// //     pub fn insert_bridge_function(
-// //         &mut self,
-// //         target_module_index: usize,
-// //         function_internal_index: usize,
-// //         bridge_function_ptr: *const u8,
-// //     ) {
-// //         insert_delegate_function(
-// //             &mut self.bridge_function_module_items,
-// //             target_module_index,
-// //             function_internal_index,
-// //             bridge_function_ptr,
-// //         );
-// //     }
-// //
-// // pub fn insert_callback_function(
-// //     &mut self,
-// //     target_module_index: usize,
-// //     function_internal_index: usize,
-// //     bridge_function_ptr: *const u8,
-// // ) {
-// //     insert_delegate_function(
-// //         &mut self.callback_function_entries,
-// //         target_module_index,
-// //         function_internal_index,
-// //         bridge_function_ptr,
-// //     );
-// // }
-
-// fn find_delegate_function(
-//     delegate_function_table: &[DelegateFunctionByModule],
-//     target_module_index: usize,
-//     function_internal_index: usize,
-// ) -> Option<*const u8> {
-//     match delegate_function_table
-//         .iter()
-//         .find(|module_item| module_item.target_module_index == target_module_index)
-//     {
-//         Some(module_item) => module_item
-//             .delegate_function_items
-//             .iter()
-//             .find(|functione_item| {
-//                 functione_item.target_function_internal_index == function_internal_index
-//             })
-//             .map(|function_item| function_item.delegate_function_ptr),
-//         None => None,
-//     }
-// }
-//
-// fn insert_delegate_function(
-//     delegate_function_table: &mut Vec<DelegateFunctionByModule>,
-//     target_module_index: usize,
-//     function_internal_index: usize,
-//     bridge_function_ptr: *const u8,
-// ) {
-//     let idx_m = delegate_function_table
-//         .iter()
-//         .position(|module_item| module_item.target_module_index == target_module_index)
-//         .unwrap_or_else(|| {
-//             delegate_function_table.push(DelegateFunctionByModule {
-//                 target_module_index,
-//                 delegate_function_items: vec![],
-//             });
-//             delegate_function_table.len() - 1
-//         });
-//
-//     let module_item = &mut delegate_function_table[idx_m];
-//
-//     module_item
-//         .delegate_function_items
-//         .push(DelegateFunctionItem {
-//             target_function_internal_index: function_internal_index,
-//             delegate_function_ptr: bridge_function_ptr,
-//         })
-// }
+impl CallbackDelegateFunctionTable {
+    pub fn find_callback_delegate_function(
+        &self,
+        target_module_index: usize,
+        target_function_internal_index: usize,
+    ) -> Option<*const u8> {
+        match self
+            .functions_by_modules
+            .iter()
+            .find(|module_item| module_item.module_index == target_module_index)
+        {
+            Some(module_item) => module_item
+                .callback_delegate_function_items
+                .iter()
+                .find(|callback_delegate_function_item| {
+                    callback_delegate_function_item.function_internal_index
+                        == target_function_internal_index
+                })
+                .map(|callback_delegate_function_item| {
+                    callback_delegate_function_item.callback_delegate_function_ptr
+                }),
+            None => None,
+        }
+    }
+}

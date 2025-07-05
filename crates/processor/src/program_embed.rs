@@ -93,6 +93,60 @@ where
     Ok(data_ptr as *mut T)
 }
 
+
+// //     pub fn find_bridge_function(
+// //         &self,
+// //         target_module_index: usize,
+// //         function_internal_index: usize,
+// //     ) -> Option<*const u8> {
+// //         find_delegate_function(
+// //             &self.bridge_function_module_items,
+// //             target_module_index,
+// //             function_internal_index,
+// //         )
+// //     }
+// //
+// //     pub fn find_bridge_callback_function(
+// //         &self,
+// //         target_module_index: usize,
+// //         function_internal_index: usize,
+// //     ) -> Option<*const u8> {
+// //         find_delegate_function(
+// //             &self.callback_function_entries,
+// //             target_module_index,
+// //             function_internal_index,
+// //         )
+// //     }
+// //
+// //     pub fn insert_bridge_function(
+// //         &mut self,
+// //         target_module_index: usize,
+// //         function_internal_index: usize,
+// //         bridge_function_ptr: *const u8,
+// //     ) {
+// //         insert_delegate_function(
+// //             &mut self.bridge_function_module_items,
+// //             target_module_index,
+// //             function_internal_index,
+// //             bridge_function_ptr,
+// //         );
+// //     }
+// //
+// // pub fn insert_callback_function(
+// //     &mut self,
+// //     target_module_index: usize,
+// //     function_internal_index: usize,
+// //     bridge_function_ptr: *const u8,
+// // ) {
+// //     insert_delegate_function(
+// //         &mut self.callback_function_entries,
+// //         target_module_index,
+// //         function_internal_index,
+// //         bridge_function_ptr,
+// //     );
+// // }
+
+
 #[cfg(test)]
 mod tests {
     use anc_context::process_resource::ProgramSource;

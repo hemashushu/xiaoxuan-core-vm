@@ -10,7 +10,7 @@ use anc_stack::ProgramCounter;
 
 use crate::{
     envcall_handler::get_envcall_handlers,
-    extcall_handler::get_or_create_external_function_and_wrapper_function,
+    extcall_handler::get_or_create_external_function_wrapper_function,
     syscall_handler::get_syscall_handler, TERMINATE_CODE_FAILED_TO_LOAD_EXTERNAL_FUNCTION,
     TERMINATE_CODE_STACK_OVERFLOW,
 };
@@ -153,7 +153,7 @@ pub fn extcall(/* handler: &Handler, */ thread_context: &mut ThreadContext) -> H
     let module_index = thread_context.pc.module_index;
 
     let (external_function_pointer, wrapper_function, params_count, contains_return_value) =
-        if let Ok(pwr) = get_or_create_external_function_and_wrapper_function(
+        if let Ok(pwr) = get_or_create_external_function_wrapper_function(
             // handler,
             thread_context,
             module_index,

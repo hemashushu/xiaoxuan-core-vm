@@ -4,29 +4,6 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// how to call external functions
-// ------------------------------
-//
-// ```diagram
-//        VM Runtime
-// /----------------------\
-// |     VM module         |
-// |  /--------------\     |
-// |  | VM functions |     |
-// |  \--------------/     |
-// |     |                 |
-// |     v                 |
-// |  Wrapper functions    | one wrapper function per
-// |     |                 | signature (i.e., params and results),
-// |     |                 | generate by JIT compiler.
-// \-----------------------/
-//       |
-//       V  Rust/C libraries
-// /-----------------------\
-// | external functions    |
-// \-----------------------/
-// ```
-
 use core::str;
 use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
@@ -52,8 +29,7 @@ use crate::{ProcessorError, ProcessorErrorType};
 
 static LAST_WRAPPER_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
-pub fn get_or_create_external_function_and_wrapper_function(
-    // handler: &Handler,
+pub fn get_or_create_external_function_wrapper_function(
     thread_context: &mut ThreadContext,
     module_index: usize,
     external_function_index: usize,
@@ -76,9 +52,9 @@ pub fn get_or_create_external_function_and_wrapper_function(
 
         if external_function_index > count as usize {
             panic!("Out of bounds of the external function index, module index:{}, total external functions: {}, request external function index: {}",
-                            module_index,
-                            count,
-                            external_function_index);
+                module_index,
+                count,
+                external_function_index);
         }
     }
 
@@ -138,7 +114,7 @@ pub fn get_or_create_external_function_and_wrapper_function(
     let value_str = unsafe { str::from_utf8_unchecked(external_library_value_data) };
     let value: ExternalLibraryDependency = ason::from_str(value_str).unwrap();
 
-    let local_library_file_path_or_system_library_so_name = match value {
+    let external_library_file_path_or_system_library_name = match value {
         ExternalLibraryDependency::Local(_dependency_local) => todo!(),
         ExternalLibraryDependency::Remote(_dependency_remote) => todo!(),
         ExternalLibraryDependency::Share(_dependency_share) => todo!(),
@@ -174,20 +150,33 @@ pub fn get_or_create_external_function_and_wrapper_function(
         }
     };
 
-    let mut table = thread_context.external_function_table.lock().unwrap();
+    let mut external_function_table = thread_context.external_function_table.lock().unwrap();
     let mut jit_generator = thread_context.jit_generator.lock().unwrap();
 
-    let (external_function_pointer, wrapper_function) =
-        add_external_function_and_create_wrapper_function(
-            &mut jit_generator,
-            &mut table,
-            unified_external_function_index,
-            unified_external_library_index,
-            &local_library_file_path_or_system_library_so_name,
-            external_function_name,
-            param_datatypes,
-            result_datatypes,
-        )?;
+    let (external_function_pointer, wrapper_function_index) = create_wrapper_function_item(
+        &mut jit_generator,
+        &mut external_function_table,
+        unified_external_library_index,
+        &external_library_file_path_or_system_library_name,
+        external_function_name,
+        param_datatypes,
+        result_datatypes,
+    )?;
+
+    // add external function item
+
+    let unified_external_function_pointer_item = UnifiedExternalFunctionPointerItem {
+        address: external_function_pointer as usize,
+        wrapper_function_index,
+    };
+
+    external_function_table.unified_external_function_pointer_list
+        [unified_external_function_index] = Some(unified_external_function_pointer_item);
+
+    // returns the external function pointer, wrapper function, and other information.
+
+    let wrapper_function =
+        external_function_table.wrapper_function_list[wrapper_function_index].wrapper_function;
 
     Ok((
         external_function_pointer,
@@ -197,17 +186,18 @@ pub fn get_or_create_external_function_and_wrapper_function(
     ))
 }
 
-#[allow(clippy::too_many_arguments)]
-fn add_external_function_and_create_wrapper_function(
+// #[allow(clippy::too_many_arguments)]
+fn create_wrapper_function_item(
     jit_generator: &mut Generator<JITModule>,
     external_function_table: &mut ExternalFunctionTable,
-    unified_external_function_index: usize,
     unified_external_library_index: usize,
-    external_library_file_path_or_name: &str, // `/path/to/library/libabc.so` or `libc.so`
+    // library file path (e.g. `/path/to/library/libabc.so.1`) or
+    // system shared library name (e.g. `libc.so.1`)
+    external_library_file_path_or_system_library_name: &str,
     external_function_name: &str,
     param_datatypes: &[OperandDataType],
     result_datatypes: &[OperandDataType],
-) -> Result<(*mut c_void, WrapperFunction), ProcessorError> {
+) -> Result<(*mut c_void, usize), ProcessorError> {
     // find external library pointer
     let library_pointer = if let Some(unified_external_library_pointer_item) =
         &external_function_table.unified_external_library_pointer_list
@@ -215,21 +205,33 @@ fn add_external_function_and_create_wrapper_function(
     {
         unified_external_library_pointer_item.address as *mut c_void
     } else {
-        add_external_library(
-            external_function_table,
-            unified_external_library_index,
-            external_library_file_path_or_name,
-        )?
+        // create external library item
+        let library_pointer =
+            if let Ok(p) = load_library(external_library_file_path_or_system_library_name) {
+                p
+            } else {
+                return Err(ProcessorError {
+                    error_type: ProcessorErrorType::ItemNotFound,
+                });
+            };
+
+        external_function_table.unified_external_library_pointer_list
+            [unified_external_library_index] = Some(UnifiedExternalLibraryPointerItem {
+            address: library_pointer as usize,
+        });
+
+        library_pointer
     };
 
     // find external function pointer
-    let function_pointer = if let Ok(p) = load_symbol(library_pointer, external_function_name) {
-        p
-    } else {
-        return Err(ProcessorError {
-            error_type: ProcessorErrorType::ItemNotFound,
-        });
-    };
+    let external_function_pointer =
+        if let Ok(p) = load_symbol(library_pointer, external_function_name) {
+            p
+        } else {
+            return Err(ProcessorError {
+                error_type: ProcessorErrorType::ItemNotFound,
+            });
+        };
 
     // find the wrapper function.
     //
@@ -245,75 +247,28 @@ fn add_external_function_and_create_wrapper_function(
         }) {
         wrapper_function_index
     } else {
-        create_and_add_wrapper_function(
-            jit_generator,
-            external_function_table,
-            param_datatypes,
-            result_datatypes,
-        )
+        // create wrapper function item
+        let wrapper_function_index = external_function_table.wrapper_function_list.len();
+
+        let wrapper_function_pointer =
+            generate_wrapper_function(jit_generator, param_datatypes, result_datatypes);
+
+        let wrapper_function_item = WrapperFunctionItem {
+            param_datatypes: param_datatypes.to_vec(),
+            result_datatypes: result_datatypes.to_vec(),
+            wrapper_function: transmute_symbol_to::<WrapperFunction>(
+                wrapper_function_pointer as *mut c_void,
+            ),
+        };
+
+        external_function_table
+            .wrapper_function_list
+            .push(wrapper_function_item);
+
+        wrapper_function_index
     };
 
-    // update the table
-
-    let unified_external_function_pointer_item = UnifiedExternalFunctionPointerItem {
-        address: function_pointer as usize,
-        wrapper_function_index,
-    };
-
-    external_function_table.unified_external_function_pointer_list
-        [unified_external_function_index] = Some(unified_external_function_pointer_item);
-
-    let wrapper_function =
-        external_function_table.wrapper_function_list[wrapper_function_index].wrapper_function;
-
-    Ok((function_pointer, wrapper_function))
-}
-
-fn add_external_library(
-    external_function_table: &mut ExternalFunctionTable,
-    unified_external_library_index: usize,
-    external_library_file_path_or_name: &str,
-) -> Result<*mut c_void, ProcessorError> {
-    let library_pointer = if let Ok(p) = load_library(external_library_file_path_or_name) {
-        p
-    } else {
-        return Err(ProcessorError {
-            error_type: ProcessorErrorType::ItemNotFound,
-        });
-    };
-
-    external_function_table.unified_external_library_pointer_list[unified_external_library_index] =
-        Some(UnifiedExternalLibraryPointerItem {
-            address: library_pointer as usize,
-        });
-    Ok(library_pointer)
-}
-
-fn create_and_add_wrapper_function(
-    jit_generator: &mut Generator<JITModule>,
-    external_function_table: &mut ExternalFunctionTable,
-    param_types: &[OperandDataType],
-    result_types: &[OperandDataType],
-) -> usize {
-    // build wrapper function
-    let wrapper_function_index = external_function_table.wrapper_function_list.len();
-
-    let wrapper_function_pointer =
-        create_wrapper_function(jit_generator, param_types, result_types);
-
-    let wrapper_function_item = WrapperFunctionItem {
-        param_datatypes: param_types.to_vec(),
-        result_datatypes: result_types.to_vec(),
-        wrapper_function: transmute_symbol_to::<WrapperFunction>(
-            wrapper_function_pointer as *mut c_void,
-        ),
-    };
-
-    external_function_table
-        .wrapper_function_list
-        .push(wrapper_function_item);
-
-    wrapper_function_index
+    Ok((external_function_pointer, wrapper_function_index))
 }
 
 // the signature and body of wrapper function:
@@ -330,7 +285,7 @@ fn create_and_add_wrapper_function(
 //
 // }
 // ```
-pub fn create_wrapper_function(
+pub fn generate_wrapper_function(
     jit_generator: &mut Generator<JITModule>,
     params: &[OperandDataType],
     results: &[OperandDataType],
