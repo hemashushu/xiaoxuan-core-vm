@@ -4,9 +4,8 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// mod program;
 mod host;
-// mod multithread;
+mod multithread;
 // mod random;
 // mod regex;
 mod runtime;
@@ -137,20 +136,22 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
         0x0008 => {
             // Category: Thread
             match envcall_num {
-                EnvCallNum::thread_id => envcall_unreachable_handler,
-                EnvCallNum::thread_create => envcall_unreachable_handler,
-                EnvCallNum::thread_start_data_length => envcall_unreachable_handler,
-                EnvCallNum::thread_start_data_text => envcall_unreachable_handler,
-                EnvCallNum::thread_wait_and_collect => envcall_unreachable_handler,
-                EnvCallNum::thread_running_status => envcall_unreachable_handler,
-                EnvCallNum::thread_terminate => envcall_unreachable_handler,
-                EnvCallNum::thread_receive_msg_from_parent => envcall_unreachable_handler,
-                EnvCallNum::thread_send_msg_to_parent => envcall_unreachable_handler,
-                EnvCallNum::thread_receive_msg => envcall_unreachable_handler,
-                EnvCallNum::thread_send_msg => envcall_unreachable_handler,
-                EnvCallNum::thread_msg_length => envcall_unreachable_handler,
-                EnvCallNum::thread_msg_read => envcall_unreachable_handler,
-                EnvCallNum::thread_sleep => envcall_unreachable_handler,
+                EnvCallNum::thread_id => multithread::thread_id,
+                EnvCallNum::thread_create => multithread::thread_create,
+                EnvCallNum::thread_start_data_length => multithread::thread_start_data_length,
+                EnvCallNum::thread_start_data_read => multithread::thread_start_data_read,
+                EnvCallNum::thread_wait_and_collect => multithread::thread_wait_and_collect,
+                EnvCallNum::thread_running_status => multithread::thread_running_status,
+                EnvCallNum::thread_terminate => multithread::thread_terminate,
+                EnvCallNum::thread_receive_msg_from_parent => {
+                    multithread::thread_receive_msg_from_parent
+                }
+                EnvCallNum::thread_send_msg_to_parent => multithread::thread_send_msg_to_parent,
+                EnvCallNum::thread_receive_msg => multithread::thread_receive_msg,
+                EnvCallNum::thread_send_msg => multithread::thread_send_msg,
+                EnvCallNum::thread_msg_length => multithread::thread_msg_length,
+                EnvCallNum::thread_msg_read => multithread::thread_msg_read,
+                EnvCallNum::thread_sleep => multithread::thread_sleep,
                 _ => envcall_unreachable_handler,
             }
         }

@@ -6,19 +6,16 @@
 
 use std::fmt::Display;
 
-// mod bridge_handler;
 mod envcall_handler;
 mod extcall_handler;
 mod multithread_handler;
 mod syscall_handler;
 
-// pub mod bridge_process;
-// pub mod multithread_process;
-
 pub mod envcall_num;
 pub mod in_memory_program_source;
 pub mod instruction_handler;
 pub mod process;
+pub mod program;
 
 pub const TERMINATE_CODE_PANIC: i32 = 0x1000_0000;
 pub const TERMINATE_CODE_UNREACHABLE: i32 = 0x1000_0001;

@@ -8,38 +8,13 @@ use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
 use crate::{
-    handler::Handler,
-    multithread_handler::{HANDLER_ADDRESS, PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA},
+    multithread_handler::{
+        create_thread, ThreadStartFunction, CHILD_THREADS, PROCESS_CONTEXT_ADDRESS,
+        THREAD_START_DATA,
+    },
     process::process_function,
     ProcessorError, ProcessorErrorType,
 };
-
-// pub fn start_with_multiple_thread(
-//     process_context: &ProcessContext,
-//     entry_point_name: &str,
-//     thread_start_data: Vec<u8>,
-// ) -> Result<u32, GenericError> {
-//     /* let handler = Handler::new(); */
-//     let handler_address = &handler as *const Handler as *const u8 as usize;
-//     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
-//
-//     HANDLER_ADDRESS.with(|data| {
-//         *data.borrow_mut() = handler_address;
-//     });
-//
-//     PROCESS_CONTEXT_ADDRESS.with(|data| {
-//         *data.borrow_mut() = process_context_address;
-//     });
-//
-//     let main_thread_id = create_thread(entry_point_name, thread_start_data);
-//
-//     CHILD_THREADS.with(|child_threads_cell| {
-//         let mut child_threads = child_threads_cell.borrow_mut();
-//         let opt_child_thread = child_threads.remove(&main_thread_id);
-//         let child_thread = opt_child_thread.unwrap();
-//         child_thread.join_handle.join().unwrap()
-//     })
-// }
 
 /// internal entry point names:
 ///
@@ -64,13 +39,7 @@ pub fn start_program(
     internal_entry_point_name: &str,
     thread_start_data: Vec<u8>,
 ) -> Result<u32, ProcessorError> {
-    /* let handler = Handler::new(); */
-    let handler_address = &handler as *const Handler as *const u8 as usize;
     let process_context_address = process_context as *const ProcessContext as *const u8 as usize;
-
-    HANDLER_ADDRESS.with(|data| {
-        *data.borrow_mut() = handler_address;
-    });
 
     PROCESS_CONTEXT_ADDRESS.with(|data| {
         *data.borrow_mut() = process_context_address;
@@ -91,18 +60,17 @@ pub fn start_program(
     {
         idx
     } else {
-        return Err(ProcessorError::new(
-            ProcessorErrorType::EntryPointNotFound(internal_entry_point_name.to_owned()),
-        ));
+        return Err(ProcessorError::new(ProcessorErrorType::EntryPointNotFound(
+            internal_entry_point_name.to_owned(),
+        )));
     };
 
-    // the signature of the 'entry function' must be:
+    // the signature of the 'entry function' must:
     // 'fn () -> exit_code:u32'
 
     const MAIN_MODULE_INDEX: usize = 0;
 
     let result_foreign_values = process_function(
-        &handler,
         &mut thread_context,
         MAIN_MODULE_INDEX,
         function_public_index,
@@ -119,9 +87,7 @@ pub fn start_program(
                 if let ForeignValue::U32(exit_code) = foreign_values[0] {
                     Ok(exit_code)
                 } else {
-                    Err(ProcessorError::new(
-                        ProcessorErrorType::DataTypeMissmatch,
-                    ))
+                    Err(ProcessorError::new(ProcessorErrorType::DataTypeMissmatch))
                 }
             }
         }
@@ -131,49 +97,24 @@ pub fn start_program(
 
 #[cfg(test)]
 mod tests {
-    use anc_context::process_resource::ProgramSource;
+    use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
         utils::helper_build_module_binary_with_single_function,
     };
     use anc_isa::{opcode::Opcode, OperandDataType};
 
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource, multithread_process::start_program,
-    };
-
-    // #[test]
-    // fn test_envcall_multithread_start_with_multithread() {
-    //     // the signature of 'thread start function' must be
-    //     // () -> i32
-    //
-    //     let code0 = BytecodeWriterHelper::new()
-    //         .append_opcode_i32(Opcode::imm_i32, 0x11)
-    //         .append_opcode(Opcode::end)
-    //         .to_bytes();
-    //
-    //     let binary0 = helper_build_module_binary_with_single_function(
-    //         vec![],                     // params
-    //         vec![OperandDataType::I32], // results
-    //         vec![],                     // local variables
-    //         code0,
-    //     );
-    //
-    //     let resource0 = InMemoryResource::new(vec![binary0]);
-    //     let process_context0 = resource0.create_process_context().unwrap();
-    //     let result0 = start_with_multiple_thread(&process_context0, "", vec![]);
-    //
-    //     const EXPECT_THREAD_EXIT_CODE: u32 = 0x11;
-    //     assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
-    // }
+    use crate::{in_memory_program_source::InMemoryProgramSource, program::start_program};
 
     #[test]
-    fn test_envcall_multithread_start_program() {
-        // the signature of 'thread start function' must be
+    fn test_start_program() {
+        // the signature of 'thread start function' must:
         // () -> (i32)
 
+        const CUSTOM_EXIT_CODE: u32 = 0x11;
+
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::imm_i32, 0x11)
+            .append_opcode_i32(Opcode::imm_i32, CUSTOM_EXIT_CODE)
             .append_opcode(Opcode::end)
             .to_bytes();
 
@@ -186,9 +127,8 @@ mod tests {
 
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
-        let result0 = start_program(&process_context0, "", vec![]);
+        let result0 = start_program(&process_context0, "_start", vec![]);
 
-        const EXPECT_THREAD_EXIT_CODE: u32 = 0x11;
-        assert_eq!(result0.unwrap(), EXPECT_THREAD_EXIT_CODE);
+        assert_eq!(result0.unwrap(), CUSTOM_EXIT_CODE);
     }
 }

@@ -532,11 +532,11 @@ pub enum EnvCallNum {
     //
     // Returns the length of data actually read.
     // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
-    thread_start_data_text,
+    thread_start_data_read,
 
     // Wait for the specified child thread to finish and collect its resources.
     //
-    // `fn (child_thread_index: i32) -> (thread_exit_code: i32, thread_error_number: i32)`
+    // `fn (child_thread_id: i32) -> (thread_exit_code: i32, thread_error_number: i32)`
     //
     // Returns:
     // - thread_exit_code: The value returned by the "thread start function."
@@ -554,7 +554,7 @@ pub enum EnvCallNum {
 
     // Check whether the specified (child) thread has finished.
     //
-    // `fn (child_thread_index: i32) -> (running_status: i32, thread_error_number: i32)`
+    // `fn (child_thread_id: i32) -> (running_status: i32, thread_error_number: i32)`
     //
     // Returns:
     // - running_status: 0 = running, 1 = finished
@@ -563,12 +563,12 @@ pub enum EnvCallNum {
 
     // Terminate the specified child thread and collect its resources.
     //
-    // `fn (child_thread_index: i32) -> ()`
+    // `fn (child_thread_id: i32) -> ()`
     thread_terminate,
 
     // Send a message to the specified child thread.
     //
-    // `fn (child_thread_index: i32, module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> thread_error_number: i32`
+    // `fn (child_thread_id: i32, module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> thread_error_number: i32`
     //
     // Returns 0 for success, 1 for failure (the child thread has finished or does not exist).
     //
@@ -584,7 +584,7 @@ pub enum EnvCallNum {
 
     // Receive a message from the specified child thread.
     //
-    // `fn (child_thread_index: i32) -> (length: i64, thread_error_number: i32)`
+    // `fn (child_thread_id: i32) -> (length: i64, thread_error_number: i32)`
     //
     // Returns:
     // - length: The length of the message in bytes.
@@ -643,7 +643,7 @@ pub enum EnvCallNum {
 
     // Read the last received message from the runtime temporary buffer to writable data.
     //
-    // `fn (data_access_index: i64, offset_of_message: i64, expected_size_in_bytes: i64) -> i64`
+    // `fn (module_index: i32, data_access_index: i64, offset_of_message: i64, expected_size_in_bytes: i64) -> i64`
     //
     // Returns the actual number of bytes read.
     // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
@@ -651,7 +651,7 @@ pub enum EnvCallNum {
 
     // Block the current thread for the specified number of milliseconds.
     //
-    // `fn (milliseconds: i64)`
+    // `fn (milliseconds: i64) -> ()`
     thread_sleep,
 
     // Ref:
