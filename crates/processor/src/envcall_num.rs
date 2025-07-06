@@ -112,7 +112,6 @@ pub enum EnvCallNum {
     // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of the data read.
-    // If the data length is less than the content length, the VM will panic.
     program_path_read,
 
     // Retrieve the program's source type.
@@ -156,7 +155,6 @@ pub enum EnvCallNum {
     // `fn (environment_variable_index: i32, module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of the data read.
-    // If the data length is less than the content length, the VM will panic.
     environment_variable_item_read,
 
     // Set a specific environment variable.
@@ -304,13 +302,11 @@ pub enum EnvCallNum {
     // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, expected_bytes: i32) -> (actual_read_bytes: i32, io_error_number: i32)`
     //
     // The return value `actual_read_bytes` will be 0 if the file offset is at or beyond the end of the file.
-    // If the available data space is less than the expected number of bytes, the VM will panic.
     file_read,
 
     // Write data to a file.
     //
     // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, bytes_to_write: i32) -> (actual_write_bytes: i32, io_error_number: i32)`
-    // If the available data is less than the `bytes_to_write`, the VM will panic.
     file_write,
 
     // Seek to an offset, in bytes, in a stream.
@@ -533,7 +529,6 @@ pub enum EnvCallNum {
     // `fn (module_index: i32, data_access_index: i64, offset_of_thread_start_data: i64, expected_length_in_bytes: i64) -> i64`
     //
     // Returns the length of data actually read.
-    // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     thread_start_data_read,
 
     // Wait for the specified child thread to finish and collect its resources.
@@ -648,7 +643,6 @@ pub enum EnvCallNum {
     // `fn (module_index: i32, data_access_index: i64, offset_of_message: i64, expected_size_in_bytes: i64) -> i64`
     //
     // Returns the actual number of bytes read.
-    // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     thread_msg_read,
 
     // Block the current thread for the specified number of milliseconds.
@@ -699,7 +693,6 @@ pub enum EnvCallNum {
     // `fn (regex_index: i32, module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of data that was read.
-    // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     regex_capture_group_names_text,
 
     // Start a matching operation with the given text and offset.
@@ -719,7 +712,6 @@ pub enum EnvCallNum {
     //
     // The first capture group is the range of the whole text that matches the regular expression.
     // Returns the actual length of data that was read.
-    // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     regex_capture_groups,
 
     // Remove the specified regex object.

@@ -6,25 +6,25 @@
 
 use anc_context::thread_context::ThreadContext;
 
-pub fn host_arch(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+pub fn host_arch(thread_context: &mut ThreadContext) {
     // `fn (module_index: i32, data_access_index: i64) -> i32`
     let content = std::env::consts::ARCH;
     do_host_information_str(thread_context, content);
 }
 
-pub fn host_os(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+pub fn host_os(thread_context: &mut ThreadContext) {
     // `fn (module_index: i32, data_access_index: i64) -> i32`
     let content = std::env::consts::OS;
     do_host_information_str(thread_context, content);
 }
 
-pub fn host_family(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+pub fn host_family(thread_context: &mut ThreadContext) {
     // `fn (module_index: i32, data_access_index: i64) -> i32`
     let content = std::env::consts::FAMILY;
     do_host_information_str(thread_context, content);
 }
 
-pub fn host_endian(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+pub fn host_endian(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
 
     // ref:
@@ -41,7 +41,7 @@ pub fn host_endian(/* _handler: &Handler, */ thread_context: &mut ThreadContext)
     thread_context.stack.push_i32_u(endian);
 }
 
-pub fn host_memory_width(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+pub fn host_memory_width(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let size = size_of::<usize>();
     thread_context.stack.push_i32_u(size as u32);
@@ -114,12 +114,12 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs0 = result0.unwrap();
         let data_ptr_value = fvs0[0].as_u64();
         let data_ptr = data_ptr_value as *const u8;
@@ -157,12 +157,12 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs0 = result0.unwrap();
         let data_ptr_value = fvs0[0].as_u64();
         let data_ptr = data_ptr_value as *const u8;
@@ -200,12 +200,12 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs0 = result0.unwrap();
         let data_ptr_value = fvs0[0].as_u64();
         let data_ptr = data_ptr_value as *const u8;
@@ -236,12 +236,12 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs0 = result0.unwrap();
 
         let endian = if cfg!(target_endian = "little") {
@@ -276,12 +276,12 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs0 = result0.unwrap();
 
         let size = size_of::<usize>();

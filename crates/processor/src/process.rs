@@ -13,22 +13,21 @@ use crate::{
     ProcessorError, ProcessorErrorType,
 };
 
-// the `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicated
-// the current function is the last function of "calling path" (each
-// callback function will generate a new calling path).
+// The `EXIT_CURRENT_HANDLER_LOOP_BIT` flag is used to indicate
+// that the current function is the last function in the current "calling path".
+// Each callback function creates a new calling path.
 //
-// if the current function is the last function of "calling path",
-// the `process_continuous_instructions()` should be terminated.
+// If the current function is the last in the calling path,
+// `process_continuous_instructions()` should terminate.
 pub const EXIT_CURRENT_HANDLER_LOOP_BIT: usize = 0x8000_0000;
 
 pub fn process_function(
-    // handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
     arguments: &[ForeignValue],
 ) -> Result<Vec<ForeignValue>, ProcessorError> {
-    // reset the statck
+    // Reset the stack before function execution.
     thread_context.stack.reset();
 
     let target_function_object =
@@ -45,17 +44,16 @@ pub fn process_function(
         (pars.0.to_vec(), pars.1.to_vec())
     };
 
-    // the number of arguments does not match the specified funcion.
+    // Check that the number of arguments matches the function signature.
     if arguments.len() != params.len() {
         return Err(ProcessorError::new(
             ProcessorErrorType::ParametersAmountMissmatch,
         ));
     }
 
-    // push arguments
-    // --------------
-    //
-    // the first value will be inserted first, and placed at the stack bottom side:
+    // Push arguments onto the stack.
+    // ------------------------------
+    // Arguments are pushed in order, so the first value is at the bottom of the stack:
     //
     // ```diagram
     // array [0, 1, 2] -> |  2  | <-- high addr
@@ -64,23 +62,10 @@ pub fn process_function(
     //                    \-----/ <-- low addr
     // ```
     //
-    // the reason why the arguments on the left side are pushed first onto the stack
-    // is because the statck bottom is low address, thus make it easier to copy or move several consecutive arguments
-    // to an array.
+    // Arguments are pushed left-to-right so that the stack bottom (low address) contains arg0,
+    // making it easy to copy consecutive arguments to an array.
     //
-    // e.g.
-    //
-    // ```c
-    // stack[low_addr] = arg0
-    // stack[low_addr + OPERAND_SIZE] = arg1
-    // ...
-    // stack[high_addr] = argn
-    //
-    // memory_copy(stack, array, N)
-    // ```
-    //
-    // for simplicity, this procdure does not check the data type of arguments.
-
+    // For simplicity, this procedure does not check the data type of arguments.
     for value in arguments {
         match value {
             ForeignValue::U32(value) => thread_context.stack.push_i32_u(*value),
@@ -90,7 +75,7 @@ pub fn process_function(
         }
     }
 
-    // create function statck frame
+    // Create a function stack frame.
     thread_context
         .stack
         .create_frame(
@@ -101,20 +86,18 @@ pub fn process_function(
             Some(ProgramCounter {
                 instruction_address: 0,
                 function_internal_index: 0,
-
-                // set MSB of 'return module index' to '1' to indicate that it's the END of the
-                // "function call path".
+                // Set MSB of 'return module index' to '1' to indicate END of the function call path.
                 module_index: EXIT_CURRENT_HANDLER_LOOP_BIT,
             }),
         )
         .map_err(|_| ProcessorError::new(ProcessorErrorType::StackOverflow))?;
 
-    // set new PC
+    // Set the new program counter (PC).
     thread_context.pc.module_index = target_function_object.module_index;
     thread_context.pc.function_internal_index = target_function_object.function_internal_index;
     thread_context.pc.instruction_address = function_info.code_offset;
 
-    // start processing instructions
+    // Start processing instructions.
     if let Some(terminate_code) =
         process_continuous_instructions(/* handler, */ thread_context)
     {
@@ -123,12 +106,9 @@ pub fn process_function(
         )));
     }
 
-    // pop results
-    // -----------
-    //
-    // similar to the pushing arguments,
-    // the values on the stack top should be poped first and became
-    // the LAST element of the result array.
+    // Pop results from the stack.
+    // ---------------------------
+    // Results are popped from the top of the stack and become the last elements of the result array.
     //
     // ```diagram
     // |  2  | -> array [0, 1, 2]
@@ -136,10 +116,9 @@ pub fn process_function(
     // |  0  |
     // \-----/
     // ```
-
-    // don't use the `pop_xxx` functions to pop the results,
-    // because the `pop_xxx` requires a stack frame to work, however,
-    // the stack has no frame after the entry function is finish.
+    //
+    // Do not use the `pop_xxx` functions to pop results, as they require a stack frame.
+    // After the entry function finishes, the stack has no frame.
     let result_operands = thread_context.stack.pop_last_operands(results.len());
     let result_values = results
         .iter()
@@ -172,7 +151,6 @@ pub fn process_function(
 }
 
 pub fn process_continuous_instructions(
-    // handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> Option<i32> /* terminate code */ {
     loop {
@@ -193,11 +171,11 @@ pub fn process_continuous_instructions(
                 thread_context.pc.function_internal_index = original_pc.function_internal_index;
                 thread_context.pc.instruction_address = original_pc.instruction_address;
 
-                // break the instruction processing loop.
+                // Break the instruction processing loop.
                 break None;
             }
             HandleResult::Terminate(terminate_code) => {
-                // break the instruction processing loop with terminate code.
+                // Break the instruction processing loop with terminate code.
                 break Some(terminate_code);
             }
         }
@@ -205,9 +183,7 @@ pub fn process_continuous_instructions(
 }
 
 #[inline]
-fn process_instruction(
-    /* handler: &Handler, */ thread_context: &mut ThreadContext,
-) -> HandleResult {
+fn process_instruction(thread_context: &mut ThreadContext) -> HandleResult {
     let opcode_num = thread_context.get_opcode_num();
     let function = get_instruction_handler(opcode_num);
     function(/* handler, */ thread_context)

@@ -4,12 +4,13 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
+mod environment;
 mod host;
 mod multithread;
+mod runtime;
+mod timer;
 // mod random;
 // mod regex;
-mod runtime;
-// mod timer;
 
 use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
@@ -18,7 +19,7 @@ use crate::envcall_num::EnvCallNum;
 
 pub type EnvCallHandlerFunc = fn(&mut ThreadContext);
 
-fn envcall_unreachable_handler(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
+fn envcall_unreachable_handler(thread_context: &mut ThreadContext) {
     let pc = &thread_context.pc;
     let func_item = &thread_context.module_common_instances[pc.module_index]
         .function_section
@@ -73,23 +74,27 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
         0x0003 => {
             // Category: Process environment
             match envcall_num {
-                EnvCallNum::program_path_length => envcall_unreachable_handler,
-                EnvCallNum::program_path_read => envcall_unreachable_handler,
-                EnvCallNum::program_source_type => envcall_unreachable_handler,
-                EnvCallNum::argument_length => envcall_unreachable_handler,
-                EnvCallNum::argument_read => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_count => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_item_length => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_item_read => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_set => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_remove => envcall_unreachable_handler,
+                EnvCallNum::program_path_length => environment::program_path_length,
+                EnvCallNum::program_path_read => environment::program_path_read,
+                EnvCallNum::program_source_type => environment::program_source_type,
+                EnvCallNum::argument_length => environment::argument_length,
+                EnvCallNum::argument_read => environment::argument_read,
+                EnvCallNum::environment_variable_count => environment::environment_variable_count,
+                EnvCallNum::environment_variable_item_length => {
+                    environment::environment_variable_item_length
+                }
+                EnvCallNum::environment_variable_item_read => {
+                    environment::environment_variable_item_read
+                }
+                EnvCallNum::environment_variable_set => environment::environment_variable_set,
+                EnvCallNum::environment_variable_remove => environment::environment_variable_remove,
                 _ => envcall_unreachable_handler,
             }
         }
         0x0004 => {
-            // Category: Time
+            // Category: Timer
             match envcall_num {
-                EnvCallNum::time_now => envcall_unreachable_handler,
+                EnvCallNum::time_now => timer::time_now,
                 _ => envcall_unreachable_handler,
             }
         }

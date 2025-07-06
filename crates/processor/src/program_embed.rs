@@ -18,7 +18,6 @@ use anc_context::thread_context::ThreadContext;
 
 use crate::{
     bridge_handler::{get_or_create_bridge_data, get_or_create_bridge_function},
-    handler::Handler,
     ProcessorErrorType, ProcessorError,
 };
 
@@ -27,7 +26,6 @@ use crate::{
 // return the existing one if the bridge function corresponding
 // to the specified function has already been created.
 pub fn get_function<T>(
-    handler: &Handler,
     thread_context: &mut ThreadContext,
     module_name: &str,
     function_name: &str,
@@ -162,7 +160,6 @@ mod tests {
 
     use crate::{
         bridge_process::{get_data, get_data_mut, get_function},
-        handler::Handler,
         in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
@@ -192,7 +189,7 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -227,7 +224,7 @@ mod tests {
             &[],
         );
 
-        /* let handler = Handler::new(); */
+
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
@@ -243,7 +240,7 @@ mod tests {
             *data1_ptr = 0x17;
         }
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function( &mut thread_context0, 0, 0, &[]);
         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(0x17),]);
     }
 }

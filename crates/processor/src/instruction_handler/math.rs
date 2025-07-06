@@ -11,31 +11,31 @@ use crate::TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS;
 
 use super::HandleResult;
 
-pub fn abs_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_i32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i32(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i32_s();
     thread_context.stack.push_i32_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn abs_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(v.abs());
     HandleResult::Move(2)
 }
 
-pub fn neg_i64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_i64(thread_context: &mut ThreadContext) -> HandleResult {
     let v = thread_context.stack.pop_i64_s();
     thread_context.stack.push_i64_s(-v);
     HandleResult::Move(2)
 }
 
-pub fn abs_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.abs());
@@ -45,7 +45,7 @@ pub fn abs_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn neg_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, -v);
@@ -55,7 +55,7 @@ pub fn neg_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn ceil_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.ceil());
@@ -65,7 +65,7 @@ pub fn ceil_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn floor_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.floor());
@@ -75,10 +75,7 @@ pub fn floor_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn round_half_away_from_zero_f32(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn round_half_away_from_zero_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.round());
@@ -88,10 +85,7 @@ pub fn round_half_away_from_zero_f32(
     }
 }
 
-pub fn round_half_to_even_f32(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn round_half_to_even_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             let toint_32: f32 = 1.0 / f32::EPSILON;
@@ -110,7 +104,7 @@ pub fn round_half_to_even_f32(
     }
 }
 
-pub fn trunc_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.trunc());
@@ -120,7 +114,7 @@ pub fn trunc_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn fract_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.fract());
@@ -130,7 +124,7 @@ pub fn fract_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn sqrt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.sqrt());
@@ -140,7 +134,7 @@ pub fn sqrt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn cbrt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.cbrt());
@@ -150,7 +144,7 @@ pub fn cbrt_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn exp_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.exp());
@@ -160,7 +154,7 @@ pub fn exp_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn exp2_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.exp2());
@@ -170,7 +164,7 @@ pub fn exp2_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn ln_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.ln());
@@ -180,7 +174,7 @@ pub fn ln_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> H
     }
 }
 
-pub fn log2_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.log2());
@@ -190,7 +184,7 @@ pub fn log2_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn log10_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.log10());
@@ -200,7 +194,7 @@ pub fn log10_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn sin_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.sin());
@@ -210,7 +204,7 @@ pub fn sin_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn cos_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.cos());
@@ -220,7 +214,7 @@ pub fn cos_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn tan_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.tan());
@@ -230,7 +224,7 @@ pub fn tan_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn asin_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.asin());
@@ -240,7 +234,7 @@ pub fn asin_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn acos_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.acos());
@@ -250,7 +244,7 @@ pub fn acos_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn atan_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f32(thread_context) {
         Ok(v) => {
             store_f32(thread_context, v.atan());
@@ -260,7 +254,7 @@ pub fn atan_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn copysign_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((num, sign)) => {
             store_f32(thread_context, num.copysign(sign));
@@ -270,7 +264,7 @@ pub fn copysign_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext
     }
 }
 
-pub fn pow_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((base, exponent)) => {
             store_f32(thread_context, base.powf(exponent));
@@ -280,7 +274,7 @@ pub fn pow_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn log_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((number, base)) => {
             store_f32(thread_context, number.log(base));
@@ -290,7 +284,7 @@ pub fn log_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn min_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, f32::min(left, right));
@@ -300,7 +294,7 @@ pub fn min_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn max_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f32(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f32(thread_context) {
         Ok((left, right)) => {
             store_f32(thread_context, f32::max(left, right));
@@ -310,7 +304,7 @@ pub fn max_f32(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn abs_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn abs_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.abs());
@@ -320,7 +314,7 @@ pub fn abs_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn neg_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn neg_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, -v);
@@ -330,7 +324,7 @@ pub fn neg_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn ceil_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ceil_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.ceil());
@@ -340,7 +334,7 @@ pub fn ceil_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn floor_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn floor_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.floor());
@@ -350,10 +344,7 @@ pub fn floor_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn round_half_away_from_zero_f64(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn round_half_away_from_zero_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.round());
@@ -363,10 +354,7 @@ pub fn round_half_away_from_zero_f64(
     }
 }
 
-pub fn round_half_to_even_f64(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn round_half_to_even_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             let toint_64: f64 = 1.0 / f64::EPSILON;
@@ -385,7 +373,7 @@ pub fn round_half_to_even_f64(
     }
 }
 
-pub fn trunc_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn trunc_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.trunc());
@@ -395,7 +383,7 @@ pub fn trunc_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn fract_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn fract_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.fract());
@@ -405,7 +393,7 @@ pub fn fract_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn sqrt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sqrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.sqrt());
@@ -415,7 +403,7 @@ pub fn sqrt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn cbrt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cbrt_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.cbrt());
@@ -425,7 +413,7 @@ pub fn cbrt_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn exp_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.exp());
@@ -435,7 +423,7 @@ pub fn exp_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn exp2_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn exp2_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.exp2());
@@ -445,7 +433,7 @@ pub fn exp2_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn ln_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn ln_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.ln());
@@ -455,7 +443,7 @@ pub fn ln_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> H
     }
 }
 
-pub fn log2_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log2_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.log2());
@@ -465,7 +453,7 @@ pub fn log2_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn log10_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log10_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.log10());
@@ -475,7 +463,7 @@ pub fn log10_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -
     }
 }
 
-pub fn sin_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn sin_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.sin());
@@ -485,7 +473,7 @@ pub fn sin_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn cos_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn cos_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.cos());
@@ -495,7 +483,7 @@ pub fn cos_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn tan_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn tan_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.tan());
@@ -505,7 +493,7 @@ pub fn tan_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn asin_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn asin_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.asin());
@@ -515,7 +503,7 @@ pub fn asin_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn acos_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn acos_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.acos());
@@ -525,7 +513,7 @@ pub fn acos_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn atan_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn atan_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operand_f64(thread_context) {
         Ok(v) => {
             store_f64(thread_context, v.atan());
@@ -535,7 +523,7 @@ pub fn atan_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     }
 }
 
-pub fn copysign_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn copysign_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((num, sign)) => {
             store_f64(thread_context, num.copysign(sign));
@@ -545,7 +533,7 @@ pub fn copysign_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext
     }
 }
 
-pub fn pow_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn pow_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((base, exponent)) => {
             store_f64(thread_context, base.powf(exponent));
@@ -555,7 +543,7 @@ pub fn pow_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn log_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn log_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((number, base)) => {
             store_f64(thread_context, number.log(base));
@@ -565,7 +553,7 @@ pub fn log_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn min_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn min_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, f64::min(left, right));
@@ -575,7 +563,7 @@ pub fn min_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> 
     }
 }
 
-pub fn max_f64(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn max_f64(thread_context: &mut ThreadContext) -> HandleResult {
     match load_operands_f64(thread_context) {
         Ok((left, right)) => {
             store_f64(thread_context, f64::max(left, right));
@@ -624,10 +612,7 @@ mod tests {
     use anc_context::program_source::ProgramSource;
     use pretty_assertions::assert_eq;
 
-    use crate::{
-        in_memory_program_source::InMemoryProgramSource,
-        process::process_function,
-    };
+    use crate::{in_memory_program_source::InMemoryProgramSource, process::process_function};
 
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
@@ -673,13 +658,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -734,13 +717,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -927,13 +908,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -1173,13 +1152,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -1408,13 +1385,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,
@@ -1654,13 +1629,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
         let result0 = process_function(
-            /* &handler, */
             &mut thread_context0,
             0,
             0,

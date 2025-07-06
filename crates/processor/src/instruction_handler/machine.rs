@@ -8,12 +8,12 @@ use anc_context::thread_context::ThreadContext;
 
 use super::HandleResult;
 
-pub fn terminate(/* _handler: &Handler, */ thread: &mut ThreadContext) -> HandleResult {
+pub fn terminate(thread: &mut ThreadContext) -> HandleResult {
     let terminate_code = thread.get_param_i32() as i32;
     HandleResult::Terminate(terminate_code)
 }
 
-pub fn get_function(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn get_function(thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> (module_index:i32, function_public_index:i32)
     let function_public_index = thread_context.get_param_i32();
     let module_index = thread_context.pc.module_index as u32;
@@ -22,7 +22,7 @@ pub fn get_function(/* _handler: &Handler, */ thread_context: &mut ThreadContext
     HandleResult::Move(8)
 }
 
-pub fn get_data(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn get_data(thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) -> (module_index:i32, data_public_index:i32)
     let data_public_index = thread_context.get_param_i32();
     let module_index = thread_context.pc.module_index as u32;
@@ -31,7 +31,7 @@ pub fn get_data(/* _handler: &Handler, */ thread_context: &mut ThreadContext) ->
     HandleResult::Move(8)
 }
 
-pub fn host_addr_data(/* _handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_data(thread_context: &mut ThreadContext) -> HandleResult {
     // (param offset_bytes:i16 data_public_index:i32) -> pointer
     let (offset_bytes, data_public_index) = thread_context.get_param_i16_i32();
     do_host_addr_data(
@@ -43,10 +43,7 @@ pub fn host_addr_data(/* _handler: &Handler, */ thread_context: &mut ThreadConte
     )
 }
 
-pub fn host_addr_data_extend(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn host_addr_data_extend(thread_context: &mut ThreadContext) -> HandleResult {
     // (param data_public_index:i32) (operand offset_bytes:i64) -> pointer
     let data_public_index = thread_context.get_param_i32();
     let offset_bytes = thread_context.stack.pop_i64_u();
@@ -59,10 +56,7 @@ pub fn host_addr_data_extend(
     )
 }
 
-pub fn host_addr_memory(
-/*    _handler: &Handler, */
-    thread_context: &mut ThreadContext,
-) -> HandleResult {
+pub fn host_addr_memory(thread_context: &mut ThreadContext) -> HandleResult {
     // () (operand module_index:i32 data_access_index:i64 offset_bytes:i64) -> pointer
     let offset_bytes = thread_context.stack.pop_i64_u();
     let data_access_index = thread_context.stack.pop_i64_u();
@@ -95,7 +89,7 @@ fn do_host_addr_data(
     HandleResult::Move(instruction_length_in_bytes)
 }
 
-pub fn host_addr_function( /* handler: &Handler, */ thread_context: &mut ThreadContext) -> HandleResult {
+pub fn host_addr_function(thread_context: &mut ThreadContext) -> HandleResult {
     // (param function_public_index:i32) -> pointer
     //
     //     let function_public_index = thread_context.get_param_i32() as usize;
@@ -116,7 +110,6 @@ pub fn host_addr_function( /* handler: &Handler, */ thread_context: &mut ThreadC
 }
 
 pub fn host_addr_function_dynamic(
-    // handler: &Handler,
     thread_context: &mut ThreadContext,
 ) -> HandleResult {
     // () (operand function_module_index:i32 function_public_index:i32) -> pointer
@@ -153,8 +146,8 @@ mod tests {
     };
 
     use crate::{
-        in_memory_program_source::InMemoryProgramSource,
-        process::process_function, ProcessorError, ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
+        in_memory_program_source::InMemoryProgramSource, process::process_function, ProcessorError,
+        ProcessorErrorType, TERMINATE_CODE_UNREACHABLE,
     };
 
     fn read_memory_i64(fv: ForeignValue) -> u64 {
@@ -208,12 +201,11 @@ mod tests {
             code0,
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
 
         let mut thread_context0 = process_context0.create_thread_context();
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
 
         assert!(matches!(
             result0,
@@ -318,12 +310,11 @@ mod tests {
             ],
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -435,12 +426,11 @@ mod tests {
             ],
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -564,12 +554,11 @@ mod tests {
             ],
         );
 
-        /* let handler = Handler::new(); */
         let resource0 = InMemoryProgramSource::new(vec![binary0]);
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(&mut thread_context0, 0, 0, &[]);
         let fvs = result0.unwrap();
 
         assert_eq!(read_memory_i32(fvs[0]), 0x11);
@@ -585,152 +574,152 @@ mod tests {
         // todo
     }
 
-//     #[test]
-//     fn test_handler_host_addr_function() {}
+    //     #[test]
+    //     fn test_handler_host_addr_function() {}
 
-//     #[test]
-//     fn test_handler_host_addr_function_and_callback_function() {
-//         // `do_something` is an external function (a C function) in "libtest0.so.1":
-//         //
-//         // ```c
-//         // int do_something(int (*callback_function)(int), int a, int b)
-//         // {
-//         //     int s = (callback_function)(a);
-//         //     return s + b;
-//         // }
-//         // ```
-//         //
-//         // `function0` and `function1` are VM functions:
-//         //
-//         // ```code
-//         // ;; the entry function
-//         // fn function0 (a:i32, b:i32)->i32 {
-//         //     call(do_something, host_addr_function(function1), a, b)
-//         // }
-//         //
-//         // ;; used as callback function for external function 'do_something'
-//         // fn function1 (a:i32) -> i32 {
-//         //     a*2
-//         // }
-//         // ```
-//         //
-//         // the calling path:
-//         //
-//         // ```diagram
-//         // (11,13) ->
-//         //   function0 (VM function) ->
-//         //     do_something (external function) ->
-//         //       function1 (VM function) ->
-//         //     return to do_something ->
-//         //   return to function0 ->
-//         // returns 35
-//         // ```
-//
-//         // VM function 0
-//         let code0 = BytecodeWriterHelper::new()
-//             .append_opcode_i32(Opcode::host_addr_function, 1) // get host address of the func1, for external func param 0
-//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0) // for external func param 1
-//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1) // for external func param 2
-//             //
-//             .append_opcode_i32(Opcode::extcall, 0) // call external function, external function index = 0
-//             //
-//             .append_opcode(Opcode::end)
-//             .to_bytes();
-//
-//         // VM function 1
-//         let code1 = BytecodeWriterHelper::new()
-//             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0)
-//             .append_opcode_i32(Opcode::imm_i32, 2)
-//             .append_opcode(Opcode::mul_i32)
-//             //
-//             .append_opcode(Opcode::end)
-//             .to_bytes();
-//
-//         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
-//             &[
-//                 HelperFunctionEntry {
-//                     // type_index: 1,
-//                     params: vec![OperandDataType::I32, OperandDataType::I32],
-//                     results: vec![OperandDataType::I32],
-//                     local_variable_item_entries_without_args: vec![],
-//                     code: code0,
-//                 },
-//                 HelperFunctionEntry {
-//                     // type_index: 2,
-//                     params: vec![OperandDataType::I32],
-//                     results: vec![OperandDataType::I32],
-//                     local_variable_item_entries_without_args: vec![],
-//                     code: code1,
-//                 },
-//             ],
-//             &[],
-//             &[],
-//             &[],
-//             &[ExternalLibraryEntry::new(
-//                 "libtest0".to_owned(),
-//                 Box::new(ExternalLibraryDependency::Local(Box::new(
-//                     DependencyLocal {
-//                         path: "lib/libtest0.so.1".to_owned(),
-//                         condition: DependencyCondition::True,
-//                         parameters: HashMap::default(),
-//                     },
-//                 ))),
-//             )],
-//             &[HelperExternalFunctionEntry {
-//                 name: "do_something".to_string(),
-//                 external_library_index: 0,
-//                 params: vec![
-//                     OperandDataType::I64,
-//                     OperandDataType::I32,
-//                     OperandDataType::I32,
-//                 ],
-//                 result: Some(OperandDataType::I32),
-//             }],
-//         );
-//
-//         let mut pwd = std::env::current_dir().unwrap();
-//         // let pkg_name = env!("CARGO_PKG_NAME");
-//         let crate_folder_name = "processor";
-//         if !pwd.ends_with(crate_folder_name) {
-//             // in the VSCode `Debug` environment, the `current_dir()`
-//             // the project root folder.
-//             // while in both `$ cargo test` and VSCode `Run Test` environment
-//             // the `current_dir()` return the current crate path.
-//             pwd.push("crates");
-//             pwd.push(crate_folder_name);
-//         }
-//         pwd.push("tests");
-//         // let application_path = pwd.to_str().unwrap();
-//
-//         /* let handler = Handler::new(); */
-//         let resource0 = InMemoryProgramSource::with_property(
-//             vec![binary0],
-//             ProcessProperty::new(
-//                 pwd,
-//                 ProgramSourceType::Module,
-//                 vec![],
-//                 HashMap::<String, String>::new(),
-//             ),
-//         );
-//         let process_context0 = resource0.create_process_context().unwrap();
-//         let mut thread_context0 = process_context0.create_thread_context();
-//
-//         let result0 = process_function(
-//             &handler,
-//             &mut thread_context0,
-//             0,
-//             0,
-//             &[ForeignValue::U32(11), ForeignValue::U32(13)],
-//         );
-//         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11 * 2 + 13)]);
-//
-//         let result1 = process_function(
-//             &handler,
-//             &mut thread_context0,
-//             0,
-//             0,
-//             &[ForeignValue::U32(211), ForeignValue::U32(223)],
-//         );
-//         assert_eq!(result1.unwrap(), vec![ForeignValue::U32(211 * 2 + 223)]);
-//     }
+    //     #[test]
+    //     fn test_handler_host_addr_function_and_callback_function() {
+    //         // `do_something` is an external function (a C function) in "libtest0.so.1":
+    //         //
+    //         // ```c
+    //         // int do_something(int (*callback_function)(int), int a, int b)
+    //         // {
+    //         //     int s = (callback_function)(a);
+    //         //     return s + b;
+    //         // }
+    //         // ```
+    //         //
+    //         // `function0` and `function1` are VM functions:
+    //         //
+    //         // ```code
+    //         // ;; the entry function
+    //         // fn function0 (a:i32, b:i32)->i32 {
+    //         //     call(do_something, host_addr_function(function1), a, b)
+    //         // }
+    //         //
+    //         // ;; used as callback function for external function 'do_something'
+    //         // fn function1 (a:i32) -> i32 {
+    //         //     a*2
+    //         // }
+    //         // ```
+    //         //
+    //         // the calling path:
+    //         //
+    //         // ```diagram
+    //         // (11,13) ->
+    //         //   function0 (VM function) ->
+    //         //     do_something (external function) ->
+    //         //       function1 (VM function) ->
+    //         //     return to do_something ->
+    //         //   return to function0 ->
+    //         // returns 35
+    //         // ```
+    //
+    //         // VM function 0
+    //         let code0 = BytecodeWriterHelper::new()
+    //             .append_opcode_i32(Opcode::host_addr_function, 1) // get host address of the func1, for external func param 0
+    //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0) // for external func param 1
+    //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 1) // for external func param 2
+    //             //
+    //             .append_opcode_i32(Opcode::extcall, 0) // call external function, external function index = 0
+    //             //
+    //             .append_opcode(Opcode::end)
+    //             .to_bytes();
+    //
+    //         // VM function 1
+    //         let code1 = BytecodeWriterHelper::new()
+    //             .append_opcode_i16_i32(Opcode::local_load_i32_u, 0, 0)
+    //             .append_opcode_i32(Opcode::imm_i32, 2)
+    //             .append_opcode(Opcode::mul_i32)
+    //             //
+    //             .append_opcode(Opcode::end)
+    //             .to_bytes();
+    //
+    //         let binary0 = helper_build_module_binary_with_functions_and_data_and_external_functions(
+    //             &[
+    //                 HelperFunctionEntry {
+    //                     // type_index: 1,
+    //                     params: vec![OperandDataType::I32, OperandDataType::I32],
+    //                     results: vec![OperandDataType::I32],
+    //                     local_variable_item_entries_without_args: vec![],
+    //                     code: code0,
+    //                 },
+    //                 HelperFunctionEntry {
+    //                     // type_index: 2,
+    //                     params: vec![OperandDataType::I32],
+    //                     results: vec![OperandDataType::I32],
+    //                     local_variable_item_entries_without_args: vec![],
+    //                     code: code1,
+    //                 },
+    //             ],
+    //             &[],
+    //             &[],
+    //             &[],
+    //             &[ExternalLibraryEntry::new(
+    //                 "libtest0".to_owned(),
+    //                 Box::new(ExternalLibraryDependency::Local(Box::new(
+    //                     DependencyLocal {
+    //                         path: "lib/libtest0.so.1".to_owned(),
+    //                         condition: DependencyCondition::True,
+    //                         parameters: HashMap::default(),
+    //                     },
+    //                 ))),
+    //             )],
+    //             &[HelperExternalFunctionEntry {
+    //                 name: "do_something".to_string(),
+    //                 external_library_index: 0,
+    //                 params: vec![
+    //                     OperandDataType::I64,
+    //                     OperandDataType::I32,
+    //                     OperandDataType::I32,
+    //                 ],
+    //                 result: Some(OperandDataType::I32),
+    //             }],
+    //         );
+    //
+    //         let mut pwd = std::env::current_dir().unwrap();
+    //         // let pkg_name = env!("CARGO_PKG_NAME");
+    //         let crate_folder_name = "processor";
+    //         if !pwd.ends_with(crate_folder_name) {
+    //             // in the VSCode `Debug` environment, the `current_dir()`
+    //             // the project root folder.
+    //             // while in both `$ cargo test` and VSCode `Run Test` environment
+    //             // the `current_dir()` return the current crate path.
+    //             pwd.push("crates");
+    //             pwd.push(crate_folder_name);
+    //         }
+    //         pwd.push("tests");
+    //         // let application_path = pwd.to_str().unwrap();
+    //
+    //
+    //         let resource0 = InMemoryProgramSource::with_property(
+    //             vec![binary0],
+    //             ProcessProperty::new(
+    //                 pwd,
+    //                 ProgramSourceType::Module,
+    //                 vec![],
+    //                 HashMap::<String, String>::new(),
+    //             ),
+    //         );
+    //         let process_context0 = resource0.create_process_context().unwrap();
+    //         let mut thread_context0 = process_context0.create_thread_context();
+    //
+    //         let result0 = process_function(
+    //             &handler,
+    //             &mut thread_context0,
+    //             0,
+    //             0,
+    //             &[ForeignValue::U32(11), ForeignValue::U32(13)],
+    //         );
+    //         assert_eq!(result0.unwrap(), vec![ForeignValue::U32(11 * 2 + 13)]);
+    //
+    //         let result1 = process_function(
+    //             &handler,
+    //             &mut thread_context0,
+    //             0,
+    //             0,
+    //             &[ForeignValue::U32(211), ForeignValue::U32(223)],
+    //         );
+    //         assert_eq!(result1.unwrap(), vec![ForeignValue::U32(211 * 2 + 223)]);
+    //     }
 }

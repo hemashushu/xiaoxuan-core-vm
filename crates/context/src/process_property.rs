@@ -6,6 +6,7 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
+#[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgramSourceType {
     // Represents a module.

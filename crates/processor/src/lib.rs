@@ -32,15 +32,15 @@ pub struct ProcessorError {
 #[repr(u16)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProcessorErrorType {
-    ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
-    ResultsAmountMissmatch,    // The number of return values does not match the specified funcion.
-    DataTypeMissmatch,         // data type does not match
-    ItemNotFound, // the specified item (such as module, function, local vaiarble, or data) does not found.
-    StackOverflow, // stack overflow
-    UnsupportedFloatingPointVariants, // Unsupported floating point variants: NaN, +Inf, and -Inf.
-    ExternalFunctionMoreThanOneResult, // The external function has more than one return value.
-    EntryPointNotFound(String),
-    Terminate(i32),
+    ParametersAmountMissmatch, // The number of arguments does not match the specified function.
+    ResultsAmountMissmatch,    // The number of return values does not match the specified function.
+    DataTypeMissmatch,         // The data type does not match the expected type.
+    ItemNotFound, // The specified item (such as module, function, local variable, or data) was not found.
+    StackOverflow, // Stack overflow occurred.
+    UnsupportedFloatingPointVariants, // Unsupported floating point values: NaN, +Inf, or -Inf.
+    ExternalFunctionMoreThanOneResult, // The external function has more than one return value, which is not supported.
+    EntryPointNotFound(String),        // The specified entry point was not found.
+    Terminate(i32),                    // Program terminated with the given code.
 }
 
 impl ProcessorError {

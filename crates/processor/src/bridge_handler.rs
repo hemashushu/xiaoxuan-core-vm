@@ -17,7 +17,6 @@ use cranelift_module::{Linkage, Module};
 
 use crate::{
     code_generator::Generator,
-    handler::Handler,
     jit_context::convert_vm_operand_data_type_to_jit_type,
     process::{process_continuous_instructions, EXIT_CURRENT_HANDLER_LOOP_BIT},
     ProcessorError, ProcessorErrorType,
@@ -26,7 +25,6 @@ use crate::{
 static LAST_BRIDGE_FUNCTION_ID: Mutex<usize> = Mutex::new(0);
 
 pub fn get_or_create_bridge_function(
-    handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,
@@ -108,7 +106,6 @@ pub fn get_or_create_bridge_data(
 }
 
 pub fn get_or_create_bridge_callback_function(
-    handler: &Handler,
     thread_context: &mut ThreadContext,
     module_index: usize,
     function_public_index: usize,

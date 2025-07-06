@@ -17,92 +17,81 @@ use anc_isa::ForeignValue;
 use crate::{process::process_function, GenericError, ProcessorError, ProcessorErrorType};
 
 thread_local! {
-    // PROCESS_CONTEXT_ADDRESS should be 'process global', but the unit test
-    // runs on parallel and overwrite these values in each thread.
-    // change to 'thread local' to avoid this.
+    // PROCESS_CONTEXT_ADDRESS should be process-global, but unit tests run in parallel
+    // and may overwrite these values in each thread. Using thread-local storage avoids conflicts.
 
-    // pointer to the "process context" and "handler" objects
+    // Pointer to the process context object.
     pub static PROCESS_CONTEXT_ADDRESS: RefCell<usize> = const{ RefCell::new(0) };
     // pub static HANDLER_ADDRESS: RefCell<usize> =  const{  RefCell::new(0) };
 
-    // the collection of child threads
+    // Collection of child threads for the current thread.
     pub static CHILD_THREADS:RefCell<BTreeMap<u32, ChildThread>> = const {RefCell::new(BTreeMap::new())};
 
-    // an incremented only integer that is used to generate the child thread id.
+    // Monotonically increasing integer used to generate unique child thread IDs.
     pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = const {RefCell::new(0)};
 
-    // the current thread id
+    // The current thread's ID.
     pub static CURRENT_THREAD_ID:RefCell<u32> = const {RefCell::new(0)};
 
-    // the Tx and Rx
-    // -------------
-    //
-    // threads communicate through message pipe, the raw type of message is u8 array,
-    // so the message can be:
-    //
-    // - primitive data
-    // - a struct
-    // - an array
-    // - (the address of) a function
-    // - (the address of) a closure function
+    // Message passing (Tx and Rx)
+    // ---------------------------
+    // Threads communicate via message pipes. The raw message type is a u8 array, so messages can be:
+    // - Primitive data
+    // - Structs
+    // - Arrays
+    // - (The address of) a function
+    // - (The address of) a closure function
 
-    // the receiver that connects to the parent thread
-    //
-    // note:
-    // "parent thread" is the creator of the current thread
-    pub static RX:RefCell<Option<Receiver<Vec<u8>>>> =const { RefCell::new(None)};
+    // Receiver for messages from the parent thread.
+    // Note: The "parent thread" is the creator of the current thread.
+    pub static RX:RefCell<Option<Receiver<Vec<u8>>>> = const { RefCell::new(None) };
 
-    // the sender that connect to the parent thread
-    pub static TX:RefCell<Option<Sender<Vec<u8>>>> = const {RefCell::new(None)};
+    // Sender for messages to the parent thread.
+    pub static TX:RefCell<Option<Sender<Vec<u8>>>> = const { RefCell::new(None) };
 
-    // the data (an u8 array) that comes from the parent thread
+    // Data (u8 array) sent from the parent thread at thread start.
     pub static THREAD_START_DATA:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 
-    // this is a temporary memory (call `letter paper`).
+    // Temporary buffer ("letter paper") for the last received message.
     //
-    // it will be replaced with new message each time the function
+    // This buffer is replaced with a new message each time
     // `thread_receive_msg` or `thread_receive_msg_from_parent` is called
-    // and the message box is not empty.
-    // to read the message, call the function `thread_msg_read`.
+    // and the message box is not empty. To read the message, call `thread_msg_read`.
     //
     // ```diagram
     //
-    //        parent thread
-    //        or child thread         current thread
-    //        |                       |
-    //        |                       |
-    //        |                       |
-    //        |                   /---------\
-    // 1. `thread_send_msg()` --> | message |
-    //                            | box     |
-    //                            \---------/
-    //                                |
-    //                                |  2. `thread_receive_msg_from_parent()`
-    //                                |    or `thread_receive_msg()`
-    //                                |    the current thread will be blocked
-    //                                |    if the messagebox is empty.
-    //                                v
-    //                           /--------\
-    //                           | letter |
-    //                           | paper  |
-    //                           \--------/
-    //                                |
-    //                                |  3. `thread_msg_read()`
-    //                                v
-    //                           memory or data
-    //
+    //        parent thread or child thread      current thread
+    //        |                                  |
+    //        |                                  |
+    //        |                             /---------\
+    // 1. `thread_send_msg()` ------------> | message |
+    //                                      | box     |
+    //                                      \---------/
+    //                                          |
+    //                                          | 2. `thread_receive_msg_from_parent()`
+    //                                          |    or `thread_receive_msg()`
+    //                                          |    (blocks if message box is empty)
+    //                                          v
+    //                                     /--------\
+    //                                     | letter |
+    //                                     | paper  |
+    //                                     \--------/
+    //                                          |
+    //                                          | 3. `thread_msg_read()`
+    //                                          v
+    //                                     memory or data
     // ```
     pub static LAST_THREAD_MESSAGE:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 }
 
 pub struct ChildThread {
-    // the child thread on host will return the 'thread_exit_code'
+    // Join handle for the child thread. Returns the thread's exit code (u32) or an error.
     pub join_handle: JoinHandle<Result<u32, GenericError>>,
 
-    // the receiver that connects to the child thread
+    // Receiver for messages sent from the child thread to the parent.
     pub rx: Receiver<Vec<u8>>,
 
-    // the sender that connects to the child thread
+    // Sender for messages sent from the parent to the child thread.
     pub tx: Sender<Vec<u8>>,
 }
 
@@ -112,10 +101,10 @@ pub struct ThreadStartFunction {
     pub function_public_index: usize,
 }
 
-/// the signature of the "thread start function" must be:
-/// `fn () -> exit_code:u32`
+/// The signature of the "thread start function" must be:
+/// `fn () -> exit_code: u32`
 ///
-/// Returns the new thread's id.
+/// Returns the new thread's ID.
 pub fn create_thread(
     thread_start_function: ThreadStartFunction,
     thread_start_data: Vec<u8>,
@@ -138,20 +127,18 @@ pub fn create_thread(
 
     const HOST_THREAD_STACK_SIZE: usize = 128 * 1024; // 128 KB
 
-    // the default stack size is 2MB
-    // https://doc.rust-lang.org/stable/std/thread/index.html#stack-size
-    // change to a smaller size
+    // Set up the thread builder with a reduced stack size (default is 2MB; here set to 128KB).
+    // See: https://doc.rust-lang.org/stable/std/thread/index.html#stack-size
     let thread_builder = std::thread::Builder::new().stack_size(HOST_THREAD_STACK_SIZE);
 
-    // let entry_point_name_string = entry_point_name.to_owned();
     let join_handle = thread_builder
         .spawn(move || {
-            // store the address of process_context
+            // Store the process context address in thread-local storage.
             PROCESS_CONTEXT_ADDRESS.with(|data| {
                 *data.borrow_mut() = process_context_address;
             });
 
-            // set up the local properties
+            // Set up thread-local properties for the new thread.
             CURRENT_THREAD_ID.with(|id_cell| {
                 *id_cell.borrow_mut() = next_thread_id;
             });
@@ -164,13 +151,12 @@ pub fn create_thread(
                 tx.replace(Some(child_tx));
             });
 
-            // store the thread additional data
-            // let thread_start_data_length = thread_start_data.len();
-
+            // Store the thread's start data.
             THREAD_START_DATA.with(|data| {
                 data.replace(thread_start_data);
             });
 
+            // SAFETY: The process context pointer is valid for the lifetime of the process.
             let process_context_ptr = process_context_address as *const u8 as *const ProcessContext;
             let process_context = unsafe { &*process_context_ptr };
 
@@ -180,14 +166,12 @@ pub fn create_thread(
                 &mut thread_context,
                 thread_start_function.module_index,
                 thread_start_function.function_public_index,
-                // the specified function should only has no parameters
+                // The thread start function must not take any parameters.
                 &[],
             );
 
-            // returns `Result<Vec<ForeignValue>, Box<ProcessorError>>`
-            //
-            // the 'thread start function' should only return one value,
-            // it is the user-defined thread exit code.
+            // Returns `Result<Vec<ForeignValue>, Box<ProcessorError>>`.
+            // The thread start function must return exactly one value (the exit code).
             let result = match result_foreign_values {
                 Ok(foreign_values) => {
                     if foreign_values.len() != 1 {
@@ -205,21 +189,24 @@ pub fn create_thread(
                 Err(e) => Err(e),
             };
 
+            // Map the error type for the join handle.
             result.map_err(|entry_error| Box::new(entry_error) as GenericError)
         })
         .unwrap();
 
     let child_thread = ChildThread {
         join_handle,
-        rx: parent_rx,
-        tx: parent_tx,
+        rx: parent_rx, // Receiver for messages from the child thread
+        tx: parent_tx, // Sender for messages to the child thread
     };
 
+    // Register the new child thread in the thread-local child thread collection.
     CHILD_THREADS.with(|child_threads| {
         child_threads
             .borrow_mut()
             .insert(next_thread_id, child_thread);
     });
 
+    // Return the new thread's ID.
     next_thread_id
 }

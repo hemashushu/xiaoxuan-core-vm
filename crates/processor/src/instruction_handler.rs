@@ -4,15 +4,12 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-// use std::sync::Mutex;
-
 use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
 use anc_isa::opcode::Opcode;
 use anc_stack::ProgramCounter;
-// use cranelift_jit::JITModule;
 
-pub type HandlerFunc = fn(/* &Handler, */ &mut ThreadContext) -> HandleResult;
+pub type HandlerFunc = fn(&mut ThreadContext) -> HandleResult;
 
 mod arithmetic;
 mod bitwise;
@@ -80,9 +77,7 @@ pub enum HandleResult {
     Terminate(/* terminate_code */ i32),
 }
 
-fn unreachable_handler(
-    /* _handler: &Handler, */ thread_context: &mut ThreadContext,
-) -> HandleResult {
+fn unreachable_handler(thread_context: &mut ThreadContext) -> HandleResult {
     let pc = &thread_context.pc;
     let function_item = &thread_context.module_common_instances[pc.module_index]
         .function_section
@@ -109,31 +104,6 @@ Bytecode:
     );
 }
 
-// #[non_exhaustive]
-// pub struct Handler {
-//     // pub syscall_handlers: [SysCallHandlerFunc; MAX_SYSCALL_TYPE_NUMBER],
-//     // pub envcall_handlers: [EnvCallHandlerFunc; MAX_ENVCALL_CODE_NUMBER],
-//     pub jit_generator: Mutex<Generator<JITModule>>,
-// }
-//
-// impl Handler {
-//     pub fn new() -> Self {
-//         Handler {
-//             // handlers,
-//             // syscall_handlers: generate_syscall_handlers(),
-//             // envcall_handlers: generate_envcall_handlers(),
-//             jit_generator: get_jit_generator_without_imported_symbols(),
-//         }
-//     }
-// }
-//
-// impl Default for Handler {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
-// impl Handler {
 #[inline]
 pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
     let opcode = unsafe { std::mem::transmute::<u16, Opcode>(opcode_integer) };
@@ -468,4 +438,3 @@ pub fn get_instruction_handler(opcode_integer: u16) -> HandlerFunc {
         _ => unreachable_handler,
     }
 }
-// }
