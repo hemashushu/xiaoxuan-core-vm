@@ -206,10 +206,7 @@ mod tests {
             HelperExternalFunctionEntry, HelperFunctionEntry,
         },
     };
-    use anc_isa::{
-        opcode::Opcode, DependencyCondition, DependencyLocal, ExternalLibraryDependency,
-        ForeignValue, OperandDataType,
-    };
+    use anc_isa::{opcode::Opcode, ExternalLibraryDependency, ForeignValue, OperandDataType};
     use dyncall_util::cstr_pointer_to_str;
     use syscall_util::{errno::Errno, number::SysCallNum};
 

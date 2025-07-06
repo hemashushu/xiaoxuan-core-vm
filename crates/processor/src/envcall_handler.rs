@@ -73,14 +73,14 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
         0x0003 => {
             // Category: Process environment
             match envcall_num {
-                EnvCallNum::program_path_size => envcall_unreachable_handler,
-                EnvCallNum::program_path_text => envcall_unreachable_handler,
+                EnvCallNum::program_path_length => envcall_unreachable_handler,
+                EnvCallNum::program_path_read => envcall_unreachable_handler,
                 EnvCallNum::program_source_type => envcall_unreachable_handler,
-                EnvCallNum::argument_size => envcall_unreachable_handler,
-                EnvCallNum::argument_text => envcall_unreachable_handler,
+                EnvCallNum::argument_length => envcall_unreachable_handler,
+                EnvCallNum::argument_read => envcall_unreachable_handler,
                 EnvCallNum::environment_variable_count => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_item_size => envcall_unreachable_handler,
-                EnvCallNum::environment_variable_item_text => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_item_length => envcall_unreachable_handler,
+                EnvCallNum::environment_variable_item_read => envcall_unreachable_handler,
                 EnvCallNum::environment_variable_set => envcall_unreachable_handler,
                 EnvCallNum::environment_variable_remove => envcall_unreachable_handler,
                 _ => envcall_unreachable_handler,

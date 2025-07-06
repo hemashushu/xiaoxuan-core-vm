@@ -8,12 +8,11 @@ use core::str;
 use std::{ffi::c_void, path::PathBuf, sync::Mutex};
 
 use anc_context::{
-    code_generator::Generator,
+    code_generator::{convert_vm_operand_data_type_to_jit_type, Generator},
     external_function_table::{
         ExternalFunctionTable, UnifiedExternalFunctionPointerItem,
         UnifiedExternalLibraryPointerItem, WrapperFunction, WrapperFunctionItem,
     },
-    jit_context::convert_vm_operand_data_type_to_jit_type,
     process_property::ProgramSourceType,
     thread_context::ThreadContext,
 };

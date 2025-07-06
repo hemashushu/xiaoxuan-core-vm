@@ -161,7 +161,7 @@ mod tests {
     use anc_context::program_source::ProgramSource;
     use anc_image::{
         bytecode_writer::BytecodeWriterHelper,
-        entry::{ReadOnlyDataEntry, ReadWriteDataEntry, UninitDataEntry},
+        entry::{ReadOnlyDataEntry, UninitDataEntry},
         utils::helper_build_module_binary_with_single_function_and_data,
     };
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType};

@@ -8,32 +8,29 @@ use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
 use crate::{
-    multithread_handler::{
-        create_thread, ThreadStartFunction, CHILD_THREADS, PROCESS_CONTEXT_ADDRESS,
-        THREAD_START_DATA,
-    },
+    multithread_handler::{PROCESS_CONTEXT_ADDRESS, THREAD_START_DATA},
     process::process_function,
     ProcessorError, ProcessorErrorType,
 };
 
-/// internal entry point names:
+/// Internal entry point naming conventions:
 ///
-/// - internal entry point name: "_start"
-///   executes function: '{app_module_name}::_start' (the default entry point)
-///   user CLI unit name: "" (empty string)
+/// - "_start":
+///     Executes '{app_module_name}::_start' (the default entry point).
+///     User CLI unit name: "" (empty string).
 ///
-/// - internal entry point name: "{submodule_name}"
-///   executes function: '{app_module_name}::app::{submodule_name}::_start' (the additional executable units)
-///   user CLI unit name: ":{submodule_name}"
+/// - "{submodule_name}":
+///     Executes '{app_module_name}::app::{submodule_name}::_start' (an additional executable unit).
+///     User CLI unit name: ":{submodule_name}".
 ///
-/// - internal entry point name: "{submodule_name}::test_*"
-///   executes function: '{app_module_name}::tests::{submodule_name}::test_*' (unit tests)
-///   user CLI unit name: name path prefix, e.g. "{submodule_name}", "{submodule_name}::test_get_"
+/// - "{submodule_name}::test_*":
+///     Executes '{app_module_name}::tests::{submodule_name}::test_*' (unit test function).
+///     User CLI unit name: name path prefix, e.g. "{submodule_name}", "{submodule_name}::test_get_".
 ///
-/// The type of entry function:
+/// Entry function signature:
 ///
-/// the entry functions (includes the default entry, additional executable units and unit test functions)
-/// should returns i32, as well as the thread start function also returns i32.
+/// All entry functions (including the default entry, additional executable units, and unit test functions)
+/// must return i32. The thread start function must also return i32.
 pub fn start_program(
     process_context: &ProcessContext,
     internal_entry_point_name: &str,
@@ -51,8 +48,6 @@ pub fn start_program(
 
     let mut thread_context = process_context.create_thread_context();
 
-    // use the function 'entry' as the startup function
-
     let function_public_index = if let Some(idx) = thread_context
         .module_linking_instance
         .entry_point_section
@@ -65,8 +60,8 @@ pub fn start_program(
         )));
     };
 
-    // the signature of the 'entry function' must:
-    // 'fn () -> exit_code:u32'
+    // The signature of the entry function must be exactly:
+    // 'fn () -> exit_code: i32'
 
     const MAIN_MODULE_INDEX: usize = 0;
 
@@ -108,8 +103,8 @@ mod tests {
 
     #[test]
     fn test_start_program() {
-        // the signature of 'thread start function' must:
-        // () -> (i32)
+        // The signature of the entry function must be exactly:
+        // 'fn () -> exit_code: i32'
 
         const CUSTOM_EXIT_CODE: u32 = 0x11;
 

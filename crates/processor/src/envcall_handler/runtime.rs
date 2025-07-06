@@ -8,33 +8,32 @@ use anc_context::thread_context::ThreadContext;
 use anc_isa::RUNTIME_EDITION;
 
 pub fn runtime_edition(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
-    // `fn (module_index: i32, data_public_index: i32)`
+    // `fn (module_index: i32, data_access_index: i64)`
 
     const CONTENT_LENGTH_IN_BYTES: usize = RUNTIME_EDITION.len();
 
-    let data_public_index = thread_context.stack.pop_i32_u();
+    let data_access_index = thread_context.stack.pop_i64_u();
     let module_index = thread_context.stack.pop_i32_u();
 
     let target_data_object = thread_context.get_target_data_object(
         module_index as usize,
-        data_public_index as usize,
+        data_access_index as usize,
         0,
         CONTENT_LENGTH_IN_BYTES,
     );
 
-    let start_address = target_data_object
-        .accessor
-        .get_start_address_by_index(target_data_object.data_internal_index_in_section);
-    let dst_ptr = target_data_object.accessor.get_mut_ptr(start_address, 0);
-
     let src_ptr = RUNTIME_EDITION.as_ptr();
-    unsafe {
-        std::ptr::copy(src_ptr, dst_ptr, CONTENT_LENGTH_IN_BYTES);
-    }
+
+    target_data_object.accessor.write_idx(
+        src_ptr,
+        data_access_index as usize,
+        0,
+        CONTENT_LENGTH_IN_BYTES,
+    );
 }
 
 pub fn runtime_version(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
-    // `fn () -> version:u64`
+    // `fn () -> i64`
     //
     // 0x0000_0000_0000_0000
     //        |    |    |
@@ -42,10 +41,12 @@ pub fn runtime_version(/* _handler: &Handler, */ thread_context: &mut ThreadCont
     //        |    |minor
     //        |major
 
+    // Cargo environment variables provide the version information of the package.
+    // - `CARGO_PKG_VERSION_MAJOR`: The major version of your package.
+    // - `CARGO_PKG_VERSION_MINOR`: The minor version of your package.
+    // - `CARGO_PKG_VERSION_PATCH`: The patch version of your package.
+    //
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-    // CARGO_PKG_VERSION_MAJOR — The major version of your package.
-    // CARGO_PKG_VERSION_MINOR — The minor version of your package.
-    // CARGO_PKG_VERSION_PATCH — The patch version of your package.
     let version_patch = env!("CARGO_PKG_VERSION_PATCH").parse::<u16>().unwrap();
     let version_minor = env!("CARGO_PKG_VERSION_MINOR").parse::<u16>().unwrap();
     let version_major = env!("CARGO_PKG_VERSION_MAJOR").parse::<u16>().unwrap();
@@ -71,20 +72,20 @@ mod tests {
     use anc_isa::{opcode::Opcode, ForeignValue, OperandDataType, RUNTIME_EDITION};
 
     use crate::{
-        envcall_num::EnvCallNum,  in_memory_program_source::InMemoryProgramSource,
+        envcall_num::EnvCallNum, in_memory_program_source::InMemoryProgramSource,
         process::process_function,
     };
 
     #[test]
     fn test_envcall_runtime_edition() {
         // ```code
-        // fn test () -> (i64)
-        //                ^
-        //                |data pointer
+        // fn test () -> i64
+        //               ^
+        //               |data pointer
         // ```
 
         let code0 = BytecodeWriterHelper::new()
-            .append_opcode_i32(Opcode::get_data, 0)
+            .append_opcode_i32(Opcode::get_data, 0) // get module index and data access index of data 0
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_edition as u32)
             // get the data pointer
             .append_opcode_i16_i32(Opcode::host_addr_data, 0, 0)
@@ -106,24 +107,22 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
-        let fvs1 = result0.unwrap();
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let fvs0 = result0.unwrap();
+        let data_ptr_value = fvs0[0].as_u64();
+        let data_ptr = data_ptr_value as *const u8;
 
-        let data_ptr_value = fvs1[0].as_u64();
-        let mut buffer = [0u8; 8];
-
-        let src_ptr = data_ptr_value as *const u8;
-        let dst_ptr = buffer.as_mut_ptr();
-
+        let mut data = vec![0u8; 8];
         unsafe {
-            std::ptr::copy(src_ptr, dst_ptr, buffer.len());
+            std::ptr::copy(data_ptr, data.as_mut_ptr(), 8);
         }
-        assert_eq!(RUNTIME_EDITION, &buffer);
+
+        assert_eq!(RUNTIME_EDITION, &data[..RUNTIME_EDITION.len()]);
     }
 
     #[test]
     fn test_envcall_runtime_version() {
-        // `fn test () -> (i64)`
+        // `fn test () -> i64`
 
         let code0 = BytecodeWriterHelper::new()
             .append_opcode_i32(Opcode::envcall, EnvCallNum::runtime_version as u32)
@@ -142,7 +141,7 @@ mod tests {
         let process_context0 = resource0.create_process_context().unwrap();
         let mut thread_context0 = process_context0.create_thread_context();
 
-        let result0 = process_function( /* &handler, */ &mut thread_context0, 0, 0, &[]);
+        let result0 = process_function(/* &handler, */ &mut thread_context0, 0, 0, &[]);
 
         let version_patch = env!("CARGO_PKG_VERSION_PATCH").parse::<u16>().unwrap();
         let version_minor = env!("CARGO_PKG_VERSION_MINOR").parse::<u16>().unwrap();

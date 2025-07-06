@@ -6,9 +6,7 @@
 
 use std::sync::Mutex;
 
-use anc_allocator::{
-    allocator::Allocator, mimallocator::MiMAllocator, vec_allocator::VecAllocator,
-};
+use anc_allocator::{allocator::Allocator, mimallocator::MiMAllocator};
 use anc_image::module_image::{ModuleImage, Visibility};
 use anc_isa::DataSectionType;
 use anc_memory::indexed_memory_access::IndexedMemoryAccess;

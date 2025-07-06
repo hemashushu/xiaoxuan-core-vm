@@ -28,7 +28,7 @@ pub enum EnvCallNum {
 
     // Retrieve the VM runtime edition.
     //
-    // `fn (module_index: i32, data_public_index: i32)`
+    // `fn (module_index: i32, data_access_index: i64)`
     //
     // The data must be 8 bytes long.
     // The content is either a string with 8 characters or a null-terminated string.
@@ -50,7 +50,7 @@ pub enum EnvCallNum {
 
     // Retrieve the host's architecture.
     //
-    // `fn (module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // The data must be 16 bytes long.
     // The content is either a string with 16 characters or a null-terminated string.
@@ -60,7 +60,7 @@ pub enum EnvCallNum {
 
     // Retrieve the host's operating system.
     //
-    // `fn (module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // The data must be 16 bytes long.
     // The content is either a string with 16 characters or a null-terminated string.
@@ -70,7 +70,7 @@ pub enum EnvCallNum {
 
     // Retrieve the host's OS family.
     //
-    // `fn (module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // The data must be 16 bytes long.
     // The content is either a string with 16 characters or a null-terminated string.
@@ -105,15 +105,15 @@ pub enum EnvCallNum {
     // The "program_path" is the file path of the currently running program.
     // It may be a directory path for an application module, a file path for a script or image file,
     // or an empty string if the program is built in memory.
-    program_path_size = 0x0003_0000,
+    program_path_length = 0x0003_0000,
 
     // Retrieve the data of the "program_path".
     //
-    // `fn (module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of the data read.
     // If the data length is less than the content length, the VM will panic.
-    program_path_text,
+    program_path_read,
 
     // Retrieve the program's source type.
     //
@@ -127,17 +127,19 @@ pub enum EnvCallNum {
     program_source_type,
 
     // Retrieve the length of the program all arguments in bytes.
+    // Arguments are separated by '\0' (null character).
     //
     // `fn () -> i32`
-    argument_size,
+    argument_length,
 
     // Retrieve the data of program all arguments.
+    // Arguments are separated by '\0' (null character).
     //
-    // `fn (module_index: i32, data_public_index: i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of the data read.
     // If the data length is less than the content length, the VM will panic.
-    argument_text,
+    argument_read,
 
     // Retrieve the number of environment variables.
     //
@@ -147,26 +149,26 @@ pub enum EnvCallNum {
     // Retrieve the length of the specified environment variable by index.
     //
     // `fn (environment_variable_index: i32) -> i32`
-    environment_variable_item_size,
+    environment_variable_item_length,
 
     // Retrieve the data of the specified environment variable by index.
     //
-    // `fn (environment_variable_index: i32, module_index: i32, data_public_index: i32) -> i32`
+    // `fn (environment_variable_index: i32, module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of the data read.
     // If the data length is less than the content length, the VM will panic.
-    environment_variable_item_text,
+    environment_variable_item_read,
 
     // Set a specific environment variable.
     //
-    // `fn (module_index: i32, data_public_index: i32, data_length_in_bytes: i32)`
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes: i32)`
     //
     // The data content is a string in the format "name=value", e.g., "EDITOR=vim".
     environment_variable_set,
 
     // Remove the environment variable with the specified name.
     //
-    // `fn (module_index: i32, data_public_index: i32, data_length_in_bytes: i32)`
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes: i32)`
     //
     // The data content is a string representing the name of the environment variable.
     environment_variable_remove,
@@ -226,9 +228,9 @@ pub enum EnvCallNum {
 
     // Open or create a file.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32, open_options: i32, access_mode: i32) -> (file_index: i32, io_error_number: i32)`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32, open_options: i32, access_mode: i32) -> (file_index: i32, io_error_number: i32)`
     //
-    // Parameters `module_index` and `data_public_index` specify a data object representing a file path.
+    // Parameters `module_index` and `data_access_index` specify a data object representing a file path.
     // The file path can be absolute (e.g., /home/yang/Documents/readme.txt) or relative (e.g., ../images/banner.png),
     // but cannot include shell-specific paths like `~/Downloads/123.dat` or `${HOME}/projects`.
     //
@@ -299,7 +301,7 @@ pub enum EnvCallNum {
 
     // Read data from a file and store it in a data object.
     //
-    // `fn (file_index: i32, module_index: i32, data_public_index: i32, data_offset: i32, expected_bytes: i32) -> (actual_read_bytes: i32, io_error_number: i32)`
+    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, expected_bytes: i32) -> (actual_read_bytes: i32, io_error_number: i32)`
     //
     // The return value `actual_read_bytes` will be 0 if the file offset is at or beyond the end of the file.
     // If the available data space is less than the expected number of bytes, the VM will panic.
@@ -307,7 +309,7 @@ pub enum EnvCallNum {
 
     // Write data to a file.
     //
-    // `fn (file_index: i32, module_index: i32, data_public_index: i32, data_offset: i32, bytes_to_write: i32) -> (actual_write_bytes: i32, io_error_number: i32)`
+    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, bytes_to_write: i32) -> (actual_write_bytes: i32, io_error_number: i32)`
     // If the available data is less than the `bytes_to_write`, the VM will panic.
     file_write,
 
@@ -350,12 +352,12 @@ pub enum EnvCallNum {
     // representing the directory stream.
     // The stream is positioned at the first entry in the directory.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> (dir_index: i32, fs_error_number: i32)`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (dir_index: i32, fs_error_number: i32)`
     fs_open_dir = 0x0007_0000,
 
     // Retrieve the next directory entry in the directory stream.
     //
-    // `fn (dir_index: i32, module_index: i32, data_public_index: i32) -> (bytes_read:i32, fs_error_number: i32)`
+    // `fn (dir_index: i32, module_index: i32, data_access_index: i64) -> (bytes_read:i32, fs_error_number: i32)`
     //
     // Retrieve the next entry in the directory stream.
     // The data buffer must be at least 256 bytes long. The exact size requirement may vary depending on the platform.
@@ -365,30 +367,30 @@ pub enum EnvCallNum {
 
     // Creates a new, empty directory at the provided path.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> fs_error_number: i32`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
     fs_create_dir,
 
     // Removes an empty directory.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> fs_error_number: i32`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
     fs_remove_dir,
 
     // Removes a file from the filesystem.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> fs_error_number: i32`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
     fs_remove_file,
 
     // Renames a file or directory to a new name, replacing the original file if the destination already exists.
     //
     // ```
-    // fn (source_module_index: i32, source_data_public_index: i32, source_content_length_in_bytes:i32,
-    // dest_module_index: i32, dest_data_public_index: i32, dest_content_length_in_bytes:i32) -> fs_error_number: i32`
+    // fn (source_module_index: i32, source_data_access_index: i64, source_content_length_in_bytes:i32,
+    // dest_module_index: i32, dest_data_access_index: i64, dest_content_length_in_bytes:i32) -> fs_error_number: i32`
     // ```
     fs_rename,
 
     // Checks if a file exists in the filesystem.
     //
-    // `fn (module_index: i32, data_public_index: i32, content_length_in_bytes:i32) -> (i32, fs_error_number: i32)`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (i32, fs_error_number: i32)`
     //
     // This function will traverse symbolic links to query information about the destination file.
     // In case of broken symbolic links, this will return Ok(false).
@@ -669,32 +671,32 @@ pub enum EnvCallNum {
 
     // Compile the given regular expression.
     //
-    // `fn (module_index:i32, data_public_index:i32, data_length_in_bytes:i32, flavour:i32) -> (regex_index:i32, regex_error_number:i32)`
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32, flavour:i32) -> (regex_index: i32, regex_error_number:i32)`
     //
     // The content of data is the regular expression text.
     // Parameter `flavour` represents the syntax of the regular expression:
     // 0 for traditional, 1 for the "XiaoXuan Regular Expression (ANRE)."
     //
-    // Returns `(regex_index:i32, regex_error_number:i32)`.
+    // Returns `(regex_index: i32, regex_error_number:i32)`.
     regex_create = 0x0009_0000,
 
     // Get the number of capture groups.
     //
-    // `fn (regex_index:i32) -> i32`
+    // `fn (regex_index: i32) -> i32`
     regex_capture_group_count,
 
     // Get the length of all capture group names.
     //
     // Group names are concatenated with a '\0' character.
     //
-    // `fn (regex_index:i32) -> i32`
+    // `fn (regex_index: i32) -> i32`
     regex_capture_group_names_length,
 
     // Get all capture group names.
     //
     // Group names are concatenated with a '\0' character.
     //
-    // `fn (regex_index:i32, module_index:i32, data_public_index:i32) -> i32`
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64) -> i32`
     //
     // Returns the actual length of data that was read.
     // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
@@ -702,14 +704,14 @@ pub enum EnvCallNum {
 
     // Start a matching operation with the given text and offset.
     //
-    // `fn (regex_index:i32, module_index:i32, data_public_index:i32, data_length_in_bytes:i32, offset_in_bytes:i32) -> (match_start:i32, match_length:i32)`
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32, offset_in_bytes:i32) -> (match_start:i32, match_length:i32)`
     //
     // Returns `(match_start:i32, match_length:i32)` if a match is found, or `(0, 0)` if no match is found.
     regex_match,
 
     // Get the result of the current capture groups.
     //
-    // `fn (regex_index:i32, module_index:i32, data_public_index:i32, data_length_in_bytes:i32) -> i32`
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32) -> i32`
     //
     // The result of capture groups is an `i32` array with the following scheme:
     //
@@ -722,6 +724,6 @@ pub enum EnvCallNum {
 
     // Remove the specified regex object.
     //
-    // `fn (regex_index:i32)`
+    // `fn (regex_index: i32)`
     regex_remove,
 }

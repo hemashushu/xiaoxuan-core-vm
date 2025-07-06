@@ -17,10 +17,6 @@ pub const THREAD_RUNNING_STATUS_RUNNING: u32 = 0;
 pub const THREAD_RUNNING_STATUS_FINISH: u32 = 1;
 pub const THREAD_ERROR_NUMBER_SUCCESS: u32 = 0;
 pub const THREAD_ERROR_NUMBER_NOT_FOUND: u32 = 1;
-pub const MESSAGE_SEND_RESULT_SUCCESS: u32 = 0;
-pub const MESSAGE_SEND_RESULT_FAILURE: u32 = 1;
-// pub const MESSAGE_RECEIVE_RESULT_SUCCESS: u32 = 0;
-// pub const MESSAGE_RECEIVE_RESULT_FAILURE: u32 = 1;
 
 pub fn thread_id(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn () -> i32`
@@ -33,8 +29,8 @@ pub fn thread_id(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
 pub fn thread_create(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // ```
     // fn (function_public_index: i32,
-    //    thread_start_data_access_index: i64,
-    //    thread_start_data_length: i64) -> i32
+    //     thread_start_data_access_index: i64,
+    //     thread_start_data_length: i64) -> i32
     // ```
 
     // get arguments
@@ -83,10 +79,12 @@ pub fn thread_start_data_length(/* _handler: &Handler, */ thread_context: &mut T
 }
 
 pub fn thread_start_data_read(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
-    // `fn (module_index: i32,
-    // data_access_index: i64,
-    // offset_of_thread_start_data: i64,
-    // expected_length_in_bytes: i64) -> i64`
+    // ```
+    // fn (module_index: i32,
+    //     data_access_index: i64,
+    //     offset_of_thread_start_data: i64,
+    //     expected_length_in_bytes: i64) -> i64
+    // ```
 
     let expected_length_in_bytes = thread_context.stack.pop_i64_u() as usize;
     let offset_of_thread_start_data = thread_context.stack.pop_i64_u() as usize;
@@ -195,6 +193,14 @@ pub fn thread_running_status(/* _handler: &Handler, */ thread_context: &mut Thre
 
 pub fn thread_terminate(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn (child_thread_id: i32) -> ()`
+    //
+    // Note: Dropping the sender (TX) will cause the receiver (RX) in the child thread to stop.
+    // See Rust's std::sync::mpsc documentation for details.
+    //
+    // Example:
+    // if let Some(child_thread) = opt_child_thread {
+    //     drop(child_thread.tx)
+    // }
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
@@ -203,26 +209,14 @@ pub fn thread_terminate(/* _handler: &Handler, */ thread_context: &mut ThreadCon
 
         // remove the child thread object from 'child thread collection'
         let _ = child_threads.remove(&child_thread_id);
-
-        // drop the TX to stop the RX in the child thread?
-        //
-        // ref:
-        // - https://doc.rust-lang.org/std/sync/mpsc/index.html
-        // - https://doc.rust-lang.org/std/sync/mpsc/struct.Sender.html
-        // - https://doc.rust-lang.org/std/sync/mpsc/struct.Receiver.html
-        //
-        // ```rust
-        // if let Some(child_thread) = opt_child_thread {
-        //     drop(child_thread.tx)
-        // }
-        // ```
     });
 }
 
 pub fn thread_send_msg(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // `fn (child_thread_id: i32, module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> thread_error_number: i32`
     //
-    // Returns 0 for success, 1 for failure (the child thread has finished or does not exist).
+    // Returns 0 for success, 1 for failure (if the child thread has finished or does not exist).
+    // This function is non-blocking and returns immediately.
 
     let content_length_in_bytes = thread_context.stack.pop_i64_u();
     let data_access_index = thread_context.stack.pop_i64_u();
@@ -235,8 +229,6 @@ pub fn thread_send_msg(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 
         let thread_error_number = match child_thread_opt {
             Some(child_thread) => {
-                // let src_ptr = src_memory_ptr as *const u8;
-                // let data_slice = unsafe { std::slice::from_raw_parts(src_ptr, content_length_in_bytes as usize) };
                 let target_data_object = thread_context.get_target_data_object(
                     module_index as usize,
                     data_access_index as usize,
@@ -267,6 +259,8 @@ pub fn thread_send_msg(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 
 pub fn thread_send_msg_to_parent(/* _handler: &Handler, */ thread_context: &mut ThreadContext,) {
     // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> ()`
+    //
+    // This function is non-blocking and returns immediately.
 
     let content_length_in_bytes = thread_context.stack.pop_i64_u();
     let data_access_index = thread_context.stack.pop_i64_u();
@@ -305,8 +299,8 @@ pub fn thread_receive_msg(/* _handler: &Handler, */ thread_context: &mut ThreadC
     // `fn (child_thread_id: i32) -> (length: i64, thread_error_number: i32)`
     //
     // Returns:
-    // - length: The length of the message in bytes.
-    // - thread_error_number: 0 for success, 1 for failure (the child thread has finished or does not exist).
+    // - length: The length of the received message in bytes.
+    // - thread_error_number: 0 for success, 1 for failure (if the child thread has finished or does not exist).
 
     let child_thread_id = thread_context.stack.pop_i32_u();
 
@@ -438,13 +432,14 @@ pub fn thread_msg_read(/* _handler: &Handler, */ thread_context: &mut ThreadCont
 // ref:
 // https://linux.die.net/man/2/nanosleep
 pub fn thread_sleep(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
-    // `fn (milliseconds:u64) -> ()`
+    // Blocks the current thread for the specified number of milliseconds.
+    //
+    // Signature: `fn (milliseconds: i64) -> ()`
 
     let milliseconds = thread_context.stack.pop_i64_u();
     thread::sleep(Duration::from_millis(milliseconds));
 }
 
-// note::
-// unit tests for multithread functions are too complicated
-// if written directly in bytecode, so leave these unit tests to
-// to done in project 'xiaoxuan-core-assembly'.
+// Note:
+// Unit tests for multithread functions are complex to write directly in bytecode.
+// These tests are implemented in the 'xiaoxuan-core-assembly' project.
