@@ -9,7 +9,11 @@ edition = "2021"
 anc-memory = { path = "../memory" }
 libmimalloc-sys = { version = "0.1.43", features = [
     "secure",
-] } # see also `tikv-jemalloc-sys`
+] }
+
+# see also:
+# - `rpmalloc-sys`
+# - `tikv-jemalloc-sys`
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

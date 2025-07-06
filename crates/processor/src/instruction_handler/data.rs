@@ -79,7 +79,7 @@ fn do_data_load_i64(
     target_data_object.accessor.read_idx_i64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut u64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -146,10 +146,10 @@ fn do_data_load_i32_s(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
-    target_data_object.accessor.read_idx_i32_s(
+    target_data_object.accessor.read_idx_i32_s_to_i64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut i64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -216,10 +216,10 @@ fn do_data_load_i32_u(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
-    target_data_object.accessor.read_idx_i32_u(
+    target_data_object.accessor.read_idx_i32_u_to_u64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut u64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -286,10 +286,10 @@ fn do_data_load_i16_s(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
-    target_data_object.accessor.read_idx_i16_s(
+    target_data_object.accessor.read_idx_i16_s_to_i64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut i64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -356,10 +356,10 @@ fn do_data_load_i16_u(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
-    target_data_object.accessor.read_idx_i16_u(
+    target_data_object.accessor.read_idx_i16_u_to_u64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut u64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -426,10 +426,10 @@ fn do_data_load_i8_s(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
-    target_data_object.accessor.read_idx_i8_s(
+    target_data_object.accessor.read_idx_i8_s_to_i64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut i64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -496,10 +496,10 @@ fn do_data_load_i8_u(
         offset_bytes,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
-    target_data_object.accessor.read_idx_i8_u(
+    target_data_object.accessor.read_idx_i8_u_to_u64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut u64,
     );
 
     HandleResult::Move(instruction_length_in_bytes)
@@ -570,7 +570,7 @@ fn do_data_load_f32(
     match target_data_object.accessor.read_idx_f32(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut f32,
     ) {
         Ok(_) => HandleResult::Move(instruction_length_in_bytes),
         Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
@@ -642,7 +642,7 @@ fn do_data_load_f64(
     match target_data_object.accessor.read_idx_f64(
         target_data_object.data_internal_index_in_section,
         offset_bytes,
-        dst_ptr,
+        dst_ptr as *mut f64,
     ) {
         Ok(_) => HandleResult::Move(instruction_length_in_bytes),
         Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),

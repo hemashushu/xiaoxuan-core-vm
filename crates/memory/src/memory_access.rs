@@ -13,73 +13,117 @@ pub trait MemoryAccess {
     // Returns a mutable pointer to the memory at the specified address.
     fn get_mut_ptr(&mut self, address: usize, offset_in_bytes: usize) -> *mut u8;
 
+    // Copies a block of memory from the source pointer to the destination address.
+    // `length_in_bytes` specifies the number of bytes to copy.
+    fn read(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        length_in_bytes: usize,
+        dst_ptr: *mut u8,
+    ) {
+        let src_ptr = self.get_ptr(src_address, src_offset_in_bytes);
+        unsafe {
+            std::ptr::copy(src_ptr, dst_ptr, length_in_bytes);
+        }
+    }
+
     // Reads an i64 value from the source address and writes it to the destination pointer.
-    fn read_i64(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i64(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr_64: *mut u64) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const u64;
         unsafe {
             let val_64 = std::ptr::read(tp_src);
-            let dst_ptr_64 = dst_ptr as *mut u64;
-            // std::ptr::copy(tp_src, dst_ptr, 8);
+            // let dst_ptr_64 = dst_ptr as *mut u64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads a signed i32 value from the source address, extends it to i64, and writes it to the destination pointer.
-    fn read_i32_s(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i32_s_to_i64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut i64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const i32;
         unsafe {
             let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
+            // let dst_ptr_64 = dst_ptr as *mut i64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads an unsigned i32 value from the source address, extends it to u64, and writes it to the destination pointer.
-    fn read_i32_u(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i32_u_to_u64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut u64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const u32;
         unsafe {
             let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
+            // let dst_ptr_64 = dst_ptr as *mut u64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads a signed i16 value from the source address, extends it to i64, and writes it to the destination pointer.
-    fn read_i16_s(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i16_s_to_i64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut i64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const i16;
         unsafe {
             let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
+            // let dst_ptr_64 = dst_ptr as *mut i64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads an unsigned i16 value from the source address, extends it to u64, and writes it to the destination pointer.
-    fn read_i16_u(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i16_u_to_u64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut u64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const u16;
         unsafe {
             let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
+            // let dst_ptr_64 = dst_ptr as *mut u64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads a signed i8 value from the source address, extends it to i64, and writes it to the destination pointer.
-    fn read_i8_s(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i8_s_to_i64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut i64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes) as *const i8;
         unsafe {
             let val_64 = std::ptr::read(tp_src) as i64;
-            let dst_ptr_64 = dst_ptr as *mut i64;
+            // let dst_ptr_64 = dst_ptr as *mut i64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
 
     // Reads an unsigned i8 value from the source address, extends it to u64, and writes it to the destination pointer.
-    fn read_i8_u(&self, src_address: usize, src_offset_in_bytes: usize, dst_ptr: *mut u8) {
+    fn read_i8_u_to_u64(
+        &self,
+        src_address: usize,
+        src_offset_in_bytes: usize,
+        dst_ptr_64: *mut u64,
+    ) {
         let tp_src = self.get_ptr(src_address, src_offset_in_bytes);
         unsafe {
             let val_64 = std::ptr::read(tp_src) as u64;
-            let dst_ptr_64 = dst_ptr as *mut u64;
+            // let dst_ptr_64 = dst_ptr as *mut u64;
             std::ptr::write(dst_ptr_64, val_64);
         }
     }
@@ -90,7 +134,7 @@ pub trait MemoryAccess {
         &self,
         src_address: usize,
         src_offset_in_bytes: usize,
-        dst_ptr: *mut u8,
+        dst_ptr_64: *mut f64,
     ) -> Result<(), MemoryError> {
         let tp = self.get_ptr(src_address, src_offset_in_bytes) as *const f64;
         let val = unsafe { std::ptr::read(tp) };
@@ -100,7 +144,7 @@ pub trait MemoryAccess {
                 MemoryErrorType::UnsupportedFloatingPointVariants,
             ))
         } else {
-            let dst_ptr_64 = dst_ptr as *mut f64;
+            // let dst_ptr_64 = dst_ptr as *mut f64;
             unsafe { std::ptr::write(dst_ptr_64, val) };
             Ok(())
         }
@@ -112,7 +156,7 @@ pub trait MemoryAccess {
         &self,
         src_addr: usize,
         src_offset_in_bytes: usize,
-        dst_ptr: *mut u8,
+        dst_ptr_32: *mut f32,
     ) -> Result<(), MemoryError> {
         let tp = self.get_ptr(src_addr, src_offset_in_bytes) as *const f32;
         let val = unsafe { std::ptr::read(tp) };
@@ -122,7 +166,7 @@ pub trait MemoryAccess {
                 MemoryErrorType::UnsupportedFloatingPointVariants,
             ))
         } else {
-            let dst_ptr_32 = dst_ptr as *mut f32;
+            // let dst_ptr_32 = dst_ptr as *mut f32;
             unsafe { std::ptr::write(dst_ptr_32, val) };
             Ok(())
         }

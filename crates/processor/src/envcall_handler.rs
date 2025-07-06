@@ -137,7 +137,7 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
         0x0008 => {
             // Category: Thread
             match envcall_num {
-                EnvCallNum::thread_index => envcall_unreachable_handler,
+                EnvCallNum::thread_id => envcall_unreachable_handler,
                 EnvCallNum::thread_create => envcall_unreachable_handler,
                 EnvCallNum::thread_start_data_length => envcall_unreachable_handler,
                 EnvCallNum::thread_start_data_text => envcall_unreachable_handler,

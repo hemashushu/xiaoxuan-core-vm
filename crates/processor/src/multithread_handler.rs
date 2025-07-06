@@ -14,39 +14,37 @@ use std::{
 use anc_context::process_context::ProcessContext;
 use anc_isa::ForeignValue;
 
-use crate::{
-    handler::Handler, process::process_function, ProcessorError, ProcessorErrorType,
-    GenericError,
-};
+use crate::{process::process_function, GenericError, ProcessorError, ProcessorErrorType};
 
-// these values should be 'process global', but the unit test
-// runs on parallel and overwrite these values each thread.
-// change to 'thread local' to avoid this.
 thread_local! {
+    // PROCESS_CONTEXT_ADDRESS should be 'process global', but the unit test
+    // runs on parallel and overwrite these values in each thread.
+    // change to 'thread local' to avoid this.
+
     // pointer to the "process context" and "handler" objects
     pub static PROCESS_CONTEXT_ADDRESS: RefCell<usize> = const{ RefCell::new(0) };
-    pub static HANDLER_ADDRESS: RefCell<usize> =  const{  RefCell::new(0) };
-}
+    // pub static HANDLER_ADDRESS: RefCell<usize> =  const{  RefCell::new(0) };
 
-// the Tx and Rx
-// -------------
-//
-// threads communicate through message pipe, the raw type of message is u8 array,
-// so the message can be:
-//
-// - primitive data
-// - a struct
-// - an array
-// - (the address of) a function
-// - (the address of) a closure function
-thread_local! {
     // the collection of child threads
     pub static CHILD_THREADS:RefCell<BTreeMap<u32, ChildThread>> = const {RefCell::new(BTreeMap::new())};
 
     // an incremented only integer that is used to generate the child thread id.
     pub static CHILD_THREAD_NEXT_ID:RefCell<u32> = const {RefCell::new(0)};
 
+    // the current thread id
     pub static CURRENT_THREAD_ID:RefCell<u32> = const {RefCell::new(0)};
+
+    // the Tx and Rx
+    // -------------
+    //
+    // threads communicate through message pipe, the raw type of message is u8 array,
+    // so the message can be:
+    //
+    // - primitive data
+    // - a struct
+    // - an array
+    // - (the address of) a function
+    // - (the address of) a closure function
 
     // the receiver that connects to the parent thread
     //
@@ -60,33 +58,40 @@ thread_local! {
     // the data (an u8 array) that comes from the parent thread
     pub static THREAD_START_DATA:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 
-    // a temporary memory for storing the message comed from other threads.
+    // this is a temporary memory (call `letter paper`).
     //
-    // the data comes from other thread (includes the parent thread and child threads) is
-    // stored in this temporary memory each time the function `thread_receive_msg` or
-    // `thread_receive_msg_from_parent` is called.
-    //
+    // it will be replaced with new message each time the function
+    // `thread_receive_msg` or `thread_receive_msg_from_parent` is called
+    // and the message box is not empty.
+    // to read the message, call the function `thread_msg_read`.
     //
     // ```diagram
     //
-    //              | thread_receive_msg_from_parent
-    //              | thread_receive_msg
-    //              |
-    // /---------\  |                   /-----------\
-    // | message |--------------------->| temporary |
-    // | box     |                      | memory    |
-    // \---------/                      \-----------/
-    //                                       |
-    //                                       | thread_msg_read
-    //                                       v
-    //                                 writable data
+    //        parent thread
+    //        or child thread         current thread
+    //        |                       |
+    //        |                       |
+    //        |                       |
+    //        |                   /---------\
+    // 1. `thread_send_msg()` --> | message |
+    //                            | box     |
+    //                            \---------/
+    //                                |
+    //                                |  2. `thread_receive_msg_from_parent()`
+    //                                |    or `thread_receive_msg()`
+    //                                |    the current thread will be blocked
+    //                                |    if the messagebox is empty.
+    //                                v
+    //                           /--------\
+    //                           | letter |
+    //                           | paper  |
+    //                           \--------/
+    //                                |
+    //                                |  3. `thread_msg_read()`
+    //                                v
+    //                           memory or data
     //
     // ```
-    //
-    // note:
-    // this temporary memory will be replaced with new message each time the function
-    // `thread_receive_msg` or `thread_receive_msg_from_parent` is called,
-    // a function `thread_msg_read` should be called asap to read the message.
     pub static LAST_THREAD_MESSAGE:RefCell<Vec<u8>> = const {RefCell::new(vec![])};
 }
 
@@ -107,21 +112,16 @@ pub struct ThreadStartFunction {
     pub function_public_index: usize,
 }
 
-/// the signature of the 'thread start function' must be:
-/// 'fn () -> exit_code:u32'
+/// the signature of the "thread start function" must be:
+/// `fn () -> exit_code:u32`
 ///
+/// Returns the new thread's id.
 pub fn create_thread(
-    // entry_point_name: &str,
     thread_start_function: ThreadStartFunction,
     thread_start_data: Vec<u8>,
 ) -> u32 {
     let mut process_context_address: usize = 0;
-    let mut handler_address: usize = 0;
     let mut next_thread_id: u32 = 0;
-
-    HANDLER_ADDRESS.with(|data| {
-        handler_address = *data.borrow();
-    });
 
     PROCESS_CONTEXT_ADDRESS.with(|data| {
         process_context_address = *data.borrow();
@@ -146,11 +146,7 @@ pub fn create_thread(
     // let entry_point_name_string = entry_point_name.to_owned();
     let join_handle = thread_builder
         .spawn(move || {
-            // store the address of process_context and handler
-            HANDLER_ADDRESS.with(|data| {
-                *data.borrow_mut() = handler_address;
-            });
-
+            // store the address of process_context
             PROCESS_CONTEXT_ADDRESS.with(|data| {
                 *data.borrow_mut() = process_context_address;
             });
@@ -175,31 +171,12 @@ pub fn create_thread(
                 data.replace(thread_start_data);
             });
 
-            let handler_ptr = handler_address as *const u8 as *const Handler;
             let process_context_ptr = process_context_address as *const u8 as *const ProcessContext;
-
-            let handler = unsafe { &*handler_ptr };
             let process_context = unsafe { &*process_context_ptr };
 
             let mut thread_context = process_context.create_thread_context();
 
-            // let function_public_index = if let Some(idx) = thread_context
-            //     .module_linking_instance
-            //     .entry_point_section
-            //     .get_function_public_index(&entry_point_name_string)
-            // {
-            //     idx
-            // } else {
-            //     return Err(
-            //         Box::new(HandlerError::new(HandleErrorType::EntryPointNotFound(
-            //             entry_point_name_string,
-            //         ))) as GenericError,
-            //     );
-            // };
-            //
-            // const MAIN_MODULE_INDEX: usize = 0;
             let result_foreign_values = process_function(
-                handler,
                 &mut thread_context,
                 thread_start_function.module_index,
                 thread_start_function.function_public_index,
@@ -207,7 +184,7 @@ pub fn create_thread(
                 &[],
             );
 
-            // returns Result<Vec<ForeignValue>, Box<ProcessorError>>.
+            // returns `Result<Vec<ForeignValue>, Box<ProcessorError>>`
             //
             // the 'thread start function' should only return one value,
             // it is the user-defined thread exit code.
@@ -221,9 +198,7 @@ pub fn create_thread(
                         if let ForeignValue::U32(exit_code) = foreign_values[0] {
                             Ok(exit_code)
                         } else {
-                            Err(ProcessorError::new(
-                                ProcessorErrorType::DataTypeMissmatch,
-                            ))
+                            Err(ProcessorError::new(ProcessorErrorType::DataTypeMissmatch))
                         }
                     }
                 }

@@ -168,11 +168,11 @@ mod tests {
         let index0 = allocator.allocate(4, 1);
 
         // Write data to the allocated memory.
-        allocator.write_i32(data0.as_ptr(), index0, 0);
+        allocator.write(data0.as_ptr(), index0, 0, 4);
 
         // Read and verify the data.
         let mut buf0 = [0u8; 4];
-        allocator.read_i32_u(index0, 0, buf0.as_mut_ptr());
+        allocator.read(index0, 0, 4, buf0.as_mut_ptr());
         assert_eq!(buf0, data0);
 
         // Reallocate the memory to a larger size
@@ -180,16 +180,16 @@ mod tests {
 
         // Read and verify the data after reallocation.
         let mut buf1 = [0u8; 4];
-        allocator.read_i32_u(new_index0, 0, buf1.as_mut_ptr());
+        allocator.read(new_index0, 0, 4, buf1.as_mut_ptr());
         assert_eq!(buf1, data0);
 
         // Append additional data to the reallocated memory.
         let data1 = [0x011u8, 0x13, 0x17, 0x19];
-        allocator.write_i32(data1.as_ptr(), new_index0, 4);
+        allocator.write(data1.as_ptr(), new_index0, 4, 4);
 
         // Read and verify the total data after reallocation.
         let mut buf2 = [0u8; 8];
-        allocator.read_i64(new_index0, 0, buf2.as_mut_ptr());
+        allocator.read(new_index0, 0, 8, buf2.as_mut_ptr());
         assert_eq!(buf2[0..4], data0);
         assert_eq!(buf2[4..8], data1);
 
@@ -198,7 +198,7 @@ mod tests {
 
         // Read and verify the data after shrinking.
         let mut buf3 = [0u8; 2];
-        allocator.read_i16_u(new_index1, 0, buf3.as_mut_ptr());
+        allocator.read(new_index1, 0, 2, buf3.as_mut_ptr());
         assert_eq!(buf3, [0x02, 0x03]);
 
         // Free the memory and check the size.
@@ -227,7 +227,7 @@ mod tests {
         let result = std::panic::catch_unwind(move || {
             let mut buf = [0u8; 8];
             // should panic
-            allocator.read_i64(index, 0, buf.as_mut_ptr());
+            allocator.read(index, 0, 8, buf.as_mut_ptr());
         });
 
         std::panic::set_hook(prev_hook);
@@ -246,7 +246,7 @@ mod tests {
         let result = std::panic::catch_unwind(move || {
             let mut buf = [0u8; 8];
             // should panic
-            allocator.read_i64(non_existent_index, 0, buf.as_mut_ptr());
+            allocator.read(non_existent_index, 0, 8, buf.as_mut_ptr());
         });
 
         std::panic::set_hook(prev_hook);
@@ -264,13 +264,13 @@ mod tests {
         {
             let i: i32 = 0x19_17_13_11;
             let data = i.to_le_bytes();
-            allocator.write_idx_i32(data.as_ptr(), idx0, 0);
+            allocator.write_idx(data.as_ptr(), idx0, 0, 4);
         }
 
         // Read i32 data from the allocated memory.
         {
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(idx0, 0, buf.as_mut_ptr());
+            allocator.read_idx(idx0, 0, 4, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x19_17_13_11)
         }
 
@@ -278,20 +278,20 @@ mod tests {
         {
             let i: i32 = 0x37_31_29_23;
             let data = i.to_le_bytes();
-            allocator.write_idx_i32(data.as_ptr(), idx0, 4);
+            allocator.write_idx(data.as_ptr(), idx0, 4, 4);
         }
 
         // Read i32 data with offset from the allocated memory.
         {
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(idx0, 4, buf.as_mut_ptr());
+            allocator.read_idx(idx0, 4, 4, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x37_31_29_23)
         }
 
         // Read i64 data from the allocated memory.
         {
             let mut buf = [0u8; 8];
-            allocator.read_idx_i64(idx0, 0, buf.as_mut_ptr());
+            allocator.read_idx(idx0, 0, 8, buf.as_mut_ptr());
             assert_eq!(i64::from_le_bytes(buf), 0x37_31_29_23_19_17_13_11)
         }
 
@@ -303,7 +303,7 @@ mod tests {
             // The data should be the same as before.
             {
                 let mut buf = [0u8; 8];
-                allocator.read_idx_i64(enlarge_idx, 0, buf.as_mut_ptr());
+                allocator.read_idx(enlarge_idx, 0, 8, buf.as_mut_ptr());
                 assert_eq!(i64::from_le_bytes(buf), 0x37_31_29_23_19_17_13_11)
             }
 
@@ -311,15 +311,15 @@ mod tests {
             {
                 let i: i64 = 0x71_67_61_59_53_47_43_41;
                 let data = i.to_le_bytes();
-                allocator.write_idx_i64(data.as_ptr(), enlarge_idx, 8);
+                allocator.write_idx(data.as_ptr(), enlarge_idx, 8, 8);
             }
 
             // Verify the i64 data in the enlarged memory.
             {
                 let mut buf = [0u8; 8];
-                allocator.read_idx_i64(enlarge_idx, 8, buf.as_mut_ptr());
+                allocator.read_idx(enlarge_idx, 8, 8, buf.as_mut_ptr());
                 assert_eq!(i64::from_le_bytes(buf), 0x71_67_61_59_53_47_43_41);
-                allocator.read_idx_i64(enlarge_idx, 0, buf.as_mut_ptr());
+                allocator.read_idx(enlarge_idx, 0, 8, buf.as_mut_ptr());
                 assert_eq!(i64::from_le_bytes(buf), 0x37_31_29_23_19_17_13_11);
             }
 
@@ -329,7 +329,7 @@ mod tests {
             // Read i32 data from the reduced memory.
             {
                 let mut buf = [0u8; 4];
-                allocator.read_idx_i32_u(reduce_idx, 0, buf.as_mut_ptr());
+                allocator.read_idx(reduce_idx, 0, 4, buf.as_mut_ptr());
                 assert_eq!(i32::from_le_bytes(buf), 0x19_17_13_11);
             }
 
@@ -343,20 +343,20 @@ mod tests {
         {
             let i: i32 = 0x07_05_03_02;
             let data = i.to_le_bytes();
-            allocator.write_idx_i32(data.as_ptr(), idx1, 0);
+            allocator.write_idx(data.as_ptr(), idx1, 0, 4);
         }
 
         // Read i32 data from the new memory item.
         {
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(idx1, 0, buf.as_mut_ptr());
+            allocator.read_idx(idx1, 0, 4, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x07_05_03_02)
         }
 
         // Check the previous memory item.
         {
             let mut buf = [0u8; 4];
-            allocator.read_idx_i32_u(new_idx0, 0, buf.as_mut_ptr());
+            allocator.read_idx(new_idx0, 0, 4, buf.as_mut_ptr());
             assert_eq!(i32::from_le_bytes(buf), 0x19_17_13_11)
         }
 

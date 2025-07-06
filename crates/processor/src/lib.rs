@@ -7,18 +7,17 @@
 use std::fmt::Display;
 
 // mod bridge_handler;
-// mod multithread_handler;
-
 mod envcall_handler;
 mod extcall_handler;
+mod multithread_handler;
 mod syscall_handler;
 
 // pub mod bridge_process;
 // pub mod multithread_process;
 
-pub mod instruction_handler;
 pub mod envcall_num;
 pub mod in_memory_program_source;
+pub mod instruction_handler;
 pub mod process;
 
 pub const TERMINATE_CODE_PANIC: i32 = 0x1000_0000;
@@ -37,9 +36,9 @@ pub struct ProcessorError {
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProcessorErrorType {
     ParametersAmountMissmatch, // The number of arguments does not match the specified funcion.
-    ResultsAmountMissmatch,// The number of return values does not match the specified funcion.
-    DataTypeMissmatch,                // data type does not match
-    ItemNotFound,  // the specified item (such as module, function, local vaiarble, or data) does not found.
+    ResultsAmountMissmatch,    // The number of return values does not match the specified funcion.
+    DataTypeMissmatch,         // data type does not match
+    ItemNotFound, // the specified item (such as module, function, local vaiarble, or data) does not found.
     StackOverflow, // stack overflow
     UnsupportedFloatingPointVariants, // Unsupported floating point variants: NaN, +Inf, and -Inf.
     ExternalFunctionMoreThanOneResult, // The external function has more than one return value.

@@ -37,7 +37,7 @@ pub fn local_load_i64(/* _handler: &Handler, */ thread_context: &mut ThreadConte
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_64_BIT,
     );
-    thread_context.stack.read_i64(data_address, 0, dst_ptr);
+    thread_context.stack.read_i64(data_address, 0, dst_ptr as *mut u64);
 
     HandleResult::Move(8)
 }
@@ -51,7 +51,7 @@ pub fn local_load_i32_s(/* _handler: &Handler, */ thread_context: &mut ThreadCon
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
-    thread_context.stack.read_i32_s(data_address, 0, dst_ptr);
+    thread_context.stack.read_i32_s_to_i64(data_address, 0, dst_ptr as *mut i64);
 
     HandleResult::Move(8)
 }
@@ -65,7 +65,7 @@ pub fn local_load_i32_u(/* _handler: &Handler, */ thread_context: &mut ThreadCon
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_32_BIT,
     );
-    thread_context.stack.read_i32_u(data_address, 0, dst_ptr);
+    thread_context.stack.read_i32_u_to_u64(data_address, 0, dst_ptr as *mut u64);
 
     HandleResult::Move(8)
 }
@@ -79,7 +79,7 @@ pub fn local_load_i16_s(/* _handler: &Handler, */ thread_context: &mut ThreadCon
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
-    thread_context.stack.read_i16_s(data_address, 0, dst_ptr);
+    thread_context.stack.read_i16_s_to_i64(data_address, 0, dst_ptr as *mut i64);
 
     HandleResult::Move(8)
 }
@@ -93,7 +93,7 @@ pub fn local_load_i16_u(/* _handler: &Handler, */ thread_context: &mut ThreadCon
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_16_BIT,
     );
-    thread_context.stack.read_i16_u(data_address, 0, dst_ptr);
+    thread_context.stack.read_i16_u_to_u64(data_address, 0, dst_ptr as *mut u64);
 
     HandleResult::Move(8)
 }
@@ -107,7 +107,7 @@ pub fn local_load_i8_s(/* _handler: &Handler, */ thread_context: &mut ThreadCont
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
-    thread_context.stack.read_i8_s(data_address, 0, dst_ptr);
+    thread_context.stack.read_i8_s_to_i64(data_address, 0, dst_ptr as *mut i64);
 
     HandleResult::Move(8)
 }
@@ -121,7 +121,7 @@ pub fn local_load_i8_u(/* _handler: &Handler, */ thread_context: &mut ThreadCont
         local_variable_index as usize,
         DATA_LENGTH_IN_BYTES_8_BIT,
     );
-    thread_context.stack.read_i8_u(data_address, 0, dst_ptr);
+    thread_context.stack.read_i8_u_to_u64(data_address, 0, dst_ptr as *mut u64);
 
     HandleResult::Move(8)
 }
@@ -137,7 +137,7 @@ pub fn local_load_f32(/* _handler: &Handler, */ thread_context: &mut ThreadConte
     );
 
     // Handle potential errors when reading floating-point data.
-    match thread_context.stack.read_f32(data_address, 0, dst_ptr) {
+    match thread_context.stack.read_f32(data_address, 0, dst_ptr as *mut f32) {
         Ok(_) => HandleResult::Move(8),
         Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
     }
@@ -153,7 +153,7 @@ pub fn local_load_f64(/* _handler: &Handler, */ thread_context: &mut ThreadConte
         DATA_LENGTH_IN_BYTES_64_BIT,
     );
 
-    match thread_context.stack.read_f64(data_address, 0, dst_ptr) {
+    match thread_context.stack.read_f64(data_address, 0, dst_ptr as *mut f64) {
         Ok(_) => HandleResult::Move(8),
         Err(_) => HandleResult::Terminate(TERMINATE_CODE_UNSUPPORTED_FLOATING_POINT_VARIANTS),
     }

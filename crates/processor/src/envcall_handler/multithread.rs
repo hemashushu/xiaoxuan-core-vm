@@ -9,7 +9,6 @@ use std::{thread, time::Duration};
 use anc_context::thread_context::ThreadContext;
 
 use crate::{
-    handler::Handler,
     multithread_handler::{
         create_thread, ThreadStartFunction, CHILD_THREADS, CURRENT_THREAD_ID, LAST_THREAD_MESSAGE,
         RX, THREAD_START_DATA, TX,
@@ -24,17 +23,7 @@ pub const MESSAGE_RECEIVE_RESULT_SUCCESS: u32 = 0;
 pub const MESSAGE_RECEIVE_RESULT_FAILURE: u32 = 1;
 
 pub fn thread_id(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
-    // `fn () -> thread_id:u64`
-
-    // the Rust std function `thread::id()` is unstable, ref:
-    //
-    // ```test
-    // error[E0658]: use of unstable library feature 'thread_id_value'
-    // #![feature(thread_id_value)]
-    // ```
-    //
-    // so i implement ourself 'thread_id'.
-
+    // `fn () -> i32`
     CURRENT_THREAD_ID.with(|id_cell| {
         let id = *id_cell.borrow();
         thread_context.stack.push_i32_u(id);
@@ -43,22 +32,25 @@ pub fn thread_id(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
 
 pub fn thread_create(/* _handler: &Handler, */ thread_context: &mut ThreadContext) {
     // ```
-    // fn (function_public_index:u32,
-    //    thread_start_data_address_in_heap:u32, thread_start_data_length:u32) -> child_thread_id:u32
+    // fn (function_public_index: i32,
+    //    thread_start_data_access_index: i64,
+    //    thread_start_data_length: i64) -> i32
     // ```
 
     // get arguments
-    let thread_start_data_length = thread_context.stack.pop_i32_u() as usize;
-    let thread_start_data_address = thread_context.stack.pop_i32_u() as usize;
+    let thread_start_data_length = thread_context.stack.pop_i64_u() as usize;
+    let thread_start_data_access_index = thread_context.stack.pop_i64_u() as usize;
     let function_public_index = thread_context.stack.pop_i32_u() as usize;
 
     // get the current module index
     let module_index = thread_context.pc.module_index;
 
     // get thread start data
-    let thread_start_data = thread_context
-        .memory
-        .load_data(thread_start_data_address, thread_start_data_length)
+    let thread_start_data_object = thread_context
+        .get_target_data_object(module_index, thread_start_data_access_index, 0, thread_start_data_length);
+
+    thread_start_data_object.accessor.write(src_ptr, dst_address, dst_offset_in_bytes, length_in_bytes);
+        .load_data(thread_start_data_access_index, thread_start_data_length)
         .to_vec();
 
     let thread_start_function = ThreadStartFunction {

@@ -7,15 +7,18 @@
 // Environment Call (envcall) Number Encoding
 // ------------------------------------------
 //
-// The number consists of two parts: categories and items, both of which are 8-bit numbers.
+// Each environment call number (envcall number) is a 32-bit value divided into two 16-bit parts:
+// - The higher 16 bits represent the category.
+// - The lower 16 bits represent the specific item within that category.
 //
+// Example:
 // MSB                             LSB
 // 00000000 00000000 00000000 00000000 <-- bits
 // -------- -------- -------- --------
 // ^                 ^
-// |                 | items
+// |                 |-- item (lower 16 bits)
 // |
-// | categories
+// |-- category (upper 16 bits)
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -93,7 +96,7 @@ pub enum EnvCallNum {
     // Reference:
     // https://doc.rust-lang.org/reference/conditional-compilation.html#target_arch
 
-    // Category: Process environment
+    // Category: Process and environment information
 
     // Retrieve the length of the program path in bytes.
     //
@@ -400,25 +403,25 @@ pub enum EnvCallNum {
 
     // Category: Thread
 
-    // Get the current thread ID.
+    // Retrieve the current thread ID.
     //
-    // The value is 0 for the main thread, 1 for the first child thread,
+    // Returns 0 for the main thread, 1 for the first child thread,
     // 2 for the second child thread, and so on.
     //
-    // Signature: `fn () -> i32`
-    thread_index = 0x0008_0000,
+    // `fn () -> i32`
+    thread_id = 0x0008_0000,
 
     // XiaoXuan Core Thread Model
     // --------------------------
     //
     // The first thread created by the runtime is called the "main thread."
-    // A thread can create one or more child threads, and the creator is referred to as the "parent thread."
+    // A thread can create one or more child threads; the creator is called the "parent thread."
     // When a parent thread exits, all its child threads are also terminated.
     //
     // A "channel" is created between the parent thread and each child thread. They can
     // communicate using the `thread_msg_receive`/`thread_msg_send` and
     // `thread_msg_receive_from`/`thread_msg_send_to` envcalls.
-    // However, there is no direct channel between sibling child threads.
+    // There is no direct channel between sibling child threads.
     //
     // Example thread tree:
     //
@@ -437,22 +440,18 @@ pub enum EnvCallNum {
     // Communication between threads:
     //
     // ```diagram
-    //     thread                                      channel     parent thread
-    //   /--------------------------------\          /---------\    /----------\
-    //   |                                | receive  | msg box |    |          |
-    //   |                         o RX <------------\---------/<------ TX o   |
-    //   |                         o TX ------------>/---------\------> RX o   |
-    //   |                                | send     | msg box |    |          |
-    //   |                                |          \---------/    \----------/
-    //   |  /--------\  /-------\         |
-    //   |  | memory |  | stack |         |          /---------\    /----------\
-    //   |  \--------/  \-------/         | receive  | msg box |-\  |          |-\
-    //   |                         o RX <------------\---------/<------ TX o   | |
-    //   |  /------------\         o TX ------------>/---------\------> RX o   | |
-    //   |  | SP, FP, PC |                | send     | msg box | |  |          | |
+    //     thread
+    //   /--------------------------------\
+    //   |                                |                         parent thread and
+    //   |  /--------\  /-------\         |                         child threads
+    //   |  | memory |  | stack |         |  /---------\            /----------\
+    //   |  \--------/  \-------/         |  | msg box |       send |          |-\
+    //   |                         o RX <----------------<------------- TX o   | |
+    //   |  /------------\         o TX ------------>-----------------> RX o   | |
+    //   |  | SP, FP, PC |                | send     | msg box | -  |          | |
     //   |  \------------/                |          \---------/ |  \----------/ |
     //   |                                |            \--------/     \---------/
-    //   |  /-----------------------\     |            channels      child threads
+    //   |  /-----------------------\     |                         child threads
     //   |  | read-write data       |-\   |
     //   |  | uninit. data          | |   |
     //   |  |-----------------------| |   |
@@ -467,11 +466,10 @@ pub enum EnvCallNum {
     //   \--------------------------------/
     // ```
     //
-    // Note:
+    // Notes:
     // - Memory, stack, and data sections are all thread-local.
     // - The XiaoXuan Core VM has no "global" data or variables.
-    // - Threads can only communicate through channels. In the XiaoXuan Core VM,
-    //   all "objects" are thread-safe.
+    // - Threads can only communicate through channels. All "objects" in the VM are thread-safe.
     //
     // Message Channels
     // ----------------
@@ -480,8 +478,8 @@ pub enum EnvCallNum {
     // one for transmitting and one for receiving.
     // The raw type of a message is a `u8` array. Message types can include:
     // - Primitive data
-    // - A struct
-    // - An array
+    // - Structs
+    // - Arrays
     // - The address (index) of data
     // - The address (index) of a function (including closures)
     //
@@ -492,183 +490,168 @@ pub enum EnvCallNum {
     // -----------
     //
     // Each pipe maintains a message box. When a thread sends a message,
-    // it is sent to the message box, so the sender is not blocked.
-    // This mechanism allows the sender to return immediately after sending a message.
+    // it is placed in the message box, and the sender is not blocked.
+    // This allows the sender to return immediately after sending a message.
     //
-    // Similarly, when a thread receives a message, it reads from the message box.
+    // When a thread receives a message, it checks the message box instead of
+    // receives from the sender directly.
     // If the message box is empty, the receiver is blocked until a message is available.
 
     // Create a new thread and execute the specified function.
     //
     // ```
-    // fn (function_public_index:i32,
-    //    thread_start_data_public_index:i32,
-    //    thread_start_data_length:i32) -> i32
+    // fn (function_public_index: i32,
+    //    thread_start_data_access_index: i64,
+    //    thread_start_data_length: i64) -> i32
     // ```
     //
-    // This envcall returns the child thread index/ID.
+    // Returns the child thread ID.
     //
-    // The value of `thread_start_data_public_index` is the index of data.
-    // The data will be copied to the new thread, and
-    // the new thread can read this data using the `thread_start_data_read` envcall.
+    // The value of `thread_start_data_access_index` is the index of the data to copy to the new thread.
+    // The new thread can read this data using the `thread_start_data_read` envcall.
     //
     // The target function is called the "thread start function."
     // Its signature MUST be exactly:
+    //
     // `fn () -> i32`
     //
     // The "thread start function" has no parameters and returns an "exit code."
-    // The meaning of the "exit code" is defined by the user.
-    // You can simply return 0 if you do not need it.
+    // The meaning of the exit code is user-defined. You can simply return 0 if not needed.
     thread_create,
 
     // Get the length of the thread start data.
     //
-    // `fn () -> i32`
+    // `fn () -> i64`
     //
     // Returns the length.
     thread_start_data_length,
 
-    // Read the "thread start data" to a writable data.
+    // Read the "thread start data" to a writable data buffer.
     //
-    // `fn (module_index:i32, data_public_index:i32, offset_of_thread_start_data:i32, expected_length_in_bytes:i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64, offset_of_thread_start_data: i64, expected_length_in_bytes: i64) -> i64`
     //
-    // Returns the length of data that was actually read.
+    // Returns the length of data actually read.
     // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     thread_start_data_text,
 
-    // Wait for the specified child thread to finish and collect resources from the child thread.
+    // Wait for the specified child thread to finish and collect its resources.
     //
-    // `fn (child_thread_index:i32) -> (thread_exit_code:i32, thread_error_number:i32)`
+    // `fn (child_thread_index: i32) -> (thread_exit_code: i32, thread_error_number: i32)`
     //
     // Returns:
-    // - thread_exit_code: The value is identical to the "exit code" of the "thread start function."
+    // - thread_exit_code: The value returned by the "thread start function."
     // - thread_error_number: 0 for success, 1 for thread not found.
     //
     // The caller will be blocked if the child thread is running. When the child thread finishes,
-    // the function `thread_wait_and_collect` will return a tuple `(thread_exit_code, thread_error_number)`,
-    // and the child thread will be removed from the "child thread collection," which is a collection
-    // maintained by each parent thread.
+    // this function returns a tuple `(thread_exit_code, thread_error_number)`,
+    // and the child thread is removed from the parent's "child thread collection."
     //
-    // If the child thread finishes before the parent thread calls the
-    // function `thread_wait_and_collect`, the resources of the child thread
-    // will NOT be released, and they will be held in the "child thread collection" until
-    // the parent thread calls `thread_wait_and_collect`.
-    // In this case, the function `thread_wait_and_collect` will return immediately.
+    // If the child thread finishes before the parent calls this function, its resources
+    // are held in the collection until collected. In this case, the function returns immediately.
     //
-    // The function `thread_wait_and_collect` is similar to the function `thread.join()`
-    // in other programming languages.
+    // This is similar to `thread.join()` in other languages.
     thread_wait_and_collect,
 
     // Check whether the specified (child) thread has finished.
     //
-    // `fn (child_thread_index:i32) -> (running_status:i32, thread_error_number:i32)`
+    // `fn (child_thread_index: i32) -> (running_status: i32, thread_error_number: i32)`
     //
     // Returns:
-    // - running_status: 0=running, 1=finished
+    // - running_status: 0 = running, 1 = finished
     // - thread_error_number: 0 for success, 1 for thread not found.
     thread_running_status,
 
     // Terminate the specified child thread and collect its resources.
     //
-    // `fn (child_thread_index:i32) -> ()`
+    // `fn (child_thread_index: i32) -> ()`
     thread_terminate,
 
-    // Receive a message from the parent thread.
+    // Send a message to the specified child thread.
     //
-    // `fn () -> i32`
+    // `fn (child_thread_index: i32, module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> thread_error_number: i32`
     //
-    // Returns the length (in bytes) of the new message.
+    // Returns 0 for success, 1 for failure (the child thread has finished or does not exist).
     //
-    // The thread is terminated normally if the parent thread is going to
-    // terminate this thread, even if this thread is blocked by the function
-    // `thread_receive_msg_from_parent`.
-    //
-    // Note:
-    // - The message is copied to a runtime temporary memory. The function `thread_msg_read`
-    //   should be called to read the message.
-    //
-    // ```diagram
-    //
-    // /---------\  thread_receive_msg  /-----------\
-    // | message |--------------------->| temporary |
-    // | box     |                      | memory    |
-    // \---------/                      \-----------/
-    //                                       |
-    //                                       | thread_msg_read
-    //                                       v
-    //                                 writable data
-    //
-    // ```
-    // - The runtime temporary memory will be replaced with a new message each time the function
-    //   `thread_receive_msg_from_parent` or `thread_receive_msg` is called.
-    // - This function will block the current thread if there is no data available.
-    thread_receive_msg_from_parent,
+    // This function is non-blocking and returns immediately.
+    thread_send_msg,
 
     // Send a message to the parent thread.
     //
-    // `fn (module_index:i32, data_public_index:i32, content_length_in_bytes:i32) -> ()`
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes: i64) -> ()`
     //
-    // This function returns immediately and does not block the current thread.
+    // This function is non-blocking and returns immediately.
     thread_send_msg_to_parent,
 
     // Receive a message from the specified child thread.
     //
-    // `fn (child_thread_index:i32) -> (length:i32, thread_error_number:i32)`
+    // `fn (child_thread_index: i32) -> (length: i64, thread_error_number: i32)`
     //
     // Returns:
-    // - length: The length of the message
-    // - thread_error_number: 0 for success, 1 for failure. The value 1 means the child thread has finished or
-    //   the specified child thread does not exist.
+    // - length: The length of the message in bytes.
+    // - thread_error_number: 0 for success, 1 for failure (the child thread has finished or does not exist).
     //
-    // Note:
-    // - The message is copied to a runtime temporary memory. The function `thread_msg_read`
-    //   should be called to read the message.
+    // Notes:
+    // - The message is copied to a runtime temporary buffer ("letter paper"). Use `thread_msg_read` to access the message.
+    // - The buffer is replaced with a new message each time `thread_receive_msg_from_parent` or `thread_receive_msg`
+    //   is called and the message box is not empty.
+    // - This function blocks the current thread if the message box is empty.
     //
     // ```diagram
-    //
-    // /---------\  thread_receive_msg  /-----------\
-    // | message |--------------------->| temporary |
-    // | box     |                      | memory    |
-    // \---------/                      \-----------/
-    //                                       |
-    //                                       | thread_msg_read
-    //                                       v
-    //                                 writable data
-    //
+    // /---------\  `.thread_receive_msg()`  /--------\
+    // | message |-------------------------->| letter |
+    // |  box    |                           | paper  |
+    // \---------/                           \--------/
+    //                                         |
+    //                                         | `.thread_msg_read()`
+    //                                         v
+    //                                    memory or data
     // ```
-    // - The runtime temporary memory will be replaced with a new message each time the function
-    //   `thread_receive_msg_from_parent` or `thread_receive_msg` is called.
-    // - This function will block the current thread if there is no data available.
     thread_receive_msg,
 
-    // Send a message to the specified child thread.
+    // Receive a message from the parent thread.
     //
-    // `fn (child_thread_index:i32, module_index:i32, data_public_index:i32, content_length_in_bytes:i32) -> thread_error_number:i32`
+    // `fn () -> i64`
     //
-    // Returns the send result: 0 for success, 1 for failure. The value 1 means the
-    // child thread has finished or the specified child thread does not exist.
+    // Returns the length (in bytes) of the new message.
     //
-    // This function returns immediately and does not block the current thread.
-    thread_send_msg,
+    // If the parent thread terminates this thread, the thread will exit even if blocked in this function.
+    //
+    // Notes:
+    // - The message is copied to a runtime temporary buffer ("letter paper"). Use `thread_msg_read` to access the message.
+    // - The buffer is replaced with a new message each time `thread_receive_msg_from_parent` or `thread_receive_msg`
+    //   is called and the message box is not empty.
+    // - This function blocks the current thread if the message box is empty.
+    //
+    // ```diagram
+    // /---------\  `.thread_receive_msg()`  /--------\
+    // | message |-------------------------->| letter |
+    // |  box    |                           | paper  |
+    // \---------/                           \--------/
+    //                                         |
+    //                                         | `.thread_msg_read()`
+    //                                         v
+    //                                    memory or data
+    // ```
+    thread_receive_msg_from_parent,
 
     // Get the length of the last received message.
     //
-    // `fn () -> i32`
+    // `fn () -> i64`
     //
     // Returns the length of the message in bytes.
     thread_msg_length,
 
-    // Read the last received message from the runtime temporary memory to writable data.
+    // Read the last received message from the runtime temporary buffer to writable data.
     //
-    // `fn (data_public_index:i32, offset_of_message:i32, expected_size_in_bytes:i32) -> i32`
+    // `fn (data_access_index: i64, offset_of_message: i64, expected_size_in_bytes: i64) -> i64`
     //
-    // Returns the actual length of the read data.
+    // Returns the actual number of bytes read.
     // If the available data space is less than `expected_length_in_bytes`, the VM will panic.
     thread_msg_read,
 
-    // Block the current thread for the specified milliseconds.
+    // Block the current thread for the specified number of milliseconds.
     //
-    // `fn (milliseconds:i64)`
+    // `fn (milliseconds: i64)`
     thread_sleep,
 
     // Ref:
