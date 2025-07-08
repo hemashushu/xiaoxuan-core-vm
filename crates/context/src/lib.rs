@@ -6,6 +6,7 @@
 
 pub mod bridge_function_table;
 pub mod callback_delegate_function_table;
+pub mod capability;
 pub mod code_generator;
 pub mod datas;
 pub mod external_function_table;

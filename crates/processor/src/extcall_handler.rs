@@ -125,14 +125,13 @@ pub fn get_or_create_external_function_wrapper_function(
                 // System library, e.g., `libc.so.6`
                 library_path.trim_start_matches("system:").to_string()
             } else {
-                // Local file path, resolve relative to the module directory if needed.
-                let mut module_path_buf =
-                    PathBuf::from(&thread_context.process_property.program_path);
+                let process_property = thread_context.process_property.lock().unwrap();
 
-                if thread_context.process_property.program_source_type
-                    == ProgramSourceType::ScriptFile
-                    || thread_context.process_property.program_source_type
-                        == ProgramSourceType::PackageImage
+                // Local file path, resolve relative to the module directory if needed.
+                let mut module_path_buf = PathBuf::from(&process_property.program_path);
+
+                if process_property.program_source_type == ProgramSourceType::ScriptFile
+                    || process_property.program_source_type == ProgramSourceType::PackageImage
                 {
                     // For script files or package images, remove the last path component (file name).
                     module_path_buf.pop();

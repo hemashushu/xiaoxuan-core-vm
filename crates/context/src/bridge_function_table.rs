@@ -172,5 +172,4 @@ impl BridgeFunctionTable {
             None => None,
         }
     }
-
 }

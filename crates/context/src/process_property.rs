@@ -4,7 +4,9 @@
 // the Mozilla Public License version 2.0 and additional exceptions.
 // For more details, see the LICENSE, LICENSE.additional, and CONTRIBUTING files.
 
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
+
+use crate::capability::Capability;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +44,10 @@ pub struct ProcessProperty {
     pub arguments: Vec<String>,
 
     // The environment variables for the program.
-    pub environments: HashMap<String, String>,
+    pub environments: Vec<(String, String)>,
+
+    /// The capability of the process, which defines what operations it can perform.
+    pub capability: Capability,
 }
 
 impl ProcessProperty {
@@ -50,13 +55,15 @@ impl ProcessProperty {
         program_path: PathBuf,
         program_source_type: ProgramSourceType,
         arguments: Vec<String>,
-        environments: HashMap<String, String>,
+        environments: Vec<(String, String)>,
+        capability: Capability,
     ) -> Self {
         Self {
             program_path: program_path.to_owned(),
             program_source_type,
             arguments,
             environments,
+            capability,
         }
     }
 }
@@ -71,7 +78,9 @@ impl Default for ProcessProperty {
             // Default arguments are an empty list.
             arguments: Vec::new(),
             // Default environment variables are an empty map.
-            environments: HashMap::new(),
+            environments: Vec::new(),
+            // Default capability is an empty capability.
+            capability: Capability::default(),
         }
     }
 }

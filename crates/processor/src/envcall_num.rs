@@ -109,7 +109,7 @@ pub enum EnvCallNum {
 
     // Retrieve the data of the "program_path".
     //
-    // `fn (module_index: i32, data_access_index: i64) -> i32`
+    // `fn (module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
     //
     // Returns the actual length of the data read.
     program_path_read,
@@ -126,35 +126,64 @@ pub enum EnvCallNum {
     program_source_type,
 
     // Retrieve the length of the program all arguments in bytes.
-    // Arguments are separated by '\0' (null character).
+    //
+    // This function returns the total length of all arguments,
+    // where all arguments are concatenated together, separated by the '\0' (null) character.
+    //
+    // Note:
+    // It's different from the C and Rust `args` in `main` function, the first argument (index 0)
+    // isn't the program path, but the first argument passed to the program.
+    // Which means `argument_length` may return 0 if there are no arguments passed to the program.
     //
     // `fn () -> i32`
-    argument_length,
+    arguments_length,
 
     // Retrieve the data of program all arguments.
-    // Arguments are separated by '\0' (null character).
+    // All arguments are concatenated together, separated by the '\0' (null) character.
     //
-    // `fn (module_index: i32, data_access_index: i64) -> i32`
+    // `fn (module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
     //
     // Returns the actual length of the data read.
-    // If the data length is less than the content length, the VM will panic.
-    argument_read,
+    arguments_read,
 
-    // Retrieve the number of environment variables.
+    // Retrieve the total length (in bytes) of all environment variables.
+    // Each variable is formatted as "NAME=VALUE".
+    //
+    // This function returns the total length of all environment variables,
+    // where all variables are concatenated together, separated by the '\0' (null) character.
+    // The length may be 0 if there are no environment variables set.
     //
     // `fn () -> i32`
-    environment_variable_count,
+    environment_variables_length,
 
-    // Retrieve the length of the specified environment variable by index.
+    // Retrieve the length of all environment variables
+    // All variables are concatenated together, separated by the '\0' (null) character.
+    //
+    // `fn (module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
+    // Returns the actual length of the data read.
+    environment_variables_read,
+
+    // Find the index of the specified environment variable by name.
+    //
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes: i32) -> i32`
+    // The data content is a string representing the name of the environment variable.
+    // Returns the index of the environment variable if found, or -1 if not found.
+    environment_variable_find,
+
+    // Retrieve the length of data (value) of the specified environment variable by index.
     //
     // `fn (environment_variable_index: i32) -> i32`
+    //
+    // Returns the length of the environment variable data,
+    // returning 0 if the variable does not exist or has no data.
     environment_variable_item_length,
 
-    // Retrieve the data of the specified environment variable by index.
+    // Retrieve the data (value) of the specified environment variable by index.
     //
-    // `fn (environment_variable_index: i32, module_index: i32, data_access_index: i64) -> i32`
+    // `fn (environment_variable_index: i32, module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
     //
-    // Returns the actual length of the data read.
+    // Returns the actual length of the data read,
+    // returning 0 if the variable does not exist or has no data.
     environment_variable_item_read,
 
     // Set a specific environment variable.
@@ -162,6 +191,7 @@ pub enum EnvCallNum {
     // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes: i32)`
     //
     // The data content is a string in the format "name=value", e.g., "EDITOR=vim".
+    // Empty values are allowed, e.g., "EDITOR=".
     environment_variable_set,
 
     // Remove the environment variable with the specified name.
@@ -222,182 +252,69 @@ pub enum EnvCallNum {
     // `fn (start_include: f64, end_exclude: f64) -> f64`
     random_range_f64,
 
-    // Category: I/O
+    // Category: Regular Expression
 
-    // Open or create a file.
+    // The regular expression implementation regex-anre is adopted.
     //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32, open_options: i32, access_mode: i32) -> (file_index: i32, io_error_number: i32)`
-    //
-    // Parameters `module_index` and `data_access_index` specify a data object representing a file path.
-    // The file path can be absolute (e.g., /home/yang/Documents/readme.txt) or relative (e.g., ../images/banner.png),
-    // but cannot include shell-specific paths like `~/Downloads/123.dat` or `${HOME}/projects`.
-    //
-    // Returns `(file_index: i32, io_error_number: i32)`.
-    file_open = 0x0006_0000,
+    // Ref:
+    // - https://github.com/hemashushu/regex-anre
+    // - https://github.com/rust-lang/regex
 
-    // Access mode (bit flags)
-    // -----------------------
-    // 1: read
-    // 2: write
-    // 4: append (implies `write` access)
-    //    This mode means that writes will append to a file instead of overwriting previous contents.
-    //    Append mode guarantees that writes will be positioned at the current end of file, even when
-    //    there are other processes or threads appending to the same file. This is unlike
-    //    seek(SeekFrom::End(0)) followed by write(), which has a race between seeking and writing
-    //    during which another writer can write, with our write() overwriting their data.
+    // Compile the given regular expression.
     //
-    // Bit flags can be combined, e.g.,
-    // 1 + 2 = 3 = read + write
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32, flavour:i32) -> (regex_index: i32, regex_error_number:i32)`
+    //
+    // The content of data is the regular expression text.
+    // Parameter `flavour` represents the syntax of the regular expression:
+    // 0 for traditional, 1 for the "XiaoXuan Regular Expression (ANRE)."
+    //
+    // Returns `(regex_index: i32, regex_error_number:i32)`.
+    regex_create = 0x0006_0000,
 
-    // Open options (bit flags)
-    // ------------------------
-    // (not set) = normal open
-    // 1: truncate
-    //    Sets the option for truncating a previous file.
-    //    If a file is successfully opened with this option set to true, it will truncate
-    //    the file to 0 length if it already exists.
-    //    The file must be opened with write access for truncate to work.
+    // Get the number of capture groups.
     //
-    // 2: create_or_open
-    //    Sets the option to create a new file, or open it if it already exists.
-    //    In order for the file to be created, AccessMode::write or OpenOptions::append access must be used.
-    //    This is a general option for creating a file with some given data.
-    //
-    // 4: create_only_non_exist
-    //    Sets the option to create a new file, failing if it already exists.
-    //    This option is useful because it is atomic. Otherwise, between checking whether
-    //    a file exists and creating a new one, the file may have been created by another process.
-    //    If this option is set, `create` and `truncate` are ignored.
-    //    The file must be opened with AccessMode::write or OpenOptions::append in order
-    //    to create a new file.
+    // `fn (regex_index: i32) -> i32`
+    regex_capture_group_count,
 
-    // File Error Number
-    // ---------------------
-    // 1: NotFound
-    //     - The specified file does not exist and neither create nor create_only_non_exist is set.
-    //     - One of the directory components of the file path does not exist.
-    // 2: PermissionDenied
-    //     - The user lacks permission to get the specified access rights for the file.
-    //     - The user lacks permission to open one of the directory components of the specified path.
-    // 3: AlreadyExists
-    //     create_only_non_exist was specified and the file already exists.
-    // 4: InvalidInput
-    //     Invalid combinations of open options (e.g., `truncate` without `write` access, etc.).
+    // Get the length of all capture group names.
+    //
+    // Group names are concatenated with a '\0' character.
+    //
+    // `fn (regex_index: i32) -> i32`
+    regex_capture_group_names_length,
 
-    // File index
-    // ----------
-    // There are three preset file indices for each program:
-    // - 0: stdin
-    //      Standard input of the current process.
-    // - 1: stdout
-    //      Standard output of the current process. By default, the handle is line-buffered
-    //      when connected to a terminal, meaning it flushes automatically when
-    //      a newline (\n) is encountered. For immediate output, you can manually call the
-    //      `flush` method.
-    // - 2: stderr
-    //      Standard error of the current process. This file is not buffered.
+    // Get all capture group names.
+    //
+    // Group names are concatenated with a '\0' character.
+    //
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64) -> i32`
+    //
+    // Returns the actual length of data that was read.
+    regex_capture_group_names_read,
 
-    // Read data from a file and store it in a data object.
+    // Start a matching operation with the given text and offset.
     //
-    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, expected_bytes: i32) -> (actual_read_bytes: i32, io_error_number: i32)`
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32, offset_in_bytes:i32) -> (match_start:i32, match_length:i32)`
     //
-    // The return value `actual_read_bytes` will be 0 if the file offset is at or beyond the end of the file.
-    file_read,
+    // Returns `(match_start:i32, match_length:i32)` if a match is found, or `(0, 0)` if no match is found.
+    regex_match,
 
-    // Write data to a file.
+    // Get the result of the current capture groups.
     //
-    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, bytes_to_write: i32) -> (actual_write_bytes: i32, io_error_number: i32)`
-    file_write,
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32) -> i32`
+    //
+    // The result of capture groups is an `i32` array with the following scheme:
+    //
+    // `[group_0_start, group_0_end, group_1_start, group_1_end, ...]`
+    //
+    // The first capture group is the range of the whole text that matches the regular expression.
+    // Returns the actual length of data that was read.
+    regex_capture_groups,
 
-    // Seek to an offset, in bytes, in a stream.
+    // Remove the specified regex object.
     //
-    // A seek beyond the end of a stream is allowed, but behavior is defined by the implementation.
-    //
-    // `fn (file_index: i32, seek_from: i32, bytes: i64) -> (position: i64, io_error_number: i32)`
-    //
-    // The possible values for `seek_from` are:
-    // - 0: start
-    //   Sets the offset to the provided number of bytes.
-    // - 1: end
-    //   Sets the offset to the size of this object plus the specified number of bytes.
-    // - 2: current
-    //   Sets the offset to the current position plus the specified number of bytes.
-    file_seek,
-
-    // Flushes the output stream,
-    // ensuring that all intermediately buffered contents reach their destination.
-    //
-    // `fn () -> io_error_number: i32`
-    //
-    // Returns the file error number.
-    file_flush,
-
-    // Close the specified file.
-    //
-    // `fn () -> io_error_number: i32`
-    file_close,
-
-    // Returns true if the file index refers to a terminal/tty.
-    //
-    // `fn (file_index: i32) -> i32`
-    file_is_terminal,
-
-    // Category: File System
-
-    // Opens a directory stream corresponding to the directory name and returns an index
-    // representing the directory stream.
-    // The stream is positioned at the first entry in the directory.
-    //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (dir_index: i32, fs_error_number: i32)`
-    fs_open_dir = 0x0007_0000,
-
-    // Retrieve the next directory entry in the directory stream.
-    //
-    // `fn (dir_index: i32, module_index: i32, data_access_index: i64) -> (bytes_read:i32, fs_error_number: i32)`
-    //
-    // Retrieve the next entry in the directory stream.
-    // The data buffer must be at least 256 bytes long. The exact size requirement may vary depending on the platform.
-    //
-    // If the last entry has been read, this function returns `(0, 0)`
-    fs_read_dir,
-
-    // Creates a new, empty directory at the provided path.
-    //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
-    fs_create_dir,
-
-    // Removes an empty directory.
-    //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
-    fs_remove_dir,
-
-    // Removes a file from the filesystem.
-    //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
-    fs_remove_file,
-
-    // Renames a file or directory to a new name, replacing the original file if the destination already exists.
-    //
-    // ```
-    // fn (source_module_index: i32, source_data_access_index: i64, source_content_length_in_bytes:i32,
-    // dest_module_index: i32, dest_data_access_index: i64, dest_content_length_in_bytes:i32) -> fs_error_number: i32`
-    // ```
-    fs_rename,
-
-    // Checks if a file exists in the filesystem.
-    //
-    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (i32, fs_error_number: i32)`
-    //
-    // This function will traverse symbolic links to query information about the destination file.
-    // In case of broken symbolic links, this will return Ok(false).
-    // This function will only return Ok(true) or Ok(false) if the path was verified to exist or not exist.
-    // If its existence can neither be confirmed nor denied, an Error will be propagated instead.
-    // This can be the case if, e.g., listing permission is denied on one of the parent directories.
-    //
-    // Note that while this avoids some pitfalls of the exists() method,
-    // it still cannot prevent time-of-check to time-of-use (TOCTOU) bugs.
-    // You should only use it in scenarios where those bugs are not an issue.
-    fs_exists,
+    // `fn (regex_index: i32)`
+    regex_remove,
 
     // Category: Thread
 
@@ -407,7 +324,7 @@ pub enum EnvCallNum {
     // 2 for the second child thread, and so on.
     //
     // `fn () -> i32`
-    thread_id = 0x0008_0000,
+    thread_id = 0x0007_0000,
 
     // XiaoXuan Core Thread Model
     // --------------------------
@@ -655,67 +572,241 @@ pub enum EnvCallNum {
     // - https://doc.rust-lang.org/stable/rust-by-example/std_misc/channels.html
     // - https://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/
 
-    // Category: Regular Expression
+    // Category: Capabilities
+    //
+    // There is a prompt (both CLI or GUI) to user to grant the capability
+    // if it is the first time the program requests it.
+    // The user can choose to grant (and remember this choice for future runs of the program)
+    // or deny the capability.
+    // If this capability is granted,
 
-    // The regular expression implementation regex-anre is adopted.
+    // Request the capability to perform a system call.
     //
-    // Ref:
-    // - https://github.com/hemashushu/regex-anre
-    // - https://github.com/rust-lang/regex
+    // `fn () -> i32`
+    //
+    capable_syscall = 0x0008_0000,
 
-    // Compile the given regular expression.
-    //
-    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32, flavour:i32) -> (regex_index: i32, regex_error_number:i32)`
-    //
-    // The content of data is the regular expression text.
-    // Parameter `flavour` represents the syntax of the regular expression:
-    // 0 for traditional, 1 for the "XiaoXuan Regular Expression (ANRE)."
-    //
-    // Returns `(regex_index: i32, regex_error_number:i32)`.
-    regex_create = 0x0009_0000,
+    capable_extcall,
 
-    // Get the number of capture groups.
-    //
-    // `fn (regex_index: i32) -> i32`
-    regex_capture_group_count,
+    capable_shell_execute,
 
-    // Get the length of all capture group names.
-    //
-    // Group names are concatenated with a '\0' character.
-    //
-    // `fn (regex_index: i32) -> i32`
-    regex_capture_group_names_length,
+    capable_shell_execute_specified,
 
-    // Get all capture group names.
-    //
-    // Group names are concatenated with a '\0' character.
-    //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64) -> i32`
-    //
-    // Returns the actual length of data that was read.
-    regex_capture_group_names_text,
+    capable_file_execute,
 
-    // Start a matching operation with the given text and offset.
-    //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32, offset_in_bytes:i32) -> (match_start:i32, match_length:i32)`
-    //
-    // Returns `(match_start:i32, match_length:i32)` if a match is found, or `(0, 0)` if no match is found.
-    regex_match,
+    capable_file_execute_specified,
 
-    // Get the result of the current capture groups.
-    //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32) -> i32`
-    //
-    // The result of capture groups is an `i32` array with the following scheme:
-    //
-    // `[group_0_start, group_0_end, group_1_start, group_1_end, ...]`
-    //
-    // The first capture group is the range of the whole text that matches the regular expression.
-    // Returns the actual length of data that was read.
-    regex_capture_groups,
+    // Request predefined directories
 
-    // Remove the specified regex object.
+    // DESKTOP_DIR="$HOME/Desktop"
+    // DOCUMENTS_DIR="$HOME/Documents"
+    // DOWNLOAD_DIR="$HOME/Downloads"
+    // PICTURES_DIR="$HOME/Pictures"
+    // MUSIC_DIR="$HOME/Music"
+    // VIDEOS_DIR="$HOME/Videos"
     //
-    // `fn (regex_index: i32)`
-    regex_remove,
+    // USER_HOME="$HOME"
+    // CONFIG_HOME="$HOME/.config"
+    // CACHE_HOME="$HOME/.cache"
+    // DATA_HOME="$HOME/.local/share"
+    //
+    // See:
+    // - https://wiki.archlinux.org/title/XDG_Base_Directory
+    // - https://wiki.archlinux.org/title/XDG_user_directories
+    capable_dir_access,
+
+    capable_file_access,
+
+    // Category: I/O
+
+    // Open or create a file.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32, open_options: i32, access_mode: i32) -> (file_index: i32, io_error_number: i32)`
+    //
+    // Parameters `module_index` and `data_access_index` specify a data object representing a file path.
+    // The file path can be absolute (e.g., /home/yang/Documents/readme.txt) or relative (e.g., ../images/banner.png),
+    // but cannot include shell-specific paths like `~/Downloads/123.dat` or `${HOME}/projects`.
+    //
+    // Returns `(file_index: i32, io_error_number: i32)`.
+    file_open = 0x0009_0000,
+
+    // Access mode (bit flags)
+    // -----------------------
+    // 1: read
+    // 2: write
+    // 4: append (implies `write` access)
+    //    This mode means that writes will append to a file instead of overwriting previous contents.
+    //    Append mode guarantees that writes will be positioned at the current end of file, even when
+    //    there are other processes or threads appending to the same file. This is unlike
+    //    seek(SeekFrom::End(0)) followed by write(), which has a race between seeking and writing
+    //    during which another writer can write, with our write() overwriting their data.
+    //
+    // Bit flags can be combined, e.g.,
+    // 1 + 2 = 3 = read + write
+
+    // Open options (bit flags)
+    // ------------------------
+    // (not set) = normal open
+    // 1: truncate
+    //    Sets the option for truncating a previous file.
+    //    If a file is successfully opened with this option set to true, it will truncate
+    //    the file to 0 length if it already exists.
+    //    The file must be opened with write access for truncate to work.
+    //
+    // 2: create_or_open
+    //    Sets the option to create a new file, or open it if it already exists.
+    //    In order for the file to be created, AccessMode::write or OpenOptions::append access must be used.
+    //    This is a general option for creating a file with some given data.
+    //
+    // 4: create_only_non_exist
+    //    Sets the option to create a new file, failing if it already exists.
+    //    This option is useful because it is atomic. Otherwise, between checking whether
+    //    a file exists and creating a new one, the file may have been created by another process.
+    //    If this option is set, `create` and `truncate` are ignored.
+    //    The file must be opened with AccessMode::write or OpenOptions::append in order
+    //    to create a new file.
+
+    // File Error Number
+    // ---------------------
+    // 1: NotFound
+    //     - The specified file does not exist and neither create nor create_only_non_exist is set.
+    //     - One of the directory components of the file path does not exist.
+    // 2: PermissionDenied
+    //     - The user lacks permission to get the specified access rights for the file.
+    //     - The user lacks permission to open one of the directory components of the specified path.
+    // 3: AlreadyExists
+    //     create_only_non_exist was specified and the file already exists.
+    // 4: InvalidInput
+    //     Invalid combinations of open options (e.g., `truncate` without `write` access, etc.).
+
+    // File index
+    // ----------
+    // There are three preset file indices for each program:
+    // - 0: stdin
+    //      Standard input of the current process.
+    // - 1: stdout
+    //      Standard output of the current process. By default, the handle is line-buffered
+    //      when connected to a terminal, meaning it flushes automatically when
+    //      a newline (\n) is encountered. For immediate output, you can manually call the
+    //      `flush` method.
+    // - 2: stderr
+    //      Standard error of the current process. This file is not buffered.
+
+    // Read data from a file and store it in a data object.
+    //
+    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, expected_bytes: i32) -> (actual_read_bytes: i32, io_error_number: i32)`
+    //
+    // The return value `actual_read_bytes` will be 0 if the file offset is at or beyond the end of the file.
+    file_read,
+
+    // Write data to a file.
+    //
+    // `fn (file_index: i32, module_index: i32, data_access_index: i64, data_offset: i32, bytes_to_write: i32) -> (actual_write_bytes: i32, io_error_number: i32)`
+    file_write,
+
+    // Seek to an offset, in bytes, in a stream.
+    //
+    // A seek beyond the end of a stream is allowed, but behavior is defined by the implementation.
+    //
+    // `fn (file_index: i32, seek_from: i32, bytes: i64) -> (position: i64, io_error_number: i32)`
+    //
+    // The possible values for `seek_from` are:
+    // - 0: start
+    //   Sets the offset to the provided number of bytes.
+    // - 1: end
+    //   Sets the offset to the size of this object plus the specified number of bytes.
+    // - 2: current
+    //   Sets the offset to the current position plus the specified number of bytes.
+    file_seek,
+
+    // Flushes the output stream,
+    // ensuring that all intermediately buffered contents reach their destination.
+    //
+    // `fn () -> io_error_number: i32`
+    //
+    // Returns the file error number.
+    file_flush,
+
+    // Close the specified file.
+    //
+    // `fn () -> io_error_number: i32`
+    file_close,
+
+    // Returns true if the file index refers to a terminal/tty.
+    //
+    // `fn (file_index: i32) -> i32`
+    file_is_terminal,
+
+    // Category: File System
+    fs_get_current_dir = 0x000A_0000,
+
+    fs_get_temporary_dir,
+
+    // Such as:
+    //
+    // - `$HOME/Documents/{app_name}`
+    // - `$HOME/Downloads/{app_name}`
+    // - `$HOME/Pictures/{app_name} `
+    // - `$HOME/Music/{app_name}`
+    // - `$HOME/Videos/{app_name}`
+    // - `$HOME/.config/{app_name}`
+    // - `$HOME/.cache/{app_name}`
+    // - `$HOME/.local/share/{app_name}`
+    //
+    fs_get_application_dir,
+
+    // Opens a directory stream corresponding to the directory name and returns an index
+    // representing the directory stream.
+    // The stream is positioned at the first entry in the directory.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (dir_index: i32, fs_error_number: i32)`
+    fs_list_dir,
+
+    // Retrieve the next directory entry in the directory stream.
+    //
+    // `fn (dir_index: i32, module_index: i32, data_access_index: i64) -> (bytes_read:i32, fs_error_number: i32)`
+    //
+    // Retrieve the next entry in the directory stream.
+    // The data buffer must be at least 256 bytes long. The exact size requirement may vary depending on the platform.
+    //
+    // If the last entry has been read, this function returns `(0, 0)`
+    fs_list_dir_read,
+
+    // Creates a new, empty directory at the provided path.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
+    fs_create_dir,
+
+    // Removes an empty directory.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
+    fs_remove_dir,
+
+    // Removes a file from the filesystem.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> fs_error_number: i32`
+    fs_remove_file,
+
+    // Renames a file or directory to a new name, replacing the original file if the destination already exists.
+    //
+    // ```
+    // fn (source_module_index: i32, source_data_access_index: i64, source_content_length_in_bytes:i32,
+    // dest_module_index: i32, dest_data_access_index: i64, dest_content_length_in_bytes:i32) -> fs_error_number: i32`
+    // ```
+    fs_rename,
+
+    // Checks if a file exists in the filesystem.
+    //
+    // `fn (module_index: i32, data_access_index: i64, content_length_in_bytes:i32) -> (i32, fs_error_number: i32)`
+    //
+    // This function will traverse symbolic links to query information about the destination file.
+    // In case of broken symbolic links, this will return Ok(false).
+    // This function will only return Ok(true) or Ok(false) if the path was verified to exist or not exist.
+    // If its existence can neither be confirmed nor denied, an Error will be propagated instead.
+    // This can be the case if, e.g., listing permission is denied on one of the parent directories.
+    //
+    // Note that while this avoids some pitfalls of the exists() method,
+    // it still cannot prevent time-of-check to time-of-use (TOCTOU) bugs.
+    // You should only use it in scenarios where those bugs are not an issue.
+    fs_exists,
 }

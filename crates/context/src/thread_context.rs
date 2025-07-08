@@ -54,7 +54,7 @@ pub struct ThreadContext<'a> {
     pub module_common_instances: Vec<ModuleCommonInstance<'a>>,
 
     // Properties of the process, such as configuration and runtime state.
-    pub process_property: &'a ProcessProperty,
+    pub process_property: &'a Mutex<ProcessProperty>,
 }
 
 /// Represents a target data object, including its module index, data section type,
@@ -83,8 +83,8 @@ pub struct FunctionInfo {
 impl<'a> ThreadContext<'a> {
     /// Creates a new `ThreadContext` instance, initializing its components.
     pub fn new(
-        process_property: &'a ProcessProperty,
         module_images: &'a [ModuleImage<'a>],
+        process_property: &'a Mutex<ProcessProperty>,
         external_function_table: &'a Mutex<ExternalFunctionTable>,
         jit_generator: &'a Mutex<Generator<JITModule>>,
     ) -> Self {

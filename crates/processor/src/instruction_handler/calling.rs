@@ -193,6 +193,7 @@ mod tests {
     use std::collections::HashMap;
 
     use anc_context::{
+        capability::Capability,
         process_property::{ProcessProperty, ProgramSourceType},
         program_source::ProgramSource,
     };
@@ -791,7 +792,8 @@ mod tests {
                 pwd,
                 ProgramSourceType::Module,
                 vec![],
-                HashMap::<String, String>::new(),
+                vec![],
+                Capability::default(),
             ),
         );
         let process_context0 = resource0.create_process_context().unwrap();

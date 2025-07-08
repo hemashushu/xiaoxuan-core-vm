@@ -44,6 +44,9 @@ impl ProgramSource for InMemoryProgramSource {
 
         let module_images = helper_load_modules_from_binaries(&binaries_ref)?;
 
-        Ok(ProcessContext::new(&self.program_proerty, module_images))
+        Ok(ProcessContext::new(
+            self.program_proerty.clone(),
+            module_images,
+        ))
     }
 }

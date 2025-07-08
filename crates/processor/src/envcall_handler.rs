@@ -77,9 +77,13 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
                 EnvCallNum::program_path_length => environment::program_path_length,
                 EnvCallNum::program_path_read => environment::program_path_read,
                 EnvCallNum::program_source_type => environment::program_source_type,
-                EnvCallNum::argument_length => environment::argument_length,
-                EnvCallNum::argument_read => environment::argument_read,
-                EnvCallNum::environment_variable_count => environment::environment_variable_count,
+                EnvCallNum::arguments_length => environment::arguments_length,
+                EnvCallNum::arguments_read => environment::arguments_read,
+                EnvCallNum::environment_variables_length => {
+                    environment::environment_variables_length
+                }
+                EnvCallNum::environment_variables_read => environment::environment_variables_read,
+                EnvCallNum::environment_variable_find => environment::environment_variable_find,
                 EnvCallNum::environment_variable_item_length => {
                     environment::environment_variable_item_length
                 }
@@ -113,32 +117,19 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
             }
         }
         0x0006 => {
-            // Category: I/O
+            // Category: Regular expressions
             match envcall_num {
-                EnvCallNum::file_open => envcall_unreachable_handler,
-                EnvCallNum::file_read => envcall_unreachable_handler,
-                EnvCallNum::file_write => envcall_unreachable_handler,
-                EnvCallNum::file_seek => envcall_unreachable_handler,
-                EnvCallNum::file_flush => envcall_unreachable_handler,
-                EnvCallNum::file_close => envcall_unreachable_handler,
-                EnvCallNum::file_is_terminal => envcall_unreachable_handler,
+                EnvCallNum::regex_create => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_count => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_names_length => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_group_names_read => envcall_unreachable_handler,
+                EnvCallNum::regex_match => envcall_unreachable_handler,
+                EnvCallNum::regex_capture_groups => envcall_unreachable_handler,
+                EnvCallNum::regex_remove => envcall_unreachable_handler,
                 _ => envcall_unreachable_handler,
             }
         }
         0x0007 => {
-            // Category: File system
-            match envcall_num {
-                EnvCallNum::fs_open_dir => envcall_unreachable_handler,
-                EnvCallNum::fs_read_dir => envcall_unreachable_handler,
-                EnvCallNum::fs_create_dir => envcall_unreachable_handler,
-                EnvCallNum::fs_remove_dir => envcall_unreachable_handler,
-                EnvCallNum::fs_remove_file => envcall_unreachable_handler,
-                EnvCallNum::fs_rename => envcall_unreachable_handler,
-                EnvCallNum::fs_exists => envcall_unreachable_handler,
-                _ => envcall_unreachable_handler,
-            }
-        }
-        0x0008 => {
             // Category: Thread
             match envcall_num {
                 EnvCallNum::thread_id => multithread::thread_id,
@@ -160,16 +151,46 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
                 _ => envcall_unreachable_handler,
             }
         }
-        0x0009 => {
-            // Category: Regular expressions
+        0x0008 => {
+            // Category: Capabilities
             match envcall_num {
-                EnvCallNum::regex_create => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_count => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_names_length => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_names_text => envcall_unreachable_handler,
-                EnvCallNum::regex_match => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_groups => envcall_unreachable_handler,
-                EnvCallNum::regex_remove => envcall_unreachable_handler,
+                EnvCallNum::capable_syscall => envcall_unreachable_handler,
+                EnvCallNum::capable_extcall => envcall_unreachable_handler,
+                EnvCallNum::capable_shell_execute => envcall_unreachable_handler,
+                EnvCallNum::capable_shell_execute_specified => envcall_unreachable_handler,
+                EnvCallNum::capable_file_execute => envcall_unreachable_handler,
+                EnvCallNum::capable_file_execute_specified => envcall_unreachable_handler,
+                EnvCallNum::capable_dir_access => envcall_unreachable_handler,
+                EnvCallNum::capable_file_access => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x0009 => {
+            // Category: I/O
+            match envcall_num {
+                EnvCallNum::file_open => envcall_unreachable_handler,
+                EnvCallNum::file_read => envcall_unreachable_handler,
+                EnvCallNum::file_write => envcall_unreachable_handler,
+                EnvCallNum::file_seek => envcall_unreachable_handler,
+                EnvCallNum::file_flush => envcall_unreachable_handler,
+                EnvCallNum::file_close => envcall_unreachable_handler,
+                EnvCallNum::file_is_terminal => envcall_unreachable_handler,
+                _ => envcall_unreachable_handler,
+            }
+        }
+        0x000A => {
+            // Category: File system
+            match envcall_num {
+                EnvCallNum::fs_get_current_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_get_temporary_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_get_application_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_list_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_list_dir_read => envcall_unreachable_handler,
+                EnvCallNum::fs_create_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_remove_dir => envcall_unreachable_handler,
+                EnvCallNum::fs_remove_file => envcall_unreachable_handler,
+                EnvCallNum::fs_rename => envcall_unreachable_handler,
+                EnvCallNum::fs_exists => envcall_unreachable_handler,
                 _ => envcall_unreachable_handler,
             }
         }
