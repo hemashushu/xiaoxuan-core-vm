@@ -6,8 +6,6 @@
 
 use anc_context::thread_context::ThreadContext;
 
-use crate::process;
-
 pub fn program_path_length(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let process_property = thread_context.process_property.lock().unwrap();
@@ -61,17 +59,19 @@ pub fn program_source_type(thread_context: &mut ThreadContext) {
 pub fn arguments_length(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let process_property = thread_context.process_property.lock().unwrap();
-    let mut content_length = process_property
-        .arguments
-        .iter()
-        .fold(0, |acc, arg| acc + arg.as_bytes().len());
 
-    if process_property.arguments.len() > 0 {
+    if process_property.arguments.is_empty() {
+        thread_context.stack.push_i32_u(0);
+    } else {
+        let mut content_length = process_property
+            .arguments
+            .iter()
+            .fold(0, |acc, arg| acc + arg.as_bytes().len());
+
         // Add the number of null terminators
         content_length += process_property.arguments.len() - 1;
+        thread_context.stack.push_i32_u(content_length as u32);
     }
-
-    thread_context.stack.push_i32_u(content_length as u32);
 }
 
 pub fn arguments_read(thread_context: &mut ThreadContext) {
@@ -112,19 +112,21 @@ pub fn arguments_read(thread_context: &mut ThreadContext) {
 pub fn environment_variables_length(thread_context: &mut ThreadContext) {
     // `fn () -> i32`
     let process_property = thread_context.process_property.lock().unwrap();
-    let mut content_length = process_property
-        .environments
-        .iter()
-        .fold(0, |acc, (key, value)| {
-            acc + key.as_bytes().len() + value.as_bytes().len()
-        });
 
-    if process_property.environments.len() > 0 {
+    if process_property.environments.is_empty() {
+        thread_context.stack.push_i32_u(0);
+    } else {
+        let mut content_length = process_property
+            .environments
+            .iter()
+            .fold(0, |acc, (key, value)| {
+                acc + key.as_bytes().len() + value.as_bytes().len()
+            });
+
         // Add the number of null terminators
         content_length += process_property.environments.len() - 1;
+        thread_context.stack.push_i32_u(content_length as u32);
     }
-
-    thread_context.stack.push_i32_u(content_length as u32);
 }
 
 pub fn environment_variables_read(thread_context: &mut ThreadContext) {
@@ -181,20 +183,19 @@ pub fn environment_variable_find(thread_context: &mut ThreadContext) {
         data_length_in_bytes as usize,
     );
 
-    let mut buf = vec![0; data_length_in_bytes as usize];
-    target_data_object.accessor.read_idx(
-        data_access_index as usize,
-        0,
-        data_length_in_bytes as usize,
-        buf.as_mut_ptr(),
-    );
-    let expected_name = String::from_utf8(buf).unwrap_or_default();
+    let content_address = target_data_object
+        .accessor
+        .get_start_address_by_index(data_access_index as usize);
+    let content_ptr = target_data_object.accessor.get_ptr(content_address, 0);
+    let content_bytes =
+        unsafe { std::slice::from_raw_parts(content_ptr, data_length_in_bytes as usize) };
+    let content = unsafe { str::from_utf8_unchecked(content_bytes) };
 
     let process_property = thread_context.process_property.lock().unwrap();
     let position = process_property
         .environments
         .iter()
-        .position(|(name, _)| name == &expected_name);
+        .position(|(name, _)| name == content);
 
     if let Some(pos) = position {
         // If the environment variable is found, return its index.
@@ -286,24 +287,24 @@ pub fn environment_variable_set(thread_context: &mut ThreadContext) {
         data_length_in_bytes as usize,
     );
 
-    let mut buf = vec![0; data_length_in_bytes as usize];
-    target_data_object.accessor.read_idx(
-        data_access_index as usize,
-        0,
-        data_length_in_bytes as usize,
-        buf.as_mut_ptr(),
-    );
-    let content = String::from_utf8(buf).unwrap_or_default();
+    let content_address = target_data_object
+        .accessor
+        .get_start_address_by_index(data_access_index as usize);
+    let content_ptr = target_data_object.accessor.get_ptr(content_address, 0);
+    let content_bytes =
+        unsafe { std::slice::from_raw_parts(content_ptr, data_length_in_bytes as usize) };
+    let content = unsafe { str::from_utf8_unchecked(content_bytes) };
+
     let (name, value) = content
         .split_once('=')
         .map(|(n, v)| (n.to_string(), v.to_string()))
-        .unwrap_or((content.clone(), String::new()));
+        .unwrap_or((content.to_string(), String::new()));
 
     let mut process_property = thread_context.process_property.lock().unwrap();
     let position = process_property
         .environments
         .iter()
-        .position(|(n, _)| n == &name);
+        .position(|(var_name, _)| var_name == &name);
 
     if let Some(pos) = position {
         // If the environment variable is found, replace its value.
@@ -327,24 +328,19 @@ pub fn environment_variable_remove(thread_context: &mut ThreadContext) {
         data_length_in_bytes as usize,
     );
 
-    let mut buf = vec![0; data_length_in_bytes as usize];
-    target_data_object.accessor.read_idx(
-        data_access_index as usize,
-        0,
-        data_length_in_bytes as usize,
-        buf.as_mut_ptr(),
-    );
-    let content = String::from_utf8(buf).unwrap_or_default();
-    let (name, value) = content
-        .split_once('=')
-        .map(|(n, v)| (n.to_string(), v.to_string()))
-        .unwrap_or((content.clone(), String::new()));
+    let content_address = target_data_object
+        .accessor
+        .get_start_address_by_index(data_access_index as usize);
+    let content_ptr = target_data_object.accessor.get_ptr(content_address, 0);
+    let content_bytes =
+        unsafe { std::slice::from_raw_parts(content_ptr, data_length_in_bytes as usize) };
+    let content = unsafe { str::from_utf8_unchecked(content_bytes) };
 
     let mut process_property = thread_context.process_property.lock().unwrap();
     let position = process_property
         .environments
         .iter()
-        .position(|(n, _)| n == &name);
+        .position(|(var_name, _)| var_name == content);
 
     if let Some(pos) = position {
         // If the environment variable is found, remove it.

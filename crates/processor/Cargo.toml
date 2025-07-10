@@ -13,7 +13,8 @@ anc-stack = { path = "../stack" }
 anc-memory = { path = "../memory" }
 syscall-util = { git = "https://github.com/hemashushu/syscall-util.git", rev = "c21096fe6f31b63424eec1e5c39a3c1ffe63d67c" }
 dyncall-util = { git = "https://github.com/hemashushu/dyncall-util.git", rev = "0a56f688d9b48dec59d19512aaef666c8d69884c" }
-regex-anre = "1.0.0"
+# regex-anre = "1.1.0"
+regex-anre = {path="../../../anre"}
 ason = "1.4.0"
 resolve-path = "0.1.0"
 
@@ -23,9 +24,7 @@ cranelift-module = "0.121.1"
 cranelift-jit = "0.121.1"
 cranelift-native = "0.121.1"
 cranelift-object = "0.121.1"
-
-# libc = "0.2"
-# rand = "0.8.5"
+rand = { version = "0.9.1", features = ["thread_rng"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

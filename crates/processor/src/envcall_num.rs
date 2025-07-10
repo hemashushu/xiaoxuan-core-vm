@@ -222,35 +222,43 @@ pub enum EnvCallNum {
     // `fn () -> i64`
     random_i64,
 
-    // Retrieve a random number in the range [0, 1).
+    // Retrieve a random number of type f32.
     //
     // `fn () -> f32`
     random_f32,
 
-    // Retrieve a random number in the range [0, 1).
+    // Retrieve a random number of type f64..
     //
     // `fn () -> f64`
     random_f64,
 
     // Retrieve a random number within a specific range.
     //
-    // `fn (start_include: i32, end_exclude: i32) -> i32`
+    // `fn (start: i32, end_exclusive: i32) -> i32`
     random_range_i32,
 
     // Retrieve a random number within a specific range.
     //
-    // `fn (start_include: i64, end_exclude: i64) -> i64`
+    // `fn (start: i64, end_exclusive: i64) -> i64`
     random_range_i64,
 
     // Retrieve a random number within a specific range.
     //
-    // `fn (start_include: f32, end_exclude: f32) -> f32`
+    // `fn (start: f32, end_exclusive: f32) -> f32`
+    //
+    // VM will panic if `start` or `end_exclusive` is invalid f32.
     random_range_f32,
 
     // Retrieve a random number within a specific range.
     //
-    // `fn (start_include: f64, end_exclude: f64) -> f64`
+    // `fn (start: f64, end_exclusive: f64) -> f64`
+    // VM will panic if `start` or `end_exclusive` is invalid f32.
     random_range_f64,
+
+    // Fill a specified data buffer with random bytes.
+    //
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32) -> ()`
+    random_fill,
 
     // Category: Regular Expression
 
@@ -262,18 +270,21 @@ pub enum EnvCallNum {
 
     // Compile the given regular expression.
     //
-    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32, flavour:i32) -> (regex_index: i32, regex_error_number:i32)`
+    // `fn (module_index: i32, data_access_index: i64, data_length_in_bytes:i32, flavour:i32) -> i32`
     //
     // The content of data is the regular expression text.
     // Parameter `flavour` represents the syntax of the regular expression:
     // 0 for traditional, 1 for the "XiaoXuan Regular Expression (ANRE)."
     //
-    // Returns `(regex_index: i32, regex_error_number:i32)`.
+    // Returns `regex_index` if the compilation is successful,
+    // or -1 if it fails.
     regex_create = 0x0006_0000,
 
-    // Get the number of capture groups.
+    // Get the number of the capture groups
     //
     // `fn (regex_index: i32) -> i32`
+    //
+    // Returns -1 if the regex object does not exist.
     regex_capture_group_count,
 
     // Get the length of all capture group names.
@@ -281,35 +292,49 @@ pub enum EnvCallNum {
     // Group names are concatenated with a '\0' character.
     //
     // `fn (regex_index: i32) -> i32`
+    //
+    // Returns -1 if the regex object does not exist.
     regex_capture_group_names_length,
 
     // Get all capture group names.
     //
     // Group names are concatenated with a '\0' character.
     //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64) -> i32`
+    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
     //
-    // Returns the actual length of data that was read.
+    // Returns the actual length of data that was read, or -1 if the regex object does not exist.
     regex_capture_group_names_read,
 
     // Start a matching operation with the given text and offset.
     //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32, offset_in_bytes:i32) -> (match_start:i32, match_length:i32)`
+    // ```
+    // fn (
+    //   regex_index: i32,
+    //   module_index: i32,
+    //   data_access_index: i64,
+    //   data_length_in_bytes:i32,
+    //   start_offset_in_bytes:i32) -> (match_start:i32, match_end_exclusive:i32)
+    // ```
     //
-    // Returns `(match_start:i32, match_length:i32)` if a match is found, or `(0, 0)` if no match is found.
+    // Returns:
+    // - `(match_start:i32, match_end_exclusive:i32)` if a match is found,
+    // - `(0, 0)` if no match is found.
+    // -  `(0, -1)` if the regex object does not exist.
     regex_match,
 
-    // Get the result of the current capture groups.
+    // Get the result of the last capture groups.
     //
-    // `fn (regex_index: i32, module_index: i32, data_access_index: i64, data_length_in_bytes:i32) -> i32`
+    // `fn (module_index: i32, data_access_index: i64, expected_data_length_in_bytes:i32) -> i32`
     //
     // The result of capture groups is an `i32` array with the following scheme:
     //
     // `[group_0_start, group_0_end, group_1_start, group_1_end, ...]`
     //
+    // The langth of the array is `2 * regex_capture_group_count * 4 bytes (per i32)`.
+    //
     // The first capture group is the range of the whole text that matches the regular expression.
-    // Returns the actual length of data that was read.
-    regex_capture_groups,
+    // Returns the actual length of data that was read, or -1 if the regex object does not exist.
+    regex_last_captures_read,
 
     // Remove the specified regex object.
     //
@@ -590,32 +615,48 @@ pub enum EnvCallNum {
 
     capable_shell_execute,
 
-    capable_shell_execute_specified,
+    capable_shell_execute_all,
 
     capable_file_execute,
 
-    capable_file_execute_specified,
+    capable_file_execute_all,
 
-    // Request predefined directories
-
-    // DESKTOP_DIR="$HOME/Desktop"
-    // DOCUMENTS_DIR="$HOME/Documents"
-    // DOWNLOAD_DIR="$HOME/Downloads"
-    // PICTURES_DIR="$HOME/Pictures"
-    // MUSIC_DIR="$HOME/Music"
-    // VIDEOS_DIR="$HOME/Videos"
+    // Request personal directory access capabilities.
     //
-    // USER_HOME="$HOME"
-    // CONFIG_HOME="$HOME/.config"
-    // CACHE_HOME="$HOME/.cache"
-    // DATA_HOME="$HOME/.local/share"
+    // - PERSONAL_DESKTOP_DIR="$HOME/Desktop"
+    // - PERSONAL_DOCUMENTS_DIR="$HOME/Documents"
+    // - PERSONAL_DOWNLOAD_DIR="$HOME/Downloads"
+    // - PERSONAL_PICTURES_DIR="$HOME/Pictures"
+    // - PERSONAL_MUSIC_DIR="$HOME/Music"
+    // - PERSONAL_VIDEOS_DIR="$HOME/Videos"
+    // - PERSONAL_CONFIG_DIR="$HOME/.config"
+    // - PERSONAL_CACHE_DIR="$HOME/.cache"
+    // - PERSONAL_DATA_DIR="$HOME/.local/share"
+    //
     //
     // See:
     // - https://wiki.archlinux.org/title/XDG_Base_Directory
     // - https://wiki.archlinux.org/title/XDG_user_directories
-    capable_dir_access,
+    capable_personal_dir_access,
+
+    // Request application directory access capabilities.
+    //
+    // - APPLICATION_DESKTOP_DIR="$HOME/Desktop/$APP_ID"
+    // - APPLICATION_DOCUMENTS_DIR="$HOME/Documents/$APP_ID"
+    // - APPLICATION_DOWNLOAD_DIR="$HOME/Downloads/$APP_ID"
+    // - APPLICATION_PICTURES_DIR="$HOME/Pictures/$APP_ID"
+    // - APPLICATION_MUSIC_DIR="$HOME/Music/$APP_ID"
+    // - APPLICATION_VIDEOS_DIR="$HOME/Videos/$APP_ID"
+    // - APPLICATION_CONFIG_DIR="$HOME/.config/$APP_ID"
+    // - APPLICATION_CACHE_DIR="$HOME/.cache/$APP_ID"
+    // - APPLICATION_DATA_DIR="$HOME/.local/share/$APP_ID"
+    //
+    // Only installed applications can access these directories.
+    capable_application_dir_access,
 
     capable_file_access,
+
+    capable_file_access_all,
 
     // Category: I/O
 

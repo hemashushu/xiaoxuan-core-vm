@@ -18,6 +18,7 @@ use crate::{
     callback_delegate_function_table::CallbackDelegateFunctionTable, code_generator::Generator,
     external_function_table::ExternalFunctionTable, module_common_instance::ModuleCommonInstance,
     module_linking_instance::ModuleLinkingInstance, process_property::ProcessProperty,
+    thread_resources::ThreadResources,
 };
 
 // The index of the most significant bit for memory data access.
@@ -44,6 +45,8 @@ pub struct ThreadContext<'a> {
 
     // Table for bridge functions, used for calling functions from outside the VM.
     pub bridge_function_table: BridgeFunctionTable,
+
+    pub thread_resources: ThreadResources,
 
     pub jit_generator: &'a Mutex<Generator<JITModule>>,
 
@@ -106,6 +109,7 @@ impl<'a> ThreadContext<'a> {
 
         let callback_delegate_function_table = CallbackDelegateFunctionTable::new();
         let bridge_function_table = BridgeFunctionTable::new();
+        let resources = ThreadResources::new();
 
         Self {
             stack: Box::new(stack),
@@ -114,6 +118,7 @@ impl<'a> ThreadContext<'a> {
             external_function_table,
             callback_delegate_function_table,
             bridge_function_table,
+            thread_resources: resources,
             jit_generator,
             module_linking_instance,
             module_common_instances,

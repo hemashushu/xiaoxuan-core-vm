@@ -7,10 +7,10 @@
 mod environment;
 mod host;
 mod multithread;
+mod random;
+mod regex;
 mod runtime;
-mod timer;
-// mod random;
-// mod regex;
+mod time;
 
 use anc_context::thread_context::ThreadContext;
 use anc_image::bytecode_reader::format_bytecode_as_text;
@@ -98,34 +98,37 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
         0x0004 => {
             // Category: Timer
             match envcall_num {
-                EnvCallNum::time_now => timer::time_now,
+                EnvCallNum::time_now => time::time_now,
                 _ => envcall_unreachable_handler,
             }
         }
         0x0005 => {
             // Category: Random number generation
             match envcall_num {
-                EnvCallNum::random_i32 => envcall_unreachable_handler,
-                EnvCallNum::random_i64 => envcall_unreachable_handler,
-                EnvCallNum::random_f32 => envcall_unreachable_handler,
-                EnvCallNum::random_f64 => envcall_unreachable_handler,
-                EnvCallNum::random_range_i32 => envcall_unreachable_handler,
-                EnvCallNum::random_range_i64 => envcall_unreachable_handler,
-                EnvCallNum::random_range_f32 => envcall_unreachable_handler,
-                EnvCallNum::random_range_f64 => envcall_unreachable_handler,
+                EnvCallNum::random_i32 => random::random_i32,
+                EnvCallNum::random_i64 => random::random_i64,
+                EnvCallNum::random_f32 => random::random_f32,
+                EnvCallNum::random_f64 => random::random_f64,
+                EnvCallNum::random_range_i32 => random::random_range_i32,
+                EnvCallNum::random_range_i64 => random::random_range_i64,
+                EnvCallNum::random_range_f32 => random::random_range_f32,
+                EnvCallNum::random_range_f64 => random::random_range_f64,
+                EnvCallNum::random_fill => random::random_fill,
                 _ => envcall_unreachable_handler,
             }
         }
         0x0006 => {
             // Category: Regular expressions
             match envcall_num {
-                EnvCallNum::regex_create => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_count => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_names_length => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_group_names_read => envcall_unreachable_handler,
-                EnvCallNum::regex_match => envcall_unreachable_handler,
-                EnvCallNum::regex_capture_groups => envcall_unreachable_handler,
-                EnvCallNum::regex_remove => envcall_unreachable_handler,
+                EnvCallNum::regex_create => regex::regex_create,
+                EnvCallNum::regex_capture_group_count => regex::regex_capture_group_count,
+                EnvCallNum::regex_capture_group_names_length => {
+                    regex::regex_capture_group_names_length
+                }
+                EnvCallNum::regex_capture_group_names_read => regex::regex_capture_group_names_read,
+                EnvCallNum::regex_match => regex::regex_match,
+                EnvCallNum::regex_last_captures_read => regex::regex_last_captures_read,
+                EnvCallNum::regex_remove => regex::regex_remove,
                 _ => envcall_unreachable_handler,
             }
         }
@@ -157,11 +160,13 @@ pub fn get_envcall_handlers(envcall_num_integer: u32) -> EnvCallHandlerFunc {
                 EnvCallNum::capable_syscall => envcall_unreachable_handler,
                 EnvCallNum::capable_extcall => envcall_unreachable_handler,
                 EnvCallNum::capable_shell_execute => envcall_unreachable_handler,
-                EnvCallNum::capable_shell_execute_specified => envcall_unreachable_handler,
+                EnvCallNum::capable_shell_execute_all => envcall_unreachable_handler,
                 EnvCallNum::capable_file_execute => envcall_unreachable_handler,
-                EnvCallNum::capable_file_execute_specified => envcall_unreachable_handler,
-                EnvCallNum::capable_dir_access => envcall_unreachable_handler,
+                EnvCallNum::capable_file_execute_all => envcall_unreachable_handler,
+                EnvCallNum::capable_personal_dir_access => envcall_unreachable_handler,
+                EnvCallNum::capable_application_dir_access => envcall_unreachable_handler,
                 EnvCallNum::capable_file_access => envcall_unreachable_handler,
+                EnvCallNum::capable_file_access_all => envcall_unreachable_handler,
                 _ => envcall_unreachable_handler,
             }
         }

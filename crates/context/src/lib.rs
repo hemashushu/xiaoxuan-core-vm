@@ -16,3 +16,4 @@ pub mod process_context;
 pub mod process_property;
 pub mod program_source;
 pub mod thread_context;
+pub mod thread_resources;
